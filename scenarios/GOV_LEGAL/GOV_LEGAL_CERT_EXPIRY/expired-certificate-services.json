@@ -1,0 +1,515 @@
+{
+	"id": "expired-certificate-services",
+	"title": "Resposta a Expiração de Certificado Digital em Serviços Críticos",
+	"description": "Simulação tabletop de resposta a incidente causado por expiração de certificado SSL/TLS em múltiplos serviços corporativos",
+	"category": {
+		"id": "GOV_LEGAL",
+		"type": "GOV_LEGAL_CERT_EXPIRY",
+		"title": "Expiração de Certificado Digital"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2025-02-02",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "35-50 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Equipe de Infraestrutura, Administradores de Sistemas, Analistas de Segurança, Gestores de TI"
+	},
+	"objectives": [
+		"Validar capacidade de detecção e resposta rápida a expiração de certificados digitais",
+		"Avaliar conhecimento sobre PKI (Public Key Infrastructure), CA (Certificate Authority) e processos de renovação",
+		"Testar procedimentos de renovação emergencial e gestão de certificados",
+		"Desenvolver compreensão de impactos operacionais e de segurança da expiração de certificados",
+		"Identificar processos de inventário, monitoramento proativo e alertas de expiração",
+		"Promover conhecimento sobre diferentes tipos de certificados (DV, OV, EV, wildcard, SAN)"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá execução real de comandos em sistemas de produção",
+		"Não inclui compra ou emissão real de certificados junto a CAs comerciais",
+		"Foco na análise técnica, tomada de decisão e procedimentos de resposta emergencial",
+		"Avaliação de conhecimento de PKI, TLS/SSL e gestão de certificados digitais"
+	],
+	"baseScenario": {
+		"context": "Segunda-feira, 8h15, início do expediente. Você faz parte da equipe de infraestrutura. A organização opera diversos serviços críticos protegidos por certificados SSL/TLS: portal web principal (HTTPS), API de integração externa, servidor de e-mail (SMTP/IMAP com TLS), VPN SSL corporativa, e sistema de autenticação federada (SAML). Todos os certificados são emitidos por CA comercial confiável (não autoassinados). O processo de renovação é manual, dependendo de solicitação via portal da CA e instalação nos servidores.",
+		"initialSituation": {
+			"alert": "Múltiplos usuários reportam erros de certificado ao acessar portal web",
+			"affectedServices": "Portal web principal (portal.company.com)",
+			"errorMessage": "NET::ERR_CERT_DATE_INVALID - Certificate has expired",
+			"certificateExpiry": "2025-02-02 07:59:00 UTC (expirado há 15 minutos)",
+			"timestamp": "08:14:22"
+		},
+		"initialComplaints": [
+			"Navegadores exibem aviso de segurança: 'Sua conexão não é particular'",
+			"Alguns usuários receberam e-mail de alerta da CA há 30 dias, mas foi ignorado",
+			"Clientes externos reportam impossibilidade de acessar portal de autoatendimento",
+			"Equipe comercial não consegue acessar sistema de CRM hospedado no mesmo domínio"
+		],
+		"availableResources": [
+			"Acesso administrativo aos servidores web (Apache, Nginx, IIS)",
+			"Conta ativa no portal da Certificate Authority (CA)",
+			"Ferramentas de análise: openssl, certutil, nmap com ssl-enum-ciphers",
+			"Documentação de procedimentos de renovação de certificados (parcialmente desatualizada)",
+			"Acesso ao DNS para validação de domínio (método HTTP-01 ou DNS-01)",
+			"Backup de chaves privadas em cofre seguro",
+			"Sistema de monitoramento (Zabbix, Nagios) sem checks de expiração configurados"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe deve se familiarizar com a situação inicial e infraestrutura de certificados.",
+			"inject": "Apresentação do cenário conforme descrito. A equipe tem 5 minutos para discutir a situação inicial e planejar abordagem.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Detecção e Análise Inicial",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe investiga os erros reportados e executa análise do certificado para confirmar expiração e avaliar escopo do problema.",
+			"timeElapsed": "T+0 (início do incidente - 08:14)",
+			"currentSituation": {
+				"webPortalAvailability": "Indisponível para navegadores (erro de certificado)",
+				"userImpact": "~300 usuários internos + clientes externos",
+				"businessImpact": "Portal de autoatendimento e CRM inacessíveis",
+				"otherServices": "Status desconhecido - requer verificação"
+			},
+			"metrics": [
+				{
+					"type": "certificate-analysis",
+					"title": "Análise do Certificado Expirado (portal.company.com)",
+					"data": {
+						"subject": "CN=portal.company.com",
+						"issuer": "CN=Sectigo RSA Domain Validation Secure Server CA, O=Sectigo Limited, C=GB",
+						"validFrom": "2024-02-02 00:00:00 UTC",
+						"validTo": "2025-02-02 07:59:00 UTC (EXPIRADO)",
+						"serialNumber": "00d1a9b8c7f6e5d4c3b2a19080706050",
+						"signatureAlgorithm": "SHA256-RSA",
+						"publicKeyAlgorithm": "RSA 2048 bits",
+						"san": ["DNS:portal.company.com", "DNS:www.portal.company.com"],
+						"certificateType": "DV (Domain Validation)",
+						"observation": "Certificado expirou há 15 minutos. Não é wildcard (cobre apenas portal.company.com e www). CA enviou 3 alertas: 90 dias, 30 dias e 7 dias antes da expiração para admin@company.com (caixa de e-mail compartilhada raramente checada)."
+					}
+				},
+				{
+					"type": "browser-errors",
+					"title": "Erros Reportados pelos Navegadores",
+					"data": {
+						"chrome": "NET::ERR_CERT_DATE_INVALID - Certificado expirado",
+						"firefox": "SEC_ERROR_EXPIRED_CERTIFICATE - O certificado expirou",
+						"edge": "DLG_FLAGS_INVALID_CA - Certificado não é confiável",
+						"curl": "curl: (60) SSL certificate problem: certificate has expired",
+						"observation": "Todos os navegadores modernos bloqueiam acesso a sites com certificados expirados. Usuários podem clicar em 'Avançado' e 'Continuar mesmo assim', mas isso expõe a riscos de segurança e não é aceitável para ambiente corporativo."
+					}
+				},
+				{
+					"type": "services-inventory",
+					"title": "Inventário de Certificados - Outros Serviços",
+					"data": {
+						"api.company.com": "Válido até 2025-08-15 (6 meses restantes) ✅",
+						"mail.company.com": "Válido até 2025-02-09 (7 dias restantes) ⚠️",
+						"vpn.company.com": "Válido até 2025-02-05 (3 dias restantes) 🔴",
+						"auth.company.com": "Válido até 2025-04-20 (2.5 meses restantes) ✅",
+						"observation": "CRÍTICO: Além do portal.company.com já expirado, VPN e e-mail expirarão em 3 e 7 dias respectivamente. Falta de processo de monitoramento proativo resultou em múltiplas renovações atrasadas."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"question": "Com base nas evidências fornecidas, qual é a causa raiz mais provável da expiração do certificado?",
+					"points": 5,
+					"options": [
+						"Falha técnica do servidor web que impediu a renovação automática",
+						"Processo manual de renovação sem monitoramento proativo e alertas ignorados",
+						"Ataque cibernético que corrompeu o arquivo do certificado",
+						"Erro da Certificate Authority que emitiu certificado com validade incorreta"
+					],
+					"correctAnswer": 1,
+					"justification": "A causa raiz é processo manual sem monitoramento (B). A CA enviou 3 alertas (90, 30 e 7 dias) para admin@company.com, mas foram ignorados. Não há indicação de renovação automática configurada. (A) é incorreta pois renovação é manual. (C) é implausível - ataque não causaria expiração temporal programada. (D) é incorreta - certificado teve validade normal de 1 ano (fev/2024 a fev/2025)."
+				},
+				{
+					"id": "q2",
+					"type": "true-false",
+					"question": "Certificados DV (Domain Validation) podem ser emitidos imediatamente após validação via DNS ou HTTP, sem necessidade de validação organizacional ou documentação legal.",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. Certificados DV (Domain Validation) validam apenas que o solicitante controla o domínio, através de métodos automatizados como HTTP-01 (arquivo em /.well-known/acme-challenge/), DNS-01 (registro TXT DNS) ou e-mail para admin@dominio. Não requerem validação organizacional (OV) ou jurídica (EV), permitindo emissão em minutos. Ideal para resposta rápida em emergências, mas oferecem menor nível de confiança que OV/EV."
+				},
+				{
+					"id": "q3",
+					"type": "multiple-choice",
+					"question": "Qual é a ação de contenção imediata mais apropriada para restaurar o acesso ao portal enquanto aguarda emissão do novo certificado?",
+					"points": 6,
+					"options": [
+						"Instruir todos os usuários a clicar em 'Avançado > Continuar mesmo assim' no navegador",
+						"Instalar certificado autoassinado temporário gerado no servidor",
+						"Desativar HTTPS e servir o portal em HTTP (porta 80) temporariamente",
+						"Solicitar renovação expressa (fast-track) do certificado DV e aguardar emissão (15-30 min)"
+					],
+					"correctAnswer": 3,
+					"justification": "A melhor ação é solicitar certificado DV express (D). Certificados DV de CA comercial confiável podem ser emitidos em 15-30 minutos com validação automatizada, restaurando confiança. Opção (A) expõe usuários a riscos (ataques MitM) e é impraticável. (B) gera alerta de navegador idêntico ao expirado - não resolve. (C) expõe credenciais em texto claro (CRÍTICO) - inaceitável mesmo temporariamente. (D) balanceia velocidade e segurança."
+				},
+				{
+					"id": "q4",
+					"type": "numeric",
+					"question": "Quantos dias de antecedência é recomendado configurar alertas de expiração de certificados para garantir tempo hábil de renovação?",
+					"points": 4,
+					"correctAnswer": 30,
+					"tolerance": 5,
+					"unit": "dias",
+					"justification": "Recomendado: 30 dias. Alertas em 30, 15, 7 e 3 dias fornecem múltiplos lembretes para equipes de TI. Isso permite: (1) tempo para solicitar renovação manual, (2) resolver problemas inesperados (ex: validação falha), (3) evitar janelas curtas que levam a emergências. Menos de 15 dias é arriscado; mais de 45 dias pode ser ignorado. Múltiplos alertas aumentam chance de ação oportuna."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Renovação Emergencial",
+			"phase": "Fase 2 - Contenção",
+			"description": "A equipe iniciou processo de renovação emergencial do certificado via portal da CA. Escolheram método de validação DNS-01 (registro TXT) para maior controle. Tempo de emissão previsto: 20 minutos.",
+			"timeElapsed": "T+12 minutos (08:26)",
+			"currentSituation": {
+				"renewalStatus": "Aguardando validação DNS propagação (pendente)",
+				"dnsTxtRecord": "_acme-challenge.portal.company.com IN TXT \"J3F8K2P9M7Q1...\"",
+				"estimatedCompletion": "T+20 minutos (08:34)",
+				"impact": "Portal continua indisponível"
+			},
+			"metrics": [
+				{
+					"type": "renewal-process",
+					"title": "Status do Processo de Renovação Emergencial",
+					"data": {
+						"method": "DNS-01 Challenge (ACME Protocol)",
+						"validationStatus": "Aguardando propagação DNS (TTL: 300s)",
+						"csrGenerated": "✅ Certificate Signing Request (CSR) gerado com RSA 2048 bits",
+						"privateKeyBackup": "✅ Chave privada armazenada em /etc/ssl/private/portal.company.com.key (0400 root:root)",
+						"caValidationAttempts": "3 tentativas (aguardando DNS refresh)",
+						"observation": "Processo automatizado ACME aguardando que servidor DNS autoritário da organização propague o registro TXT de validação. CA está testando a cada 30 segundos."
+					}
+				},
+				{
+					"type": "dns-validation",
+					"title": "Validação DNS do Registro TXT ACME",
+					"data": {
+						"command": "dig _acme-challenge.portal.company.com TXT +short",
+						"internalDNS": "\"J3F8K2P9M7Q1...\" (✅ visível)",
+						"publicDNS_8.8.8.8": "NXDOMAIN (❌ ainda não propagado)",
+						"publicDNS_1.1.1.1": "\"J3F8K2P9M7Q1...\" (✅ visível)",
+						"ttl": "300 segundos (5 minutos)",
+						"observation": "Propagação DNS em andamento. Cloudflare DNS (1.1.1.1) já enxerga, Google DNS (8.8.8.8) ainda em cache. CA usa múltiplos resolvers públicos. Previsto: mais 2-3 minutos para propagação completa."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q5",
+					"type": "matching",
+					"question": "Correlacione cada mecanismo de proteção contra loops com sua descrição correta:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "mech1", "text": "Spanning Tree Protocol (STP/RSTP)"},
+						{"id": "mech2", "text": "Loop Guard"},
+						{"id": "mech3", "text": "BPDU Guard"}
+					],
+					"rightColumn": [
+						{"id": "a", "text": "Bloqueia portas access se receberem BPDUs, prevenindo switches não autorizados"},
+						{"id": "b", "text": "Detecta e bloqueia portas que param de receber BPDUs mas deveriam receber"},
+						{"id": "c", "text": "Elege root bridge e bloqueia portas redundantes para criar topologia livre de loops"}
+					],
+					"correctMatches": [
+						{"left": "mech1", "right": "c"},
+						{"left": "mech2", "right": "b"},
+						{"left": "mech3", "right": "a"}
+					],
+					"justification": "STP/RSTP é o protocolo BASE de prevenção de loops - elege root, calcula melhor caminho, bloqueia portas redundantes. Loop Guard é ADICIONAL - detecta falha unidirecional de links (para de receber BPDUs). BPDU Guard é PROTEÇÃO de portas access - se porta access receber BPDU (indicando switch conectado), desabilita a porta automaticamente."
+				},
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"question": "A organização identificou 3 certificados próximos da expiração (VPN: 3 dias, E-mail: 7 dias, Portal: expirado). Qual estratégia de renovação seria mais eficiente para prevenir futuros incidentes?",
+					"points": 6,
+					"options": [
+						"Implementar renovação manual mensal com checklist impresso",
+						"Migrar para Let's Encrypt com renovação automática via certbot/ACME",
+						"Contratar suporte premium da CA com renovação manual assistida",
+						"Configurar alertas de e-mail para 30 dias antes da expiração"
+					],
+					"correctAnswer": 1,
+					"justification": "Let's Encrypt com automação ACME (B) é a solução mais eficiente e moderna: certificados gratuitos de 90 dias com renovação automática via certbot (renova aos 60 dias), elimina processos manuais, reduz custo. Opção (A) mantém falha humana. (C) é custosa e ainda manual. (D) melhora, mas alertas podem ser ignorados (como ocorreu). Automação via ACME + monitoramento é best practice atual para organizações com múltiplos certificados."
+				},
+				{
+					"id": "q7",
+					"type": "true-false",
+					"question": "Certificados wildcard (*.company.com) cobrem automaticamente subdomínios de múltiplos níveis, como portal.api.company.com.",
+					"points": 3,
+					"correctAnswer": false,
+					"justification": "FALSO. Certificados wildcard cobrem apenas UM nível de subdomínio. *.company.com cobre portal.company.com, api.company.com, mas NÃO cobre portal.api.company.com (dois níveis). Para múltiplos níveis, é necessário: (1) certificado com SANs explícitos, (2) múltiplos wildcards (*.company.com + *.api.company.com), ou (3) certificado específico para cada FQDN. Esta é uma confusão comum que pode causar falhas de validação inesperadas."
+				},
+				{
+					"id": "q8",
+					"type": "numeric",
+					"question": "Certificados SSL/TLS padrão emitidos por CAs comerciais após setembro/2020 têm validade máxima de quantos dias?",
+					"points": 4,
+					"correctAnswer": 398,
+					"tolerance": 2,
+					"unit": "dias",
+					"justification": "398 dias. Em setembro/2020, CA/Browser Forum reduziu validade máxima de 825 dias (27 meses) para 398 dias (~13 meses). Essa mudança visa: (1) reduzir janela de exposição de chaves comprometidas, (2) forçar atualizações de algoritmos criptográficos, (3) melhorar agilidade de revogação. Let's Encrypt usa 90 dias para forçar automação. Certificados emitidos antes de set/2020 podem ter validade maior (grandfathered)."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Instalação do Novo Certificado",
+			"phase": "Fase 3 - Erradicação e Recuperação",
+			"description": "Certificado DV foi emitido com sucesso e baixado do portal da CA. A equipe agora precisa instalar o certificado no servidor web (Nginx) e validar a instalação.",
+			"timeElapsed": "T+28 minutos (08:42)",
+			"currentSituation": {
+				"certificateIssued": "✅ Emitido há 2 minutos (válido até 2026-02-02)",
+				"installation": "Em andamento",
+				"webServerType": "Nginx 1.24.0 (Linux Ubuntu 22.04 LTS)",
+				"configFile": "/etc/nginx/sites-available/portal.company.com.conf"
+			},
+			"metrics": [
+				{
+					"type": "certificate-installation",
+					"title": "Procedimento de Instalação - Configuração Nginx",
+					"data": {
+						"certificateChain": "/etc/ssl/certs/portal.company.com_chain.crt (novo certificado + intermediários)",
+						"privateKey": "/etc/ssl/private/portal.company.com.key (chave privada existente - reutilizada)",
+						"nginxConfig": "ssl_certificate /etc/ssl/certs/portal.company.com_chain.crt;\nssl_certificate_key /etc/ssl/private/portal.company.com.key;\nssl_protocols TLSv1.2 TLSv1.3;\nssl_ciphers HIGH:!aNULL:!MD5;",
+						"configTest": "nginx -t → Syntax OK",
+						"reloadCommand": "systemctl reload nginx",
+						"observation": "Certificado instalado corretamente. Chain completo incluído (certificado + intermediários). Nginx recarregado sem downtime (reload graceful). Importante: chave privada foi REUTILIZADA - mesma chave do certificado anterior."
+					}
+				},
+				{
+					"type": "ssl-validation",
+					"title": "Validação Pós-Instalação com SSL Labs",
+					"data": {
+						"overallGrade": "A",
+						"certificateValidity": "✅ Válido até 2026-02-02 23:59:59 UTC",
+						"chainIssues": "✅ Nenhum - cadeia completa presente",
+						"protocol": "TLS 1.3, TLS 1.2 habilitados (TLS 1.0/1.1 desabilitados) ✅",
+						"keyExchange": "ECDHE (Perfect Forward Secrecy) ✅",
+						"cipherStrength": "256 bits (AES-256-GCM) ✅",
+						"vulnerabilities": "Nenhuma (não vulnerável a BEAST, CRIME, Heartbleed, POODLE) ✅",
+						"observation": "Configuração segura. Grade A confirma que certificado é confiável, protocolos modernos habilitados e sem vulnerabilidades conhecidas. Portal totalmente restaurado."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q9",
+					"type": "ordering",
+					"question": "Ordene os passos corretos para instalação segura do certificado SSL/TLS renovado em um servidor web:",
+					"points": 6,
+					"partialCredit": false,
+					"items": [
+						{"id": "step1", "text": "Fazer backup do certificado e chave privada anteriores"},
+						{"id": "step2", "text": "Baixar certificado novo e arquivos intermediários da CA"},
+						{"id": "step3", "text": "Concatenar certificado + intermediários em ordem correta (chain)"},
+						{"id": "step4", "text": "Atualizar caminho do certificado na configuração do servidor web"},
+						{"id": "step5", "text": "Testar sintaxe da configuração (nginx -t, apache2ctl configtest)"},
+						{"id": "step6", "text": "Recarregar servidor web (reload) e validar com OpenSSL/SSL Labs"}
+					],
+					"correctOrder": ["step1", "step2", "step3", "step4", "step5", "step6"],
+					"justification": "Ordem correta: (1) Backup primeiro (segurança - reversão se algo falhar), (2) Download certificado e intermediários, (3) Concatenar chain (cert + intermediários na ordem), (4) Atualizar config do servidor, (5) Testar sintaxe ANTES de reload (evita downtime), (6) Reload e validação. Pular backup (step1) ou teste de sintaxe (step5) são erros comuns que causam downtime desnecessário."
+				},
+				{
+					"id": "q10",
+					"type": "multiple-choice",
+					"question": "Durante a instalação, a equipe reutilizou a chave privada do certificado anterior. Qual é a implicação de segurança desta prática?",
+					"points": 5,
+					"options": [
+						"É uma vulnerabilidade crítica - chave privada deve ser regenerada a cada renovação",
+						"É aceitável e comum - chave privada pode ser reutilizada indefinidamente se não comprometida",
+						"É aceitável para renovações de curto prazo (<1 ano), mas recomenda-se regenerar periodicamente",
+						"É obrigatório regenerar chave privada - CAs não emitem certificados para chaves reutilizadas"
+					],
+					"correctAnswer": 2,
+					"justification": "Reutilizar chave privada é aceitável para renovações frequentes, mas best practice (C) recomenda regenerar periodicamente (anualmente ou a cada 2-3 renovações) para: (1) reduzir janela de exposição caso chave seja comprometida, (2) permitir rotação de algoritmos (ex: RSA 2048→4096, EC 256→384). Opção (A) é exagerada - não é vulnerabilidade se chave está segura. (B) ignora hygiene criptográfica. (D) é falsa - CAs aceitam CSRs com chaves reutilizadas."
+				},
+				{
+					"id": "q11",
+					"type": "true-false",
+					"question": "Navegadores confiam automaticamente em certificados cujo emissor (CA) está na lista de autoridades raiz confiáveis do sistema operacional, sem necessidade de instalação manual.",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. Navegadores modernos (Chrome, Firefox, Edge, Safari) utilizam lista de Certificate Authorities (CAs) raiz confiáveis mantida pelo sistema operacional (Windows Trust Store, macOS Keychain, Linux ca-certificates) ou própria (Firefox). Certificados emitidos por essas CAs (Sectigo, DigiCert, Let's Encrypt, GlobalSign) são automaticamente confiáveis. Certificados autoassinados ou de CAs privadas requerem instalação manual no trust store, gerando alertas de navegador."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Pós-Incidente e Melhorias de Processo",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Portal restaurado com sucesso às 08:48 (34 minutos de downtime). A equipe agora precisa implementar melhorias de processo para prevenir recorrência e renovar os certificados próximos da expiração (VPN e E-mail).",
+			"timeElapsed": "T+34 minutos (08:48 - incidente resolvido)",
+			"currentSituation": {
+				"portalStatus": "✅ Operacional - certificado válido até 2026-02-02",
+				"downtime": "34 minutos (impacto: ~300 usuários internos + clientes externos)",
+				"pendingRenewals": "vpn.company.com (3 dias), mail.company.com (7 dias)",
+				"impact": "Nenhum - serviço completamente restaurado"
+			},
+			"questions": [
+				{
+					"id": "q12",
+					"type": "multiple-choice",
+					"question": "Qual ferramenta/abordagem de monitoramento seria mais eficaz para prevenir futuros incidentes de expiração de certificados?",
+					"points": 6,
+					"options": [
+						"Planilha Excel compartilhada com datas de expiração e alertas de calendário",
+						"Script cron diário executando 'openssl s_client' + envio de e-mail se < 30 dias",
+						"Sistema de monitoramento (Zabbix/Nagios) com check SSL/TLS e alertas escalonados (90/60/30/15 dias)",
+						"Depender dos e-mails de alerta da CA enviados para admin@company.com"
+					],
+					"correctAnswer": 2,
+					"justification": "Sistema de monitoramento dedicado (C) é solução profissional: checks automatizados a cada hora, alertas escalonados (90/60/30/15/7 dias), múltiplos canais (e-mail/SMS/Slack), dashboards centralizados, histórico. Opção (A) depende de processo manual propenso a falhas. (B) é melhor que nada mas limitada (cron pode falhar, e-mail pode ser ignorado). (D) já falhou neste incidente. (C) oferece visibilidade centralizada + automação + redundância de alertas."
+				},
+				{
+					"id": "q13",
+					"type": "matching",
+					"question": "Conecte cada tipo de licença de conteúdo ao seu nível de permissão de distribuição:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "cc-by", "text": "Creative Commons BY (CC-BY)"},
+						{"id": "cc-by-nc-nd", "text": "Creative Commons BY-NC-ND"},
+						{"id": "copyright", "text": "Copyright © Todos os Direitos Reservados"}
+					],
+					"rightColumn": [
+						{"id": "a", "text": "Redistribuição livre permitida (inclusive comercial), desde que crédito ao autor seja dado"},
+						{"id": "b", "text": "Apenas visualização pessoal - reprodução e distribuição proibidas sem autorização expressa"},
+						{"id": "c", "text": "Uso não-comercial permitido, mas modificações e redistribuição comercial proibidas"}
+					],
+					"correctMatches": [
+						{"left": "cc-by", "right": "a"},
+						{"left": "cc-by-nc-nd", "right": "c"},
+						{"left": "copyright", "right": "b"}
+					],
+					"justification": "CC-BY (↔ a): licença mais permissiva - uso livre (comercial ok), exige apenas atribuição. CC-BY-NC-ND (↔ c): mais restritiva - Non-Commercial (sem fins lucrativos) + No-Derivatives (sem modificações). Copyright padrão (↔ b): todos direitos reservados pelo titular, qualquer uso requer autorização. Espectro: Domínio Público (mais livre) → CC-BY → CC-BY-SA → CC-BY-NC → CC-BY-NC-ND → Copyright (mais restritivo)."
+				},
+				{
+					"id": "q14",
+					"type": "multiple-choice",
+					"question": "A organização decidiu migrar para Let's Encrypt com renovação automática via certbot. Qual é a principal DESVANTAGEM desta abordagem comparada a CA comercial tradicional?",
+					"points": 5,
+					"options": [
+						"Let's Encrypt não é confiável - navegadores exibem alertas de segurança",
+						"Certificados de 90 dias requerem renovação frequente - maior dependência de automação",
+						"Let's Encrypt não emite certificados wildcard (*.dominio.com)",
+						"Algoritmos criptográficos do Let's Encrypt são mais fracos (1024 bits)"
+					],
+					"correctAnswer": 1,
+					"justification": "Paradoxo do filtro: detecção proativa = 'actual knowledge' (option B). Se sistema detecta infração e provedor NÃO remove imediatamente, tribunal pode considerar que provedor tinha conhecimento e foi negligente, PERDENDO Safe Harbor (Viacom v. YouTube debate este tema). Safe Harbor protege provedores 'passivos' que respondem a notificações, não aqueles que monitoram ativamente. Solução: usar filtro para flagging + revisão humana rápida. Opção (A) é custo, não risco legal. (C) é risco real mas mitigável. (D) é falsa - análise de hash não é dado pessoal."
+				},
+				{
+					"id": "q15",
+					"type": "true-false",
+					"question": "Implementar renovação automática via ACME (certbot/Let's Encrypt) elimina a necessidade de monitoramento de expiração de certificados.",
+					"points": 3,
+					"correctAnswer": false,
+					"justification": "FALSO. Embora automação via ACME reduza risco de expiração, monitoramento contínuo ainda é necessário para: (1) detectar falhas na renovação automática (ex: problemas de rede, mudanças DNS), (2) alertar sobre certificados próximos da expiração (backup), (3) garantir conformidade com políticas internas. Automação + monitoramento formam defesa em profundidade. Depender exclusivamente de automação pode levar a falhas não detectadas."
+				},
+				{
+					"id": "q16",
+					"type": "multiple-choice",
+					"question": "Durante o post-mortem, identificou-se que e-mails de alerta da CA eram enviados para admin@company.com (caixa compartilhada raramente checada). Qual seria a melhor solução para garantir que alertas sejam recebidos?",
+					"points": 5,
+					"options": [
+						"Configurar redirecionamento de admin@company.com para CEO da empresa",
+						"Atualizar contato na CA para lista de distribuição da equipe de infraestrutura + configurar monitoramento independente",
+						"Contratar serviço de SMS da CA para envio de alertas por mensagem de texto",
+						"Solicitar à CA que aumente frequência de alertas para diário"
+					],
+					"correctAnswer": 1,
+					"justification": "Solução adequada (B) combina múltiplas camadas: (1) atualizar contato CA para lista de distribuição (infra@company.com) com múltiplos responsáveis, (2) implementar monitoramento INDEPENDENTE da CA (não depender exclusivamente de terceiros). Opção (A) sobrecarrega CEO com detalhes técnicos. (C) melhora, mas tem custo e ainda depende da CA. (D) não resolve problema - alertas diários causam fadiga de alerta. Redundância (CA + monitoramento próprio) é best practice."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 92,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 85,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de PKI, gestão de certificados SSL/TLS e processos de renovação emergencial"
+			},
+			{
+				"min": 70,
+				"max": 84,
+				"grade": "Bom",
+				"description": "Compreensão sólida de certificados digitais com pequenas lacunas em automação ou tipos de certificado"
+			},
+			{
+				"min": 60,
+				"max": 69,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica suficiente, requer aprofundamento em PKI e métodos de validação ACME"
+			},
+			{
+				"min": 40,
+				"max": 59,
+				"grade": "Insuficiente",
+				"description": "Lacunas significativas em conhecimento de certificados digitais e processos de renovação"
+			},
+			{
+				"min": 0,
+				"max": 39,
+				"grade": "Inadequado",
+				"description": "Conhecimento mínimo sobre PKI - recomenda-se treinamento formal em segurança e criptografia"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Apresentar informações progressivamente, simulando descoberta natural durante troubleshooting",
+		"Permitir 3-5 minutos de discussão entre participantes antes de cada resposta",
+		"Fazer perguntas orientadoras: 'Qual é a diferença entre DV, OV e EV?', 'Por que certificados têm validade limitada?'",
+		"Enfatizar importância de PREVENÇÃO através de monitoramento proativo e automação",
+		"Se grupo não tem experiência com PKI, explicar conceitos de CA, cadeia de confiança antes da Rodada 2",
+		"Manter neutralidade técnica - não fornecer respostas diretas, apenas guiar raciocínio",
+		"Controlar tempo: Rodada 1 (5 min), Rodadas 2-4 (10 min cada), Rodada 5 (8 min)",
+		"Mediar debates sobre trade-offs (custo vs. automação, DV vs. OV vs. EV)",
+		"Após exercício: revisar gabarito, discutir implementação de Let's Encrypt/certbot",
+		"Coletar feedback sobre realismo do cenário e ajustes necessários",
+		"Documentar insights para melhorar processos de gestão de certificados"
+	],
+	"technicalReferences": [
+		{
+			"title": "RFC 8555 - Automatic Certificate Management Environment (ACME)",
+			"url": "https://www.rfc-editor.org/rfc/rfc8555"
+		},
+		{
+			"title": "RFC 5280 - Internet X.509 Public Key Infrastructure Certificate",
+			"url": "https://www.rfc-editor.org/rfc/rfc5280"
+		},
+		{
+			"title": "CA/Browser Forum - Baseline Requirements for SSL/TLS Certificates",
+			"url": "https://cabforum.org/baseline-requirements-documents/"
+		},
+		{
+			"title": "Let's Encrypt - How It Works (ACME Protocol)",
+			"url": "https://letsencrypt.org/how-it-works/"
+		},
+		{
+			"title": "SSL Labs - SSL/TLS Best Practices",
+			"url": "https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices"
+		},
+		{
+			"title": "Mozilla SSL Configuration Generator",
+			"url": "https://ssl-config.mozilla.org/"
+		},
+		{
+			"title": "Certbot Documentation - Automated Certificate Management",
+			"url": "https://eff-certbot.readthedocs.io/"
+		}
+	]
+}

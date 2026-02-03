@@ -1,0 +1,476 @@
+{
+	"id": "dns-amplification-attack",
+	"title": "Resposta a Ataque DDoS de Amplificação DNS",
+	"description": "Simulação tabletop de resposta a ataque de amplificação DNS contra servidor DNS recursivo interno",
+	"category": {
+		"id": "NET_VOL",
+		"type": "NET_VOL_DNS_REFLECTION",
+		"title": "Ataque de Amplificação DNS (ANY Query)"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2025-02-02",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "30-45 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Equipe de Resposta a Incidentes, Analistas de Segurança, Administradores de Rede"
+	},
+	"objectives": [
+		"Validar a capacidade de detecção e análise inicial de ataques DDoS volumétricos",
+		"Avaliar conhecimento de técnicas de contenção e mitigação de ataques de amplificação DNS",
+		"Testar comunicação e coordenação entre equipes durante resposta a incidentes",
+		"Identificar lacunas em processos, ferramentas ou treinamento da equipe",
+		"Promover familiarização com procedimentos de resposta em ambiente controlado",
+		"Desenvolver confiança da equipe na execução de ações de resposta a incidentes"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá execução real de comandos em sistemas de produção",
+		"Não inclui ativação real de serviços externos ou contato com provedores (apenas simulação)",
+		"Foco na tomada de decisão, comunicação e aplicação de procedimentos de resposta",
+		"Avaliação de conhecimento técnico e capacidade de análise sob pressão"
+	],
+	"baseScenario": {
+		"context": "Terça-feira, 14h15, horário de alta demanda. Você faz parte da equipe de resposta a incidentes. A infraestrutura inclui um servidor DNS recursivo interno (10.0.1.53) que atende todas as requisições de resolução de nomes da rede interna, incluindo estações de trabalho, servidores de gerência e sistemas críticos. Este servidor é fundamental para o funcionamento de praticamente todos os serviços internos.",
+		"initialSituation": {
+			"alert": "Servidor DNS recursivo extremamente lento - timeouts em resoluções de nomes",
+			"affectedHost": "dns-recursive.internal (10.0.1.53)",
+			"linkUtilization": "99% (processo named/bind)",
+			"queryRate": "285.000 queries/segundo (baseline: 2.500 queries/segundo)",
+			"timestamp": "14:12:27"
+		},
+		"initialComplaints": [
+			"Múltiplos usuários reportam impossibilidade de acessar sistemas internos",
+			"Navegação web extremamente lenta ou indisponível",
+			"Sistemas dependentes de DNS apresentando erros de timeout",
+			"Ferramentas de monitoramento reportando falhas de conectividade"
+		],
+		"availableResources": [
+			"Acesso administrativo ao servidor DNS (SSH, console)",
+			"Logs do servidor DNS (BIND query logs)",
+			"Sistema de monitoramento de rede (NetFlow, sFlow)",
+			"Ferramentas de análise: tcpdump, Wireshark, dig, nslookup, dnstop",
+			"Acesso administrativo a equipamentos de rede (firewall, switches, roteadores)",
+			"Documentação de procedimentos de resposta a incidentes",
+			"Contato com provedor upstream/trânsito"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe deve se familiarizar com a situação inicial e recursos disponíveis.",
+			"inject": "Apresentação do cenário conforme descrito. A equipe tem 5 minutos para discutir a situação inicial.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Detecção e Análise Inicial",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe recebe informações consolidadas sobre o incidente para análise inicial.",
+			"timeElapsed": "T+0 (início do incidente)",
+			"currentSituation": {
+				"queryRate": "285.000 queries/segundo",
+				"cpuUsage": "99%",
+				"memoryUsage": "91% (cache DNS saturado)",
+				"impact": "Resolução DNS extremamente lenta ou indisponível",
+				"affectedUsers": "Toda a organização (~500 usuários)"
+			},
+			"metrics": [
+				{
+					"title": "Status do Servidor DNS",
+					"type": "server-status",
+					"data": {
+						"hostname": "dns-recursive.internal",
+						"ip": "10.0.1.53",
+						"os": "Ubuntu 22.04 LTS",
+						"software": "BIND 9.18",
+						"timestamp": "14:12-14:18",
+						"cpu": "99% (processo named)",
+						"memory": "91% (cache saturado)",
+						"loadAverage": "28.7",
+						"diskIO": "Normal",
+						"queryRate": "285.000 q/s",
+						"baselineRate": "2.500 q/s",
+						"amplification": "114x acima do normal",
+						"avgResponseTime": "12.500 ms (baseline: 15-30 ms)",
+						"timeoutRate": "78%"
+					}
+				},
+				{
+					"title": "Análise de Queries DNS (top domains)",
+					"type": "query-analysis",
+					"data": {
+						"topQueriedDomains": [
+							{"domain": "internal.corp", "queries": 85000, "percentage": 29.8},
+							{"domain": "monitoring.internal.corp", "queries": 72000, "percentage": 25.3},
+							{"domain": "logging.internal.corp", "queries": 58000, "percentage": 20.4},
+							{"domain": "dns-recursive.internal.corp", "queries": 45000, "percentage": 15.8},
+							{"domain": "backup.internal.corp", "queries": 38000, "percentage": 13.3},
+							{"domain": "example.com", "queries": 8500, "percentage": 3.0},
+							{"domain": "google.com", "queries": 4200, "percentage": 1.5},
+							{"domain": "cloudflare.com", "queries": 3800, "percentage": 1.3}
+						],
+						"observation": "94.6% das queries são para domínios INTERNOS da organização, indicando reconhecimento prévio da infraestrutura"
+					}
+				},
+				{
+					"title": "Análise de IPs de Origem",
+					"type": "ip-analysis",
+					"data": {
+						"totalUniqueIPs": 12847,
+						"distribution": {
+							"domestic": {"count": 11563, "percentage": 90.0},
+							"international": {"count": 1284, "percentage": 10.0}
+						},
+						"topSourceIPs": [
+							{"ip": "187.45.123.89", "qps": 8200, "asn": "AS28573", "country": "BR"},
+							{"ip": "187.45.234.156", "qps": 7900, "asn": "AS28573", "country": "BR"},
+							{"ip": "200.98.145.67", "qps": 7200, "asn": "AS7738", "country": "BR"},
+							{"ip": "177.12.45.203", "qps": 6800, "asn": "AS18881", "country": "BR"},
+							{"ip": "189.78.156.34", "qps": 6500, "asn": "AS26615", "country": "BR"}
+						],
+						"patterns": {
+							"userAgentDiversity": "Baixa (indicativo de botnet)",
+							"queryPatterns": "Altamente repetitivo",
+							"sourcePortRandomization": "Presente (dificulta filtragem)"
+						}
+					}
+				},
+				{
+					"title": "Análise de Tráfego de Rede",
+					"type": "network-analysis",
+					"data": {
+						"protocol": "UDP/53",
+						"inboundTraffic": "8.5 Gbps",
+						"outboundTraffic": "320 Mbps",
+						"packetRate": "285.000 pps inbound",
+						"queryTypes": {
+							"ANY": {"count": 198000, "percentage": 69.5},
+							"A": {"count": 57000, "percentage": 20.0},
+							"AAAA": {"count": 22800, "percentage": 8.0},
+							"MX": {"count": 7200, "percentage": 2.5}
+						},
+						"observation": "Predominância de queries tipo ANY indica ataque de amplificação"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"text": "Com base nas evidências apresentadas, qual é o tipo MAIS provável de ataque?",
+					"options": [
+						"Ataque de força bruta para quebra de senhas DNS",
+						"Ataque de amplificação DNS usando o servidor como refletor",
+						"Malware interno gerando queries DNS maliciosas",
+						"Falha de configuração causando loop de queries DNS"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "A combinação de 285k q/s (114x acima do normal), 12.847 IPs únicos externos, predominância de queries tipo ANY (69.5%), e padrão de botnet indica claramente ataque de amplificação DNS. O servidor está sendo usado como refletor para amplificar tráfego contra uma vítima."
+				},
+				{
+					"id": "q2",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Um servidor DNS recursivo deve aceitar queries recursivas de qualquer IP na Internet para garantir disponibilidade global do serviço.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. Um servidor DNS recursivo NUNCA deve aceitar queries recursivas de IPs externos à sua rede interna. Recursão deve ser restrita apenas à rede que ele serve (via allow-recursion). Queries não-recursivas (para zonas autoritárias) podem ser públicas. Esta confusão entre servidor recursivo (para rede interna) e servidor autoritário (público) é uma causa comum de vulnerabilidades de amplificação DNS."
+				},
+				{
+					"id": "q3",
+					"text": "Qual é a primeira ação de contenção que deve ser tomada IMEDIATAMENTE?",
+					"options": [
+						"Desligar completamente o servidor DNS para interromper o ataque",
+						"Adicionar regra de firewall bloqueando porta UDP/53 de IPs externos",
+						"Reiniciar o serviço BIND para limpar o cache",
+						"Contatar o provedor upstream para filtragem"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "A contenção imediata é bloquear UDP/53 de IPs externos no firewall. Isso interrompe instantaneamente o ataque mantendo o serviço para usuários internos. Desligar o servidor (A) causa indisponibilidade total. Reiniciar (C) não resolve o problema. Upstream (D) é importante mas não é ação imediata de contenção."
+				},
+				{
+					"id": "q4",
+					"type": "numeric",
+					"text": "O servidor DNS está operando a 285.000 queries/segundo, enquanto o baseline normal é 2.500 q/s. Quantas vezes acima do normal o servidor está operando?",
+					"correctAnswer": 114,
+					"tolerance": 2,
+					"unit": "vezes",
+					"points": 5,
+					"justification": "Amplificação = 285.000 / 2.500 = 114x acima do normal. Este fator extremo (>100x) é assinatura clara de ataque DDoS. Operações normais raramente variam mais que 2-3x do baseline. Picos acima de 10x do baseline devem disparar alertas automáticos de segurança."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Contenção e Mitigação",
+			"phase": "Fase 2 - Contenção",
+			"description": "Após análise inicial, a equipe implementou bloqueio de firewall para UDP/53 externo. Taxa de queries caiu para 48.000 q/s (ainda 19x acima do normal). Queries agora vêm apenas de rede interna.",
+			"timeElapsed": "T+15 minutos",
+			"currentSituation": {
+				"queryRate": "48.000 queries/segundo",
+				"cpuUsage": "76%",
+				"impact": "Serviço DNS lento mas funcional para rede interna",
+				"externalQueriesBlocked": true
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "matching",
+					"text": "Conecte cada tipo de certificado SSL/TLS ao seu caso de uso mais apropriado:",
+					"leftColumn": [
+						{"id": "dv", "label": "DV (Domain Validation)"},
+						{"id": "ov", "label": "OV (Organization Validation)"},
+						{"id": "ev", "label": "EV (Extended Validation)"}
+					],
+					"rightColumn": [
+						{"id": "a", "label": "Sites de e-commerce e instituições financeiras onde barra verde do navegador aumenta confiança"},
+						{"id": "b", "label": "Blogs pessoais, sites informativos e ambientes de desenvolvimento/staging"},
+						{"id": "c", "label": "Portais corporativos e intranets onde validação da organização é importante mas custo/tempo são fatores"}
+					],
+					"correctMatches": [
+						{"left": "dv", "right": "b"},
+						{"left": "ov", "right": "c"},
+						{"left": "ev", "right": "a"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 6,
+					"justification": "DV (↔ b): validação rápida/automática de domínio, ideal para sites informativos, blogs, dev/staging. OV (↔ c): valida organização (documentos legais), balança confiança e custo, ideal para corporativo. EV (↔ a): validação rigorosa (jurídica), exibe barra verde (removida em navegadores modernos mas mostra nome da org), ideal para e-commerce/bancos. Custo/tempo: DV < OV < EV. Confiança: DV < OV < EV."
+				},
+				{
+					"id": "q6",
+					"text": "Qual configuração permanente deve ser aplicada no BIND para prevenir recorrência deste ataque?",
+					"options": [
+						"allow-query { any; }; allow-recursion { 10.0.0.0/8; };",
+						"allow-query { 10.0.0.0/8; }; allow-recursion { any; };",
+						"rate-limit { responses-per-second 100; };",
+						"disable-algorithms { ANY; };"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "A configuração correta é: allow-query {any;} (qualquer um pode fazer queries não-recursivas) + allow-recursion {10.0.0.0/8;} (apenas rede interna pode pedir recursão). B inverte a lógica. C é mitigação, não solução. D não existe como diretiva BIND."
+				},
+				{
+					"id": "q7",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Em ataques de amplificação DNS, o servidor DNS vítima (refletor) sofre danos diretos semelhantes à vítima final do ataque.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. O servidor DNS refletor (10.0.1.53) sofre sobrecarga (CPU, banda), mas o MAIOR impacto é na VÍTIMA FINAL que recebe todo o tráfego amplificado. O refletor processa queries e envia respostas - é abusado mas não é o alvo final. A vítima recebe tráfego 10-100x amplificado sem ter solicitado, causando saturação de link. Por isso o ataque é 'de amplificação' - pequeno volume do atacante vira grande volume contra a vítima."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Análise Avançada e Coordenação",
+			"phase": "Fase 2 - Contenção (Avançada)",
+			"description": "Com medidas de contenção aplicadas, a equipe tem tempo para análise mais profunda. Descoberto que atacantes tinham conhecimento de domínios internos (94.6% das queries).",
+			"timeElapsed": "T+30 minutos",
+			"currentSituation": {
+				"queryRate": "3.200 queries/segundo (normalizado)",
+				"cpuUsage": "18%",
+				"impact": "Serviço restaurado"
+			},
+			"questions": [
+				{
+					"id": "q8",
+					"text": "Qual é a principal lição aprendida sobre a configuração inicial do servidor DNS que permitiu este ataque?",
+					"options": [
+						"O servidor estava desatualizado e vulnerável a exploits conhecidos",
+						"A configuração allow-recursion não estava restrita à rede interna",
+						"O servidor não tinha logs habilitados para análise forense",
+						"O firewall permitia tráfego TCP/53 externo"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "A principal falha foi a configuração incorreta de allow-recursion, que permitia qualquer IP externo solicitar recursão. Isso transformou o servidor em um refletor aberto, vulnerável a ataques de amplificação. A atualização (A) é boa prática mas não causa este tipo de ataque. Logs (C) são importantes mas não previnem o ataque. Firewall TCP/53 (D) é irrelevante - ataque usa UDP/53."
+				},
+				{
+					"id": "q9",
+					"text": "O fato de atacantes conhecerem domínios internos (monitoring.internal.corp, backup.internal.corp) sugere qual tipo de reconhecimento prévio?",
+					"options": [
+						"Ataque totalmente automatizado sem reconhecimento (alvo aleatório)",
+						"Reconhecimento passivo via OSINT (DNS leaks, certificados expostos)",
+						"Acesso prévio à rede interna ou vazamento de informação",
+						"Apenas coincidência - são nomes comuns de subdomínios"
+					],
+					"correctAnswer": 2,
+					"points": 5,
+					"justification": "O conhecimento específico de subdomínios internos (monitoring, logging, backup) indica reconhecimento ativo prévio, possivelmente via: acesso anterior à rede, vazamento de DNS zone transfer, ou engenharia social. B é improvável para domínios .internal.corp. D subestima a especificidade dos nomes."
+				},
+				{
+					"id": "q10",
+					"type": "ordering",
+					"text": "Ordene corretamente os passos de mitigação de um ataque de amplificação DNS em andamento:",
+					"items": [
+						{"id": "step1", "label": "Identificar que servidor está sendo abusado como refletor"},
+						{"id": "step2", "label": "Bloquear queries UDP/53 externas no firewall (contenção imediata)"},
+						{"id": "step3", "label": "Configurar ACL de recursão no BIND (allow-recursion)"},
+						{"id": "step4", "label": "Testar de fora da rede para validar bloqueio"},
+						{"id": "step5", "label": "Monitorar métricas para garantir normalização"}
+					],
+					"correctOrder": ["step1", "step2", "step3", "step4", "step5"],
+					"partialCredit": false,
+					"points": 6,
+					"justification": "Sequência correta de resposta: (1) Identificação rápida do problema, (2) Contenção IMEDIATA bloqueando firewall (interrompe ataque em segundos), (3) Correção da vulnerabilidade raiz no BIND (solução permanente), (4) Validação de que correção funciona externamente, (5) Monitoramento contínuo. Inverter passos 2 e 3 causaria demora na contenção (editar BIND + reload é mais lento que iptables)."
+				},
+				{
+					"id": "q11",
+					"type": "numeric",
+					"text": "Se uma query DNS tipo ANY tem 60 bytes e a resposta tem 3.000 bytes, qual é o fator de amplificação deste ataque?",
+					"correctAnswer": 50,
+					"tolerance": 2,
+					"unit": "x",
+					"points": 5,
+					"justification": "Fator de amplificação = 3.000 / 60 = 50x. Isso significa que o atacante envia 60 bytes, mas a vítima recebe 3.000 bytes - amplificação de 50 vezes. Ataques de amplificação DNS podem ter fatores de 10x a 100x dependendo do tipo de query e tamanho da resposta. Isso permite que atacantes com banda limitada gerem tráfego massivo contra vítimas."
+				},
+				{
+					"id": "q12",
+					"text": "Qual medida de monitoramento contínuo deve ser implementada para detecção precoce de futuros ataques?",
+					"options": [
+						"Alerta quando taxa de queries DNS > 10.000 q/s (4x acima do baseline)",
+						"Alerta quando % de queries tipo ANY > 30%",
+						"Alerta quando número de IPs únicos/minuto > 500",
+						"Todas as métricas acima devem gerar alertas combinados"
+					],
+					"correctAnswer": 3,
+					"points": 5,
+					"justification": "Detecção eficaz requer MÚLTIPLOS indicadores correlacionados: taxa absoluta (A), tipo de query anômalo (B), e diversidade de IPs (C). Um alerta único pode gerar falsos positivos. Correlação de múltiplas métricas aumenta precisão e permite detecção precoce antes que o ataque cause impacto severo."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Recuperação e Lições Aprendidas",
+			"phase": "Fase 3 e 4 - Recuperação e Pós-Incidente",
+			"description": "Incidente resolvido após implementação de ACLs no BIND e bloqueio de firewall. Serviço restaurado. Tempo total de incidente: 1h15min.",
+			"timeElapsed": "T+75 minutos (incidente encerrado)",
+			"currentSituation": {
+				"queryRate": "2.500 queries/segundo (baseline normal)",
+				"cpuUsage": "12%",
+				"impact": "Nenhum - serviço completamente restaurado"
+			},
+			"questions": [
+				{
+					"id": "q13",
+					"text": "Antes de considerar o incidente formalmente encerrado, qual validação é CRÍTICA?",
+					"options": [
+						"Confirmar que configuração allow-recursion está persistente (sobrevive reinicialização)",
+						"Validar que não há mais queries externas chegando ao servidor",
+						"Testar resolução DNS de múltiplos hosts internos",
+						"Verificar que logs do incidente foram arquivados"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "A validação MAIS crítica é garantir que a correção da vulnerabilidade raiz está PERSISTENTE (A). Se a configuração não sobreviver reinicialização, o ataque pode recomeçar. B e C são consequências da correção. D é importante mas não é validação técnica crítica para encerramento."
+				},
+				{
+					"id": "q14",
+					"text": "Em um relatório pós-incidente (post-mortem), qual elemento é MENOS relevante incluir?",
+					"options": [
+						"Timeline detalhado do incidente com timestamps precisos",
+						"Lista completa de todos os 12.847 IPs atacantes",
+						"Análise de causa raiz (allow-recursion mal configurado)",
+						"Ações corretivas e recomendações de prevenção"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Incluir lista completa de 12.847 IPs (B) no relatório é impraticável e pouco útil. O relatório deve incluir: sumário estatístico (ex: 'top 20 IPs', distribuição geográfica, ASNs), não lista exaustiva. Timeline (A), root cause (C) e ações corretivas (D) são elementos essenciais de qualquer post-mortem."
+				},
+				{
+					"id": "q15",
+					"text": "Qual pergunta de lições aprendidas tem MAIOR valor para prevenir incidentes futuros?",
+					"options": [
+						"Por que a configuração allow-recursion não estava restrita desde a implantação inicial?",
+						"Quem foi o responsável técnico pela configuração incorreta do servidor?",
+						"Quanto custaria contratar um serviço de proteção DDoS permanente?",
+						"Quando devemos agendar o próximo exercício de simulação?"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "A pergunta de maior valor (A) identifica falha SISTÊMICA no processo de hardening/deployment. Buscar culpados (B) é contraproducente para cultura de aprendizado. C e D são importantes mas não abordam a causa raiz sistêmica. Foco deve estar em 'como prevenir sistemicamente', não 'quem errou'."
+				},
+				{
+					"id": "q16",
+					"text": "Qual melhoria de processo teria o MAIOR impacto na prevenção deste tipo de incidente?",
+					"options": [
+						"Checklist obrigatório de hardening de servidores DNS com revisão por pares",
+						"Treinamento anual da equipe em resposta a incidentes DDoS",
+						"Implementação de IDS/IPS para detecção de ataques",
+						"Aumento do orçamento para aquisição de ferramentas de segurança"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "Checklist de hardening com revisão por pares (A) previne DIRETAMENTE a configuração incorreta na origem. Treinamento (B) melhora resposta, não prevenção. IDS/IPS (C) detecta ataques mas não previne configurações inseguras. Orçamento (D) é genérico e não garante melhoria de processo."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 96,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 90,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de detecção, análise e resposta a ataques DDoS de amplificação DNS"
+			},
+			{
+				"min": 75,
+				"max": 89,
+				"grade": "Bom",
+				"description": "Compreensão sólida com pequenas lacunas em áreas específicas"
+			},
+			{
+				"min": 60,
+				"max": 74,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica suficiente, requer reforço em alguns tópicos"
+			},
+			{
+				"min": 45,
+				"max": 59,
+				"grade": "Insatisfatório",
+				"description": "Lacunas significativas, recomenda-se treinamento adicional específico"
+			},
+			{
+				"min": 0,
+				"max": 44,
+				"grade": "Inadequado",
+				"description": "Compreensão insuficiente, requer treinamento completo em resposta a incidentes"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Apresentar informações de cada rodada progressivamente, simulando evolução natural do incidente",
+		"Permitir discussão entre participantes antes de responder questões (2-3 min por questão)",
+		"Fazer perguntas orientadoras para estimular pensamento crítico sem fornecer respostas",
+		"Observar e registrar decisões, justificativas e dinâmica de grupo",
+		"Manter neutralidade - não fornecer opiniões técnicas durante o exercício",
+		"Controlar tempo para manter ritmo adequado (5-7 min por rodada de discussão)",
+		"Mediar conflitos de opinião construtivamente, incentivando debate técnico",
+		"Após exercício: apresentar gabarito, discutir justificativas e coletar feedback da equipe",
+		"Documentar lições aprendidas do próprio exercício para melhorias futuras"
+	],
+	"technicalReferences": [
+		{
+			"title": "BIND 9 Administrator Reference Manual - Access Control",
+			"url": "https://bind9.readthedocs.io/en/latest/reference.html#access-control"
+		},
+		{
+			"title": "US-CERT Alert (TA13-088A) - DNS Amplification Attacks",
+			"url": "https://www.cisa.gov/news-events/alerts/2013/03/29/dns-amplification-attacks"
+		},
+		{
+			"title": "RFC 5358 - Preventing Use of Recursive Nameservers in Reflector Attacks",
+			"url": "https://www.rfc-editor.org/rfc/rfc5358"
+		},
+		{
+			"title": "BCP 38 - Network Ingress Filtering",
+			"url": "https://www.rfc-editor.org/info/bcp38"
+		}
+	]
+}

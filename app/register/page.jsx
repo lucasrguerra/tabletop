@@ -1,0 +1,321 @@
+"use client";
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import Header from '@/components/Header';
+import {
+	FaUser,
+	FaEnvelope,
+	FaLock,
+	FaUserPlus,
+	FaExclamationCircle,
+	FaCheckCircle,
+	FaEye,
+	FaEyeSlash
+} from 'react-icons/fa';
+
+export default function RegisterPage() {
+	const router = useRouter();
+	const [formData, setFormData] = useState({
+		name: '',
+		email: '',
+		nickname: '',
+		password: '',
+		confirmPassword: ''
+	});
+	const [showPassword, setShowPassword] = useState(false);
+	const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+	const [error, setError] = useState('');
+	const [success, setSuccess] = useState('');
+	const [loading, setLoading] = useState(false);
+	const [csrf_token, setCsrfToken] = useState('');
+
+	// Fetch CSRF token on component mount
+	useEffect(() => {
+		const fetchCsrfToken = async () => {
+			try {
+				const response = await fetch('/api/csrf');
+				const data = await response.json();
+				if (data.success && data.csrf_token) {
+					setCsrfToken(data.csrf_token);
+				} else {
+					setError('Erro ao carregar token de segurança');
+				}
+			} catch (err) {
+				console.error('Failed to fetch CSRF token');
+				setError('Erro ao carregar token de segurança');
+			}
+		};
+
+		fetchCsrfToken();
+	}, []);
+
+	const handleChange = (e) => {
+		setFormData({
+			...formData,
+			[e.target.name]: e.target.value
+		});
+		setError('');
+		setSuccess('');
+	};
+
+	const handleSubmit = async (e) => {
+		e.preventDefault();
+		setError('');
+		setSuccess('');
+
+		if (formData.password !== formData.confirmPassword) {
+			setError('As senhas não coincidem');
+			return;
+		}
+
+		if (!csrf_token) {
+			setError('Token de segurança não encontrado. Recarregue a página.');
+			return;
+		}
+
+		setLoading(true);
+
+		try {
+			const response = await fetch('/api/users/register', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-CSRF-Token': csrf_token,
+				},
+				body: JSON.stringify({
+					name: formData.name,
+					email: formData.email,
+					nickname: formData.nickname,
+					password: formData.password,
+				}),
+			});
+
+			const data = await response.json();
+
+			if (data.success) {
+				setSuccess(data.message);
+				setFormData({
+					name: '',
+					email: '',
+					nickname: '',
+					password: '',
+					confirmPassword: ''
+				});
+				
+				setTimeout(() => {
+					router.push('/login');
+				}, 1500);
+			} else {
+				setError(data.message);
+			}
+		} catch (err) {
+			console.error('Registration error');
+			setError('Erro ao cadastrar. Tente novamente.');
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	return (
+		<div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-blue-50">
+			<Header />
+			
+			<div className="flex items-center justify-center px-4 py-12">
+				<div className="w-full max-w-md">
+					<div className="bg-white rounded-2xl shadow-xl p-8">
+						<div className="text-center mb-8">
+							<div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+								<FaUserPlus className="text-3xl text-blue-600" />
+							</div>
+							<h1 className="text-3xl font-bold text-gray-900 mb-2">
+								Criar Conta
+							</h1>
+							<p className="text-gray-600">
+								Preencha os dados para se cadastrar
+							</p>
+						</div>
+
+						{error && (
+							<div id="error-message" className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+								<FaExclamationCircle className="text-red-500 mt-0.5 shrink-0" />
+								<p className="text-sm text-red-700">{error}</p>
+							</div>
+						)}
+
+						{success && (
+							<div id="success-message" className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3">
+								<FaCheckCircle className="text-green-500 mt-0.5 shrink-0" />
+								<p className="text-sm text-green-700">{success}</p>
+							</div>
+						)}
+
+						<form onSubmit={handleSubmit} className="space-y-5">
+							<div>
+								<label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+									Nome Completo
+								</label>
+								<div className="relative">
+									<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+										<FaUser className="text-gray-400" />
+									</div>
+									<input
+										type="text"
+										id="name"
+										name="name"
+										value={formData.name}
+										onChange={handleChange}
+										required
+										className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+										placeholder="Seu Nome Completo"
+									/>
+								</div>
+							</div>
+
+							<div>
+								<label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+									Email
+								</label>
+								<div className="relative">
+									<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+										<FaEnvelope className="text-gray-400" />
+									</div>
+									<input
+										type="email"
+										id="email"
+										name="email"
+										value={formData.email}
+										onChange={handleChange}
+										required
+										className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+										placeholder="seu@email.com"
+									/>
+								</div>
+							</div>
+
+							<div>
+								<label htmlFor="nickname" className="block text-sm font-medium text-gray-700 mb-2">
+									Nickname
+								</label>
+								<div className="relative">
+									<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+										<FaUser className="text-gray-400" />
+									</div>
+									<input
+										type="text"
+										id="nickname"
+										name="nickname"
+										value={formData.nickname}
+										onChange={handleChange}
+										required
+										className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+										placeholder="nickname"
+									/>
+								</div>
+								<p className="mt-1 text-xs text-gray-500">
+									Apenas letras, números e underscore
+								</p>
+							</div>
+
+							<div>
+								<label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+									Senha
+								</label>
+								<div className="relative">
+									<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+										<FaLock className="text-gray-400" />
+									</div>
+									<input
+										type={showPassword ? "text" : "password"}
+										id="password"
+										name="password"
+										value={formData.password}
+										onChange={handleChange}
+										required
+										className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+										placeholder="••••••••"
+									/>
+									<button
+										type="button"
+										onClick={() => setShowPassword(!showPassword)}
+										className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+									>
+										{showPassword ? <FaEyeSlash /> : <FaEye />}
+									</button>
+								</div>
+								<p className="mt-1 text-xs text-gray-500">
+									Mínimo 8 caracteres, com maiúsculas, minúsculas, números e caracteres especiais
+								</p>
+							</div>
+
+							<div>
+								<label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+									Confirmar Senha
+								</label>
+								<div className="relative">
+									<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+										<FaLock className="text-gray-400" />
+									</div>
+									<input
+										type={showConfirmPassword ? "text" : "password"}
+										id="confirmPassword"
+										name="confirmPassword"
+										value={formData.confirmPassword}
+										onChange={handleChange}
+										required
+										className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+										placeholder="••••••••"
+									/>
+									<button
+										type="button"
+										onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+										className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+									>
+										{showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+									</button>
+								</div>
+							</div>
+
+							<button
+								type="submit"
+								disabled={loading}
+								className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+							>
+								{loading ? (
+									<>
+										<svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+											<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+											<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+										</svg>
+										<span>Cadastrando...</span>
+									</>
+								) : (
+									<>
+										<FaUserPlus />
+										<span>Cadastrar</span>
+									</>
+								)}
+							</button>
+						</form>
+
+						<div className="mt-6 text-center">
+							<p className="text-sm text-gray-600">
+								Já tem uma conta?{' '}
+								<Link href="/login" className="text-blue-600 hover:text-blue-700 font-medium hover:underline">
+									Entrar
+								</Link>
+							</p>
+						</div>
+					</div>
+
+					<div className="text-center mt-6">
+						<Link href="/" className="text-sm text-gray-600 hover:text-gray-900 hover:underline">
+							← Voltar para página inicial
+						</Link>
+					</div>
+				</div>
+			</div>
+		</div>
+	);
+}
