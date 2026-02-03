@@ -2,8 +2,9 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/Dashboard/Layout';
+import PendingInvites from '@/components/Dashboard/PendingInvites';
 import { 
 	FaChartLine, 
 	FaUsers, 
@@ -14,6 +15,8 @@ import {
 export default function DashboardPage() {
 	const { data: session, status } = useSession();
 	const router = useRouter();
+	const [pendingInvites, setPendingInvites] = useState([]);
+	const [loadingInvites, setLoadingInvites] = useState(true);
 
 	// Redirect to login if not authenticated
 	useEffect(() => {
@@ -21,6 +24,34 @@ export default function DashboardPage() {
 			router.push('/login');
 		}
 	}, [status, router]);
+
+	// Fetch pending invites
+	const fetchPendingInvites = async () => {
+		try {
+			setLoadingInvites(true);
+			const response = await fetch('/api/trainings/invites');
+			const data = await response.json();
+
+			if (data.success) {
+				setPendingInvites(data.invites || []);
+			}
+		} catch (error) {
+			console.error('Error fetching pending invites:', error);
+		} finally {
+			setLoadingInvites(false);
+		}
+	};
+
+	useEffect(() => {
+		if (session) {
+			fetchPendingInvites();
+		}
+	}, [session]);
+
+	// Callback when invite is accepted/declined
+	const handleInviteUpdated = () => {
+		fetchPendingInvites();
+	};
 
 	// Show loading state while checking authentication
 	if (status === 'loading') {
@@ -42,6 +73,14 @@ export default function DashboardPage() {
 	return (
 		<DashboardLayout>
 			<div className="space-y-6">
+				{/* Pending Invites Section */}
+				{!loadingInvites && pendingInvites.length > 0 && (
+					<PendingInvites 
+						invites={pendingInvites} 
+						onInviteUpdated={handleInviteUpdated}
+					/>
+				)}
+
 				{/* Welcome Section */}
 				<div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
 					<h1 className="text-2xl font-bold text-gray-900 mb-2">

@@ -1,17 +1,17 @@
 import { useState } from 'react';
-import AddFacilitatorForm from './AddFacilitatorForm';
+import AddParticipantForm from './AddFacilitatorForm';
 
 /**
  * TrainingHeader Component
  * Displays training session header information
  */
 export default function TrainingHeader({ training, userRole, getStatusBadge, getRoleBadge, onFacilitatorAdded }) {
-	const [showAddFacilitator, setShowAddFacilitator] = useState(false);
+	const [showAddParticipant, setShowAddParticipant] = useState(false);
 
-	const handleFacilitatorAdded = (facilitator) => {
-		setShowAddFacilitator(false);
+	const handleParticipantAdded = (participant) => {
+		setShowAddParticipant(false);
 		if (onFacilitatorAdded) {
-			onFacilitatorAdded(facilitator);
+			onFacilitatorAdded(participant);
 		}
 	};
 
@@ -56,28 +56,28 @@ export default function TrainingHeader({ training, userRole, getStatusBadge, get
 				</div>
 			</div>
 
-			{/* Add Facilitator Section */}
+			{/* Add Participant Section */}
 			<div className="mt-6 pt-4 border-t">
 				<button
-					onClick={() => setShowAddFacilitator(!showAddFacilitator)}
+					onClick={() => setShowAddParticipant(!showAddParticipant)}
 					className="flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 transition"
 				>
 					<svg 
-						className={`w-5 h-5 transition-transform ${showAddFacilitator ? 'rotate-180' : ''}`}
+						className={`w-5 h-5 transition-transform ${showAddParticipant ? 'rotate-180' : ''}`}
 						fill="none" 
 						stroke="currentColor" 
 						viewBox="0 0 24 24"
 					>
 						<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
 					</svg>
-					{showAddFacilitator ? 'Ocultar' : 'Adicionar Facilitador'}
+					{showAddParticipant ? 'Ocultar' : 'Adicionar Participante'}
 				</button>
 
-				{showAddFacilitator && (
+				{showAddParticipant && (
 					<div className="mt-4">
-						<AddFacilitatorForm 
+						<AddParticipantForm 
 							trainingId={training.id}
-							onSuccess={handleFacilitatorAdded}
+							onSuccess={handleParticipantAdded}
 						/>
 					</div>
 				)}

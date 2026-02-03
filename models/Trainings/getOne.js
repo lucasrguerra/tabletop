@@ -41,12 +41,21 @@ export default async function getOneTraining(training_id, user_id) {
 			p => p.user_id._id.toString() === user_id
 		);
 
-		// Check if user is part of the training
+		// Check if user is part of the training and has accepted
 		if (!participant) {
 			return {
 				success: false,
 				message: 'Você não tem acesso a este treinamento',
 				code: 'NOT_PARTICIPANT'
+			};
+		}
+
+		// Check if user's invite is still pending or declined
+		if (participant.status !== 'accepted') {
+			return {
+				success: false,
+				message: 'Você precisa aceitar o convite para acessar este treinamento',
+				code: 'INVITE_NOT_ACCEPTED'
 			};
 		}
 
@@ -71,14 +80,28 @@ export default async function getOneTraining(training_id, user_id) {
 				max_participants: training.max_participants,
 				timer: training.timer,
 				status: training.status,
-				participants: training.participants.map(p => ({
-					id: p.user_id._id.toString(),
-					name: p.user_id.name,
-					email: p.user_id.email,
-					nickname: p.user_id.nickname,
-					role: p.role,
-					joined_at: p.joined_at
-				})),
+				participants: training.participants.map(p => {
+					// Protected data for pending participants - only show role, nickname, and status
+					if (p.status === 'pending' || p.status === 'declined') {
+						return {
+							id: p.user_id._id.toString(),
+							nickname: p.user_id.nickname,
+							role: p.role,
+							status: p.status,
+							joined_at: p.joined_at
+						};
+					}
+					// Full data for accepted participants
+					return {
+						id: p.user_id._id.toString(),
+						name: p.user_id.name,
+						email: p.user_id.email,
+						nickname: p.user_id.nickname,
+						role: p.role,
+						status: p.status,
+						joined_at: p.joined_at
+					};
+				}),
 				created_at: training.created_at,
 				scheduled_for: training.scheduled_for,
 				started_at: training.started_at,

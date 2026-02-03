@@ -80,7 +80,9 @@ export default async function createTraining(data) {
 			participants: [{
 				user_id: data.user_id,
 				role: 'facilitator',
-				joined_at: new Date()
+				status: 'accepted', // Creator automatically accepts
+				joined_at: new Date(),
+				responded_at: new Date()
 			}]
 		});
 

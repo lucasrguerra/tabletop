@@ -1,11 +1,12 @@
 import { useState } from 'react';
 
 /**
- * AddFacilitatorForm Component
- * Form to add a new facilitator to the training using nickname
+ * AddParticipantForm Component
+ * Form to add a new participant (facilitator, participant, or observer) to the training using nickname
  */
-export default function AddFacilitatorForm({ trainingId, onSuccess }) {
+export default function AddParticipantForm({ trainingId, onSuccess }) {
 	const [nickname, setNickname] = useState('');
+	const [role, setRole] = useState('participant');
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState('');
 	const [success, setSuccess] = useState('');
@@ -31,29 +32,33 @@ export default function AddFacilitatorForm({ trainingId, onSuccess }) {
 				throw new Error('Erro ao obter token de segurança');
 			}
 
-			// Add facilitator
+			// Add participant
 			const response = await fetch(`/api/trainings/${trainingId}/facilitator`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 					'X-CSRF-Token': csrfData.csrf_token
 				},
-				body: JSON.stringify({ nickname: nickname.trim() })
+				body: JSON.stringify({ 
+					nickname: nickname.trim(),
+					role: role
+				})
 			});
 
 			const data = await response.json();
 
 			if (!data.success) {
-				setError(data.message || 'Erro ao adicionar facilitador');
+				setError(data.message || 'Erro ao enviar convite');
 				return;
 			}
 
 			setSuccess(data.message);
 			setNickname('');
+			setRole('participant');
 			
 			// Call onSuccess callback if provided
 			if (onSuccess) {
-				onSuccess(data.facilitator);
+				onSuccess(data.participant);
 			}
 
 			// Clear success message after 5 seconds
@@ -62,8 +67,8 @@ export default function AddFacilitatorForm({ trainingId, onSuccess }) {
 			}, 5000);
 
 		} catch (err) {
-			console.error('Error adding facilitator:', err);
-			setError('Erro ao adicionar facilitador. Tente novamente.');
+			console.error('Error adding participant:', err);
+			setError('Erro ao enviar convite. Tente novamente.');
 		} finally {
 			setLoading(false);
 		}
@@ -72,7 +77,7 @@ export default function AddFacilitatorForm({ trainingId, onSuccess }) {
 	return (
 		<div className="bg-white border border-gray-200 rounded-lg p-6">
 			<h3 className="text-lg font-semibold text-gray-900 mb-4">
-				Adicionar Facilitador
+				Adicionar Participante
 			</h3>
 			
 			<form onSubmit={handleSubmit} className="space-y-4">
@@ -89,8 +94,25 @@ export default function AddFacilitatorForm({ trainingId, onSuccess }) {
 						className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
 						disabled={loading}
 					/>
+				</div>
+
+				<div>
+					<label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
+						Função
+					</label>
+					<select
+						id="role"
+						value={role}
+						onChange={(e) => setRole(e.target.value)}
+						className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+						disabled={loading}
+					>
+						<option value="participant">Participante</option>
+						<option value="facilitator">Facilitador</option>
+						<option value="observer">Observador</option>
+					</select>
 					<p className="mt-1 text-sm text-gray-500">
-						O usuário será adicionado como facilitador do treinamento
+						O usuário receberá um convite que deverá aceitar para participar
 					</p>
 				</div>
 
@@ -129,7 +151,7 @@ export default function AddFacilitatorForm({ trainingId, onSuccess }) {
 					disabled={loading}
 					className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
 				>
-					{loading ? 'Adicionando...' : 'Adicionar Facilitador'}
+					{loading ? 'Enviando convite...' : 'Enviar Convite'}
 				</button>
 			</form>
 		</div>

@@ -2,6 +2,46 @@ import { NextResponse } from 'next/server';
 import { withAuth } from '@/utils/auth';
 import { withCsrf } from '@/utils/csrf';
 import createTraining from '@/models/Trainings/create';
+import getUserTrainings from '@/models/Trainings/getUserTrainings';
+
+/**
+ * GET /api/trainings
+ * Retrieves all trainings that the user is participating in
+ * Requires authentication
+ */
+export const GET = withAuth(async (request, context, session) => {
+	try {
+		const user_id = session.user.id;
+
+		// Get all trainings for user
+		const result = await getUserTrainings(user_id);
+
+		if (!result.success) {
+			return NextResponse.json(
+				{
+					success: false,
+					message: result.message
+				},
+				{ status: 400 }
+			);
+		}
+
+		return NextResponse.json({
+			success: true,
+			trainings: result.trainings
+		}, { status: 200 });
+
+	} catch (error) {
+		console.error('Error in GET /api/trainings:', error);
+		return NextResponse.json(
+			{
+				success: false,
+				message: 'Erro ao buscar treinamentos'
+			},
+			{ status: 500 }
+		);
+	}
+});
 
 /**
  * POST /api/trainings

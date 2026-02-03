@@ -106,7 +106,10 @@ export default function DashboardLayout({ children }) {
 						<nav className="space-y-1">
 							{menuItems.map((item) => {
 								const Icon = item.icon;
-								const isActive = pathname === item.href;
+								// Dashboard deve ser ativo apenas na rota exata, outras podem incluir sub-rotas
+								const isActive = item.href === '/dashboard'
+									? pathname === item.href
+									: pathname === item.href || pathname.startsWith(item.href + '/');
 
 								return (
 									<Link

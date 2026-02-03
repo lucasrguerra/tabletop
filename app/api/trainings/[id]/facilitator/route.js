@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/utils/auth';
 import { withCsrf } from '@/utils/csrf';
-import addFacilitator from '@/models/Trainings/addFacilitator';
+import addParticipant from '@/models/Trainings/addParticipant';
 
 /**
  * POST /api/trainings/[id]/facilitator
- * Adds a facilitator to the training session
+ * Adds a participant to the training session (facilitator, participant, or observer)
  * Requires authentication and CSRF protection
  * Only accessible to current facilitators
  */
@@ -38,8 +38,21 @@ export const POST = withAuth(withCsrf(async (request, context, session) => {
 			);
 		}
 
-		// Add facilitator
-		const result = await addFacilitator(id, user_id, body.nickname);
+		// Validate role (default to participant if not provided)
+		const role = body.role || 'participant';
+		const validRoles = ['facilitator', 'participant', 'observer'];
+		if (!validRoles.includes(role)) {
+			return NextResponse.json(
+				{
+					success: false,
+					message: 'Função inválida'
+				},
+				{ status: 400 }
+			);
+		}
+
+		// Add participant
+		const result = await addParticipant(id, user_id, body.nickname, role);
 
 		if (!result.success) {
 			// Return appropriate status code based on error
@@ -48,6 +61,8 @@ export const POST = withAuth(withCsrf(async (request, context, session) => {
 				status = 403;
 			} else if (result.code === 'USER_NOT_FOUND') {
 				status = 404;
+			} else if (result.code === 'USER_DECLINED') {
+				status = 409;
 			}
 
 			return NextResponse.json(
@@ -62,7 +77,7 @@ export const POST = withAuth(withCsrf(async (request, context, session) => {
 		return NextResponse.json({
 			success: true,
 			message: result.message,
-			facilitator: result.facilitator
+			participant: result.participant
 		});
 
 	} catch (error) {
@@ -70,7 +85,7 @@ export const POST = withAuth(withCsrf(async (request, context, session) => {
 		return NextResponse.json(
 			{
 				success: false,
-				message: 'Erro ao adicionar facilitador'
+				message: 'Erro ao adicionar participante'
 			},
 			{ status: 500 }
 		);

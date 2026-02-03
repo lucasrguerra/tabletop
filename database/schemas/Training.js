@@ -109,6 +109,15 @@ const TrainingSchema = new mongoose.Schema({
 			enum: ['facilitator', 'participant', 'observer'],
 			default: 'participant',
 		},
+		status: {
+			type: String,
+			enum: ['pending', 'accepted', 'declined'],
+			default: 'pending',
+		},
+		responded_at: {
+			type: Date,
+			default: null,
+		},
 	}],
 	
 	// Timestamps
