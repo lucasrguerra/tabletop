@@ -1,0 +1,577 @@
+{
+	"id": "fiber-cut-civil-works",
+	"title": "Resposta a Rompimento de Fibra Óptica por Obra Civil",
+	"description": "Simulação tabletop de resposta a rompimento físico de cabo de fibra óptica causado por escavação não autorizada em via pública",
+	"category": {
+		"id": "PHY_L2",
+		"type": "PHY_L2_FIBER_CUT",
+		"title": "Rompimento de Fibra Óptica por Obra Civil"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2025-02-02",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "40-55 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Equipe de NOC, Engenheiros de Rede, Equipe de Campo, Gestores de Infraestrutura"
+	},
+	"objectives": [
+		"Validar capacidade de detecção rápida e diagnóstico de falhas físicas de camada 1",
+		"Avaliar conhecimento de topologia de rede, redundância e failover automático",
+		"Testar procedimentos de coordenação com equipes de campo e terceiros (empreiteiras)",
+		"Desenvolver compreensão de análise de níveis ópticos (dBm, atenuação, OTDR)",
+		"Identificar processos de comunicação com stakeholders durante incidentes críticos",
+		"Promover entendimento de SLAs, backup links e estratégias de resiliência"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá execução real de comandos ou ações de campo",
+		"Não inclui acionamento real de equipes de reparo ou empreiteiras",
+		"Foco na análise técnica, tomada de decisão e coordenação operacional",
+		"Avaliação de conhecimento de infraestrutura física e protocolos de camada 2"
+	],
+	"baseScenario": {
+		"context": "Terça-feira, 15h45, horário comercial. Você faz parte da equipe de NOC (Network Operations Center). A organização possui dois enlaces de fibra óptica redundantes conectando o site principal (Datacenter-A) ao site secundário (Datacenter-B), distantes 12 km um do outro em área metropolitana. O enlace primário (LINK-01) tem capacidade de 10 Gbps e transporta 60% do tráfego. O enlace secundário (LINK-02) tem capacidade de 10 Gbps e opera em standby ativo transportando 40% do tráfego via LACP (Link Aggregation). A infraestrutura crítica inclui: ERP corporativo (Datacenter-A), sistema de backup (Datacenter-B), telefonia VoIP (distribuída), e-mail (Datacenter-A).",
+		"initialSituation": {
+			"alert": "LINK-01 DOWN - Perda total de sinal óptico (LOS - Loss of Signal)",
+			"affectedLink": "LINK-01 (Datacenter-A ↔ Datacenter-B) - Fibra óptica SM G.652.D 12km",
+			"linkStatus": "Interface Down/Down - Optical RX Power: -40 dBm (normal: -15 dBm)",
+			"redundantLink": "LINK-02 UP - Assumiu 100% do tráfego via failover LACP",
+			"timestamp": "15:42:18"
+		},
+		"initialComplaints": [
+			"Monitoramento reporta perda de conectividade em LINK-01",
+			"Tráfego foi automaticamente redirecionado para LINK-02 (failover funcionou)",
+			"Latência aumentou de 2ms para 8ms (congestionamento em LINK-02)",
+			"Alguns serviços não-críticos apresentando lentidão devido a saturação de banda"
+		],
+		"availableResources": [
+			"Acesso aos roteadores de borda (Datacenter-A e Datacenter-B) via SSH",
+			"Sistema de monitoramento de rede (Zabbix, LibreNMS) com histórico de métricas",
+			"Documentação de topologia e percurso físico das fibras (plantas baixas)",
+			"Equipamento OTDR (Optical Time-Domain Reflectometer) disponível com equipe de campo",
+			"Contato com equipe de campo/NOC para deslocamento",
+			"Contatos de empreiteiras contratadas e Prefeitura (fiscalização de obras)",
+			"SLA de reparo: 4 horas (horário comercial) / 8 horas (após expediente)"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe deve se familiarizar com a topologia de rede, redundância e situação inicial.",
+			"inject": "Apresentação do cenário conforme descrito. A equipe tem 5 minutos para revisar topologia e discutir abordagem inicial.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Detecção e Diagnóstico Inicial",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe de NOC recebe o alerta e inicia investigação para determinar se é problema óptico, falha de equipamento ou rompimento físico.",
+			"timeElapsed": "T+0 (15:42 - início do incidente)",
+			"currentSituation": {
+				"link01Status": "Down/Down - LOS (Loss of Signal)",
+				"link02Status": "Up/Up - 100% utilização (8.5 Gbps de 10 Gbps)",
+				"serviceDegradation": "Lentidão em serviços não-críticos devido a congestionamento",
+				"impact": "Perda de redundância - organização operando em single point of failure"
+			},
+			"metrics": [
+				{
+					"title": "Status de Interface - Roteador Datacenter-A",
+					"type": "interface-status",
+					"data": {
+						"interface": "TenGigabitEthernet0/0/1 (LINK-01)",
+						"adminStatus": "up",
+						"operStatus": "down",
+						"lineProtocol": "down",
+						"opticalTxPower": "-3.2 dBm (normal)",
+						"opticalRxPower": "-40.0 dBm (ALARME - abaixo de -28 dBm threshold)",
+						"wavelength": "1310 nm",
+						"sfpType": "SFP-10G-LR (10GBASE-LR)",
+						"lastChange": "15:42:18",
+						"errors": "0 CRC, 0 FCS (não há erros de camada 2 - problema é físico)",
+						"observation": "TX transmitindo normalmente (-3.2 dBm), mas RX não recebe sinal (-40 dBm = ruído de fundo)"
+					}
+				},
+				{
+					"title": "Status de Interface - Roteador Datacenter-B",
+					"type": "interface-status",
+					"data": {
+						"interface": "TenGigabitEthernet0/0/1 (LINK-01)",
+						"adminStatus": "up",
+						"operStatus": "down",
+						"lineProtocol": "down",
+						"opticalTxPower": "-3.5 dBm (normal)",
+						"opticalRxPower": "-40.0 dBm (ALARME)",
+						"observation": "Ambos os lados não recebem sinal - indica problema no meio físico (fibra), não nos transceivers"
+					}
+				},
+				{
+					"title": "Histórico de Métricas (últimas 24h)",
+					"type": "metrics-history",
+					"data": {
+						"rxPowerHistory": [
+							{"time": "14:00", "rxPower": "-15.2 dBm"},
+							{"time": "14:30", "rxPower": "-15.1 dBm"},
+							{"time": "15:00", "rxPower": "-15.3 dBm"},
+							{"time": "15:30", "rxPower": "-15.2 dBm"},
+							{"time": "15:41", "rxPower": "-15.1 dBm"},
+							{"time": "15:42", "rxPower": "-40.0 dBm (QUEDA ABRUPTA)"}
+						],
+						"observation": "Perda de sinal foi INSTANTÂNEA, não gradual - descarta degradação progressiva (conector sujo, emenda com problema)"
+					}
+				},
+				{
+					"title": "Status de LACP (Link Aggregation)",
+					"type": "lacp-status",
+					"data": {
+						"portChannel": "Po1 (Port-channel 1)",
+						"protocol": "LACP",
+						"members": [
+							{"interface": "Te0/0/1 (LINK-01)", "status": "down", "removed": "15:42:18"},
+							{"interface": "Te0/0/2 (LINK-02)", "status": "up", "active": true}
+						],
+						"bandwidth": "10 Gbps (de 20 Gbps agregados)",
+						"utilization": "85% (8.5 Gbps) - CONGESTIONAMENTO",
+						"observation": "Failover automático funcionou corretamente - LINK-02 assumiu sozinho o tráfego"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"text": "Com base nas evidências (RX Power -40 dBm em ambos os lados, queda abrupta, sem erros FCS), qual é a causa MAIS provável?",
+					"options": [
+						"Falha simultânea dos módulos SFP em ambos os roteadores",
+						"Rompimento físico do cabo de fibra óptica (corte completo)",
+						"Conectores ópticos sujos ou soltos nos patch panels",
+						"Degradação progressiva da fibra por curvatura excessiva"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Rompimento físico (B) é a causa mais provável: (1) RX -40 dBm em AMBOS os lados indica ausência total de sinal (não apenas atenuação), (2) queda ABRUPTA às 15:42 (não gradual), (3) TX ainda funciona (-3 dBm) - descarta falha de SFP, (4) sem erros FCS - descarta problema de camada 2. Falha simultânea de SFP (A) é extremamente improvável. Conectores sujos (C) causariam atenuação gradual. Curvatura (D) causaria degradação progressiva."
+				},
+				{
+					"id": "q2",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Um valor de RX Power de -40 dBm em um SFP-10G-LR indica que há sinal óptico presente, porém com atenuação excessiva que pode ser corrigida com limpeza de conectores.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. RX Power de -40 dBm está MUITO abaixo da sensibilidade do receptor SFP-10G-LR (tipicamente -14.4 dBm para 10GBASE-LR). Valores abaixo de -30 dBm são considerados ruído de fundo eletrônico - não há sinal óptico real sendo recebido. Para comparação: sinal normal em 12 km seria ~-15 dBm, sinal fraco degradado seria -20 a -25 dBm. -40 dBm indica ausência TOTAL de luz, não atenuação que possa ser corrigida com limpeza."
+				},
+				{
+					"id": "q3",
+					"text": "Qual seria a PRÓXIMA ação técnica mais apropriada para confirmar rompimento e localizar o ponto exato?",
+					"options": [
+						"Substituir os módulos SFP em ambos os roteadores para descartar falha de hardware",
+						"Limpar todos os conectores ópticos e reconectar os patch cords",
+						"Acionar equipe de campo com OTDR (Optical Time-Domain Reflectometer) para análise do enlace",
+						"Aguardar 30 minutos para ver se o link se recupera automaticamente"
+					],
+					"correctAnswer": 2,
+					"points": 5,
+					"justification": "OTDR (C) é a ferramenta ESPECÍFICA para localizar rompimentos, emendas e atenuações em fibra óptica. Injeta pulsos de luz e mede reflexões, permitindo determinar distância exata do problema (ex: 'rompimento a 7.2 km do ponto A'). Substituir SFP (A) é desnecessário - TX funciona e falha é bilateral. Limpar conectores (B) não resolve rompimento. Aguardar (D) é inaceitável quando há evidência clara de falha física."
+				},
+				{
+					"id": "q4",
+					"type": "numeric",
+					"text": "LINK-02 tem capacidade de 10 Gbps e está a 85% de utilização. Quantos Gbps de capacidade livre ainda estão disponíveis?",
+					"correctAnswer": 1.5,
+					"tolerance": 0.1,
+					"unit": "Gbps",
+					"points": 5,
+					"justification": "Capacidade livre = 10 Gbps × (100% - 85%) = 10 × 0.15 = 1.5 Gbps disponíveis. Este cálculo é fundamental para determinar margem de segurança antes de saturação completa. Com apenas 1.5 Gbps livres e tráfego flutuante, o risco de congestionamento é alto."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Investigação de Campo e Localização",
+			"phase": "Fase 2 - Análise Avançada",
+			"description": "Equipe de campo foi acionada e está se deslocando com equipamento OTDR. Enquanto isso, NOC investiga possíveis causas externas e coordena comunicação.",
+			"timeElapsed": "T+20 minutos (16:02)",
+			"currentSituation": {
+				"fieldTeamStatus": "Equipe de campo chegou ao Datacenter-A, iniciando teste OTDR",
+				"link02Status": "Up/Up - 87% utilização (leve aumento de tráfego)",
+				"businessImpact": "Serviços críticos operacionais, serviços secundários lentos"
+			},
+			"metrics": [
+				{
+					"title": "Resultado do Teste OTDR (de Datacenter-A)",
+					"type": "otdr-analysis",
+					"data": {
+						"testDirection": "Datacenter-A → Datacenter-B",
+						"fiberLength": "12.350 km (medido)",
+						"events": [
+							{
+								"distance": "0.000 km",
+								"type": "Connector",
+								"loss": "0.3 dB (normal)",
+								"description": "Conector ODF Datacenter-A"
+							},
+							{
+								"distance": "2.145 km",
+								"type": "Splice",
+								"loss": "0.1 dB (normal)",
+								"description": "Emenda de fusão - Caixa de emenda C1"
+							},
+							{
+								"distance": "5.820 km",
+								"type": "Splice",
+								"loss": "0.1 dB (normal)",
+								"description": "Emenda de fusão - Caixa de emenda C2"
+							},
+							{
+								"distance": "7.234 km",
+								"type": "Break",
+								"loss": "> 30 dB (ROMPIMENTO TOTAL)",
+								"description": "ROMPIMENTO DE FIBRA - Reflexão alta (~7.2 km de Datacenter-A)"
+							}
+						],
+						"observation": "OTDR confirma rompimento total a 7.234 km de Datacenter-A. Não há sinal além deste ponto."
+					}
+				},
+				{
+					"title": "Mapeamento do Percurso Físico",
+					"type": "physical-route",
+					"data": {
+						"totalDistance": "12 km",
+						"breakpointLocation": "7.234 km de Datacenter-A",
+						"estimatedAddress": "Avenida Central, altura do nº 8450 (±50m)",
+						"routeType": "Fibra subterrânea em duto PVC (padrão metropolitano)",
+						"nearbyLandmarks": "Cruzamento com Rua Industrial, próximo a canteiro de obras de saneamento",
+						"observation": "Equipe de campo consultou planta baixa - local coincide com obra de escavação reportada pela Prefeitura"
+					}
+				},
+				{
+					"title": "Informações da Obra Civil (consultado Prefeitura)",
+					"type": "external-info",
+					"data": {
+						"workType": "Obra de saneamento básico - substituição de rede de esgoto",
+						"contractor": "Construtora XYZ Ltda.",
+						"authorization": "Alvará nº 2024/4567 - válido",
+						"notificationToUtilities": "SIM - concessionárias de água, energia e gás notificadas. Telecom NÃO foi notificada (falha da empreiteira)",
+						"excavationMethod": "Retroescavadeira",
+						"depth": "2.5 metros (profundidade do duto de fibra: 1.2 metros - CONFLITO)",
+						"observation": "Empreiteira escavou além da profundidade segura SEM consultar plantas de infraestrutura de telecom"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q5",
+					"text": "Com base no OTDR mostrando rompimento a 7.234 km e informações da obra, qual é a causa raiz MAIS provável?",
+					"options": [
+						"Vandalismo ou roubo de cabo de fibra óptica",
+						"Fadiga do material após anos de uso em ambiente subterrâneo",
+						"Escavação não autorizada por retroescavadeira da obra de saneamento",
+						"Desastre natural (movimentação de solo, alagamento)"
+					],
+					"correctAnswer": 2,
+					"points": 5,
+					"justification": "Escavação acidental (C) é a causa raiz confirmada: (1) OTDR indica rompimento exatamente no local da obra (7.2 km = Av. Central 8450), (2) obra de saneamento com retroescavadeira em andamento, (3) escavação a 2.5m de profundidade atingiu duto a 1.2m, (4) telecom NÃO foi notificada (falha de processo). Vandalismo (A) é improvável em duto subterrâneo. Fadiga (B) causaria degradação gradual. Desastre natural (D) não há evidências."
+				},
+				{
+					"id": "q6",
+					"text": "Qual foi a FALHA DE PROCESSO que permitiu este incidente?",
+					"options": [
+						"Fibra óptica instalada em profundidade inadequada (deveria estar a 2.5m, não 1.2m)",
+						"Empreiteira não consultou cadastro de infraestrutura de telecom antes de escavar (obrigatório por lei)",
+						"Prefeitura emitiu alvará de obra sem validar impacto em infraestrutura subterrânea",
+						"Organização não sinalizou adequadamente o percurso do cabo com marcos físicos"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "A falha crítica de processo (B) é a empreiteira NÃO ter consultado o cadastro de utilidades subterrâneas antes de escavar - isso é OBRIGATÓRIO por lei (Lei de Saneamento, Lei Geral de Telecomunicações). Profundidade de 1.2m (A) está dentro do padrão para área urbana. Prefeitura (C) notificou outras utilities, mas não tem responsabilidade de validar TODAS as infraestrutura. Sinalização física (D) é complementar, não substitui consulta ao cadastro."
+				},
+				{
+					"id": "q7",
+					"text": "Assumindo que o reparo levará 6-8 horas, qual ação de mitigação de risco você recomendaria IMEDIATAMENTE?",
+					"options": [
+						"Implementar QoS (Quality of Service) em LINK-02 para priorizar tráfego crítico",
+						"Contratar link de contingência temporário via operadora (4G/5G ou fibra temporária)",
+						"Migrar serviços não-críticos para modo offline até restauração do LINK-01",
+						"Tanto A quanto C são ações válidas de mitigação imediata"
+					],
+					"correctAnswer": 3,
+					"points": 5,
+					"justification": "Mitigação imediata requer MÚLTIPLAS ações: (A) QoS em LINK-02 garante que tráfego crítico (VoIP, ERP) tenha prioridade sobre tráfego secundário (downloads, backups). (C) Desabilitar serviços não-críticos reduz carga em LINK-02. Ambas são ações imediatas (minutos). Contratar link temporário (B) é válido mas leva horas/dias para provisionar - não é 'imediato'. A questão testa compreensão de mitigação em camadas."
+				},
+				{
+					"id": "q8",
+					"type": "matching",
+					"text": "Correlacione cada elemento obrigatório da notificação DMCA aos seus requisitos específicos:",
+					"leftColumn": [
+						{"id": "signature", "label": "Assinatura física ou eletrônica"},
+						{"id": "good-faith", "label": "Declaração de boa-fé (good faith)"},
+						{"id": "accuracy", "label": "Declaração de precisão (accuracy)"}
+					],
+					"rightColumn": [
+						{"id": "a", "label": "Informação é precisa e, sob pena de perjúrio, que reclamante é autorizado a agir em nome do titular"},
+						{"id": "b", "label": "Titular ou representante autorizado deve assinar fisicamente ou eletronicamente a notificação"},
+						{"id": "c", "label": "Crença de boa-fé de que o uso do material não é autorizado pelo titular, agente ou pela lei"}
+					],
+					"correctMatches": [
+						{"left": "signature", "right": "b"},
+						{"left": "good-faith", "right": "c"},
+						{"left": "accuracy", "right": "a"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 6,
+					"justification": "Assinatura (↔ b): física ou eletrônica do titular ou agente autorizado. Good faith (↔ c): crença de boa-fé que uso não é autorizado. Accuracy (↔ a): declaração sob pena de perjúrio que informação é precisa e reclamante é autorizado. Estes são 3 dos 6 elementos obrigatórios do DMCA § 512(c)(3). Outros 3: (1) identificação da obra protegida, (2) identificação do material infrator + localização, (3) informações de contato."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Coordenação de Reparo e Restauração",
+			"phase": "Fase 3 - Contenção e Recuperação",
+			"description": "Equipe de campo localizou o ponto exato do rompimento. Empreiteira foi notificada e está coordenando com a equipe de reparo. Processo de emenda de emergência será iniciado.",
+			"timeElapsed": "T+90 minutos (17:12)",
+			"currentSituation": {
+				"repairStatus": "Equipe de campo no local do rompimento, preparando emenda de fusão",
+				"estimatedRepairTime": "4 horas (conclusão prevista: 21:12)",
+				"link02Status": "Up/Up - 88% utilização (estável com QoS implementado)",
+				"businessImpact": "Operação estável com restrições - serviços críticos priorizados"
+			},
+			"metrics": [
+				{
+					"title": "Inspeção Visual do Rompimento",
+					"type": "field-inspection",
+					"data": {
+						"damageType": "Corte completo do cabo de 48 fibras (rompimento transversal)",
+						"damagedFibers": "Todas as 48 fibras seccionadas - cabo completamente cortado",
+						"cableCondition": "Necessário substituir segmento de 15 metros de cabo",
+						"affectedPairs": "Apenas 2 fibras (par dedicado a LINK-01) estavam em uso. Demais fibras são dark fiber (reserva)",
+						"repairMethod": "Emenda de fusão por termocontrole (fusion splice) - padrão ouro",
+						"estimatedSpliceLoss": "< 0.05 dB por emenda (padrão ITU-T)",
+						"observation": "Cabo de 48 fibras oferece redundância para expansão futura - apenas 4% da capacidade em uso"
+					}
+				},
+				{
+					"title": "Processo de Emenda de Fusão",
+					"type": "repair-procedure",
+					"data": {
+						"steps": [
+							"1. Limpeza das extremidades da fibra com álcool isopropílico",
+							"2. Clivagem precisa das fibras (ângulo de 90°)",
+							"3. Alinhamento das fibras no equipamento de fusão (splicer)",
+							"4. Fusão por arco elétrico (~2000°C por 15 segundos)",
+							"5. Teste de atenuação da emenda (< 0.05 dB aceitável)",
+							"6. Proteção da emenda com tubo termocontrátil",
+							"7. Acomodação em caixa de emenda (splice closure)",
+							"8. Lacração e proteção contra umidade"
+						],
+						"timePerSplice": "~15 minutos (para 2 fibras: ~30 min)",
+						"testTime": "30 minutos (OTDR bidirecional + testes de conectividade)",
+						"observation": "Total estimado: 1h de fusão + 30min teste + 2.5h de preparação/acabamento = 4h"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q9",
+					"text": "Por que o reparo requer emenda de fusão (fusion splice) ao invés de conector mecânico simples?",
+					"options": [
+						"Conectores mecânicos não funcionam em fibras single-mode",
+						"Emenda de fusão oferece menor perda (< 0.05 dB) e maior confiabilidade a longo prazo em ambiente subterrâneo",
+						"Emenda de fusão é mais rápida que conectores mecânicos",
+						"Regulamentação da ANATEL exige fusão em todos os reparos"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Emenda de fusão (B) é preferida para reparos permanentes porque: (1) perda mínima (< 0.05 dB vs. 0.3-0.5 dB de conectores mecânicos), (2) selagem permanente resistente a umidade e contaminantes (crítico em ambiente subterrâneo), (3) confiabilidade superior a longo prazo. Conectores mecânicos (A) funcionam em SM mas são para aplicações temporárias. Fusão NÃO é mais rápida (C). ANATEL não exige fusão especificamente (D)."
+				},
+				{
+					"id": "q10",
+					"type": "ordering",
+					"text": "Ordene corretamente os passos do processo de emenda de fusão de fibra óptica:",
+					"items": [
+						{"id": "step1", "label": "Limpeza das extremidades com álcool isopropílico"},
+						{"id": "step2", "label": "Clivagem precisa das fibras em ângulo de 90°"},
+						{"id": "step3", "label": "Alinhamento das fibras no splicer"},
+						{"id": "step4", "label": "Fusão por arco elétrico (~2000°C)"},
+						{"id": "step5", "label": "Proteção com tubo termocontrátil"},
+						{"id": "step6", "label": "Acomodação em caixa de emenda selada"}
+					],
+					"correctOrder": ["step1", "step2", "step3", "step4", "step5", "step6"],
+					"partialCredit": false,
+					"points": 6,
+					"justification": "A sequência correta é crítica para qualidade da emenda: (1) Limpeza remove contaminantes, (2) Clivagem cria superfície plana para fusão, (3) Alinhamento preciso minimiza perda, (4) Fusão cria ligação permanente, (5) Tubo protege a emenda mecanicamente, (6) Caixa protege contra umidade e ambiente. Inverter passos compromete qualidade ou impossibilita a emenda."
+				},
+				{
+					"id": "q11",
+					"text": "Assumindo que LINK-01 foi restaurado com sucesso, como validar que o LACP redistribuiu o tráfego corretamente?",
+					"options": [
+						"Verificar que ambas as interfaces (Te0/0/1 e Te0/0/2) mostram status Up/Up",
+						"Verificar que Port-channel Po1 mostra bandwidth de 20 Gbps (10+10) e utilização distribuída",
+						"Executar ping para validar conectividade end-to-end",
+						"Verificar que não há erros CRC/FCS nas interfaces"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Validação correta de LACP (B) requer confirmar: (1) Port-channel mostra bandwidth agregado de 20 Gbps, (2) tráfego está distribuído entre os links (ex: LINK-01 60%, LINK-02 40% como baseline), (3) comando 'show etherchannel summary' mostra ambos links como membros ativos. Status Up/Up (A) é necessário mas não suficiente - não confirma agregação. Ping (C) valida conectividade mas não balanceamento. Ausência de erros (D) valida qualidade mas não agregação."
+				},
+				{
+					"id": "q12",
+					"type": "numeric",
+					"text": "Após reparo, o OTDR mediu atenuação total no enlace de 12 km. Considerando: cabo com atenuação de 0.35 dB/km, 2 conectores (0.3 dB cada), 3 emendas (0.05 dB cada), qual é a atenuação total esperada?",
+					"correctAnswer": 4.95,
+					"tolerance": 0.2,
+					"unit": "dB",
+					"points": 6,
+					"justification": "Atenuação total = (12 km × 0.35 dB/km) + (2 × 0.3 dB) + (3 × 0.05 dB) = 4.2 + 0.6 + 0.15 = 4.95 dB. Este cálculo é essencial para validar qualidade do enlace. Com TX a -3 dBm e atenuação de ~5 dB, RX esperado seria -8 dBm (excelente). Valores muito acima indicam problemas na emenda ou conectores."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Pós-Incidente e Lições Aprendidas",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Reparo foi concluído com sucesso. LINK-01 restaurado às 21:35 (5h53min após o incidente). Tráfego foi redistribuído via LACP. Organização retornou à operação normal com redundância completa.",
+			"timeElapsed": "T+353 minutos (21:35 - incidente encerrado)",
+			"currentSituation": {
+				"link01Status": "Up/Up - RX Power -15.3 dBm (normal) - 60% tráfego",
+				"link02Status": "Up/Up - RX Power -14.8 dBm (normal) - 40% tráfego",
+				"portChannel": "Po1 - 20 Gbps - 42% utilização (normal)",
+				"impact": "Nenhum - operação completamente normalizada"
+			},
+			"questions": [
+				{
+					"id": "q13",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Uma emenda de fusão com teste inicial mostrando RX Power normal pode ser considerada permanentemente estável, sem necessidade de monitoramento adicional.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. Emendas podem inicialmente parecer boas mas degradar nas primeiras horas/dias se: fusão foi imperfeita, tubo termocontrátil não selou adequadamente, caixa de emenda tem penetração de umidade, ou fibra não foi bem acomodada. É essencial monitorar RX Power por 2-4 horas após reparo, e idealmente por 24-48h com alertas configurados, para garantir estabilidade antes de considerar o reparo permanente."
+				},
+				{
+					"id": "q14",
+					"text": "Qual melhoria de PROCESSO teria o maior impacto na PREVENÇÃO de incidentes futuros similares?",
+					"options": [
+						"Instalar fibras a profundidade maior (2.5m ao invés de 1.2m) em toda a rede",
+						"Exigir que empreiteiras consultem e confirmem cadastro de infraestrutura ANTES de aprovar alvarás de obra",
+						"Contratar seguro específico para danos a infraestrutura de fibra óptica",
+						"Implementar monitoramento proativo de atenuação óptica para detectar degradação"
+					],
+					"correctAnswer": 1,
+					"points": 6,
+					"justification": "Melhoria de processo mais eficaz (B) é enforcement OBRIGATÓRIO de consulta ao cadastro de utilidades antes de escavar - isso PREVINE o incidente na origem. Profundidade maior (A) ajuda mas não previne (escavações profundas acontecem). Seguro (C) mitiga custo financeiro mas não previne incidente. Monitoramento (D) detecta degradação mas não previne rompimentos abruptos. A questão testa compreensão de hierarquia de controles: prevenção > detecção > mitigação."
+				},
+				{
+					"id": "q15",
+					"text": "Qual melhoria de INFRAESTRUTURA teria o maior impacto na RESILIÊNCIA contra incidentes futuros?",
+					"options": [
+						"Aumentar capacidade dos links de 10 Gbps para 100 Gbps",
+						"Implementar rota FISICAMENTE diversa para LINK-02 (percurso completamente diferente de LINK-01)",
+						"Adicionar um terceiro link de backup via operadora 4G/5G",
+						"Instalar gerador de backup nos datacenters para garantir energia durante reparos"
+					],
+					"correctAnswer": 1,
+					"points": 6,
+					"justification": "Diversidade de rota física (B) é a melhoria de infraestrutura mais crítica. Atualmente, se uma escavação atingir ambos os cabos no mesmo duto (single point of failure físico), haverá OUTAGE TOTAL. Rota diversa (percursos diferentes, dutos diferentes, idealmente lados opostos da rua) garante que um incidente físico não afete ambos os links. Aumentar capacidade (A) não melhora resiliência. 4G/5G (C) é backup limitado (latência, capacidade). Gerador (D) resolve energia, não fibra."
+				},
+				{
+					"id": "q16",
+					"type": "matching",
+					"text": "Em um ataque de amplificação DNS, correlacione cada IP com seu papel correto:",
+					"leftColumn": [
+						{"id": "ip1", "label": "10.0.1.53 (dns-recursive.internal)"},
+						{"id": "ip2", "label": "187.45.123.89 (da botnet)"},
+						{"id": "ip3", "label": "IP da vítima real (não mostrado diretamente)"}
+					],
+					"rightColumn": [
+						{"id": "role1", "label": "Refletor/Amplificador (servidor DNS abusado)"},
+						{"id": "role2", "label": "Atacante/Botnet (envia queries com IP spoofed)"},
+						{"id": "role3", "label": "Vítima (recebe respostas DNS amplificadas)"}
+					],
+					"correctMatches": [
+						{"left": "ip1", "right": "role1"},
+						{"left": "ip2", "right": "role2"},
+						{"left": "ip3", "right": "role3"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 6,
+					"justification": "10.0.1.53 é o servidor DNS interno sendo abusado como refletor (responde com grandes payloads). 187.45.123.89 é IP da botnet que envia queries com IP de origem forjado (spoofed) da vítima. A vítima real recebe respostas DNS gigantes que nunca solicitou, saturando sua conexão. Esta é a mecânica de amplificação: query pequena → resposta grande direcionada à vítima."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 96,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 90,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de diagnóstico de falhas físicas, análise óptica e coordenação de reparo"
+			},
+			{
+				"min": 75,
+				"max": 89,
+				"grade": "Bom",
+				"description": "Compreensão sólida de infraestrutura de fibra óptica e processos de resposta"
+			},
+			{
+				"min": 60,
+				"max": 74,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica suficiente, requer aprofundamento em análise óptica (OTDR, dBm)"
+			},
+			{
+				"min": 45,
+				"max": 59,
+				"grade": "Insatisfatório",
+				"description": "Lacunas significativas em conhecimento de camada física e protocolos L2"
+			},
+			{
+				"min": 0,
+				"max": 44,
+				"grade": "Inadequado",
+				"description": "Compreensão insuficiente, requer treinamento completo em infraestrutura de rede"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Apresentar informações progressivamente, simulando descoberta durante investigação de campo",
+		"Permitir 3-5 minutos de discussão entre participantes antes de cada resposta",
+		"Fazer perguntas orientadoras: 'O que RX Power de -40 dBm significa fisicamente?', 'Como OTDR funciona?'",
+		"Enfatizar importância de COORDENAÇÃO entre NOC, campo, empreiteiras e stakeholders",
+		"Se grupo não tem experiência com OTDR, explicar conceito antes da Rodada 3",
+		"Manter neutralidade técnica - não fornecer respostas diretas",
+		"Controlar tempo: Rodada 1 (5 min), Rodadas 2-4 (10-12 min cada), Rodada 5 (8 min)",
+		"Mediar debates sobre trade-offs (custo de diversidade de rota vs. resiliência)",
+		"Após exercício: revisar gabarito, discutir processos internos de coordenação com campo",
+		"Coletar feedback sobre realismo do cenário e ajustes necessários",
+		"Documentar insights para melhorar procedimentos de resposta a incidentes físicos"
+	],
+	"technicalReferences": [
+		{
+			"title": "ITU-T G.652 - Characteristics of single-mode optical fibre",
+			"url": "https://www.itu.int/rec/T-REC-G.652"
+		},
+		{
+			"title": "ITU-T G.650.1 - Definitions and test methods for linear optical fiber",
+			"url": "https://www.itu.int/rec/T-REC-G.650.1"
+		},
+		{
+			"title": "ANSI/TIA-568.3-D - Optical Fiber Cabling and Components Standard",
+			"url": "https://tiaonline.org/resources/tia-568-series/"
+		},
+		{
+			"title": "IEEE 802.3 - Ethernet Standards (10GBASE-LR specification)",
+			"url": "https://standards.ieee.org/ieee/802.3/7071/"
+		},
+		{
+			"title": "RFC 7042 - IANA Considerations and IETF Protocol Assignment",
+			"url": "https://www.rfc-editor.org/rfc/rfc7042"
+		},
+		{
+			"title": "OTDR Fundamentals - Application Note",
+			"url": "https://www.fiberoptics4sale.com/blogs/archive-posts/95048006-otdr-testing"
+		}
+	]
+}

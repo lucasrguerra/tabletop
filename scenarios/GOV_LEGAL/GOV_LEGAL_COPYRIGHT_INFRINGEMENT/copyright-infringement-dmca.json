@@ -1,0 +1,565 @@
+{
+	"id": "copyright-infringement-dmca",
+	"title": "Resposta a Notificação DMCA de Violação de Direitos Autorais",
+	"description": "Simulação tabletop de resposta a notificação DMCA (Digital Millennium Copyright Act) sobre conteúdo protegido hospedado em repositório institucional",
+	"category": {
+		"id": "GOV_LEGAL",
+		"type": "GOV_LEGAL_COPYRIGHT_INFRINGEMENT",
+		"title": "Violação de Direitos Autorais"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2025-02-02",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "40-55 minutos",
+		"difficulty": "Intermediário a Avançado",
+		"targetAudience": "Equipe Jurídica, Gestores de TI, Compliance, Administradores de Sistemas, Equipe de Comunicação"
+	},
+	"objectives": [
+		"Validar capacidade de resposta a notificações DMCA e conformidade com leis de direitos autorais",
+		"Avaliar conhecimento sobre processo notice-and-takedown e prazos legais",
+		"Testar procedimentos de investigação interna e preservação de evidências",
+		"Desenvolver compreensão de responsabilidade civil (safe harbor) e limitações",
+		"Identificar políticas de acceptable use e educação de usuários",
+		"Promover conhecimento sobre fair use, domínio público e licenciamento de conteúdo"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá remoção real de conteúdo ou comunicação com partes externas",
+		"Não inclui consulta jurídica formal ou resposta legal real a notificações",
+		"Foco na tomada de decisão operacional, compliance e gestão de crise reputacional",
+		"Avaliação de conhecimento de propriedade intelectual, DMCA, e legislação aplicável"
+	],
+	"baseScenario": {
+		"context": "Quarta-feira, 10h30, horário comercial. Você faz parte da equipe de compliance e gestão legal de TI. A organização opera um repositório institucional público para compartilhamento de material educacional, pesquisas acadêmicas, teses, dissertações e recursos didáticos criados pela comunidade. O repositório recebe ~5.000 uploads/mês de professores, pesquisadores e alunos. Existe Termo de Uso que exige que usuários declarem titularidade ou autorização para publicar conteúdo, mas não há validação técnica automatizada. O repositório está sob jurisdição brasileira mas acessível globalmente.",
+		"initialSituation": {
+			"alert": "E-mail jurídico recebido: Notificação formal DMCA de violação de direitos autorais",
+			"sender": "legal@techpublisher.com (editora técnica internacional)",
+			"allegation": "Cópia integral não autorizada de livro protegido por copyright hospedado no repositório",
+			"affectedContent": "https://repository.institution.edu/documents/12847/advanced-networking-guide.pdf",
+			"copyrightedWork": "Advanced Networking: Protocols and Architecture (ISBN 978-1-23456-789-0) © 2023 Tech Publisher Inc.",
+			"timestamp": "10:27:14"
+		},
+		"initialComplaints": [
+			"Editora alega que livro completo (742 páginas) foi publicado sem autorização",
+			"Conteúdo foi uploaded há 3 meses por conta de usuário identificado como professor",
+			"Livro original custa US$ 89.90 - potencial dano comercial significativo",
+			"Notificação menciona 'infração repetida' - usuário teria uploadado 2 outros livros protegidos anteriormente"
+		],
+		"availableResources": [
+			"Acesso administrativo ao sistema de repositório (logs, metadados, controle de usuários)",
+			"Termo de Uso e Política de Direitos Autorais do repositório",
+			"Contato com departamento jurídico institucional",
+			"Ferramentas de análise: comparação de hash MD5/SHA-256, inspeção de metadados PDF",
+			"Registros de uploads do usuário infrator",
+			"Documentação sobre processo DMCA e Lei de Direitos Autorais (Lei 9.610/98 - Brasil)"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe deve se familiarizar com a situação inicial, notificação DMCA e recursos disponíveis.",
+			"inject": "Apresentação do cenário conforme descrito. A equipe tem 5 minutos para discutir a situação inicial e planejar abordagem de resposta.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Análise da Notificação e Obrigações Legais",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe analisa a notificação DMCA recebida para determinar sua validade formal e entender as obrigações legais da organização.",
+			"timeElapsed": "T+0 (10:27 - recebimento da notificação)",
+			"currentSituation": {
+				"contentStatus": "Ainda público e acessível no repositório",
+				"downloads": "1.247 downloads desde a publicação (há 3 meses)",
+				"legalRisk": "Alto - notificação formal de editora internacional",
+				"reputationalRisk": "Médio a Alto - repositório institucional associado à organização"
+			},
+			"metrics": [
+				{
+					"type": "dmca-notice",
+					"title": "Conteúdo da Notificação DMCA Recebida",
+					"data": {
+						"noticeType": "DMCA Takedown Notice (17 U.S.C. § 512(c))",
+						"sender": "Tech Publisher Inc. - Departamento Jurídico",
+						"dateReceived": "2025-02-02 10:27:14 UTC",
+						"copyrightHolder": "Tech Publisher Inc. (titular registrado - Copyright Office Registration TX 9-123-456)",
+						"infringingURL": "https://repository.institution.edu/documents/12847/advanced-networking-guide.pdf",
+						"originalWork": "Advanced Networking: Protocols and Architecture, 2nd Edition, ISBN 978-1-23456-789-0, publicado em 2023",
+						"descriptionInfringement": "Cópia digital completa e não autorizada do livro (742 páginas, PDF), disponibilizada publicamente sem licença ou permissão",
+						"goodFaithStatement": "✅ Presente - 'I have a good faith belief that use of the material is not authorized'",
+						"accuracyStatement": "✅ Presente - 'Information in notification is accurate, under penalty of perjury'",
+						"authorizedRepSignature": "✅ Presente - Assinatura digital de Sarah Johnson, General Counsel",
+						"contactInfo": "✅ Completo - Endereço, telefone, e-mail do titular",
+						"observation": "Notificação FORMALMENTE VÁLIDA segundo requisitos DMCA 17 U.S.C. § 512(c)(3). Contém todos os 6 elementos obrigatórios. Falha em responder adequadamente pode resultar em perda de proteção Safe Harbor."
+					}
+				},
+				{
+					"type": "content-analysis",
+					"title": "Análise do Conteúdo Alegadamente Infrator",
+					"data": {
+						"fileName": "advanced-networking-guide.pdf",
+						"fileSize": "47.3 MB",
+						"pages": "742 páginas",
+						"uploadDate": "2024-11-05 14:32:18",
+						"uploader": "prof.silva@institution.edu (Professor João Silva - Departamento de Computação)",
+						"title": "Advanced Networking: Protocols and Architecture",
+						"metadata": "Author: Michael Roberts, David Chen | Producer: Adobe PDF Library 15.0 | CreationDate: 2023-01-15",
+						"hashMD5": "e4d909c290d0fb1ca068ffaddf22cbd0",
+						"downloads": "1.247 downloads (média 13.8/dia)",
+						"observation": "Metadados PDF confirmam autores originais (não o uploader). Hash MD5 corresponde a cópia pirata conhecida circulando em sites de compartilhamento ilegal. Conteúdo parece ser cópia integral escaneada ou PDF obtido ilegalmente."
+					}
+				},
+				{
+					"type": "user-history",
+					"title": "Histórico de Uploads do Usuário Infrator",
+					"data": {
+						"userId": "prof.silva@institution.edu",
+						"accountCreated": "2022-03-10",
+						"totalUploads": "37 documentos",
+						"flaggedContent": [
+							{
+								"file": "python-programming-complete-guide.pdf",
+								"date": "2024-08-12",
+								"status": "Removido após notificação DMCA (O'Reilly Media - 2024-08-20)"
+							},
+							{
+								"file": "database-systems-concepts.pdf",
+								"date": "2024-09-28",
+								"status": "Removido após notificação DMCA (Pearson Education - 2024-10-05)"
+							},
+							{
+								"file": "advanced-networking-guide.pdf",
+								"date": "2024-11-05",
+								"status": "ATUAL - Notificação DMCA recebida hoje"
+							}
+						],
+						"observation": "INCIDENTE REPETIDO (3ª vez). Usuário tem padrão claro de upload de material protegido. Política de 'repeat infringer' do DMCA exige que plataforma tome medidas contra infratores reincidentes (possível suspensão de conta) para manter proteção Safe Harbor."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"question": "Segundo o DMCA (Digital Millennium Copyright Act), qual é o prazo máximo recomendado para remover conteúdo infrator após receber uma notificação válida, para manter proteção de Safe Harbor?",
+					"points": 5,
+					"options": [
+						"24 horas",
+						"O mais rápido possível (expeditiously) - geralmente interpretado como horas, não dias",
+						"7 dias úteis",
+						"30 dias"
+					],
+					"correctAnswer": 1,
+					"justification": "O DMCA 17 U.S.C. § 512(c) exige remoção 'expeditiously' (expeditamente) - lei não define prazo específico, mas jurisprudência interpreta como 'tão logo razoavelmente possível', tipicamente HORAS (option B). Na prática: contenção imediata (minutos a horas) + investigação posterior. Opções (A), (C), (D) são lentas demais - tribunal pode considerar que plataforma teve 'conhecimento' da infração e não agiu prontamente, perdendo imunidade Safe Harbor. Contenção rápida protege contra responsabilidade civil."
+				},
+				{
+					"id": "q2",
+					"type": "matching",
+					"question": "Correlacione cada evento detectado pelo OTDR com sua interpretação correta:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "evt1", "text": "Conector com perda de 0.3 dB"},
+						{"id": "evt2", "text": "Splice com perda de 0.1 dB"},
+						{"id": "evt3", "text": "Break com perda > 30 dB"}
+					],
+					"rightColumn": [
+						{"id": "int1", "text": "Emenda de fusão com qualidade normal"},
+						{"id": "int2", "text": "Conector mecânico em ODF (normal)"},
+						{"id": "int3", "text": "Rompimento total da fibra"}
+					],
+					"correctMatches": [
+						{"left": "evt1", "right": "int2"},
+						{"left": "evt2", "right": "int1"},
+						{"left": "evt3", "right": "int3"}
+					],
+					"justification": "Conectores mecânicos tipicamente apresentam 0.3-0.5 dB de perda (aceitável). Emendas de fusão bem executadas têm perda < 0.1 dB (padrão ITU-T). Rompimento total (break) apresenta perda > 30 dB, pois não há continuidade óptica - praticamente toda luz é perdida."
+				},
+				{
+					"id": "q3",
+					"type": "true-false",
+					"question": "Sob a doutrina de Safe Harbor do DMCA, provedores de serviço online são SEMPRE imunes a processos por copyright infringement se removerem conteúdo prontamente após notificação.",
+					"points": 3,
+					"correctAnswer": false,
+					"justification": "FALSO. Safe Harbor NÃO é imunidade absoluta. Proteção é PERDIDA se: (1) provedor tem conhecimento real (actual knowledge) da infração e não age, (2) provedor recebe benefício financeiro diretamente relacionado à infração, (3) provedor não remove conteúdo 'expeditiously', (4) provedor não implementa política de 'repeat infringer' (suspender reincidentes), (5) provedor não tem agente designado registrado no Copyright Office. Safe Harbor protege apenas provedores 'passivos' que não têm controle editorial sobre conteúdo de usuários."
+				},
+				{
+					"id": "q4",
+					"type": "multiple-choice",
+					"question": "Este é o 3º incidente DMCA envolvendo o mesmo usuário (prof.silva@institution.edu). Qual ação é OBRIGATÓRIA para manter proteção Safe Harbor segundo política de 'repeat infringer'?",
+					"points": 6,
+					"options": [
+						"Apenas remover o conteúdo atual - não há obrigação de punir o usuário",
+						"Enviar advertência formal ao usuário mas manter conta ativa",
+						"Suspender ou encerrar a conta do usuário infrator reincidente",
+						"Reportar o usuário às autoridades policiais"
+					],
+					"correctAnswer": 2,
+					"justification": "DMCA § 512(i)(1)(A) EXIGE que provedor 'adote e implemente razoavelmente política de encerramento de contas de infratores reincidentes' (option C). Jurisprudência: 3 violações comprovadas tipicamente configuram 'repeat infringer' - manter conta ativa = perda de Safe Harbor. Opção (A) é insuficiente. (B) pode ser aceitável para 1ª infração, não para 3ª. (D) não é obrigatório - DMCA é lei civil, não criminal. Suspensão/encerramento proporcional ao padrão de infração é essencial para manter imunidade."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Investigação e Verificação do Conteúdo",
+			"phase": "Fase 2 - Análise Avançada",
+			"description": "Antes de remover o conteúdo, a equipe conduz análise para verificar se alegação é legítima e se há possíveis exceções de fair use ou licenciamento válido.",
+			"timeElapsed": "T+15 minutos (10:42)",
+			"currentSituation": {
+				"contentStatus": "Ainda público (análise em andamento)",
+				"investigationFocus": "Verificar legitimidade da alegação e possíveis defesas",
+				"legalConsultation": "Departamento jurídico acionado"
+			},
+			"metrics": [
+				{
+					"type": "fair-use-analysis",
+					"title": "Análise de Possível Fair Use (Uso Justo)",
+					"data": {
+						"purpose": "Educacional - repositório acadêmico usado por professores/alunos",
+						"nature": "Obra factual técnica (não ficção criativa) - favorece fair use",
+						"amount": "Obra COMPLETA reproduzida (742 páginas integrais, 100%) - desfavorece fair use",
+						"effect": "Substitui mercado do original (livro custa US$ 89.90, PDF gratuito compete diretamente) - desfavorece fair use FORTEMENTE",
+						"conclusion": "NÃO SE QUALIFICA COMO FAIR USE. Embora contexto seja educacional, reprodução integral de obra comercial disponível para venda que substitui mercado do original raramente é considerada fair use. Fair use permitiria citação de trechos limitados, não cópia completa.",
+						"observation": "Fair use (EUA) / exceções e limitações (Brasil - Lei 9.610/98 Art. 46) são defesas afirmativas que dependem de análise caso-a-caso. Distribuição de obra completa para milhares de usuários é difícil de defender."
+					}
+				},
+				{
+					"type": "user-statement",
+					"title": "Declaração do Usuário Uploader (obtida via e-mail)",
+					"data": {
+						"userClaim": "Sou professor e uso este livro em minhas aulas. Disponibilizei para facilitar acesso dos alunos que não têm recursos financeiros para comprar.",
+						"authorization": "❌ Usuário NÃO possui autorização escrita da editora",
+						"license": "❌ Livro NÃO possui licença Creative Commons ou Open Access",
+						"institutionalLicense": "❌ Instituição NÃO possui licença de distribuição digital (apenas cópias físicas na biblioteca)",
+						"purchaseProof": "✅ Usuário comprovou compra pessoal de 1 cópia física do livro",
+						"observation": "Intenção educacional é louvável, mas compra de 1 cópia NÃO autoriza digitalização e distribuição pública para 1.247+ pessoas. Isso viola direito exclusivo de reprodução e distribuição do titular (Lei 9.610/98 Art. 29). 'First Sale Doctrine' permite revenda da cópia física comprada, mas NÃO permite criar e distribuir cópias digitais."
+					}
+				},
+				{
+					"type": "licensing-verification",
+					"title": "Verificação de Licenciamento e Alternativas",
+					"data": {
+						"publisherLicenseProgram": "✅ Tech Publisher oferece 'Academic License' para instituições (US$ 499/ano para acesso digital ilimitado)",
+						"openAccessVersion": "❌ Não existe versão open access ou preprint do livro",
+						"legalAlternatives": "Biblioteca física (2 cópias), empréstimo via biblioteca universitária, licença institucional digital",
+						"observation": "Existem alternativas legais disponíveis. Organização poderia negociar licença institucional com editora para acesso legítimo ao conteúdo. Custo da licença (US$ 499) é menor que risco legal de litígio por copyright infringement."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q5",
+					"type": "multiple-choice",
+					"question": "Com base na análise de fair use, qual fator pesa MAIS DESFAVORAVELMENTE contra a alegação de uso justo neste caso?",
+					"points": 6,
+					"options": [
+						"Propósito educacional do uso",
+						"Reprodução de 100% da obra completa (não apenas trechos)",
+						"Natureza factual e técnica da obra",
+						"Efeito de substituição do mercado original (1.247 downloads vs. compra legítima)"
+					],
+					"correctAnswer": 3,
+					"justification": "Efeito no mercado (option D) é frequentemente o fator MAIS IMPORTANTE em análise fair use. Supreme Court: 'efeito no mercado potencial é inquestionavelmente o elemento mais importante' (Harper & Row v. Nation Enterprises). 1.247 downloads gratuitos representam ~US$ 112.000 em vendas perdidas potenciais (1247 × $89.90), impacto comercial direto. Reprodução integral (B) também desfavorece, mas pode ser justificada em casos específicos. Propósito educacional (A) e natureza factual (C) favorecem fair use, não desfavorecem."
+				},
+				{
+					"id": "q6",
+					"type": "true-false",
+					"question": "A compra legítima de uma cópia física de livro protegido por copyright autoriza automaticamente o comprador a digitalizar e distribuir cópias PDF publicamente para fins educacionais.",
+					"points": 3,
+					"correctAnswer": false,
+					"justification": "FALSO. Compra de cópia legítima concede apenas direito de uso DAQUELA cópia específica ('first sale doctrine' - revenda/empréstimo da cópia física). NÃO concede direitos de reprodução, criação de obras derivadas ou distribuição pública (Lei 9.610/98 Art. 29). Digitalização = reprodução (direito exclusivo do titular). Distribuição pública de PDFs = violação mesmo com 'boa intenção' educacional. Exceções educacionais são limitadas (citação de trechos, uso em sala de aula restrita, não distribuição massiva online)."
+				},
+				{
+					"id": "q7",
+					"type": "ordering",
+					"question": "Ordene as ações corretas que a equipe deve tomar ao receber notificação DMCA válida:",
+					"points": 6,
+					"partialCredit": false,
+					"items": [
+						{"id": "step1", "text": "Verificar validade formal da notificação DMCA (6 elementos obrigatórios presentes)"},
+						{"id": "step2", "text": "Remover ou desabilitar acesso ao conteúdo alegadamente infrator IMEDIATAMENTE"},
+						{"id": "step3", "text": "Preservar evidências (logs, cópia do conteúdo removido, metadados) para possível disputa"},
+						{"id": "step4", "text": "Notificar o usuário uploader sobre remoção e direito de enviar counter-notice"},
+						{"id": "step5", "text": "Enviar confirmação ao titular dos direitos autorais sobre ação tomada"},
+						{"id": "step6", "text": "Avaliar se usuário é 'repeat infringer' e considerar suspensão de conta"}
+					],
+					"correctOrder": ["step1", "step2", "step3", "step4", "step5", "step6"],
+					"justification": "Sequência correta: (1) Verificar validade da notificação primeiro, (2) Remoção IMEDIATA (expeditiously), (3) Preservar evidências (crucial para defesa se houver counter-notice), (4) Notificar uploader (devido processo), (5) Confirmar remoção ao titular (good practice), (6) Avaliar repeat infringer (política obrigatória). Ordem importa: remoção antes de notificar uploader evita delay. Preservação de evidências antes de qualquer comunicação garante chain of custody."
+				},
+				{
+					"id": "q8",
+					"type": "multiple-choice",
+					"question": "Durante a investigação, a equipe descobre que o usuário uploader alega ter autorização verbal do autor original para distribuir o livro. Qual é a melhor abordagem para verificar essa alegação?",
+					"points": 5,
+					"options": [
+						"Aceitar a palavra do usuário e manter o conteúdo online",
+						"Solicitar documentação escrita ou prova de autorização do autor ou titular dos direitos",
+						"Contactar diretamente o autor para confirmar a autorização verbal",
+						"Ignorar a alegação - notificação DMCA é suficiente para remoção"
+					],
+					"correctAnswer": 1,
+					"justification": "Solicitar documentação escrita (option B) é abordagem mais segura. Autorização verbal é difícil de provar e não substitui necessidade de permissão formal por escrito do titular dos direitos. Contato direto com autor (C) pode ser útil, mas nem sempre viável (autor pode não responder). Aceitar palavra do usuário (A) é arriscado - pode levar a responsabilidade se alegação for falsa. Ignorar alegação (D) não é prudente - investigação completa é necessária antes de ação final."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Contenção, Remoção e Resposta",
+			"phase": "Fase 2 - Contenção / Fase 3 - Erradicação",
+			"description": "Após confirmar legitimidade da notificação DMCA, a equipe procede com remoção do conteúdo, notificação do usuário e comunicação com a editora.",
+			"timeElapsed": "T+35 minutos (11:02)",
+			"currentSituation": {
+				"contentStatus": "🔴 REMOVIDO (acesso desabilitado às 10:58)",
+				"downtime": "31 minutos desde recebimento da notificação",
+				"userNotified": "✅ E-mail automático enviado ao prof.silva@institution.edu",
+				"rightsHolderNotified": "✅ Confirmação de remoção enviada à Tech Publisher Inc."
+			},
+			"metrics": [
+				{
+					"type": "removal-confirmation",
+					"title": "Confirmação de Remoção - Ação Tomada",
+					"data": {
+						"actionTaken": "Conteúdo REMOVIDO e URL retorna HTTP 451 (Unavailable For Legal Reasons)",
+						"removalTimestamp": "2025-02-02 10:58:42 UTC (31 minutos após notificação)",
+						"evidencePreserved": "✅ Cópia do PDF, logs de acesso, metadados arquivados em sistema forense",
+						"downloadsBlocked": "✅ Links diretos, cache e indexação de buscadores invalidados",
+						"userAccountAction": "⚠️ Conta SUSPENSA TEMPORARIAMENTE (3ª infração) - ação permanente pendente de revisão jurídica",
+						"observation": "Remoção dentro do prazo 'expeditiously' (menos de 1 hora). HTTP 451 é código apropriado para conteúdo removido por razões legais (RFC 7725). Evidências preservadas para possível counter-notice."
+					}
+				},
+				{
+					"type": "user-notification",
+					"title": "E-mail de Notificação ao Usuário Infrator",
+					"data": {
+						"subject": "[AÇÃO REQUERIDA] Conteúdo Removido - Violação de Direitos Autorais DMCA",
+						"bodySnippet": "Seu arquivo 'advanced-networking-guide.pdf' foi removido do repositório em resposta a notificação DMCA válida de Tech Publisher Inc. alegando violação de copyright. Você tem direito de enviar counter-notice se acredita que remoção foi erro. Sua conta foi suspensa temporariamente (3ª violação). Contato: compliance@institution.edu",
+						"counterNoticeDeadline": "14 dias para envio de counter-notice formal",
+						"includesLegalInfo": "✅ Documento anexo explica processo de counter-notice e requisitos legais",
+						"tone": "Profissional, factual, não acusatório (protege devido processo)",
+						"observation": "Notificação ao usuário é OBRIGATÓRIA para devido processo e para permitir exercício de direito de counter-notice. Falha em notificar pode gerar responsabilidade adicional."
+					}
+				},
+				{
+					"type": "rightsholder-response",
+					"title": "Resposta à Editora (Tech Publisher Inc.)",
+					"data": {
+						"subject": "Re: DMCA Takedown Notice - Ação Concluída",
+						"bodySnippet": "Confirmamos recebimento de notificação DMCA ref. documento 12847. Conteúdo foi removido às 10:58 UTC (31 min). Usuário foi notificado. Conta suspensa (repeat infringer). Implementamos filtro de hash MD5 para prevenir re-upload. Cooperation appreciated.",
+						"attachments": "Screenshot de URL retornando HTTP 451, timestamp de remoção",
+						"tone": "Profissional, cooperativo, demonstra boa-fé",
+						"observation": "Resposta rápida e transparente à titular demonstra conformidade e boa-fé, reduzindo risco de litígio. Embora não seja obrigatório por lei, é best practice para relacionamento e possível negociação futura de licenças."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q9",
+					"type": "multiple-choice",
+					"question": "A equipe configurou a URL para retornar HTTP 451. Por que este código de status é mais apropriado que HTTP 404 (Not Found) para conteúdo removido por razões legais?",
+					"points": 5,
+					"options": [
+						"HTTP 451 não faz diferença prática - é apenas convenção estética",
+						"HTTP 451 comunica TRANSPARENTEMENTE ao usuário que conteúdo foi removido por ordem legal, não erro técnico",
+						"HTTP 451 é obrigatório por lei - usar HTTP 404 viola DMCA",
+						"HTTP 451 evita que conteúdo seja indexado por motores de busca"
+					],
+					"correctAnswer": 1,
+					"justification": "HTTP 451 (Unavailable For Legal Reasons, RFC 7725) é código específico para conteúdo bloqueado por razões legais (option B). Diferença de 404: (1) TRANSPARÊNCIA - usuário sabe que remoção foi decisão legal, não erro, (2) permite especificar razão via header/body (ex: 'Removed due to DMCA complaint'), (3) demonstra conformidade e boa-fé. Opção (C) é falsa - não é obrigatório, mas é best practice. (D) é falsa - ambos previnem indexação. (A) subestima importância da transparência legal."
+				},
+				{
+					"id": "q10",
+					"type": "true-false",
+					"question": "Se o usuário enviar counter-notice válida e a editora não mover ação judicial em 10-14 dias, o provedor DEVE restaurar o conteúdo para manter proteção Safe Harbor.",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. DMCA § 512(g)(2)(C) OBRIGA provedor a restaurar conteúdo 10-14 dias úteis após receber counter-notice, SE titular NÃO notificar que entrou com ação judicial. Isso transfere disputa para corte apropriada (titular vs. uploader) e remove provedor da posição de árbitro. Falha em restaurar após esse prazo = perda de Safe Harbor para AQUELE conteúdo. Provedor pode restaurar mais cedo se titular consentir. Sistema put-back é essencial para balancear direitos autorais com devido processo."
+				},
+				{
+					"id": "q11",
+					"type": "multiple-choice",
+					"question": "A equipe implementou 'filtro de hash MD5' para prevenir re-upload do mesmo arquivo. Qual é a principal LIMITAÇÃO desta medida técnica?",
+					"points": 5,
+					"options": [
+						"Hash MD5 é criptograficamente quebrado e inseguro para qualquer uso",
+						"Filtro de hash só detecta arquivo IDÊNTICO - pequenas modificações (recompressão, metadados) geram hash diferente",
+						"Filtro de hash viola privacidade dos usuários ao escanear uploads",
+						"Hash MD5 não pode ser calculado para arquivos PDF, apenas imagens"
+					],
+					"correctAnswer": 1,
+					"justification": "Limitação principal é detecção apenas de duplicatas EXATAS (option B). Modificações triviais bypass filtro: (1) recomprimir PDF (muda hash), (2) adicionar 1 byte, (3) alterar metadados. Para infratores determinados, é ineficaz. Soluções robustas: perceptual hashing (pHash, Content ID), OCR + comparação textual, fingerprinting multimodal. Opção (A) é enganosa - MD5 é quebrado para assinaturas criptográficas mas ainda útil para checksums de integridade. (C) é falsa - hash não identifica conteúdo. (D) é absurda."
+				},
+				{
+					"id": "q12",
+					"type": "numeric",
+					"question": "Segundo DMCA § 512(g), após receber counter-notice válida, quantos dias úteis o provedor deve aguardar antes de restaurar conteúdo (se titular não entrar com processo)?",
+					"points": 4,
+					"correctAnswer": 10,
+					"tolerance": 4,
+					"unit": "dias úteis",
+					"justification": "10 a 14 dias úteis. DMCA § 512(g)(2)(C) especifica: provedor deve esperar 'not less than 10, nor more than 14 business days' após notificar titular da counter-notice. Esse período permite titular decidir se move ação judicial. Se titular notificar que entrou com processo, conteúdo permanece removido. Se não, provedor DEVE restaurar ao fim do período (tipicamente 10-14 dias). Prazo balanceia urgência de restauração com tempo razoável para titular agir judicialmente."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Pós-Incidente, Políticas e Prevenção",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Após resolução do incidente, a equipe analisa lições aprendidas e implementa medidas preventivas para reduzir risco de futuras violações.",
+			"timeElapsed": "T+48 horas (incidente resolvido - fase de melhoria contínua)",
+			"currentSituation": {
+				"incidentStatus": "✅ Resolvido - conteúdo removido, titular notificado, usuário suspenso",
+				"counterNoticeReceived": "❌ Nenhuma counter-notice recebida (prazo de 14 dias em andamento)",
+				"userAccountStatus": "🔴 Conta permanentemente ENCERRADA (decisão de comitê de ética)",
+				"publisherRelations": "✅ Editora agradeceu resposta rápida - sem litígio planejado"
+			},
+			"questions": [
+				{
+					"id": "q13",
+					"type": "multiple-choice",
+					"question": "A organização está revisando Termo de Uso do repositório. Qual cláusula é ESSENCIAL para manter proteção Safe Harbor e reduzir risco legal?",
+					"points": 6,
+					"options": [
+						"Cláusula de arbitragem obrigatória para disputas de copyright",
+						"Política explícita de suspensão/encerramento de contas de repeat infringers",
+						"Proibição total de upload de qualquer material educacional protegido por copyright",
+						"Exigência de registro prévio de ISBN de cada livro na Copyright Office antes de upload"
+					],
+					"correctAnswer": 1,
+					"justification": "Política de repeat infringer (option B) é OBRIGATÓRIA para Safe Harbor - DMCA § 512(i)(1)(A). Deve: (1) estar claramente definida em ToS, (2) especificar consequências (aviso → suspensão → encerramento), (3) ser IMPLEMENTADA consistentemente. Opção (A) é útil mas não obrigatória. (C) é impraticável e desnecessária - conteúdo pode ser legal (fair use, open access, licenciado). (D) é absurda - Copyright Office não registra tudo, e não é exigido. Política clara + enforcement consistente = chave para Safe Harbor."
+				},
+				{
+					"id": "q14",
+					"type": "matching",
+					"question": "Correlacione cada estado de conexão TCP com sua descrição correta:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "state1", "text": "SYN_RECV"},
+						{"id": "state2", "text": "ESTABLISHED"},
+						{"id": "state3", "text": "TIME_WAIT"}
+					],
+					"rightColumn": [
+						{"id": "desc1", "text": "Conexão completamente estabelecida e funcional"},
+						{"id": "desc2", "text": "Servidor enviou SYN-ACK, aguardando ACK final do cliente"},
+						{"id": "desc3", "text": "Conexão fechada, aguardando para garantir que pacotes tardios não causem problemas"}
+					],
+					"correctMatches": [
+						{"left": "state1", "right": "desc2"},
+						{"left": "state2", "right": "desc1"},
+						{"left": "state3", "right": "desc3"}
+					],
+					"justification": "SYN_RECV é o estado crítico em ataques SYN flood - servidor alocou recursos aguardando ACK que nunca virá. ESTABLISHED indica conexão funcional (handshake completo). TIME_WAIT é estado temporário após FIN para evitar que pacotes retransmitidos interfiram em novas conexões no mesmo par IP:porta."
+				},
+				{
+					"id": "q15",
+					"type": "multiple-choice",
+					"question": "A organização está considerando implementar sistema proativo de detecção de violações (similar ao Content ID do YouTube). Qual é o principal RISCO LEGAL desta abordagem?",
+					"points": 6,
+					"options": [
+						"Sistema automatizado tem custo operacional muito elevado",
+						"Detecção proativa pode ser interpretada como 'conhecimento real' (actual knowledge) da infração, REMOVENDO proteção Safe Harbor se não agir imediatamente",
+						"Falsos positivos podem gerar milhares de processos por censura indevida",
+						"Sistema de detecção viola privacidade dos usuários segundo LGPD/GDPR"
+					],
+					"correctAnswer": 1,
+					"justification": "Paradoxo do filtro: detecção proativa = 'actual knowledge' (option B). Se sistema detecta infração e provedor NÃO remove imediatamente, tribunal pode considerar que provedor tinha conhecimento e foi negligente, PERDENDO Safe Harbor (Viacom v. YouTube debate este tema). Safe Harbor protege provedores 'passivos' que respondem a notificações, não aqueles que monitoram ativamente. Solução: usar filtro para flagging + revisão humana rápida. Opção (A) é custo, não risco legal. (C) é risco real mas mitigável. (D) é falsa - análise de hash não é dado pessoal."
+				},
+				{
+					"id": "q16",
+					"type": "true-false",
+					"question": "Obras acadêmicas publicadas com recursos de agências de fomento públicas (CNPq, CAPES, FAPESP) estão automaticamente em domínio público e podem ser redistribuídas livremente.",
+					"points": 3,
+					"correctAnswer": false,
+					"justification": "FALSO. Financiamento público NÃO transfere automaticamente direitos autorais para domínio público. Lei 9.610/98 (Brasil): direitos autorais são do AUTOR, independente de fonte de financiamento. Condição: algumas agências EXIGEM depósito em repositórios institucionais como condição de financiamento (ex: mandatos open access), mas isso não equivale a domínio público. Autor pode: (1) manter copyright e licenciar para repositório específico, (2) usar Creative Commons, ou (3) transferir direitos à editora (comum em periódicos). Checar sempre licença específica da obra."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 92,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 85,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de DMCA, direitos autorais, fair use e compliance legal com processos de resposta"
+			},
+			{
+				"min": 70,
+				"max": 84,
+				"grade": "Bom",
+				"description": "Compreensão sólida de propriedade intelectual e DMCA com pequenas lacunas em aspectos legais avançados"
+			},
+			{
+				"min": 60,
+				"max": 69,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica suficiente, requer aprofundamento em Safe Harbor e política de repeat infringers"
+			},
+			{
+				"min": 40,
+				"max": 59,
+				"grade": "Insuficiente",
+				"description": "Lacunas significativas em conhecimento de copyright law e processos de compliance"
+			},
+			{
+				"min": 0,
+				"max": 39,
+				"grade": "Inadequado",
+				"description": "Conhecimento mínimo sobre direitos autorais - recomenda-se treinamento jurídico formal"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Apresentar informações progressivamente, simulando evolução natural de incidente legal",
+		"Permitir 4-5 minutos de discussão entre participantes antes de cada resposta (questões legais são complexas)",
+		"Fazer perguntas socráticas: 'O que é Safe Harbor?', 'Por que existe prazo para counter-notice?', 'Como balancear direitos autorais vs. acesso educacional?'",
+		"Enfatizar importância de EQUILÍBRIO: proteção de direitos autorais + devido processo + acesso ao conhecimento",
+		"Se grupo não tem experiência jurídica, explicar conceitos básicos de copyright, DMCA e fair use antes da Rodada 2",
+		"Manter neutralidade - evitar posições extremas (absolutismo de copyright vs. abolicionismo IP)",
+		"Controlar tempo: Rodada 1 (5 min), Rodadas 2-4 (10-12 min cada), Rodada 5 (10 min)",
+		"Mediar debates éticos: acesso à educação vs. sustentabilidade de autores/editoras",
+		"Após exercício: revisar gabarito, discutir implementação de políticas de conteúdo robustas",
+		"Coletar feedback sobre realismo do cenário - ajustar para contexto jurisdicional específico se necessário",
+		"Documentar insights para melhorar Termo de Uso, política de repeat infringers e treinamento de usuários",
+		"Considerar convidar especialista jurídico para debriefing aprofundado"
+	],
+	"technicalReferences": [
+		{
+			"title": "Digital Millennium Copyright Act (DMCA) - 17 U.S.C. § 512",
+			"url": "https://www.copyright.gov/legislation/dmca.pdf"
+		},
+		{
+			"title": "Lei 9.610/98 - Lei de Direitos Autorais (Brasil)",
+			"url": "http://www.planalto.gov.br/ccivil_03/leis/l9610.htm"
+		},
+		{
+			"title": "RFC 7725 - HTTP Status Code 451 (Unavailable For Legal Reasons)",
+			"url": "https://www.rfc-editor.org/rfc/rfc7725"
+		},
+		{
+			"title": "U.S. Copyright Office - DMCA Safe Harbor Provisions",
+			"url": "https://www.copyright.gov/512/"
+		},
+		{
+			"title": "Creative Commons Licenses - Official Guide",
+			"url": "https://creativecommons.org/licenses/"
+		},
+		{
+			"title": "Stanford Copyright & Fair Use Center - Fair Use Overview",
+			"url": "https://fairuse.stanford.edu/overview/fair-use/"
+		},
+		{
+			"title": "WIPO - Berne Convention for the Protection of Literary and Artistic Works",
+			"url": "https://www.wipo.int/treaties/en/ip/berne/"
+		},
+		{
+			"title": "Google Transparency Report - Copyright Removal Requests",
+			"url": "https://transparencyreport.google.com/copyright/overview"
+		}
+	]
+}
