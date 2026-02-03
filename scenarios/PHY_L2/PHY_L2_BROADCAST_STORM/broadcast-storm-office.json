@@ -1,0 +1,544 @@
+{
+	"id": "broadcast-storm-office",
+	"title": "Resposta a Broadcast Storm em Rede Corporativa",
+	"description": "Simulação tabletop de resposta a loop de camada 2 causando broadcast storm após mudança de cabeamento em escritório corporativo",
+	"category": {
+		"id": "PHY_L2",
+		"type": "PHY_L2_BROADCAST_STORM",
+		"title": "Loop de Camada 2 (Broadcast Storm)"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2025-02-02",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "30-45 minutos",
+		"difficulty": "Básico a Intermediário",
+		"targetAudience": "Equipe de Suporte de Rede, Técnicos de TI, Administradores de Rede, Equipe de NOC"
+	},
+	"objectives": [
+		"Validar capacidade de detecção e diagnóstico de loops de camada 2",
+		"Avaliar conhecimento de protocolos Spanning Tree (STP/RSTP) e prevenção de loops",
+		"Testar procedimentos de contenção rápida de broadcast storms",
+		"Desenvolver compreensão de análise de métricas de switch (CPU, tráfego de broadcast)",
+		"Identificar processos de documentação de topologia e gestão de mudanças",
+		"Promover entendimento de boas práticas de cabeamento e segmentação de rede"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá execução real de comandos em switches de produção",
+		"Não inclui deslocamento físico real de equipes ou intervenção em cabeamento",
+		"Foco na análise técnica, tomada de decisão e aplicação de procedimentos de resposta",
+		"Avaliação de conhecimento de protocolos de camada 2 e troubleshooting de rede local"
+	],
+	"baseScenario": {
+		"context": "Segunda-feira, 8h45, início do expediente. Você faz parte da equipe de suporte de rede. A organização possui um escritório corporativo com 3 andares, cada um com switches de acesso conectados a um switch de distribuição no datacenter do prédio. A rede atende ~200 usuários com estações de trabalho, impressoras de rede, telefones VoIP e câmeras IP. No final de semana, foi realizada uma mudança de layout no 2º andar (10 estações realocadas) com participação de equipe terceirizada de facilities, que movimentou cabos de rede e móveis.",
+		"initialSituation": {
+			"alert": "Múltiplos usuários reportam rede extremamente lenta ou indisponível",
+			"affectedArea": "Todo o escritório (3 andares) - aparentemente problema generalizado",
+			"linkStatus": "Switches apresentando utilização de links a 99-100%",
+			"userImpact": "Impossibilidade de acessar sistemas internos, e-mail, internet",
+			"timestamp": "08:42:33"
+		},
+		"initialComplaints": [
+			"Usuários reportam que computadores 'travaram' após ligar pela manhã",
+			"Telefones VoIP com áudio picotado ou calls caindo constantemente",
+			"Impossibilidade de acessar servidores de arquivos e e-mail",
+			"Alguns usuários reportam LEDs de switches piscando freneticamente"
+		],
+		"availableResources": [
+			"Acesso administrativo aos switches via console (SSH pode estar lento)",
+			"Sistema de monitoramento de rede com gráficos de utilização de interfaces",
+			"Documentação parcial de topologia de rede (pode estar desatualizada)",
+			"Acesso físico ao datacenter e aos switches de cada andar",
+			"Ferramentas de análise: show commands (spanning-tree, interfaces, mac address-table)",
+			"Cabos console para acesso local aos switches se SSH falhar"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe deve se familiarizar com a topologia de rede e situação inicial.",
+			"inject": "Apresentação do cenário conforme descrito. A equipe tem 5 minutos para revisar topologia e discutir abordagem inicial.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Detecção e Análise Inicial",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe de suporte acessa remotamente o sistema de monitoramento e tenta diagnosticar o problema. Acesso SSH aos switches está extremamente lento.",
+			"timeElapsed": "T+0 (08:42 - início do incidente)",
+			"currentSituation": {
+				"networkStatus": "Saturação generalizada - links a 99-100%",
+				"sshAccess": "Extremamente lento ou timeouts",
+				"userImpact": "~200 usuários sem conectividade funcional",
+				"businessImpact": "Operação completamente paralisada"
+			},
+			"metrics": [
+				{
+					"title": "Monitoramento de Interfaces - Switch Distribuição",
+					"type": "interface-monitoring",
+					"data": {
+						"switchModel": "Cisco Catalyst 3850 (Distribution)",
+						"totalPorts": 48,
+						"uplinkPorts": [
+							{"interface": "Gi1/0/1", "description": "Uplink Core", "utilization": "18%", "status": "Up"},
+							{"interface": "Gi1/0/2", "description": "Uplink Core Redundant", "utilization": "15%", "status": "Up"}
+						],
+						"accessSwitchPorts": [
+							{"interface": "Gi1/0/10", "description": "Switch Andar-1", "utilization": "99%", "status": "Up"},
+							{"interface": "Gi1/0/11", "description": "Switch Andar-2", "utilization": "100%", "status": "Up"},
+							{"interface": "Gi1/0/12", "description": "Switch Andar-3", "utilization": "94%", "status": "Up"}
+						],
+						"observation": "Utilização anormal (99-100%) entre switch de distribuição e switches de acesso, mas uplinks para core estão normais"
+					}
+				},
+				{
+					"title": "Métricas de CPU e Memória - Switch Andar-2",
+					"type": "system-resources",
+					"data": {
+						"cpuUsage": "99% (5 min avg)",
+						"cpuProcess": "Switching Path / Broadcast Processing",
+						"memoryUsage": "78%",
+						"macTableSize": "8192 entries (capacity: 8192 - TABELA CHEIA)",
+						"packetRate": "1.488.000 pps (packets per second)",
+						"broadcastRate": "1.420.000 bps (95.4% do tráfego total)",
+						"observation": "CPU saturada processando broadcast excessivo - indicativo de broadcast storm"
+					}
+				},
+				{
+					"title": "Análise de Tráfego - Switch Andar-2",
+					"type": "traffic-analysis",
+					"data": {
+						"totalTraffic": "920 Mbps (de 1 Gbps disponível)",
+						"unicastTraffic": "42 Mbps (4.6%)",
+						"broadcastTraffic": "878 Mbps (95.4%)",
+						"multicastTraffic": "0 Mbps",
+						"observation": "Tráfego predominantemente broadcast (>95%) - assinatura clara de broadcast storm"
+					}
+				},
+				{
+					"title": "Logs do Sistema - Switch Andar-2",
+					"type": "system-logs",
+					"data": {
+						"recentLogs": [
+							"*Aug 21 08:43:12: %SPANTREE-2-LOOPGUARD_BLOCK: Loop guard blocking port Gi1/0/24 on VLAN0001",
+							"*Aug 21 08:42:45: %PM-4-ERR_DISABLE: loopback error detected on Gi1/0/23, putting Gi1/0/23 in err-disable state",
+							"*Aug 21 08:42:33: %C3850_STACKMGR-4-STACK_LINK_CHANGE: Stack link operational state changed to down on switch 1",
+							"*Aug 21 08:42:18: %LINK-3-UPDOWN: Interface GigabitEthernet1/0/24, changed state to up",
+							"*Aug 21 08:42:18: %LINK-3-UPDOWN: Interface GigabitEthernet1/0/23, changed state to up"
+						],
+						"observation": "Logs indicam loop detectado em portas Gi1/0/23 e Gi1/0/24 no Switch Andar-2"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Com base nas evidências (95.4% de tráfego broadcast, CPU a 99%, logs de loop detectado), qual é a causa MAIS provável do incidente?",
+					"options": [
+						"Ataque DDoS externo saturando a rede corporativa",
+						"Loop de camada 2 (broadcast storm) causado por cabeamento incorreto",
+						"Falha de hardware no switch de distribuição causando encaminhamento incorreto",
+						"Vírus ou malware interno gerando tráfego excessivo de broadcast"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Evidências claras de loop de camada 2: (1) 95.4% de tráfego broadcast é anormal (baseline normal < 5%), (2) CPU saturada processando broadcast, (3) logs explícitos de 'loop guard blocking' e 'loopback error detected', (4) problema iniciou após mudança de cabeamento no fim de semana. DDoS externo (A) não causaria broadcast interno. Falha de hardware (C) teria padrão diferente. Malware (D) geraria tráfego unicast, não broadcast puro."
+				},
+				{
+					"id": "q2",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Um broadcast storm ocorre quando frames de broadcast são encaminhados indefinidamente em um loop, sendo replicados exponencialmente a cada passagem pelo loop.",
+					"correctAnswer": true,
+					"points": 3,
+					"justification": "VERDADEIRO. Em um loop de camada 2 sem Spanning Tree ativo, frames de broadcast (que são encaminhados para todas as portas) circulam indefinidamente. Cada switch no loop recebe o frame e o replica para todas as outras portas, criando crescimento exponencial: 1 frame vira 2, depois 4, 8, 16... até saturar completamente a rede em poucos segundos. Por isso 'storm' (tempestade) - o volume cresce descontroladamente."
+				},
+				{
+					"id": "q3",
+					"type": "multiple-choice",
+					"text": "Por que os uplinks para o core (18% e 15% de utilização) NÃO estão saturados, mas os links para switches de acesso estão a 99-100%?",
+					"options": [
+						"Porque o core tem links de maior capacidade (10 Gbps vs 1 Gbps)",
+						"Porque o loop está confinado ENTRE o switch de distribuição e switches de acesso, não chegando ao core",
+						"Porque o core tem QoS configurado bloqueando broadcast excessivo",
+						"Porque o switch de distribuição está priorizando tráfego de uplink sobre downlink"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "O loop está localizado no segmento entre distribuição e acesso (especificamente no Andar-2). Broadcasts gerados no loop circulam entre switches de acesso e distribuição, saturando esses enlaces. O tráfego NÃO propaga significativamente para o core porque: (1) a maior parte dos frames está circulando localmente no loop, (2) switches têm rate limiting de broadcast em uplinks. Capacidade do core (A) é irrelevante se o tráfego não chega lá. QoS (C) não bloqueia broadcast dessa forma. Priorização (D) não explica o padrão observado."
+				},
+				{
+					"id": "q4",
+					"type": "numeric",
+					"text": "O switch está processando 1.420.000 broadcast packets por segundo (bps). Se cada pacote broadcast tem aproximadamente 64 bytes, qual é a largura de banda consumida apenas por broadcast?",
+					"correctAnswer": 727,
+					"tolerance": 20,
+					"unit": "Mbps",
+					"points": 5,
+					"justification": "Cálculo: 1.420.000 packets/s × 64 bytes/packet × 8 bits/byte = 728.320.000 bits/s = 728 Mbps ≈ 727 Mbps. Considerando link Gigabit (1000 Mbps), isso representa ~73% da capacidade consumida APENAS por broadcast. Isso não inclui overhead de camada 2 (preâmbulo, IFG), que elevaria para ~920 Mbps conforme observado nas métricas."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Localização do Loop",
+			"phase": "Fase 2 - Análise Avançada",
+			"description": "A equipe consegue acesso via console local ao Switch Andar-2 e executa comandos de diagnóstico para localizar as portas envolvidas no loop.",
+			"timeElapsed": "T+8 minutos (08:50)",
+			"currentSituation": {
+				"sshAccess": "Inacessível - equipe usando console serial local",
+				"affectedSwitch": "Switch Andar-2 identificado como epicentro do problema",
+				"userImpact": "Rede continua indisponível - situação inalterada"
+			},
+			"metrics": [
+				{
+					"title": "Spanning Tree Status - Switch Andar-2",
+					"type": "spanning-tree-analysis",
+					"data": {
+						"stpMode": "Rapid PVST+ (RSTP)",
+						"rootBridge": "Switch-Distribution (priority 4096)",
+						"localBridgePriority": 32768,
+						"blockedPorts": [
+							{"interface": "Gi1/0/24", "state": "BLK (Loop Guard)", "role": "Alternate", "reason": "Loop detected"}
+						],
+						"errDisabledPorts": [
+							{"interface": "Gi1/0/23", "state": "err-disabled", "reason": "loopback", "timestamp": "08:42:45"}
+						],
+						"forwardingPorts": [
+							{"interface": "Gi1/0/1", "description": "Desktop-201", "state": "FWD"},
+							{"interface": "Gi1/0/2", "description": "Desktop-202", "state": "FWD"},
+							{"interface": "Gi1/0/10", "description": "Uplink Distribution", "state": "FWD"}
+						],
+						"observation": "Loop Guard bloqueou Gi1/0/24, mas porta Gi1/0/23 está em err-disabled - AMBAS as portas estão envolvidas no loop"
+					}
+				},
+				{
+					"title": "Descrição de Portas Suspeitas",
+					"type": "port-description",
+					"data": {
+						"suspectPorts": [
+							{
+								"interface": "Gi1/0/23",
+								"description": "Patch-Panel-A Row-08",
+								"cableLabel": "Não documentado",
+								"expectedDestination": "Desktop ou impressora no andar 2",
+								"observation": "Porta configurada como access port (VLAN 10) sem proteção BPDU"
+							},
+							{
+								"interface": "Gi1/0/24",
+								"description": "Patch-Panel-A Row-09",
+								"cableLabel": "Não documentado",
+								"expectedDestination": "Desktop ou impressora no andar 2",
+								"observation": "Porta configurada como access port (VLAN 10) sem proteção BPDU"
+							}
+						]
+					}
+				},
+				{
+					"title": "Análise de MAC Address Table",
+					"type": "mac-table-analysis",
+					"data": {
+						"totalEntries": 8192,
+						"flappingMacs": "~6000 MACs flapping entre Gi1/0/23 e Gi1/0/24",
+						"observation": "Mesmos endereços MAC aparecem alternadamente em Gi1/0/23 e Gi1/0/24 - confirmação definitiva de loop entre essas portas"
+					}
+				},
+				{
+					"title": "Inspeção Física - Patch Panel Andar 2",
+					"type": "physical-inspection",
+					"data": {
+						"location": "Rack de telecomunicações - Andar 2",
+						"finding": "Dois cabos no patch panel conectados em sequência: Gi1/0/23 → Cabo A → Tomada de parede sala 205 → Cabo B → Volta para Gi1/0/24",
+						"rootCause": "Durante mudança de layout, técnico conectou AMBAS as pontas do mesmo cabeamento horizontal no switch, criando loop físico",
+						"observation": "Cabo que deveria ir para Desktop-205 foi erroneamente conectado de volta ao switch"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q5",
+					"type": "matching",
+					"text": "Conecte cada método de validação de domínio (ACME Challenge) ao seu mecanismo de funcionamento:",
+					"leftColumn": [
+						{"id": "http-01", "label": "HTTP-01"},
+						{"id": "dns-01", "label": "DNS-01"},
+						{"id": "tls-alpn-01", "label": "TLS-ALPN-01"}
+					],
+					"rightColumn": [
+						{"id": "desc1", "label": "CA valida através de conexão TLS com extensão ALPN específica na porta 443"},
+						{"id": "desc2", "label": "CA verifica presença de arquivo com token em http://dominio/.well-known/acme-challenge/"},
+						{"id": "desc3", "label": "CA consulta registro TXT no DNS: _acme-challenge.dominio"}
+					],
+					"correctMatches": [
+						{"left": "http-01", "right": "desc2"},
+						{"left": "dns-01", "right": "desc3"},
+						{"left": "tls-alpn-01", "right": "desc1"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 6,
+					"justification": "HTTP-01 (↔ desc2) valida servindo arquivo em /.well-known/acme-challenge/ via HTTP. DNS-01 (↔ desc3) valida através de registro TXT _acme-challenge. TLS-ALPN-01 (↔ desc1) valida via extensão TLS ALPN na porta 443. DNS-01 é preferido para wildcards e quando porta 80 não está acessível. HTTP-01 é mais simples mas requer porta 80 pública."
+				},
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Por que Loop Guard bloqueou Gi1/0/24 mas não Gi1/0/23 (que entrou em err-disabled)?",
+					"options": [
+						"Porque Gi1/0/24 é configurada como trunk e Gi1/0/23 como access",
+						"Porque o loop foi detectado primeiro em Gi1/0/23, que entrou em err-disabled antes de Loop Guard agir",
+						"Porque Loop Guard só funciona em uma porta por vez em cada switch",
+						"Porque Gi1/0/23 tem loopback detection habilitado, que é diferente de Loop Guard"
+					],
+					"correctAnswer": 3,
+					"points": 5,
+					"justification": "Gi1/0/23 entrou em err-disabled por 'loopback detection' (mecanismo diferente de Loop Guard). Loopback detection envia frames especiais e verifica se os recebe de volta na mesma porta - ao detectar, coloca porta em err-disabled. Loop Guard (em Gi1/0/24) bloqueia portas que param de receber BPDUs. AMBOS os mecanismos agiram, mas de formas diferentes. A diferença de resposta (err-disabled vs BLK) depende de qual mecanismo foi acionado primeiro em cada porta."
+				},
+				{
+					"id": "q7",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: A tabela de endereços MAC 'flapping' (alternando entre portas) é um indicador confiável de loop de camada 2.",
+					"correctAnswer": true,
+					"points": 3,
+					"justification": "VERDADEIRO. MAC flapping (endereços MAC mudando rapidamente entre portas) é um dos indicadores MAIS confiáveis de loop. Ocorre porque: (1) Switch aprende MAC do host em porta A, (2) Frame do host circula pelo loop e retorna pela porta B, (3) Switch atualiza MAC para porta B, (4) Frame circula novamente e retorna por A, (5) MAC alterna constantemente. Em operação normal, MAC é estável em uma porta. ~6000 MACs flapping entre duas portas é confirmação DEFINITIVA de loop físico entre elas."
+				},
+				{
+					"id": "q8",
+					"type": "numeric",
+					"text": "Quantas portas no Switch Andar-2 estão diretamente envolvidas no loop de camada 2?",
+					"correctAnswer": 2,
+					"points": 4,
+					"justification": "Duas portas estão envolvidas no loop: Gi1/0/23 (em err-disabled por loopback detection) e Gi1/0/24 (bloqueada por Loop Guard). Ambas as portas conectam de volta ao switch via cabeamento incorreto, criando o loop físico. Identificar corretamente o número de portas envolvidas é crucial para a contenção eficaz do incidente."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Contenção e Erradicação",
+			"phase": "Fase 2 - Contenção / Fase 3 - Erradicação",
+			"description": "Após identificar as portas envolvidas no loop, a equipe decide desabilitar uma das portas para interromper imediatamente o loop.",
+			"timeElapsed": "T+15 minutos (08:57)",
+			"currentSituation": {
+				"action": "Comando 'shutdown' executado em Gi1/0/24 (já estava bloqueada por Loop Guard)",
+				"networkStatus": "Rede retornando ao normal - saturação cessou",
+				"userImpact": "Usuários reportando que rede voltou a funcionar"
+			},
+			"metrics": [
+				{
+					"title": "Métricas Pós-Contenção - Switch Andar-2",
+					"type": "post-mitigation",
+					"data": {
+						"cpuUsage": "8% (normalizado)",
+						"broadcastRate": "250 bps (normal - ARP, DHCP, NetBIOS)",
+						"totalTraffic": "42 Mbps (uso normal de escritório)",
+						"macTableSize": "156 entries (normalizado)",
+						"observation": "Rede completamente normalizada após shutdown de Gi1/0/24"
+					}
+				},
+				{
+					"title": "Rastreamento do Cabeamento Físico",
+					"type": "cable-trace",
+					"data": {
+						"gi1_0_23": "Conecta ao Patch Panel Row-08 → Cabeamento horizontal → Tomada parede Sala 205-A",
+						"gi1_0_24": "Conecta ao Patch Panel Row-09 → Cabeamento horizontal → Tomada parede Sala 205-B",
+						"finding": "AMBAS as tomadas (205-A e 205-B) estão na MESMA sala (205) e foram conectadas com patch cord durante mudança de layout",
+						"rootCause": "Técnico conectou patch cord entre tomadas 205-A e 205-B pensando que seria para interligar Desktop e Impressora, mas criou loop Switch → Tomada-A → Patch-Cord → Tomada-B → volta ao Switch"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q9",
+					"type": "ordering",
+					"text": "Ordene corretamente os passos de resposta a um incidente de broadcast storm:",
+					"items": [
+						{"id": "step1", "label": "Identificar sintomas (saturação, broadcast alto, CPU elevada)"},
+						{"id": "step2", "label": "Localizar switch e portas envolvidas no loop"},
+						{"id": "step3", "label": "Desabilitar uma das portas do loop (contenção imediata)"},
+						{"id": "step4", "label": "Rastrear cabeamento físico e corrigir conexão incorreta"},
+						{"id": "step5", "label": "Reabilitar porta com proteções adequadas (BPDU Guard)"}
+					],
+					"correctOrder": ["step1", "step2", "step3", "step4", "step5"],
+					"partialCredit": false,
+					"points": 6,
+					"justification": "Sequência correta: (1) Identificação rápida do problema através de sintomas, (2) Localização precisa do switch e portas envolvidas (logs, MAC flapping), (3) Contenção IMEDIATA desabilitando uma porta (interrompe loop em segundos), (4) Rastreamento físico e correção da causa raiz (remover patch cord), (5) Reabilitação da porta com proteções para prevenir recorrência. Inverter passos 3 e 4 causaria demora - SEMPRE contenha primeiro (shutdown rápido) antes de investigar fisicamente."
+				},
+				{
+					"id": "q10",
+					"type": "multiple-choice",
+					"text": "Qual é a ação corretiva PERMANENTE mais importante para prevenir recorrência deste tipo de incidente?",
+					"options": [
+						"Desabilitar permanentemente todas as portas não utilizadas nos switches",
+						"Habilitar BPDU Guard em TODAS as portas de acesso (não-trunk)",
+						"Aumentar a prioridade do Spanning Tree para convergir mais rápido",
+						"Substituir todos os switches por modelos mais novos com melhor CPU"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "BPDU Guard (B) é a proteção ESSENCIAL para portas de acesso. Configurado com 'spanning-tree bpduguard enable', força porta a err-disabled se receber BPDU (indicando switch ou loop acidental). Previne EXATAMENTE este cenário - se técnico conectar loop, porta desabilita IMEDIATAMENTE antes de broadcast storm se formar. Desabilitar portas não usadas (A) ajuda mas não protege portas em uso. Prioridade STP (C) não previne loops. Upgrade de hardware (D) é irrelevante - switches modernos também sofrem broadcast storm."
+				},
+				{
+					"id": "q11",
+					"type": "numeric",
+					"text": "Antes da contenção, a rede operava a 920 Mbps. Após contenção, reduziu para 42 Mbps. Qual foi a porcentagem de tráfego que era causado pelo broadcast storm?",
+					"correctAnswer": 95.4,
+					"tolerance": 1,
+					"unit": "%",
+					"points": 5,
+					"justification": "Porcentagem do storm = ((920 - 42) / 920) × 100 = (878 / 920) × 100 = 95.4%. Isso confirma que praticamente TODO o tráfego (>95%) era broadcast inútil circulando no loop. O tráfego legítimo (42 Mbps) é apenas ~5% - uso normal de 200 usuários em escritório. Esta é a característica de broadcast storm: tráfego legítimo é 'afogado' por broadcast exponencial."
+				},
+				{
+					"id": "q12",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Desabilitar Spanning Tree Protocol (STP) em switches eliminaria o problema de broadcast storms e melhoraria a performance da rede.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. Desabilitar STP seria DESASTROSO. STP é a ÚNICA proteção automática contra loops em redes camada 2. Sem STP: (1) Qualquer loop físico (até patch cord acidental) causa broadcast storm INSTANTÂNEO, (2) Não há convergência automática, (3) Rede fica completamente vulnerável a erros humanos. STP tem overhead mínimo (<1% CPU) em operação normal. NUNCA desabilite STP - ao invés disso, use RSTP (convergência rápida), BPDU Guard, e Root Guard para otimizar proteção."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Recuperação e Lições Aprendidas",
+			"phase": "Fase 3 e 4 - Recuperação e Pós-Incidente",
+			"description": "Loop foi eliminado removendo o patch cord incorreto na Sala 205. Todas as portas foram reabilitadas com BPDU Guard. Rede está operacional. Tempo total de incidente: 25 minutos.",
+			"timeElapsed": "T+25 minutos (09:07 - incidente encerrado)",
+			"currentSituation": {
+				"networkStatus": "100% operacional",
+				"affectedPorts": "Gi1/0/23 e Gi1/0/24 reabilitadas com BPDU Guard habilitado",
+				"userImpact": "Nenhum - operação normalizada",
+				"physicalFix": "Patch cord incorreto removido da Sala 205"
+			},
+			"questions": [
+				{
+					"id": "q13",
+					"type": "multiple-choice",
+					"text": "Após reabilitar as portas envolvidas no loop, qual validação técnica é CRÍTICA?",
+					"options": [
+						"Verificar que BPDU Guard está habilitado com 'show spanning-tree interface detail'",
+						"Verificar que broadcast rate está normal (< 5% do tráfego total)",
+						"Verificar que MAC address table está estável (sem flapping)",
+						"Todas as validações acima são críticas"
+					],
+					"correctAnswer": 3,
+					"points": 5,
+					"justification": "Todas as validações são essenciais: (A) Confirma que proteção BPDU Guard está ativa e funcionará se loop recorrer, (B) Confirma que não há broadcast anormal residual, (C) Confirma que MACs não estão flapping (ausência de loop). Pular qualquer validação deixa risco de recorrência não detectada. Checklist completo de pós-incidente deve incluir todas as três verificações."
+				},
+				{
+					"id": "q14",
+					"type": "multiple-choice",
+					"text": "Qual melhoria de PROCESSO teria maior impacto na prevenção de incidentes futuros similares?",
+					"options": [
+						"Exigir que mudanças de cabeamento sejam feitas apenas por técnicos certificados da equipe de TI",
+						"Implementar checklist obrigatório de validação pós-mudança (testar conectividade, verificar STP)",
+						"Proibir completamente mudanças de layout que envolvam movimentação de cabos de rede",
+						"Contratar empresa especializada em cabeamento estruturado para todas as mudanças"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Checklist de validação pós-mudança (B) é a melhoria de processo mais eficaz: (1) Detecta problemas ANTES de usuários serem impactados, (2) Inclui testes funcionais (conectividade, spanning-tree status, broadcast rate), (3) Aplicável independente de quem executa a mudança. Restringir a técnicos certificados (A) ajuda mas não elimina erros humanos. Proibir mudanças (C) é impraticável. Terceirização (D) transfere responsabilidade mas não garante prevenção sem validação."
+				},
+				{
+					"id": "q15",
+					"type": "multiple-choice",
+					"text": "Analisando o incidente, qual foi a FALHA DE CONFIGURAÇÃO que permitiu que o loop causasse broadcast storm?",
+					"options": [
+						"Spanning Tree Protocol estava desabilitado nos switches",
+						"BPDU Guard não estava habilitado nas portas de acesso",
+						"Loop Guard estava mal configurado e não detectou o loop",
+						"VLAN 10 não tinha STP habilitado (STP por VLAN)"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "A falha crítica foi ausência de BPDU Guard (B) nas portas de acesso. STP estava FUNCIONANDO (detectou e bloqueou via Loop Guard), mas BPDU Guard teria PREVENIDO o loop na origem - ao conectar patch cord entre duas portas access, primeira porta a receber seu próprio BPDU teria entrado em err-disabled IMEDIATAMENTE, antes do storm se formar. STP não estava desabilitado (A) - logs mostram ele ativo. Loop Guard (C) funcionou conforme esperado. RSTP/PVST+ (D) estava ativo por VLAN."
+				},
+				{
+					"id": "q16",
+					"type": "multiple-choice",
+					"text": "Em relatório pós-incidente, qual métrica é MAIS importante para documentar o impacto técnico?",
+					"options": [
+						"Tempo total de indisponibilidade (25 minutos do alerta até resolução)",
+						"Custo financeiro estimado de perda de produtividade (200 usuários × 25 min)",
+						"Pico de utilização de broadcast (95.4%) e taxa de broadcast (878 Mbps)",
+						"Número de chamados de suporte abertos durante o incidente"
+					],
+					"correctAnswer": 2,
+					"points": 5,
+					"justification": "Métricas técnicas de broadcast (C) são MAIS críticas para post-mortem técnico porque: (1) Documentam severidade técnica objetiva do problema, (2) Justificam prioridade de correções (BPDU Guard), (3) Estabelecem baseline para alertas futuros ('se broadcast > 50%, investigar imediatamente'). Tempo de indisponibilidade (A) é importante para gestão. Custo (B) é estimativa para negócio. Chamados (D) é métrica de suporte. Mas para APRENDIZADO TÉCNICO e prevenção, métricas de rede são essenciais."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 96,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 90,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de diagnóstico de loops camada 2, Spanning Tree e resposta a broadcast storms"
+			},
+			{
+				"min": 75,
+				"max": 89,
+				"grade": "Bom",
+				"description": "Compreensão sólida de protocolos camada 2 e procedimentos de troubleshooting com pequenas lacunas"
+			},
+			{
+				"min": 60,
+				"max": 74,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica suficiente, requer aprofundamento em Spanning Tree e proteções de loop"
+			},
+			{
+				"min": 45,
+				"max": 59,
+				"grade": "Insatisfatório",
+				"description": "Lacunas significativas em conhecimento de camada 2 e troubleshooting de rede"
+			},
+			{
+				"min": 0,
+				"max": 44,
+				"grade": "Inadequado",
+				"description": "Compreensão insuficiente, requer treinamento completo em fundamentos de switching e camada 2"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Apresentar informações progressivamente, simulando a descoberta natural durante troubleshooting",
+		"Permitir 3-5 minutos de discussão entre participantes antes de cada resposta",
+		"Fazer perguntas orientadoras: 'Por que broadcast não deveria passar de 5%?', 'Como STP previne loops?'",
+		"Enfatizar importância de CONTENÇÃO RÁPIDA (shutdown) antes de investigação física detalhada",
+		"Se grupo não tem experiência com Spanning Tree, explicar conceitos básicos antes da Rodada 2",
+		"Manter neutralidade técnica - não fornecer respostas diretas",
+		"Controlar tempo: Rodada 1 (5 min), Rodadas 2-4 (8-10 min cada), Rodada 5 (7 min)",
+		"Mediar debates sobre trade-offs (segurança vs. flexibilidade de mudanças)",
+		"Após exercício: revisar gabarito, discutir configurações recomendadas de BPDU Guard",
+		"Coletar feedback sobre realismo do cenário e ajustes necessários",
+		"Documentar insights para melhorar procedimentos de gestão de mudanças"
+	],
+	"technicalReferences": [
+		{
+			"title": "IEEE 802.1D - MAC Bridges (Spanning Tree Protocol)",
+			"url": "https://standards.ieee.org/standard/802_1D-2004.html"
+		},
+		{
+			"title": "IEEE 802.1w - Rapid Spanning Tree Protocol (RSTP)",
+			"url": "https://standards.ieee.org/standard/802_1Q-2018.html"
+		},
+		{
+			"title": "Cisco - Understanding and Configuring Spanning Tree Protocol",
+			"url": "https://www.cisco.com/c/en/us/support/docs/lan-switching/spanning-tree-protocol/5234-5.html"
+		},
+		{
+			"title": "Cisco - Spanning Tree Protocol Problems and Related Design Considerations",
+			"url": "https://www.cisco.com/c/en/us/support/docs/lan-switching/spanning-tree-protocol/10556-16.html"
+		},
+		{
+			"title": "Cisco - Configuring STP and RSTP Features (BPDU Guard, Loop Guard)",
+			"url": "https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst3850/software/release/3se/layer2/configuration_guide/b_lay2_3se_3850_cg/b_lay2_3se_3850_cg_chapter_01001.html"
+		}
+	]
+}

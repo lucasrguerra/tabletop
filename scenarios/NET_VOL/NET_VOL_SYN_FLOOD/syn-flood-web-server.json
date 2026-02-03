@@ -1,0 +1,513 @@
+{
+	"id": "syn-flood-web-server",
+	"title": "Resposta a Ataque SYN Flood contra Servidor Web",
+	"description": "Simulação tabletop de resposta a ataque de esgotamento de recursos via SYN flood direcionado a servidor web corporativo",
+	"category": {
+		"id": "NET_VOL",
+		"type": "NET_VOL_SYN_FLOOD",
+		"title": "SYN Flood - Esgotamento de Tabela de Estados"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2025-02-02",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "35-50 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Equipe de Resposta a Incidentes, Analistas de Segurança, Administradores de Sistemas e Rede"
+	},
+	"objectives": [
+		"Validar capacidade de identificação de ataques de esgotamento de recursos (SYN flood)",
+		"Avaliar conhecimento de técnicas de mitigação em nível de kernel, firewall e aplicação",
+		"Testar compreensão do handshake TCP de três vias e suas vulnerabilidades",
+		"Desenvolver habilidade de análise de métricas de conexões e estados TCP",
+		"Identificar configurações de hardening e prevenção de ataques volumétricos",
+		"Promover compreensão de trade-offs entre segurança e disponibilidade"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá execução real de comandos em sistemas de produção",
+		"Não inclui ativação real de serviços de mitigação DDoS externos",
+		"Foco na análise técnica, tomada de decisão e aplicação de contramedidas",
+		"Avaliação de conhecimento de stack TCP/IP e hardening de sistemas Linux"
+	],
+	"baseScenario": {
+		"context": "Quinta-feira, 10h30, horário comercial de pico. Você faz parte da equipe de resposta a incidentes. A organização opera um servidor web público (web-portal.company.com) que hospeda portal de autoatendimento para clientes, sistema de abertura de chamados e documentação técnica. O servidor recebe média de 15.000 requisições HTTP/minuto de aproximadamente 2.500 clientes únicos/hora em horário normal.",
+		"initialSituation": {
+			"alert": "Servidor web indisponível - timeouts de conexão generalizados",
+			"affectedHost": "web-portal.company.com (203.0.113.10)",
+			"connectionAttempts": "Spike de 450.000 tentativas de conexão/minuto",
+			"establishedConnections": "12 conexões estabelecidas (normal: ~800)",
+			"timestamp": "10:27:14"
+		},
+		"initialComplaints": [
+			"Clientes externos reportam impossibilidade de acessar portal web",
+			"Navegadores exibem erro 'ERR_CONNECTION_TIMED_OUT' ou 'Connection refused'",
+			"Monitoramento externo (Pingdom, UptimeRobot) reportando serviço DOWN",
+			"Sistema de tickets parou de receber novos chamados"
+		],
+		"availableResources": [
+			"Acesso SSH ao servidor web (ainda responsivo via console de gerência)",
+			"Firewall de borda com capacidade de filtro de pacotes (iptables/nftables)",
+			"Sistema de monitoramento com métricas de rede (Zabbix, Prometheus)",
+			"Ferramentas de análise: netstat, ss, tcpdump, sar, sysctl",
+			"Logs do servidor web (Apache/Nginx access e error logs)",
+			"Documentação de baseline de tráfego normal",
+			"Contato com provedor upstream para coordenação"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe deve se familiarizar com a situação inicial e recursos disponíveis.",
+			"inject": "Apresentação do cenário conforme descrito. A equipe tem 5 minutos para discutir a situação inicial e planejar abordagem.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Detecção e Análise Inicial",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe obtém acesso ao servidor via console de gerência e coleta evidências iniciais do incidente.",
+			"timeElapsed": "T+0 (início do incidente)",
+			"currentSituation": {
+				"httpAvailability": "0% (serviço inacessível externamente)",
+				"connectionAttempts": "450.000/minuto",
+				"establishedConnections": "12 (normal: ~800)",
+				"impact": "Indisponibilidade total do portal web para clientes externos"
+			},
+			"metrics": [
+				{
+					"title": "Análise de Conexões TCP (netstat/ss)",
+					"type": "network-analysis",
+					"data": {
+						"command": "ss -tan | awk '{print $1}' | sort | uniq -c",
+						"output": {
+							"SYN_RECV": 65535,
+							"ESTABLISHED": 12,
+							"TIME_WAIT": 3420,
+							"CLOSE_WAIT": 8
+						},
+						"observation": "Tabela de estados completamente saturada com 65.535 conexões em estado SYN_RECV (máximo do kernel)"
+					}
+				},
+				{
+					"title": "Parâmetros do Kernel (sysctl)",
+					"type": "system-config",
+					"data": {
+						"net.ipv4.tcp_max_syn_backlog": 1024,
+						"net.core.somaxconn": 128,
+						"net.ipv4.tcp_syncookies": 0,
+						"net.ipv4.tcp_synack_retries": 5,
+						"net.ipv4.tcp_syn_retries": 6,
+						"observation": "SYN cookies DESABILITADOS - permite esgotamento completo da fila de conexões semi-abertas"
+					}
+				},
+				{
+					"title": "Análise de Tráfego (tcpdump - primeiros 30 segundos)",
+					"type": "packet-analysis",
+					"data": {
+						"totalPackets": 225000,
+						"synPackets": 224850,
+						"synAckPackets": 65535,
+						"ackPackets": 12,
+						"synPercentage": 99.93,
+						"sourceIPs": "~47.000 IPs únicos",
+						"observation": "Flood massivo de pacotes SYN de IPs distribuídos, sem ACK completando handshake"
+					}
+				},
+				{
+					"title": "Distribuição Geográfica de IPs de Origem",
+					"type": "ip-analysis",
+					"data": {
+						"totalUniqueIPs": 47234,
+						"topCountries": [
+							{"country": "China", "ips": 12458, "percentage": 26.4},
+							{"country": "Rússia", "ips": 9847, "percentage": 20.8},
+							{"country": "Brasil", "ips": 7621, "percentage": 16.1},
+							{"country": "Índia", "ips": 5934, "percentage": 12.6},
+							{"country": "Vietnã", "ips": 4123, "percentage": 8.7}
+						],
+						"ipDistribution": "Altamente distribuído - indicativo de botnet global",
+						"observation": "IPs de origem variam constantemente (IP spoofing provável)"
+					}
+				},
+				{
+					"title": "Status do Servidor Web",
+					"type": "server-status",
+					"data": {
+						"hostname": "web-portal.company.com",
+						"ip": "203.0.113.10",
+						"os": "Ubuntu 22.04 LTS",
+						"webServer": "Nginx 1.22",
+						"cpu": "78% (kernel space - processamento de SYN)",
+						"memory": "34% (normal)",
+						"loadAverage": "8.4 (normal: 1.2)",
+						"networkInterrupts": "850.000/segundo (normal: 12.000/segundo)",
+						"observation": "CPU consumida majoritariamente por processamento de rede no kernel, não pela aplicação web"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"text": "Com base nas evidências (99.93% pacotes SYN, 65.535 conexões SYN_RECV, ~47k IPs únicos), qual é o tipo de ataque?",
+					"options": [
+						"Ataque de força bruta para quebra de credenciais de login web",
+						"Ataque SYN Flood explorando esgotamento da tabela de estados TCP",
+						"Ataque HTTP Flood (camada 7) saturando a aplicação web",
+						"Scan de portas massivo de uma botnet distribuída"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Evidências claras de SYN Flood: (1) 99.93% dos pacotes são SYN, (2) 65.535 conexões em SYN_RECV (fila saturada), (3) handshake TCP nunca completado (SYN → SYN-ACK → sem ACK), (4) 47k IPs distribuídos (botnet). Força bruta (A) geraria conexões ESTABLISHED. HTTP Flood (C) requer conexões completas. Port scan (D) distribuiria tráfego entre múltiplas portas."
+				},
+				{
+					"id": "q2",
+					"text": "Qual parâmetro do kernel, se habilitado, seria a contramedida MAIS eficaz para este ataque?",
+					"options": [
+						"net.ipv4.tcp_max_syn_backlog (aumentar para 8192)",
+						"net.ipv4.tcp_syncookies (habilitar = 1)",
+						"net.core.somaxconn (aumentar para 4096)",
+						"net.ipv4.ip_forward (desabilitar = 0)"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "SYN cookies (B) é a contramedida ESPECÍFICA para SYN flood. Quando habilitado, o kernel não aloca recursos para conexões semi-abertas, codificando o estado na própria sequência TCP, permitindo validar conexões legítimas sem manter estado. Aumentar filas (A, C) apenas adia saturação, não resolve. ip_forward (D) controla roteamento, não proteção contra SYN flood."
+				},
+				{
+					"id": "q3",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Habilitar SYN cookies elimina completamente o overhead de CPU causado por ataques SYN flood, permitindo que o servidor opere em performance normal.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. SYN cookies reduzem o overhead de MEMÓRIA (não mantém estado para conexões semi-abertas), mas o kernel AINDA precisa: (1) processar cada pacote SYN recebido, (2) gerar e enviar SYN-ACK, (3) validar ACK final, (4) codificar/decodificar estado na sequência TCP (overhead computacional). O overhead de CPU persiste, embora reduzido. Por isso o serviço opera a 85% após habilitar SYN cookies, não 100%."
+				},
+				{
+					"id": "q4",
+					"type": "numeric",
+					"text": "Durante o ataque, foram observados 225.000 pacotes em 30 segundos, dos quais 224.850 eram SYN. Qual é a porcentagem de pacotes SYN?",
+					"correctAnswer": 99.93,
+					"tolerance": 0.1,
+					"unit": "%",
+					"points": 5,
+					"justification": "Porcentagem = (224.850 / 225.000) x 100 = 99.93%. Esta métrica extrema (quase 100% de pacotes SYN) é assinatura clara de SYN flood. Em tráfego normal, SYN representa < 5% dos pacotes TCP (pois cada conexão tem 1 SYN mas muitos pacotes de dados). Valores > 90% indicam ataque."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Contenção Imediata",
+			"phase": "Fase 2 - Contenção",
+			"description": "Após identificação do ataque, a equipe decide habilitar SYN cookies como primeira linha de defesa. O comando 'sysctl -w net.ipv4.tcp_syncookies=1' foi executado.",
+			"timeElapsed": "T+8 minutos",
+			"currentSituation": {
+				"synCookiesEnabled": true,
+				"httpAvailability": "85% (serviço parcialmente restaurado)",
+				"connectionAttempts": "440.000/minuto (ataque continua)",
+				"establishedConnections": "~680 (parcialmente normalizado)",
+				"impact": "Serviço lento mas acessível para a maioria dos clientes"
+			},
+			"metrics": [
+				{
+					"title": "Status Pós-Ativação de SYN Cookies",
+					"type": "network-analysis",
+					"data": {
+						"synRecvConnections": 512,
+						"establishedConnections": 680,
+						"timeWaitConnections": 4120,
+						"cpuUsage": "45% (reduzido de 78%)",
+						"observation": "SYN cookies permitiram aceitar conexões legítimas sem alocar recursos para cada SYN"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene corretamente as etapas do handshake TCP de três vias (three-way handshake):",
+					"items": [
+						{"id": "step1", "label": "Cliente envia pacote SYN (SYNchronize) ao servidor"},
+						{"id": "step2", "label": "Servidor responde com SYN-ACK (SYNchronize-ACKnowledge)"},
+						{"id": "step3", "label": "Cliente envia ACK final confirmando recebimento"},
+						{"id": "step4", "label": "Conexão estabelecida (estado ESTABLISHED)"}
+					],
+					"correctOrder": ["step1", "step2", "step3", "step4"],
+					"partialCredit": false,
+					"points": 5,
+					"justification": "A sequência TCP handshake é: (1) Cliente → SYN → Servidor, (2) Servidor → SYN-ACK → Cliente, (3) Cliente → ACK → Servidor, (4) Conexão ESTABLISHED. SYN flood explora esta sequência enviando apenas SYN (passo 1), sem nunca enviar ACK (passo 3), deixando o servidor com milhares de conexões em estado SYN_RECV (aguardando passo 3)."
+				},
+				{
+					"id": "q6",
+					"text": "Para tornar a mudança de SYN cookies permanente (sobreviver a reinicialização), qual arquivo deve ser editado?",
+					"options": [
+						"/etc/sysctl.conf ou /etc/sysctl.d/*.conf",
+						"/etc/network/interfaces",
+						"/etc/nginx/nginx.conf",
+						"/proc/sys/net/ipv4/tcp_syncookies"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "Parâmetros do kernel são persistidos em /etc/sysctl.conf ou arquivos em /etc/sysctl.d/. Adicionar linha 'net.ipv4.tcp_syncookies = 1' garante que a configuração seja aplicada no boot. /proc (D) é filesystem virtual (leitura em tempo real), não arquivo de configuração. interfaces (B) é configuração de rede. nginx.conf (C) é configuração da aplicação, não do kernel."
+				},
+				{
+					"id": "q7",
+					"text": "Mesmo com SYN cookies, o ataque ainda causa overhead. Qual é a próxima camada de defesa recomendada?",
+					"options": [
+						"Implementar rate limiting de SYN por IP de origem no firewall (iptables/nftables)",
+						"Aumentar capacidade do servidor (mais CPU, memória, largura de banda)",
+						"Migrar o site para CDN com proteção DDoS (Cloudflare, Akamai)",
+						"Desabilitar temporariamente o serviço web até o ataque cessar"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "Rate limiting de SYN no firewall (A) reduz o volume de pacotes que chegam ao kernel, diminuindo overhead. É a próxima camada lógica de defesa após SYN cookies. Aumentar recursos (B) não resolve a raiz do problema. CDN (C) é solução válida mas de médio prazo (requer configuração DNS, migração). Desabilitar serviço (D) causa indisponibilidade - inaceitável quando há contramedidas eficazes."
+				},
+				{
+					"id": "q8",
+					"type": "numeric",
+					"text": "Após habilitar SYN cookies, a CPU caiu de 78% para 45%. Qual foi a redução percentual no uso da CPU?",
+					"correctAnswer": 42.31,
+					"tolerance": 1.0,
+					"unit": "%",
+					"points": 5,
+					"justification": "Redução percentual = ((78 - 45) / 78) x 100 = 42.31%. Esta redução significativa demonstra a eficácia dos SYN cookies em aliviar a carga de memória e processamento associada ao gerenciamento de conexões semi-abertas, permitindo que o servidor atenda mais conexões legítimas."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Mitigação Avançada e Análise",
+			"phase": "Fase 2 - Contenção (Avançada)",
+			"description": "Após habilitar SYN cookies e rate limiting no firewall, a equipe investiga o perfil do ataque para entender melhor o adversário e considerar mitigações adicionais.",
+			"timeElapsed": "T+25 minutos",
+			"currentSituation": {
+				"httpAvailability": "95% (serviço quase normalizado)",
+				"connectionAttempts": "85.000/minuto (reduzido de 440k)",
+				"establishedConnections": "~750 (quase normal)",
+				"droppedSyns": "~355.000/minuto (bloqueados por rate limit)"
+			},
+			"metrics": [
+				{
+					"title": "Análise de Padrões de IP Spoofing",
+					"type": "attack-analysis",
+					"data": {
+						"synPacketsReceived": 85000,
+						"validSynAckReplies": 127,
+						"spoofingRate": "99.85%",
+						"observation": "Quase todos os IPs de origem são forjados (spoofed) - não respondem ao SYN-ACK"
+					}
+				},
+				{
+					"title": "Análise de TTL e Window Size",
+					"type": "packet-analysis",
+					"data": {
+						"ttlDistribution": {
+							"ttl_64": "18%",
+							"ttl_128": "45%",
+							"ttl_255": "37%"
+						},
+						"windowSizeDistribution": {
+							"8192": "52%",
+							"16384": "31%",
+							"65535": "17%"
+						},
+						"observation": "Padrões de TTL e Window Size indicam múltiplas fontes de ataque (dispositivos IoT heterogêneos)"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q9",
+					"text": "A taxa de spoofing de 99.85% indica que o ataque utiliza IPs de origem forjados. Qual tecnologia no provedor upstream DEVERIA prevenir isso?",
+					"options": [
+						"DNSSEC (Domain Name System Security Extensions)",
+						"BCP 38 / RFC 2827 - Network Ingress Filtering",
+						"IPsec (Internet Protocol Security)",
+						"BGP ROA (Route Origin Authorization)"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "BCP 38 (Best Current Practice 38) / RFC 2827 recomenda que provedores implementem ingress filtering: bloquear pacotes com IP de origem que não pertencem aos blocos IP do cliente. Se todos os provedores implementassem BCP 38, IP spoofing seria inviável. DNSSEC (A) protege DNS, não previne spoofing. IPsec (C) é para VPN/criptografia. BGP ROA (D) valida anúncios BGP, não IPs de origem em pacotes."
+				},
+				{
+					"id": "q10",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: IP spoofing em ataques SYN flood é possível porque o handshake TCP de três vias requer que o atacante receba o SYN-ACK do servidor.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. IP spoofing é possível em SYN flood exatamente porque o atacante NÃO precisa receber o SYN-ACK. O ataque funciona assim: (1) Atacante envia SYN com IP de origem forjado, (2) Servidor envia SYN-ACK para o IP forjado (não para o atacante), (3) Atacante nunca recebe/responde com ACK. O servidor fica aguardando ACK que nunca virá. Se o atacante precisasse receber SYN-ACK, spoofing seria inútil."
+				},
+				{
+					"id": "q11",
+					"type": "matching",
+					"text": "Correlacione cada lição aprendida com sua categoria apropriada:",
+					"leftColumn": [
+						{"id": "lesson1", "label": "Importância de consulta ao cadastro de infraestrutura"},
+						{"id": "lesson2", "label": "Valor da diversidade física de rotas"},
+						{"id": "lesson3", "label": "Necessidade de monitoramento pós-reparo"}
+					],
+					"rightColumn": [
+						{"id": "cat1", "label": "Processo"},
+						{"id": "cat2", "label": "Infraestrutura"},
+						{"id": "cat3", "label": "Operação/Técnica"}
+					],
+					"correctMatches": [
+						{"left": "lesson1", "right": "cat1"},
+						{"left": "lesson2", "right": "cat2"},
+						{"left": "lesson3", "right": "cat3"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 6,
+					"justification": "Consulta ao cadastro (lesson1) é uma questão de processo organizacional. Diversidade física (lesson2) é uma melhoria de infraestrutura. Monitoramento pós-reparo (lesson3) é uma prática operacional/técnica essencial para garantir qualidade do reparo."
+				},
+				{
+					"id": "q12",
+					"type": "numeric",
+					"text": "Após implementar rate limiting, a taxa de queries caiu de 440.000/min para 85.000/min. Quantos SYNs por minuto foram bloqueados (dropped) pelo firewall?",
+					"correctAnswer": 355000,
+					"tolerance": 5000,
+					"unit": "SYN/min",
+					"points": 5,
+					"justification": "SYNs bloqueados = 440.000 - 85.000 = 355.000 SYN/min (~5.917 SYN/segundo). Isso demonstra a eficácia do rate limiting em reduzir 80.7% do tráfego de ataque antes de chegar ao kernel, aliviando significativamente a carga de processamento e permitindo que o serviço opere próximo do normal."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Recuperação e Lições Aprendidas",
+			"phase": "Fase 3 e 4 - Recuperação e Pós-Incidente",
+			"description": "Com SYN cookies habilitados, rate limiting de firewall ativo e coordenação com upstream para filtragem adicional, o ataque foi efetivamente mitigado. Após 2 horas, o atacante cessou o ataque. Tempo total de impacto: 2h15min.",
+			"timeElapsed": "T+135 minutos (incidente encerrado)",
+			"currentSituation": {
+				"httpAvailability": "100% (serviço completamente restaurado)",
+				"connectionAttempts": "~8.000/minuto (tráfego normal retomado)",
+				"establishedConnections": "~820 (dentro do normal)",
+				"impact": "Nenhum - operação normalizada"
+			},
+			"questions": [
+				{
+					"id": "q13",
+					"text": "Antes de declarar o incidente encerrado, qual validação técnica é CRÍTICA?",
+					"options": [
+						"Confirmar que parâmetros de hardening (tcp_syncookies, rate limiting) estão persistentes",
+						"Validar que monitoramento tem alertas para SYN flood (taxa anormal de SYN_RECV)",
+						"Testar disponibilidade do serviço de múltiplas localizações geográficas",
+						"Todas as validações acima são críticas"
+					],
+					"correctAnswer": 3,
+					"points": 5,
+					"justification": "Todas as validações são críticas para encerramento: (A) garante que contramedidas não serão perdidas em reinicialização. (B) assegura detecção precoce de futuros ataques. (C) valida que o serviço está realmente acessível globalmente, não apenas localmente. Pular qualquer uma deixa a organização vulnerável a recorrência ou falsa sensação de segurança."
+				},
+				{
+					"id": "q14",
+					"text": "Qual métrica seria o MELHOR indicador precoce de SYN flood para alertas futuros?",
+					"options": [
+						"Aumento súbito de conexões em estado SYN_RECV (ex: > 5.000)",
+						"Taxa de pacotes SYN > 3x o baseline normal",
+						"Razão SYN_RECV / ESTABLISHED > 10:1",
+						"Todas as métricas acima devem ser monitoradas em conjunto"
+					],
+					"correctAnswer": 3,
+					"points": 5,
+					"justification": "Alertas eficazes usam múltiplos indicadores correlacionados: (A) detecta saturação absoluta da fila. (B) detecta volume anormal. (C) detecta desproporção - em operação normal, razão SYN_RECV/ESTABLISHED é próxima de 1:1 (conexões completam rapidamente). Ratio >> 1 indica handshake não completado. Correlacionar múltiplas métricas reduz falsos positivos."
+				},
+				{
+					"id": "q15",
+					"text": "Por que SYN cookies estavam desabilitados por padrão? Qual é o trade-off de habilitá-los permanentemente?",
+					"options": [
+						"SYN cookies quebram compatibilidade com clientes antigos - não há trade-off real",
+						"SYN cookies têm overhead computacional e desabilitam opções TCP (window scaling, SACK) - trade-off entre segurança e performance/features",
+						"SYN cookies são tecnologia obsoleta - não deveriam ser usados",
+						"SYN cookies previnem TODO tipo de DDoS - deveriam estar sempre habilitados sem exceção"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Trade-off real (B): SYN cookies adicionam overhead de CPU (codificar estado na sequência TCP) e não preservam opções TCP (window scaling, SACK, timestamps), podendo reduzir performance de conexões legítimas. Por isso muitos sistemas desabilitam por padrão. Não são obsoletos (C) - ainda são padrão de indústria. Não previnem todo DDoS (D) - apenas SYN flood. A questão testa compreensão de que segurança sempre envolve trade-offs."
+				},
+				{
+					"id": "q16",
+					"text": "Em post-mortem, qual questão de lições aprendidas tem MAIOR valor estratégico?",
+					"options": [
+						"Por que os parâmetros de hardening de kernel não estavam aplicados desde a implantação inicial do servidor?",
+						"Quem foi responsável por não configurar SYN cookies previamente?",
+						"Quanto custaria contratar serviço de proteção DDoS permanente?",
+						"Quando agendaremos o próximo exercício tabletop de resposta a incidentes?"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "A questão de maior valor estratégico (A) identifica falha SISTÊMICA no processo de hardening/deployment. Revela necessidade de: checklist de segurança, baseline de hardening, automação de configuração. Buscar culpados (B) é contraproducente. Proteção DDoS (C) é válida mas não resolve processo interno. Exercícios (D) são importantes mas não abordam a causa raiz. Foco deve estar em 'como prevenir sistemicamente', não em decisões pontuais."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 96,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 90,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de detecção, análise e resposta a ataques SYN flood e esgotamento de recursos"
+			},
+			{
+				"min": 75,
+				"max": 89,
+				"grade": "Bom",
+				"description": "Compreensão sólida do protocolo TCP e técnicas de mitigação com pequenas lacunas"
+			},
+			{
+				"min": 60,
+				"max": 74,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica suficiente, requer aprofundamento em hardening de kernel"
+			},
+			{
+				"min": 45,
+				"max": 59,
+				"grade": "Insatisfatório",
+				"description": "Lacunas significativas em conhecimento de TCP/IP e resposta a incidentes"
+			},
+			{
+				"min": 0,
+				"max": 44,
+				"grade": "Inadequado",
+				"description": "Compreensão insuficiente, requer treinamento completo em fundamentos de rede e segurança"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Apresentar informações progressivamente, simulando a descoberta natural durante investigação",
+		"Permitir 3-4 minutos de discussão entre participantes antes de cada resposta",
+		"Fazer perguntas socráticas para estimular raciocínio: 'Por que o handshake TCP foi projetado assim?', 'Qual é a vulnerabilidade fundamental?'",
+		"Observar se a equipe identifica a diferença entre ataques de amplificação (DNS, NTP) e esgotamento de recursos (SYN flood)",
+		"Manter neutralidade técnica - não fornecer respostas diretas, apenas orientar pensamento crítico",
+		"Controlar tempo: Rodada 1 (5 min), Rodadas 2-4 (8-10 min cada), Rodada 5 (7 min)",
+		"Mediar debates técnicos construtivamente - incentivar que participantes justifiquem suas posições com evidências",
+		"Após exercício: revisar gabarito, discutir trade-offs de cada solução, coletar feedback",
+		"Documentar insights da equipe para compartilhar com gestão e melhorar processos"
+	],
+	"technicalReferences": [
+		{
+			"title": "RFC 793 - Transmission Control Protocol (TCP)",
+			"url": "https://www.rfc-editor.org/rfc/rfc793"
+		},
+		{
+			"title": "RFC 4987 - TCP SYN Flooding Attacks and Common Mitigations",
+			"url": "https://www.rfc-editor.org/rfc/rfc4987"
+		},
+		{
+			"title": "RFC 2827 / BCP 38 - Network Ingress Filtering",
+			"url": "https://www.rfc-editor.org/info/bcp38"
+		},
+		{
+			"title": "Linux Kernel TCP Documentation",
+			"url": "https://www.kernel.org/doc/Documentation/networking/ip-sysctl.txt"
+		},
+		{
+			"title": "NIST SP 800-61r2 - Computer Security Incident Handling Guide",
+			"url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-61r2.pdf"
+		}
+	]
+}

@@ -1,0 +1,204 @@
+[
+	{
+		"id": "GOV_LEGAL",
+		"title": "Governança e Jurídico",
+		"description": "Incidentes relacionados a governança, conformidade legal, regulamentações (como LGPD) e auditorias governamentais.",
+		"types": [
+			{
+				"id": "GOV_LEGAL_CERT_EXPIRY",
+				"title": "Expiração de Certificado Digital",
+				"description": "Notificação de que um certificado digital utilizado para autenticação, assinatura ou criptografia está próximo da data de expiração. A expiração do certificado pode resultar em falhas de autenticação, interrupção de serviços e perda de confiança por parte dos usuários. Requer renovação antecipada para evitar impactos operacionais."
+			},
+			{
+				"id": "GOV_LEGAL_COPYRIGHT_INFRINGEMENT",
+				"title": "Violação de Direitos Autorais",
+				"description": "Detecção de uso não autorizado de material protegido por direitos autorais em plataformas internas ou públicas. Inclui cópia, distribuição ou modificação de conteúdo sem permissão do titular dos direitos. Pode resultar em ações legais, multas e danos à reputação da organização. Requer revisão imediata do conteúdo e conformidade com as leis de propriedade intelectual."
+			},
+			{
+				"id": "GOV_LEGAL_JUDICIAL_BLOCKADE",
+				"title": "Bloqueio Judicial de Conteúdo",
+				"description": "Notificação de bloqueio judicial imposto a determinados conteúdos ou serviços online, conforme decisão legal. Pode envolver a remoção de sites, suspensão de serviços ou restrição de acesso a determinados materiais. Requer conformidade imediata com a ordem judicial para evitar sanções legais adicionais."
+			},
+			{
+				"id": "GOV_LEGAL_LOG_REQUEST",
+				"title": "Solicitação Judicial de Logs de Acesso",
+				"description": "Notificação de recebimento de solicitação judicial para fornecimento de logs de acesso ou dados de usuários. Pode envolver investigação criminal, auditorias regulatórias ou outras ações legais. Requer resposta dentro do prazo legal e conformidade com as políticas de privacidade e proteção de dados."
+			},
+			{
+				"id": "GOV_LEGAL_PRIVACY_BREACH",
+				"title": "Violação de Privacidade de Dados",
+				"description": "Notificação de incidente envolvendo violação de dados pessoais ou sensíveis, resultando em exposição não autorizada. Pode envolver acesso indevido, roubo ou divulgação de informações protegidas por leis de privacidade. Requer investigação imediata, notificação às autoridades competentes e medidas corretivas para mitigar danos."
+			}
+		]
+	},
+	{
+		"id": "NET_ROUT",
+		"title": "Roteamento de Rede",
+		"description": "Incidentes de roteamento de rede, incluindo problemas com protocolos BGP, OSPF, MPLS e sequestro de prefixos.",
+		"types": [
+			{
+				"id": "NET_ROUT_BGP_HIJACK",
+				"title": "Sequestro de Prefixo BGP (Prefix Hijacking)",
+				"description": "Ataque de sequestro de prefixo BGP onde um AS malicioso anuncia prefixos IP que não lhe pertencem, causando desvio de tráfego e potencial interrupção de serviços. O atacante pode anunciar prefixos mais específicos (/24) sobrepondo blocos legítimos (/16), explorando a preferência BGP por rotas mais específicas."
+			},
+			{
+				"id": "NET_ROUT_FLAPPING",
+				"title": "Instabilidade de Rotas BGP (Route Flapping)",
+				"description": "Oscilação excessiva de rotas BGP (anunciadas e retiradas repetidamente em curto período), causando instabilidade global, consumo excessivo de CPU em routers, e possível dampening automático de rotas. Pode ser causado por problemas de link físico, sessões BGP instáveis, ou loops de policy."
+			},
+			{
+				"id": "NET_ROUT_MPLS_LDP",
+				"title": "Falha de Sinalização MPLS/LDP (Label Distribution Protocol)",
+				"description": "Falha na distribuição de labels MPLS via LDP, causando queda de LSPs (Label Switched Paths), impossibilidade de estabelecer túneis MPLS e degradação de serviços dependentes (VPN L3, Traffic Engineering). Pode ser causado por problemas de adjacência TCP (porta 646), MTU, ou inconsistências na FIB/LFIB."
+			},
+			{
+				"id": "NET_ROUT_OSPF_ADJ",
+				"title": "Queda de Adjacência OSPF (Neighbor Flapping)",
+				"description": "Falha recorrente de adjacências OSPF entre routers, causando instabilidade de rotas internas, reconvergência constante e possível fragmentação da área OSPF. Pode ser causado por problemas de MTU mismatch, autenticação incorreta, timers incompatíveis, ou instabilidade física da camada 2."
+			},
+			{
+				"id": "NET_ROUT_ROUTE_LEAK",
+				"title": "Vazamento de Rotas BGP (Route Leak)",
+				"description": "Incidente de vazamento de rotas BGP onde um AS propaga indevidamente rotas aprendidas de um peer para outros peers, violando políticas de roteamento. Isso pode ocorrer por erro de configuração ou falha em filtros BGP, causando roteamento subótimo, congestionamento e potencial blackholing de tráfego."
+			},
+			{
+				"id": "NET_ROUT_RPKI_INVALID",
+				"title": "Bloqueio de Rotas por RPKI Inválido",
+				"description": "Rotas BGP sendo bloqueadas ou marcadas como inválidas devido a falhas na validação RPKI (Resource Public Key Infrastructure). Pode ser causado por ROAs (Route Origin Authorizations) expirados, mal configurados, ou ausentes. Resulta em perda de alcançabilidade de prefixos legítimos."
+			}
+		]
+	},
+	{
+		"id": "NET_VOL",
+		"title": "Tráfego Volumétrico e DDoS",
+		"description": "Incidentes de tráfego volumétrico, como ataques de negação de serviço (DDoS), reflexão DNS, amplificação NTP e inundação SYN.",
+		"types": [
+			{
+				"id": "NET_VOL_CARPET_BOMBING",
+				"title": "Carpet Bombing - Ataque Difuso Multi-Alvo",
+				"description": "Ataque DDoS volumétrico moderno que distribui o tráfego malicioso por milhares de endereços IP dentro de uma ou mais redes /24, dificultando a mitigação tradicional baseada em IP específico. Comum contra provedores de Internet e backbones, onde múltiplos clientes finais são afetados simultaneamente."
+			},
+			{
+				"id": "NET_VOL_DNS_REFLECTION",
+				"title": "Ataque de Amplificação DNS (ANY Query)",
+				"description": "Ataque DDoS volumétrico utilizando servidores DNS recursivos abertos como amplificadores. Atacantes enviam queries DNS do tipo ANY com IP de origem falsificado (spoofed) da vítima, causando respostas amplificadas direcionadas ao alvo."
+			},
+			{
+				"id": "NET_VOL_NTP_MONLIST",
+				"title": "Ataque de Amplificação NTP via MONLIST",
+				"description": "Ataque DDoS volumétrico explorando servidores NTP com comando MONLIST habilitado (CVE-2013-5211). O atacante envia requisições mode 7 (MONLIST) forjadas com IP de origem da vítima, e os servidores NTP respondem com listas de até 600 clientes recentes, criando amplificação de até 556x."
+			},
+			{
+				"id": "NET_VOL_OUTBOUND",
+				"title": "DDoS de Saída - Botnet Interna Comprometida",
+				"description": "Incidente onde dispositivos comprometidos dentro da rede da organização (botnet interna) participam de ataque DDoS contra alvos externos. Pode resultar em blacklisting de IPs, saturação de links de saída, custos elevados de tráfego, e responsabilidade legal por participação em ataques cibernéticos."
+			},
+			{
+				"id": "NET_VOL_SYN_FLOOD",
+				"title": "SYN Flood - Esgotamento de Tabela de Estados",
+				"description": "Ataque DDoS de esgotamento de recursos explorando o handshake TCP de três vias. O atacante envia milhares de pacotes SYN com IPs de origem forjados, fazendo o servidor alocar recursos para conexões semi-abertas que nunca serão completadas, até esgotar a tabela de estados e impedir conexões legítimas."
+			},
+			{
+				"id": "NET_VOL_UDP_AMP",
+				"title": "Ataque de Amplificação Memcached UDP",
+				"description": "Ataque DDoS volumétrico explorando servidores Memcached expostos na internet com protocolo UDP habilitado. Atacantes enviam comandos 'get' ou 'stats' com IP forjado da vítima, causando amplificação de até 51.000x - o maior fator já registrado em ataques de amplificação."
+			}
+		]
+	},
+	{
+		"id": "PHY_L2",
+		"title": "Infraestrutura Física e Camada 2",
+		"description": "Incidentes na camada física ou de enlace (Camada 2), abrangendo cortes de fibra, falhas de hardware (SFP), problemas de energia e tempestades de broadcast.",
+		"types": [
+			{
+				"id": "PHY_L2_BROADCAST_STORM",
+				"title": "Loop de Camada 2 (Broadcast Storm)",
+				"description": "Incidente de loop de Camada 2 causado por conexão acidental de duas portas do mesmo switch ou falha no protocolo Spanning Tree. O loop gera broadcast storm que consome 100% da capacidade dos enlaces, causando saturação da CPU dos switches e indisponibilidade total da rede local. Comum em ambientes com mudanças frequentes de cabeamento ou switches não gerenciados."
+			},
+			{
+				"id": "PHY_L2_FIBER_CUT",
+				"title": "Rompimento de Fibra Óptica por Obra Civil",
+				"description": "Incidente de rompimento físico de cabo de fibra óptica causado por escavação não autorizada em via pública. O cabo primário foi seccionado por retroescavadeira durante obras de saneamento, resultando em perda total de conectividade no enlace afetado. Típico de ambientes metropolitanos com alta densidade de infraestrutura subterrânea."
+			},
+			{
+				"id": "PHY_L2_OPTICAL_DEGRADE",
+				"title": "Degradação Progressiva de Sinal Óptico",
+				"description": "Incidente de degradação gradual da qualidade do sinal óptico causado por atenuação excessiva no enlace. Manifesta-se através de aumento de erros FCS, flapping de interface e eventual perda de conectividade. Causas comuns incluem conectores sujos, emendas de baixa qualidade, curvatura excessiva da fibra ou degradação de componentes ópticos (SFP, patch cords)."
+			},
+			{
+				"id": "PHY_L2_POWER_OUTAGE",
+				"title": "Falha de Energia no PoP (UPS/Gerador)",
+				"description": "Incidente de falha de energia causado por esgotamento da bateria UPS combinado com falha na partida automática do gerador. O PoP perde alimentação elétrica resultando em desligamento completo de todos os equipamentos de rede. Diagnóstico requer análise de logs do sistema DCIM/gerenciamento de energia e inspeção física do gerador e UPS."
+			},
+			{
+				"id": "PHY_L2_SFP_FAIL",
+				"title": "Falha de Módulo Transceiver Óptico (SFP)",
+				"description": "Incidente de falha de módulo SFP/SFP+ causado por fim de vida útil, sobrecarga térmica ou incompatibilidade. O transceiver para de transmitir ou receber sinal óptico, resultando em perda de conectividade no enlace. Diagnóstico requer análise de logs do equipamento e inspeção física do módulo (temperatura, código de erro DDM/DOM)."
+			},
+			{
+				"id": "PHY_L2_SWITCH_FAIL",
+				"title": "Falha Catastrófica de Switch de Núcleo",
+				"description": "Incidente de falha total de switch de núcleo devido a defeito de hardware crítico (ex: fonte de alimentação, backplane, ASIC). Resulta em perda completa de conectividade para todos os dispositivos conectados ao switch. Diagnóstico requer análise de logs do sistema, testes de hardware e possível substituição do equipamento."
+			}
+		]
+	},
+	{
+		"id": "SCI_DATA",
+		"title": "Dados Científicos e Acadêmicos",
+		"description": "Incidentes específicos de redes científicas e acadêmicas, envolvendo movimentação massiva de dados (elephant flows) e compartilhamento de recursos de alta performance.",
+		"types": [
+			{
+				"id": "SCI_DATA_ELEPHANT_FLOW",
+				"title": "Elephant Flow - Fluxo de Dados de Grande Volume",
+				"description": "Detecção de fluxo de dados anormalmente grande (elephant flow) em rede científica, indicando transferência massiva de dados entre instituições. Pode impactar a performance da rede e outros usuários. Requer monitoramento e possível otimização de rotas para garantir qualidade de serviço."
+			},
+			{
+				"id": "SCI_DATA_HIGH_LATENCY",
+				"title": "Alta Latência em Rede Científica",
+				"description": "Detecção de latência elevada em enlaces de rede científica, impactando a performance de aplicações sensíveis ao tempo, como videoconferências e transferências de dados em tempo real. Pode ser causado por congestionamento, roteamento ineficiente ou problemas físicos. Requer análise detalhada para identificar e mitigar a causa raiz."
+			},
+			{
+				"id": "SCI_DATA_PACKET_LOSS",
+				"title": "Perda de Pacotes em Rede Científica",
+				"description": "Detecção de perda significativa de pacotes em enlaces de rede científica, afetando a integridade e performance das comunicações. Pode ser causado por congestionamento, falhas de hardware ou interferências. Requer investigação imediata para identificar a origem da perda e implementar soluções corretivas."
+			},
+			{
+				"id": "SCI_DATA_THROUGHPUT_DEGRADATION",
+				"title": "Degradação de Throughput em Rede Científica",
+				"description": "Detecção de redução no throughput disponível em enlaces de rede científica, impactando a capacidade de transferência de dados entre instituições. Pode ser causado por congestionamento, falhas de configuração ou problemas físicos. Requer análise detalhada para identificar e resolver a causa da degradação."
+			}
+		]
+	},
+	{
+		"id": "SEC_SYS",
+		"title": "Segurança de Sistemas",
+		"description": "Incidentes de segurança de sistemas e infraestrutura, incluindo ransomware, envenenamento de cache DNS e violações de segurança detectadas por SIEM/ELK.",
+		"types": [
+			{
+				"id": "SEC_SYS_C2_BEACON",
+				"title": "Comunicação de Beacon com Servidor C2",
+				"description": "Detecção de comunicação de beacon entre um host comprometido na rede interna e um servidor de comando e controle (C2) externo. Indica que o malware instalado está tentando estabelecer contato periódico para receber instruções ou enviar dados roubados. Comportamento típico de trojans e backdoors."
+			},
+			{
+				"id": "SEC_SYS_RANSOMWARE",
+				"title": "Infecção por Ransomware",
+				"description": "Detecção de atividade indicativa de infecção por ransomware em um sistema interno. Inclui criação de arquivos com extensões típicas de ransomware, presença de processos suspeitos, ou comunicação com servidores de pagamento. Resulta em criptografia de dados críticos e demanda ação imediiata para contenção e recuperação."
+			},
+			{
+				"id": "SEC_SYS_SQL_INJECTION",
+				"title": "Ataque de Injeção SQL Detectado",
+				"description": "Detecção de tentativas de injeção SQL em aplicações web internas. Indica que um atacante está tentando explorar vulnerabilidades de segurança para manipular consultas ao banco de dados, visando roubo, alteração ou exclusão de informações sensíveis. Requer análise imediata dos logs de aplicação e reforço das medidas de segurança."
+			},
+			{
+				"id": "SEC_SYS_SSH_BRUTE_FORCE",
+				"title": "Ataque de Força Bruta SSH",
+				"description": "Detecção de tentativas repetidas e falhas de autenticação SSH em servidores internos. Indica que um atacante está tentando obter acesso não autorizado através de ataques de força bruta, utilizando listas de senhas comuns ou credenciais roubadas. Requer monitoramento contíno e implementação de medidas de mitigação, como bloqueio de IPs e autenticação multifator."
+			},
+			{
+				"id": "SEC_SYS_WEB_DEFACEMENT",
+				"title": "Desfiguração de Site (Web Defacement)",
+				"description": "Detecção de alteração não autorizada do conteúdo de um site interno, indicando que um atacante conseguiu comprometer o servidor web. A desfiguração geralmente envolve a substituição da página inicial por mensagens políticas, propagação de malware ou propaganda. Requer investigação imediata para identificar a vulnerabilidade explorada e restaurar o conteúdo legítimo."
+			}
+		]
+	}
+]
