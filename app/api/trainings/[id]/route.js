@@ -4,9 +4,11 @@ import getOneTraining from '@/models/Trainings/getOne';
 
 /**
  * GET /api/trainings/[id]
- * Retrieves a specific training session
+ * Retrieves a specific training session with FULL data
  * Requires authentication
- * Only accessible to users who are participants of the training
+ * Only accessible to FACILITATORS of the training
+ * Note: Participants should use /api/trainings/[id]/participant
+ * Note: For role checking only, use /api/trainings/[id]/role
  */
 export const GET = withAuth(async (request, context, session) => {
 	try {
@@ -40,6 +42,7 @@ export const GET = withAuth(async (request, context, session) => {
 			);
 		}
 
+		// Return full training data (only for facilitators)
 		return NextResponse.json({
 			success: true,
 			training: result.training,

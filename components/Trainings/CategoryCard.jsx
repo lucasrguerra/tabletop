@@ -73,10 +73,10 @@ export default function CategoryCard({ category, isSelected, onClick }) {
 			onClick={onClick}
 			className={`
 				group relative p-6 rounded-2xl border-2 text-left transition-all duration-300
-				transform hover:scale-105 hover:shadow-xl
+				transform hover:scale-[1.02] hover:shadow-xl hover:shadow-slate-200/50
 				${isSelected
 					? `${style.borderColor} bg-linear-to-br ${style.bgGradient} shadow-lg`
-					: 'border-gray-200 bg-white hover:border-gray-300 shadow-sm'
+					: 'border-slate-200 bg-white hover:border-slate-300 shadow-sm shadow-slate-200/50'
 				}
 			`}
 		>
@@ -93,7 +93,7 @@ export default function CategoryCard({ category, isSelected, onClick }) {
 					transition-all duration-300 transform group-hover:scale-110
 					${isSelected
 						? `bg-linear-to-br ${style.gradient} shadow-lg`
-						: 'bg-gray-100 group-hover:bg-gray-200'
+						: 'bg-slate-100 group-hover:bg-slate-200'
 					}
 				`}>
 					<Icon className={`text-2xl ${isSelected ? 'text-white' : style.iconColor}`} />
@@ -102,14 +102,14 @@ export default function CategoryCard({ category, isSelected, onClick }) {
 				<div className="flex-1 min-w-0">
 					<h3 className={`
 						text-lg font-bold mb-2 transition-colors duration-300
-						${isSelected ? style.iconColor : 'text-gray-900 group-hover:text-gray-700'}
+						${isSelected ? style.iconColor : 'text-slate-900 group-hover:text-slate-700'}
 					`}>
 						{category.title}
 					</h3>
 				</div>
 			</div>
 
-			<p className="text-sm text-gray-600 leading-relaxed line-clamp-4 mt-2">
+			<p className="text-sm text-slate-600 leading-relaxed line-clamp-4 mt-2">
 				{category.description}
 			</p>
 

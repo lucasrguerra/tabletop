@@ -12,16 +12,16 @@ export default function LoadingSpinner({ message = "Carregando..." }) {
 			{/* Spinner with gradient background */}
 			<div className="relative">
 				{/* Outer glow */}
-				<div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 blur-xl opacity-50 animate-pulse" />
+				<div className="absolute inset-0 rounded-full bg-linear-to-r from-blue-400 to-indigo-500 blur-xl opacity-40 animate-pulse" />
 				
 				{/* Spinner */}
-				<div className="relative w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center shadow-xl animate-spin">
+				<div className="relative w-16 h-16 rounded-full bg-linear-to-r from-blue-500 to-indigo-600 flex items-center justify-center shadow-xl shadow-blue-500/25 animate-spin">
 					<FaSpinner className="text-3xl text-white" />
 				</div>
 			</div>
 
 			{/* Message */}
-			<p className="mt-6 text-gray-600 font-medium animate-pulse">{message}</p>
+			<p className="mt-6 text-slate-600 font-medium animate-pulse">{message}</p>
 		</div>
 	);
 }

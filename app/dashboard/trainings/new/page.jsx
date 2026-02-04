@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import DashboardLayout from '@/components/Dashboard/Layout';
-import StepIndicator from '@/components/Trainings/StepIndicator';
-import CategoryCard from '@/components/Trainings/CategoryCard';
-import IncidentTypeCard from '@/components/Trainings/IncidentTypeCard';
-import ScenarioCard from '@/components/Trainings/ScenarioCard';
 import ErrorAlert from '@/components/Trainings/ErrorAlert';
+import DashboardLayout from '@/components/Dashboard/Layout';
+import CategoryCard from '@/components/Trainings/CategoryCard';
+import ScenarioCard from '@/components/Trainings/ScenarioCard';
+import StepIndicator from '@/components/Trainings/StepIndicator';
 import LoadingSpinner from '@/components/Trainings/LoadingSpinner';
+import IncidentTypeCard from '@/components/Trainings/IncidentTypeCard';
 import {
 	FaCheck,
 	FaChevronRight,
@@ -19,7 +19,10 @@ import {
 	FaRandom,
 	FaLock,
 	FaLockOpen,
-	FaUsers
+	FaUsers,
+	FaSpinner,
+	FaCheckCircle,
+	FaTimesCircle
 } from 'react-icons/fa';
 
 export default function NewTrainingPage() {
@@ -45,6 +48,11 @@ export default function NewTrainingPage() {
 	const [access_code, setAccessCode] = useState('');
 	const [max_participants, setMaxParticipants] = useState('15');
 
+	// Access code validation state
+	const [generating_code, setGeneratingCode] = useState(false);
+	const [validating_code, setValidatingCode] = useState(false);
+	const [code_is_valid, setCodeIsValid] = useState(null); // null = not validated, true/false = validation result
+
 	// Load CSRF token and categories on mount
 	useEffect(() => {
 		const fetchCsrfToken = async () => {
@@ -69,6 +77,20 @@ export default function NewTrainingPage() {
 			loadScenarios();
 		}
 	}, [selected_type, selected_category]);
+
+	// Validate access code when it changes (with debounce)
+	useEffect(() => {
+		if (access_type !== 'code' || !access_code.trim()) {
+			setCodeIsValid(null);
+			return;
+		}
+
+		const debounceTimer = setTimeout(() => {
+			validateAccessCode(access_code);
+		}, 500);
+
+		return () => clearTimeout(debounceTimer);
+	}, [access_code, access_type, csrf_token]);
 
 	const loadCategories = async () => {
 		setLoadingCategories(true);
@@ -148,13 +170,62 @@ export default function NewTrainingPage() {
 		setScenarios([]);
 	};
 
-	const generateAccessCode = () => {
-		const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-		let code = '';
-		for (let i = 0; i < 8; i++) {
-			code += chars.charAt(Math.floor(Math.random() * chars.length));
+	// Generate access code via API
+	const generateAccessCode = async () => {
+		setGeneratingCode(true);
+		setError(null);
+		try {
+			const response = await fetch('/api/trainings/access-code/generate');
+			const data = await response.json();
+
+			if (data.success && data.access_code) {
+				setAccessCode(data.access_code);
+				setCodeIsValid(true); // Generated codes are always valid
+			} else {
+				setError(data.message || 'Erro ao gerar código de acesso');
+			}
+		} catch (err) {
+			console.error('Error generating access code:', err);
+			setError('Erro ao gerar código de acesso');
+		} finally {
+			setGeneratingCode(false);
 		}
-		setAccessCode(code);
+	};
+
+	// Validate access code via API
+	const validateAccessCode = async (code) => {
+		if (!code.trim() || !csrf_token) return;
+
+		setValidatingCode(true);
+		try {
+			const response = await fetch('/api/trainings/access-code/validate', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-CSRF-Token': csrf_token,
+				},
+				body: JSON.stringify({ access_code: code }),
+			});
+			const data = await response.json();
+
+			if (data.success) {
+				setCodeIsValid(data.is_valid);
+			} else {
+				setCodeIsValid(false);
+			}
+		} catch (err) {
+			console.error('Error validating access code:', err);
+			setCodeIsValid(null);
+		} finally {
+			setValidatingCode(false);
+		}
+	};
+
+	// Handle access code change
+	const handleAccessCodeChange = (e) => {
+		const newCode = e.target.value.toUpperCase();
+		setAccessCode(newCode);
+		setCodeIsValid(null); // Reset validation while typing
 	};
 
 	const handleCreateTraining = async () => {
@@ -169,6 +240,12 @@ export default function NewTrainingPage() {
 
 		if (access_type === 'code' && !access_code.trim()) {
 			setError('Defina um código de acesso ou gere um automaticamente');
+			window.scrollTo({ top: 0, behavior: 'smooth' });
+			return;
+		}
+
+		if (access_type === 'code' && code_is_valid === false) {
+			setError('O código de acesso informado não é válido. Use outro código ou gere um automaticamente.');
 			window.scrollTo({ top: 0, behavior: 'smooth' });
 			return;
 		}
@@ -189,18 +266,20 @@ export default function NewTrainingPage() {
 
 			// Prepare training data
 			const trainingData = {
-				session_name: session_name.trim(),
-				session_description: session_description.trim(),
-				selected_category: selected_category,
-				selected_type: selected_type,
-				selected_scenario: selected_scenario,
+				name: session_name.trim(),
+				description: session_description.trim(),
+				scenario: {
+					category: selected_category.id,
+					type: selected_type.id,
+					id: selected_scenario.id
+				},
 				access_type,
 				access_code: access_type === 'code' ? access_code.trim() : null,
 				max_participants: parseInt(max_participants)
 			};
 
 			// Call API to create training
-			const response = await fetch('/api/trainings', {
+			const response = await fetch('/api/trainings/new', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -236,14 +315,17 @@ export default function NewTrainingPage() {
 			<div className="max-w-7xl mx-auto">
 				{/* Header */}
 				<div className="mb-10 text-center">
-					<div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-linear-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30 mb-4">
-						<FaShieldAlt className="text-3xl text-white" />
+					<div className="relative inline-flex items-center justify-center w-16 h-16 mb-5">
+						<div className="absolute inset-0 bg-linear-to-br from-blue-500 to-indigo-600 rounded-2xl blur opacity-40" />
+						<div className="relative w-full h-full bg-linear-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+							<FaShieldAlt className="text-2xl text-white" />
+						</div>
 					</div>
-					<h1 className="text-3xl sm:text-4xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-3">
+					<h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3">
 						Criar Novo Treinamento
 					</h1>
-					<p className="text-lg text-gray-600">
-						Configure seu cenário de tabletop em 3 etapas simples
+					<p className="text-lg text-slate-600">
+						Configure seu cenario de tabletop em 3 etapas simples
 					</p>
 				</div>
 
@@ -260,7 +342,7 @@ export default function NewTrainingPage() {
 				)}
 
 				{/* Content Card */}
-				<div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 sm:p-8 mb-8">
+				<div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-200/60 p-6 sm:p-8 mb-8">
 					{/* Step 1: Category and Type */}
 					{current_step === 1 && (
 						<>
@@ -269,11 +351,11 @@ export default function NewTrainingPage() {
 							) : (
 								<div className="space-y-8">
 									<div>
-										<h2 className="text-2xl font-bold bg-linear-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-2">
+										<h2 className="text-2xl font-bold text-slate-900 mb-2">
 											Selecione a Categoria
 										</h2>
-										<p className="text-gray-600 mb-6">
-											Escolha a categoria do incidente que você deseja simular
+										<p className="text-slate-600 mb-6">
+											Escolha a categoria do incidente que voce deseja simular
 										</p>
 
 										<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -290,14 +372,14 @@ export default function NewTrainingPage() {
 
 									{/* Type Selection - Show only when category is selected */}
 									{selected_category && (
-										<div className="animate-slide-in-right">
-											<div className="h-px bg-linear-to-r from-transparent via-gray-300 to-transparent mb-8" />
+										<div className="animate-slide-in-up">
+											<div className="h-px bg-linear-to-r from-transparent via-slate-300 to-transparent mb-8" />
 											
-											<h2 className="text-2xl font-bold bg-linear-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-2">
+											<h2 className="text-2xl font-bold text-slate-900 mb-2">
 												Selecione o Tipo de Incidente
 											</h2>
-											<p className="text-gray-600 mb-6">
-												Escolha o tipo específico de incidente dentro da categoria <span className="font-semibold text-blue-600">{selected_category.title}</span>
+											<p className="text-slate-600 mb-6">
+												Escolha o tipo especifico de incidente dentro da categoria <span className="font-semibold text-blue-600">{selected_category.title}</span>
 											</p>
 
 											<div className="grid grid-cols-1 gap-3">
@@ -321,26 +403,27 @@ export default function NewTrainingPage() {
 					{current_step === 2 && (
 						<>
 							{loading_scenarios ? (
-								<LoadingSpinner message="Carregando cenários..." />
+								<LoadingSpinner message="Carregando cenarios..." />
 							) : (
 								<div>
-									<h2 className="text-2xl font-bold bg-linear-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-2">
-										Selecione o Cenário
+									<h2 className="text-2xl font-bold text-slate-900 mb-2">
+										Selecione o Cenario
 									</h2>
-									<p className="text-gray-600 mb-6">
-										Escolha um cenário pré-configurado para o tipo de incidente{' '}
+									<p className="text-slate-600 mb-6">
+										Escolha um cenario pre-configurado para o tipo de incidente{' '}
 										<span className="font-semibold text-blue-600">{selected_type?.title}</span>
 									</p>
 
 									{scenarios.length === 0 ? (
 										<div className="text-center py-16">
-											<div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 mb-4">
-												<FaFileAlt className="text-4xl text-gray-400" />
+											<div className="relative inline-flex items-center justify-center w-20 h-20 mb-6">
+												<div className="absolute inset-0 bg-linear-to-br from-slate-100 to-slate-200 rounded-2xl" />
+												<FaFileAlt className="relative text-3xl text-slate-400" />
 											</div>
-											<p className="text-gray-500 text-lg mb-2">
-												Nenhum cenário disponível para este tipo de incidente
+											<p className="text-slate-600 text-lg mb-2">
+												Nenhum cenario disponivel para este tipo de incidente
 											</p>
-											<p className="text-gray-400 text-sm">
+											<p className="text-slate-500 text-sm">
 												Volte e selecione outro tipo de incidente
 											</p>
 										</div>
@@ -366,20 +449,20 @@ export default function NewTrainingPage() {
 						<div className="space-y-8">
 							{/* Scenario Summary */}
 							<div>
-								<h2 className="text-2xl font-bold bg-linear-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-2">
-									Resumo do Cenário Selecionado
+								<h2 className="text-2xl font-bold text-slate-900 mb-2">
+									Resumo do Cenario Selecionado
 								</h2>
-								<p className="text-gray-600 mb-6">
-									Revise os detalhes do cenário e configure a sessão de treinamento
+								<p className="text-slate-600 mb-6">
+									Revise os detalhes do cenario e configure a sessao de treinamento
 								</p>
 
 								{selected_scenario && (
-									<div className="bg-linear-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border-2 border-blue-200">
-										<div className="mb-4">
-											<span className="inline-block px-3 py-1 bg-blue-600 text-white text-xs font-bold rounded-full mb-2">
+									<div className="bg-linear-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200/60">
+										<div className="mb-4 flex flex-wrap gap-2">
+											<span className="inline-block px-3 py-1.5 bg-linear-to-r from-blue-600 to-blue-700 text-white text-xs font-bold rounded-full">
 												{selected_category?.title}
 											</span>
-											<span className="inline-block px-3 py-1 bg-indigo-600 text-white text-xs font-bold rounded-full mb-2 ml-2">
+											<span className="inline-block px-3 py-1.5 bg-linear-to-r from-indigo-600 to-indigo-700 text-white text-xs font-bold rounded-full">
 												{selected_type?.title}
 											</span>
 										</div>
@@ -391,13 +474,13 @@ export default function NewTrainingPage() {
 										{selected_scenario.severity && (
 											<div className="flex items-center gap-2 text-sm">
 												<span className="text-blue-600 font-semibold">Severidade:</span>
-												<span className={`px-2 py-1 rounded font-bold ${
+												<span className={`px-3 py-1 rounded-full font-bold ${
 													selected_scenario.severity === 'high' ? 'bg-red-100 text-red-700' :
-													selected_scenario.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-													'bg-green-100 text-green-700'
+													selected_scenario.severity === 'medium' ? 'bg-amber-100 text-amber-700' :
+													'bg-emerald-100 text-emerald-700'
 												}`}>
 													{selected_scenario.severity === 'high' ? 'Alta' :
-													 selected_scenario.severity === 'medium' ? 'Média' : 'Baixa'}
+													 selected_scenario.severity === 'medium' ? 'Media' : 'Baixa'}
 												</span>
 											</div>
 										)}
@@ -405,57 +488,57 @@ export default function NewTrainingPage() {
 								)}
 							</div>
 
-							<div className="h-px bg-linear-to-r from-transparent via-gray-300 to-transparent" />
+							<div className="h-px bg-linear-to-r from-transparent via-slate-300 to-transparent" />
 
 							{/* Session Configuration */}
 							<div>
-								<h2 className="text-2xl font-bold bg-linear-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-2">
-									Configuração da Sessão
+								<h2 className="text-2xl font-bold text-slate-900 mb-2">
+									Configuracao da Sessao
 								</h2>
-								<p className="text-gray-600 mb-6">
-									Defina as informações e regras de acesso para esta sessão de treinamento
+								<p className="text-slate-600 mb-6">
+									Defina as informacoes e regras de acesso para esta sessao de treinamento
 								</p>
 
 								<div className="space-y-6">
 									{/* Session Name */}
 									<div>
-										<label className="block text-sm font-semibold text-gray-700 mb-2">
-											Nome da Sessão <span className="text-red-500">*</span>
+										<label className="block text-sm font-semibold text-slate-700 mb-2">
+											Nome da Sessao <span className="text-red-500">*</span>
 										</label>
 										<input
 											type="text"
 											value={session_name}
 											onChange={(e) => setSessionName(e.target.value)}
 											placeholder="Ex: Treinamento DNS Reflection - Turma 2026"
-											className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+											className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
 											maxLength={100}
 										/>
-										<p className="text-xs text-gray-500 mt-1">
+										<p className="text-xs text-slate-500 mt-2">
 											{session_name.length}/100 caracteres
 										</p>
 									</div>
 
 									{/* Session Description */}
 									<div>
-										<label className="block text-sm font-semibold text-gray-700 mb-2">
-											Descrição da Sessão
+										<label className="block text-sm font-semibold text-slate-700 mb-2">
+											Descricao da Sessao <span className="text-red-500">*</span>
 										</label>
 										<textarea
 											value={session_description}
 											onChange={(e) => setSessionDescription(e.target.value)}
-											placeholder="Descreva os objetivos e contexto desta sessão de treinamento..."
+											placeholder="Descreva os objetivos e contexto desta sessao de treinamento..."
 											rows={4}
-											className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all resize-none"
+											className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all resize-none"
 											maxLength={500}
 										/>
-										<p className="text-xs text-gray-500 mt-1">
+										<p className="text-xs text-slate-500 mt-2">
 											{session_description.length}/500 caracteres
 										</p>
 									</div>
 
 									{/* Access Type */}
 									<div>
-										<label className="block text-sm font-semibold text-gray-700 mb-3">
+										<label className="block text-sm font-semibold text-slate-700 mb-3">
 											Forma de Acesso <span className="text-red-500">*</span>
 										</label>
 										<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -464,17 +547,17 @@ export default function NewTrainingPage() {
 												type="button"
 												onClick={() => setAccessType('open')}
 												className={`
-													p-4 rounded-xl border-2 transition-all text-left
+													p-5 rounded-2xl border-2 transition-all text-left
 													${access_type === 'open'
-														? 'border-blue-500 bg-blue-50 shadow-md'
-														: 'border-gray-300 hover:border-gray-400 bg-white'
+														? 'border-blue-500 bg-blue-50 shadow-lg shadow-blue-500/10'
+														: 'border-slate-200 hover:border-slate-300 bg-white'
 													}
 												`}
 											>
 												<div className="flex items-start gap-3">
 													<div className={`
 														w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5
-														${access_type === 'open' ? 'border-blue-500' : 'border-gray-300'}
+														${access_type === 'open' ? 'border-blue-500' : 'border-slate-300'}
 													`}>
 														{access_type === 'open' && (
 															<div className="w-3 h-3 rounded-full bg-blue-500" />
@@ -482,17 +565,17 @@ export default function NewTrainingPage() {
 													</div>
 													<div className="flex-1">
 														<div className="flex items-center gap-2 mb-1">
-															<FaLockOpen className={access_type === 'open' ? 'text-blue-600' : 'text-gray-400'} />
+															<FaLockOpen className={access_type === 'open' ? 'text-blue-600' : 'text-slate-400'} />
 															<h4 className={`font-bold ${
-																access_type === 'open' ? 'text-blue-900' : 'text-gray-700'
+																access_type === 'open' ? 'text-blue-900' : 'text-slate-700'
 															}`}>
 																Acesso Livre
 															</h4>
 														</div>
 														<p className={`text-sm ${
-															access_type === 'open' ? 'text-blue-700' : 'text-gray-600'
+															access_type === 'open' ? 'text-blue-700' : 'text-slate-600'
 														}`}>
-															Qualquer pessoa pode participar da sessão sem necessidade de código
+															Qualquer pessoa pode participar da sessao sem necessidade de codigo
 														</p>
 													</div>
 												</div>
@@ -503,17 +586,17 @@ export default function NewTrainingPage() {
 												type="button"
 												onClick={() => setAccessType('code')}
 												className={`
-													p-4 rounded-xl border-2 transition-all text-left
+													p-5 rounded-2xl border-2 transition-all text-left
 													${access_type === 'code'
-														? 'border-blue-500 bg-blue-50 shadow-md'
-														: 'border-gray-300 hover:border-gray-400 bg-white'
+														? 'border-blue-500 bg-blue-50 shadow-lg shadow-blue-500/10'
+														: 'border-slate-200 hover:border-slate-300 bg-white'
 													}
 												`}
 											>
 												<div className="flex items-start gap-3">
 													<div className={`
 														w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5
-														${access_type === 'code' ? 'border-blue-500' : 'border-gray-300'}
+														${access_type === 'code' ? 'border-blue-500' : 'border-slate-300'}
 													`}>
 														{access_type === 'code' && (
 															<div className="w-3 h-3 rounded-full bg-blue-500" />
@@ -521,17 +604,17 @@ export default function NewTrainingPage() {
 													</div>
 													<div className="flex-1">
 														<div className="flex items-center gap-2 mb-1">
-															<FaLock className={access_type === 'code' ? 'text-blue-600' : 'text-gray-400'} />
+															<FaLock className={access_type === 'code' ? 'text-blue-600' : 'text-slate-400'} />
 															<h4 className={`font-bold ${
-																access_type === 'code' ? 'text-blue-900' : 'text-gray-700'
+																access_type === 'code' ? 'text-blue-900' : 'text-slate-700'
 															}`}>
-																Código de Acesso
+																Codigo de Acesso
 															</h4>
 														</div>
 														<p className={`text-sm ${
-															access_type === 'code' ? 'text-blue-700' : 'text-gray-600'
+															access_type === 'code' ? 'text-blue-700' : 'text-slate-600'
 														}`}>
-															Participantes precisam de um código para poder acessar a sessão
+															Participantes precisam de um codigo para poder acessar a sessao
 														</p>
 													</div>
 												</div>
@@ -541,50 +624,90 @@ export default function NewTrainingPage() {
 
 									{/* Access Code Input - Only shown when code is selected */}
 									{access_type === 'code' && (
-										<div className="animate-slide-in-right">
-											<label className="block text-sm font-semibold text-gray-700 mb-2">
-												Código de Acesso <span className="text-red-500">*</span>
+										<div className="animate-slide-in-up">
+											<label className="block text-sm font-semibold text-slate-700 mb-2">
+												Codigo de Acesso <span className="text-red-500">*</span>
 											</label>
-											<div className="flex flex-col sm:flex-row gap-2">
-												<input
-													type="text"
-													value={access_code}
-													onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
-													placeholder="Digite ou gere um código"
-													className="flex-1 px-4 py-3 rounded-lg border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all font-mono font-bold text-lg"
-													maxLength={20}
-												/>
+											<div className="flex flex-col sm:flex-row gap-3">
+												<div className="flex-1 relative">
+													<input
+														type="text"
+														value={access_code}
+														onChange={handleAccessCodeChange}
+														placeholder="Digite ou gere um codigo"
+														className={`w-full px-4 py-3.5 pr-12 rounded-xl border bg-slate-50 focus:bg-white outline-none transition-all font-mono font-bold text-lg ${
+															code_is_valid === true
+																? 'border-emerald-500 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20'
+																: code_is_valid === false
+																? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20'
+																: 'border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
+														}`}
+														maxLength={20}
+													/>
+													{/* Validation indicator */}
+													<div className="absolute right-4 top-1/2 -translate-y-1/2">
+														{validating_code && (
+															<FaSpinner className="text-blue-500 animate-spin text-lg" />
+														)}
+														{!validating_code && code_is_valid === true && (
+															<FaCheckCircle className="text-emerald-500 text-lg" />
+														)}
+														{!validating_code && code_is_valid === false && (
+															<FaTimesCircle className="text-red-500 text-lg" />
+														)}
+													</div>
+												</div>
 												<button
 													type="button"
 													onClick={generateAccessCode}
-													className="px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-all whitespace-nowrap flex items-center justify-center gap-2"
+													disabled={generating_code}
+													className="px-6 py-3.5 bg-linear-to-r from-indigo-600 to-violet-600 text-white rounded-xl font-semibold hover:from-indigo-700 hover:to-violet-700 transition-all whitespace-nowrap flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/25"
 												>
-													<FaRandom />
-													Gerar Código
+													{generating_code ? (
+														<FaSpinner className="animate-spin" />
+													) : (
+														<FaRandom />
+													)}
+													Gerar Codigo
 												</button>
 											</div>
-											<p className="text-xs text-gray-500 mt-1">
-												O código pode conter letras e números (máx. 20 caracteres)
-											</p>
+											{/* Validation message */}
+											{code_is_valid === true && (
+												<p className="text-xs text-emerald-600 mt-2 flex items-center gap-1">
+													<FaCheckCircle />
+													Codigo valido e disponivel
+												</p>
+											)}
+											{code_is_valid === false && (
+												<p className="text-xs text-red-600 mt-2 flex items-center gap-1">
+													<FaTimesCircle />
+													Codigo invalido. Use outro ou gere automaticamente.
+												</p>
+											)}
+											{code_is_valid === null && (
+												<p className="text-xs text-slate-500 mt-2">
+													O codigo pode conter letras e numeros (max. 20 caracteres)
+												</p>
+											)}
 										</div>
 									)}
 
 									{/* Max Participants */}
 									<div>
-										<label className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-											<FaUsers className="text-gray-600" />
+										<label className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+											<FaUsers className="text-slate-500" />
 											Limite de Participantes <span className="text-red-500">*</span>
 										</label>
 										<input
 											type="number"
 											value={max_participants}
 											onChange={(e) => setMaxParticipants(e.target.value)}
-											placeholder="Número máximo de participantes"
+											placeholder="Numero maximo de participantes"
 											min="1"
-											className="w-full md:w-64 px-4 py-3 rounded-lg border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+											className="w-full md:w-64 px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
 										/>
-										<p className="text-xs text-gray-500 mt-1">
-											Defina o número máximo de participantes permitidos nesta sessão. Esse número deve ser a soma de todos os facilitadores, participantes e observadores.
+										<p className="text-xs text-slate-500 mt-2">
+											Defina o numero maximo de participantes permitidos nesta sessao. Esse numero deve ser a soma de todos os facilitadores, participantes e observadores.
 										</p>
 									</div>
 								</div>
@@ -599,10 +722,10 @@ export default function NewTrainingPage() {
 						onClick={handleBack}
 						disabled={current_step === 1}
 						className={`
-							group flex items-center justify-center gap-2 sm:gap-3 px-4 sm:px-6 py-3 sm:py-3.5 rounded-xl font-semibold transition-all transform
+							group flex items-center justify-center gap-2 sm:gap-3 px-5 sm:px-6 py-3 sm:py-3.5 rounded-xl font-semibold transition-all
 							${current_step === 1
-								? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-								: 'bg-white text-gray-700 border-2 border-gray-300 hover:border-gray-400 hover:shadow-lg hover:scale-105'
+								? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+								: 'bg-white text-slate-700 border border-slate-200 hover:border-slate-300 hover:shadow-lg'
 							}
 						`}
 					>
@@ -613,15 +736,15 @@ export default function NewTrainingPage() {
 					{current_step < 3 ? (
 						<button
 							onClick={handleNext}
-							className="group flex items-center justify-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-3.5 rounded-xl font-semibold bg-linear-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all transform hover:scale-105"
+							className="group flex items-center justify-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-3.5 rounded-xl font-semibold bg-linear-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 transition-all"
 						>
-							<span>Próximo</span>
+							<span>Proximo</span>
 							<FaChevronRight className="text-sm transition-transform group-hover:translate-x-1" />
 						</button>
 					) : (
 						<button
 							onClick={handleCreateTraining}
-							className="group flex items-center justify-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-3.5 rounded-xl font-semibold bg-linear-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 shadow-lg shadow-green-500/30 hover:shadow-xl hover:shadow-green-500/40 transition-all transform hover:scale-105"
+							className="group flex items-center justify-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-3.5 rounded-xl font-semibold bg-linear-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700 shadow-lg shadow-emerald-500/25 hover:shadow-xl hover:shadow-emerald-500/30 transition-all"
 						>
 							<FaCheck className="text-sm" />
 							<span>Criar Treinamento</span>

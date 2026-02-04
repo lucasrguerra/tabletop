@@ -11,7 +11,8 @@ import {
 	FaSignInAlt,
 	FaExclamationCircle,
 	FaEye,
-	FaEyeSlash
+	FaEyeSlash,
+	FaArrowLeft
 } from 'react-icons/fa';
 
 export default function LoginPage() {
@@ -34,11 +35,11 @@ export default function LoginPage() {
 				if (data.success && data.csrf_token) {
 					setCsrfToken(data.csrf_token);
 				} else {
-					setError('Erro ao carregar token de segurança');
+					setError('Erro ao carregar token de seguranca');
 				}
 			} catch (err) {
 				console.error('Failed to fetch CSRF token');
-				setError('Erro ao carregar token de segurança');
+				setError('Erro ao carregar token de seguranca');
 			}
 		};
 
@@ -58,7 +59,7 @@ export default function LoginPage() {
 		setError('');
 
 		if (!csrf_token) {
-			setError('Token de segurança não encontrado. Recarregue a página.');
+			setError('Token de seguranca nao encontrado. Recarregue a pagina.');
 			return;
 		}
 
@@ -73,7 +74,7 @@ export default function LoginPage() {
 			});
 
 			if (result?.error) {
-				setError('Email/Nickname ou senha inválidos');
+				setError('Email/Nickname ou senha invalidos');
 			} else if (result?.ok) {
 				router.push('/dashboard');
 				router.refresh();
@@ -87,39 +88,48 @@ export default function LoginPage() {
 	};
 
 	return (
-		<div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-blue-50">
+		<div className="min-h-screen bg-linear-to-br from-slate-50 via-blue-50/30 to-indigo-50/30">
 			<Header />
 			
-			<div className="flex items-center justify-center px-4 py-12">
-				<div className="w-full max-w-md">
-					<div className="bg-white rounded-2xl shadow-xl p-8">
+			<div className="flex items-center justify-center px-4 py-12 lg:py-16">
+				<div className="w-full max-w-md animate-slide-in-up">
+					{/* Card */}
+					<div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-200/60 p-8 lg:p-10">
+						{/* Header */}
 						<div className="text-center mb-8">
-							<div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-								<FaSignInAlt className="text-3xl text-blue-600" />
+							<div className="relative inline-flex items-center justify-center w-16 h-16 mb-5">
+								<div className="absolute inset-0 bg-linear-to-br from-blue-500 to-indigo-600 rounded-2xl blur opacity-40" />
+								<div className="relative w-full h-full bg-linear-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+									<FaSignInAlt className="text-2xl text-white" />
+								</div>
 							</div>
-							<h1 className="text-3xl font-bold text-gray-900 mb-2">
-								Entrar
+							<h1 className="text-2xl lg:text-3xl font-bold text-slate-900 mb-2">
+								Bem-vindo de volta
 							</h1>
-							<p className="text-gray-600">
-								Acesse sua conta
+							<p className="text-slate-500">
+								Acesse sua conta para continuar
 							</p>
 						</div>
 
+						{/* Error Message */}
 						{error && (
-							<div id="error-message" className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-								<FaExclamationCircle className="text-red-500 mt-0.5 shrink-0" />
-								<p className="text-sm text-red-700">{error}</p>
+							<div id="error-message" className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 animate-shake">
+								<div className="p-1.5 bg-red-100 rounded-lg shrink-0">
+									<FaExclamationCircle className="text-red-500" />
+								</div>
+								<p className="text-sm text-red-700 pt-0.5">{error}</p>
 							</div>
 						)}
 
+						{/* Form */}
 						<form onSubmit={handleSubmit} className="space-y-5">
 							<div>
-								<label htmlFor="identifier" className="block text-sm font-medium text-gray-700 mb-2">
+								<label htmlFor="identifier" className="block text-sm font-semibold text-slate-700 mb-2">
 									Email ou Nickname
 								</label>
-								<div className="relative">
-									<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-										<FaUser className="text-gray-400" />
+								<div className="relative group">
+									<div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+										<FaUser className="text-slate-400 group-focus-within:text-blue-500 transition-colors" />
 									</div>
 									<input
 										type="text"
@@ -128,19 +138,22 @@ export default function LoginPage() {
 										value={formData.identifier}
 										onChange={handleChange}
 										required
-										className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-										placeholder="Email ou Nickname"
+										className="block w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl 
+											text-slate-900 placeholder-slate-400
+											focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 
+											transition-all duration-200"
+										placeholder="seu@email.com ou nickname"
 									/>
 								</div>
 							</div>
 
 							<div>
-								<label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+								<label htmlFor="password" className="block text-sm font-semibold text-slate-700 mb-2">
 									Senha
 								</label>
-								<div className="relative">
-									<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-										<FaLock className="text-gray-400" />
+								<div className="relative group">
+									<div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+										<FaLock className="text-slate-400 group-focus-within:text-blue-500 transition-colors" />
 									</div>
 									<input
 										type={showPassword ? "text" : "password"}
@@ -149,15 +162,19 @@ export default function LoginPage() {
 										value={formData.password}
 										onChange={handleChange}
 										required
-										className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-										placeholder="••••••••"
+										className="block w-full pl-11 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-xl 
+											text-slate-900 placeholder-slate-400
+											focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 
+											transition-all duration-200"
+										placeholder="Digite sua senha"
 									/>
 									<button
 										type="button"
 										onClick={() => setShowPassword(!showPassword)}
-										className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+										className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+										aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
 									>
-										{showPassword ? <FaEyeSlash /> : <FaEye />}
+										{showPassword ? <FaEyeSlash className="text-lg" /> : <FaEye className="text-lg" />}
 									</button>
 								</div>
 							</div>
@@ -165,7 +182,14 @@ export default function LoginPage() {
 							<button
 								type="submit"
 								disabled={loading}
-								className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+								className="w-full flex items-center justify-center gap-2 px-6 py-3.5 
+									bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 
+									text-white font-semibold rounded-xl 
+									shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 
+									focus:outline-none focus:ring-4 focus:ring-blue-500/20 
+									transition-all duration-200 
+									disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:shadow-lg
+									btn-press"
 							>
 								{loading ? (
 									<>
@@ -184,19 +208,25 @@ export default function LoginPage() {
 							</button>
 						</form>
 
-						<div className="mt-6 text-center">
-							<p className="text-sm text-gray-600">
-								Não tem uma conta?{' '}
-								<Link href="/register" className="text-blue-600 hover:text-blue-700 font-medium hover:underline">
+						{/* Footer */}
+						<div className="mt-8 pt-6 border-t border-slate-100 text-center">
+							<p className="text-sm text-slate-600">
+								Nao tem uma conta?{' '}
+								<Link href="/register" className="text-blue-600 hover:text-blue-700 font-semibold hover:underline transition-colors">
 									Cadastre-se
 								</Link>
 							</p>
 						</div>
 					</div>
 
+					{/* Back Link */}
 					<div className="text-center mt-6">
-						<Link href="/" className="text-sm text-gray-600 hover:text-gray-900 hover:underline">
-							← Voltar para página inicial
+						<Link 
+							href="/" 
+							className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 transition-colors group"
+						>
+							<FaArrowLeft className="text-xs group-hover:-translate-x-1 transition-transform" />
+							<span>Voltar para pagina inicial</span>
 						</Link>
 					</div>
 				</div>

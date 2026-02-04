@@ -7,19 +7,19 @@ import { FaFileAlt, FaClock, FaUser, FaCalendar, FaStar } from 'react-icons/fa';
  */
 const getDifficultyStyle = (difficulty) => {
 	const styles = {
-		'Básico': {
-			bg: 'from-green-500 to-emerald-600',
-			text: 'text-green-700',
-			badge: 'from-green-50 to-emerald-50',
-			border: 'border-green-200'
+		'Basico': {
+			bg: 'from-emerald-500 to-teal-600',
+			text: 'text-emerald-700',
+			badge: 'from-emerald-50 to-teal-50',
+			border: 'border-emerald-200'
 		},
-		'Intermediário': {
-			bg: 'from-yellow-500 to-orange-600',
-			text: 'text-yellow-700',
-			badge: 'from-yellow-50 to-orange-50',
-			border: 'border-yellow-200'
+		'Intermediario': {
+			bg: 'from-amber-500 to-orange-600',
+			text: 'text-amber-700',
+			badge: 'from-amber-50 to-orange-50',
+			border: 'border-amber-200'
 		},
-		'Avançado': {
+		'Avancado': {
 			bg: 'from-red-500 to-rose-600',
 			text: 'text-red-700',
 			badge: 'from-red-50 to-rose-50',
@@ -27,7 +27,7 @@ const getDifficultyStyle = (difficulty) => {
 		}
 	};
 	
-	return styles[difficulty] || styles['Intermediário'];
+	return styles[difficulty] || styles['Intermediario'];
 };
 
 /**
@@ -42,10 +42,10 @@ export default function ScenarioCard({ scenario, isSelected, onClick }) {
 			onClick={onClick}
 			className={`
 				group relative p-6 rounded-2xl border-2 text-left transition-all duration-300
-				transform hover:scale-[1.02] hover:shadow-xl
+				transform hover:scale-[1.02] hover:shadow-xl hover:shadow-slate-200/50
 				${isSelected
-					? 'border-blue-500 bg-linear-to-br from-blue-50 to-indigo-50 shadow-lg'
-					: 'border-gray-200 bg-white hover:border-gray-300 shadow-sm'
+					? 'border-blue-500 bg-linear-to-br from-blue-50 to-indigo-50 shadow-lg shadow-blue-500/10'
+					: 'border-slate-200 bg-white hover:border-slate-300 shadow-sm shadow-slate-200/50'
 				}
 			`}
 		>
@@ -63,17 +63,16 @@ export default function ScenarioCard({ scenario, isSelected, onClick }) {
 				<div className={`
 					shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300
 					${isSelected
-						? 'bg-linear-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30'
-						: 'bg-gray-100 group-hover:bg-blue-100'
+						? 'bg-linear-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25'
+						: 'bg-slate-100 group-hover:bg-blue-100'
 					}
 				`}>
-					<FaFileAlt className={`text-xl ${isSelected ? 'text-white' : 'text-gray-600 group-hover:text-blue-600'}`} />
+					<FaFileAlt className={`text-xl ${isSelected ? 'text-white' : 'text-slate-600 group-hover:text-blue-600'}`} />
 				</div>
 
 				{scenario.metadata?.difficulty && (
 					<div className={`
-						px-3 py-1.5 rounded-full text-xs font-bold border
-						bg-linear-to-r ${difficultyStyle.badge} ${difficultyStyle.border} ${difficultyStyle.text}
+						px-3 py-1.5 rounded-full text-xs font-bold border bg-linear-to-r ${difficultyStyle.badge} ${difficultyStyle.border} ${difficultyStyle.text}
 					`}>
 						{scenario.metadata.difficulty}
 					</div>
@@ -83,33 +82,33 @@ export default function ScenarioCard({ scenario, isSelected, onClick }) {
 			{/* Title */}
 			<h3 className={`
 				text-lg font-bold mb-3 transition-colors duration-300
-				${isSelected ? 'text-blue-700' : 'text-gray-900 group-hover:text-blue-600'}
+				${isSelected ? 'text-blue-700' : 'text-slate-900 group-hover:text-blue-600'}
 			`}>
 				{scenario.title}
 			</h3>
 
 			{/* Description */}
-			<p className="text-sm text-gray-600 leading-relaxed line-clamp-5 mb-4">
+			<p className="text-sm text-slate-600 leading-relaxed line-clamp-5 mb-4">
 				{scenario.description}
 			</p>
 
 			{/* Metadata */}
-			<div className="flex flex-wrap gap-4 text-xs text-gray-500">
+			<div className="flex flex-wrap gap-4 text-xs text-slate-500">
 				{scenario.metadata?.estimatedDuration && (
 					<div className="flex items-center gap-1.5">
-						<FaClock className="text-gray-400" />
+						<FaClock className="text-slate-400" />
 						<span>{scenario.metadata.estimatedDuration}</span>
 					</div>
 				)}
 				{scenario.metadata?.targetAudience && (
 					<div className="flex items-center gap-1.5">
-						<FaUser className="text-gray-400" />
+						<FaUser className="text-slate-400" />
 						<span className="line-clamp-1">{scenario.metadata.targetAudience.split(',')[0]}</span>
 					</div>
 				)}
 				{scenario.metadata?.lastUpdate && (
 					<div className="flex items-center gap-1.5">
-						<FaCalendar className="text-gray-400" />
+						<FaCalendar className="text-slate-400" />
 						<span>{new Date(scenario.metadata.lastUpdate).toLocaleDateString('pt-BR')}</span>
 					</div>
 				)}
