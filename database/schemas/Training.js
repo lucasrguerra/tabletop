@@ -61,25 +61,47 @@ const TrainingSchema = new mongoose.Schema({
 		max: 500,
 	},
 	
-	// Timer management
-	timer: {
+	// Training Timer (automatic, controlled by training status)
+	// Tracks total training time from start to completion (excluding paused periods)
+	training_timer: {
 		started_at: {
 			type: Date,
 			default: null,
 		},
 		
-		// Total time accumulated before pauses (in milliseconds)
-		// When paused, this value is updated with the total time up to the pause moment
+		// Total time accumulated (in milliseconds), excluding paused periods
 		elapsed_time: {
 			type: Number,
 			default: 0,
 			min: 0,
 		},
 		
-		// Current state of the timer
+		// Automatically set to true when training is paused
 		is_paused: {
 			type: Boolean,
-			default: true, // Starts paused
+			default: true,
+		},
+	},
+	
+	// Round Timer (manual, controlled by facilitator)
+	// Tracks time for the current round with facilitator controls
+	round_timer: {
+		started_at: {
+			type: Date,
+			default: null,
+		},
+		
+		// Time accumulated for current round (in milliseconds)
+		elapsed_time: {
+			type: Number,
+			default: 0,
+			min: 0,
+		},
+		
+		// Facilitator can pause/resume this timer
+		is_paused: {
+			type: Boolean,
+			default: true,
 		},
 	},
 	
@@ -89,6 +111,13 @@ const TrainingSchema = new mongoose.Schema({
 		enum: ['not_started', 'active', 'paused', 'completed'],
 		default: 'not_started',
 		index: true,
+	},
+	
+	// Current round (starts at 0, index into scenario.rounds array)
+	current_round: {
+		type: Number,
+		default: 0,
+		min: 0,
 	},
 	
 	// Participants
