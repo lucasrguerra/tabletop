@@ -11,11 +11,11 @@ export default function IncidentTypeCard({ type, isSelected, onClick }) {
 		<button
 			onClick={onClick}
 			className={`
-				group relative p-5 rounded-xl border-2 text-left transition-all duration-300
-				transform hover:scale-[1.01] hover:shadow-lg
+				group relative p-5 rounded-2xl border-2 text-left transition-all duration-300
+				transform hover:scale-[1.01] hover:shadow-lg hover:shadow-slate-200/50
 				${isSelected
-					? 'border-blue-500 bg-linear-to-br from-blue-50 to-indigo-50 shadow-md'
-					: 'border-gray-200 bg-white hover:border-gray-300 shadow-sm'
+					? 'border-blue-500 bg-linear-to-br from-blue-50 to-indigo-50 shadow-md shadow-blue-500/10'
+					: 'border-slate-200 bg-white hover:border-slate-300 shadow-sm shadow-slate-200/50'
 				}
 			`}
 		>
@@ -31,24 +31,24 @@ export default function IncidentTypeCard({ type, isSelected, onClick }) {
 			<div className="flex items-start gap-3">
 				{/* Icon */}
 				<div className={`
-					shrink-0 w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300
+					shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300
 					${isSelected
-						? 'bg-linear-to-br from-blue-500 to-indigo-600 shadow-md'
-						: 'bg-gray-100 group-hover:bg-blue-100'
+						? 'bg-linear-to-br from-blue-500 to-indigo-600 shadow-md shadow-blue-500/25'
+						: 'bg-slate-100 group-hover:bg-blue-100'
 					}
 				`}>
-					<FaBolt className={`text-lg ${isSelected ? 'text-white' : 'text-gray-600 group-hover:text-blue-600'}`} />
+					<FaBolt className={`text-lg ${isSelected ? 'text-white' : 'text-slate-600 group-hover:text-blue-600'}`} />
 				</div>
 
 				{/* Content */}
 				<div className="flex-1 min-w-0">
 					<h4 className={`
 						font-bold mb-1 transition-colors duration-300
-						${isSelected ? 'text-blue-700' : 'text-gray-900 group-hover:text-blue-600'}
+						${isSelected ? 'text-blue-700' : 'text-slate-900 group-hover:text-blue-600'}
 					`}>
 						{type.title}
 					</h4>
-					<p className="text-sm text-gray-600 leading-relaxed line-clamp-5">
+					<p className="text-sm text-slate-600 leading-relaxed line-clamp-5">
 						{type.description}
 					</p>
 				</div>
@@ -56,7 +56,7 @@ export default function IncidentTypeCard({ type, isSelected, onClick }) {
 
 			{/* Hover effect overlay */}
 			<div className={`
-				absolute inset-0 rounded-xl opacity-0 group-hover:opacity-5 transition-opacity duration-300
+				absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-5 transition-opacity duration-300
 				bg-linear-to-br from-blue-500 to-indigo-600 pointer-events-none
 			`} />
 		</button>

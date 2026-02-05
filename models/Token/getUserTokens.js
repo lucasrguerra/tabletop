@@ -11,7 +11,7 @@ export default async function getUserTokens(user_id) {
 			user_id: user_id,
 			expires_at: { $gt: new Date() }
 		})
-		.select('_id created_at expires_at user_agent ip_address')
+		.select('_id token_id created_at expires_at user_agent ip_address')
 		.sort({ created_at: -1 })
 		.lean();
 
