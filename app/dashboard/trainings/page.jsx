@@ -24,7 +24,8 @@ import {
 	FaTimes,
 	FaExclamationTriangle,
 	FaFolderOpen,
-	FaArrowRight
+	FaArrowRight,
+	FaEnvelope
 } from 'react-icons/fa';
 
 // Status configuration with colors and icons
@@ -285,7 +286,7 @@ function EmptyState({ hasFilters, onClearFilters }) {
 			<p className="text-slate-600 mb-8 max-w-md mx-auto">
 				{hasFilters
 					? 'Tente ajustar os filtros ou limpar a busca para ver mais resultados.'
-					: 'Comece criando um novo treinamento ou aguarde um convite de um facilitador.'
+					: 'Comece criando um novo treinamento, acesse um treinamento aberto ou use um código de acesso.'
 				}
 			</p>
 			<div className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -297,6 +298,15 @@ function EmptyState({ hasFilters, onClearFilters }) {
 						<FaTimes className="text-sm" />
 						Limpar Filtros
 					</button>
+				)}
+				{!hasFilters && (
+					<Link
+						href="/dashboard/trainings/access"
+						className="px-5 py-2.5 border-2 border-violet-300 text-violet-700 rounded-xl hover:bg-violet-50 hover:border-violet-400 transition-all flex items-center gap-2 font-medium"
+					>
+						<FaArrowRight className="text-sm" />
+						Acessar Treinamento
+					</Link>
 				)}
 				<Link
 					href="/dashboard/trainings/new"
@@ -476,13 +486,29 @@ export default function TrainingsPage() {
 						<h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Meus Treinamentos</h1>
 						<p className="text-slate-600 mt-1">Gerencie e acompanhe seus treinamentos</p>
 					</div>
-					<Link
-						href="/dashboard/trainings/new"
-						className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-linear-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg shadow-blue-500/25 font-semibold"
-					>
-						<FaPlus className="text-sm" />
-						<span>Novo Treinamento</span>
-					</Link>
+					<div className="flex flex-col sm:flex-row gap-3">
+						<Link
+							href="/dashboard/trainings/invites"
+							className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-white border-2 border-violet-200 text-violet-700 rounded-xl hover:border-violet-400 hover:text-violet-800 hover:bg-violet-50 transition-all font-semibold"
+						>
+							<FaEnvelope className="text-sm" />
+							<span>Convites</span>
+						</Link>
+						<Link
+							href="/dashboard/trainings/access"
+							className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-white border-2 border-slate-200 text-slate-700 rounded-xl hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-all font-semibold"
+						>
+							<FaArrowRight className="text-sm" />
+							<span>Acessar Treinamento</span>
+						</Link>
+						<Link
+							href="/dashboard/trainings/new"
+							className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-linear-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg shadow-blue-500/25 font-semibold"
+						>
+							<FaPlus className="text-sm" />
+							<span>Novo Treinamento</span>
+						</Link>
+					</div>
 				</div>
 
 				{/* Filters Section */}

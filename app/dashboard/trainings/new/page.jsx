@@ -4,11 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ErrorAlert from '@/components/Trainings/ErrorAlert';
 import DashboardLayout from '@/components/Dashboard/Layout';
-import CategoryCard from '@/components/Trainings/CategoryCard';
-import ScenarioCard from '@/components/Trainings/ScenarioCard';
-import StepIndicator from '@/components/Trainings/StepIndicator';
+import CategoryCard from '@/components/Trainings/new/CategoryCard';
+import ScenarioCard from '@/components/Trainings/new/ScenarioCard';
+import StepIndicator from '@/components/Trainings/new/StepIndicator';
 import LoadingSpinner from '@/components/Trainings/LoadingSpinner';
-import IncidentTypeCard from '@/components/Trainings/IncidentTypeCard';
+import IncidentTypeCard from '@/components/Trainings/new/IncidentTypeCard';
 import {
 	FaCheck,
 	FaChevronRight,
