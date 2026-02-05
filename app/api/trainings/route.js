@@ -1,50 +1,26 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/utils/auth';
-import { withCsrf } from '@/utils/csrf';
-import createTraining from '@/models/Trainings/create';
+import getUserTrainings from '@/models/Trainings/getUserTrainings';
 
 /**
- * POST /api/trainings
- * Creates a new training session
- * Requires authentication and CSRF protection
+ * GET /api/trainings
+ * Retrieves all trainings that the user is participating in
+ * Requires authentication
  */
-export const POST = withAuth(withCsrf(async (request, context, session) => {
+export const GET = withAuth(async (request, context, session) => {
 	try {
-		const body = await request.json();
-		
-		// Extract user ID from authenticated session
 		const user_id = session.user.id;
-		
-		// Validate required fields
-		if (!body.session_name || !body.selected_scenario || !body.selected_category || !body.selected_type) {
-			return NextResponse.json(
-				{
-					success: false,
-					message: 'Campos obrigatórios ausentes'
-				},
-				{ status: 400 }
-			);
-		}
 
-		// Prepare data for training creation
-		const training_data = {
-			session_name: body.session_name,
-			session_description: body.session_description,
-			user_id: user_id,
-			scenario: {
-				category_id: body.selected_category.id,
-				type_id: body.selected_type.id,
-				scenario_id: body.selected_scenario.id,
-				scenario_title: body.selected_scenario.title
-			},
-			access_type: body.access_type || 'open',
-			access_code: body.access_code,
-			max_participants: body.max_participants || 15
-		};
+		// Extract pagination parameters from query string
+		const { searchParams } = new URL(request.url);
+		const page = parseInt(searchParams.get('page')) || 1;
+		const limit = parseInt(searchParams.get('limit')) || 10;
+		const status = searchParams.get('status') || 'all';
+		const participation_type = searchParams.get('participation_type') || 'all';
 
-		// Create training
-		const result = await createTraining(training_data);
-		
+		// Get trainings for user with pagination
+		const result = await getUserTrainings(user_id, { page, limit, status, participation_type });
+
 		if (!result.success) {
 			return NextResponse.json(
 				{
@@ -54,21 +30,21 @@ export const POST = withAuth(withCsrf(async (request, context, session) => {
 				{ status: 400 }
 			);
 		}
-		
+
 		return NextResponse.json({
 			success: true,
-			training: result.training,
-			message: result.message
-		}, { status: 201 });
-		
+			trainings: result.trainings,
+			pagination: result.pagination
+		}, { status: 200 });
+
 	} catch (error) {
-		console.error('Error in POST /api/trainings:', error);
+		console.error('Error in GET /api/trainings:', error);
 		return NextResponse.json(
 			{
 				success: false,
-				message: 'Erro ao criar treinamento'
+				message: 'Erro ao buscar treinamentos'
 			},
 			{ status: 500 }
 		);
 	}
-}));
+});

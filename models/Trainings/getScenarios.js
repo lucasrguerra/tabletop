@@ -61,11 +61,11 @@ export default async function getScenarios(category_id, type_id) {
 			// Extract relevant information for listing
 			scenarios.push({
 				id: scenario_data.id,
+				category: scenario_data.category,
+				type: scenario_data.type,
 				title: scenario_data.title,
 				description: scenario_data.description,
-				category: scenario_data.category,
 				metadata: scenario_data.metadata,
-				file_name: file
 			});
 		}
 

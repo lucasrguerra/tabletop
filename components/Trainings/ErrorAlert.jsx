@@ -10,13 +10,13 @@ export default function ErrorAlert({ message }) {
 	if (!message) return null;
 
 	return (
-		<div className="relative overflow-hidden rounded-xl border-2 border-red-200 bg-linear-to-br from-red-50 to-rose-50 shadow-lg animate-shake">
+		<div className="relative overflow-hidden rounded-2xl border border-red-200/60 bg-linear-to-br from-red-50 to-rose-50 shadow-lg shadow-red-500/10 animate-shake">
 			{/* Gradient overlay */}
 			<div className="absolute inset-0 bg-linear-to-r from-red-500/5 to-rose-500/5" />
 			
 			<div className="relative p-4 flex items-start gap-3">
 				{/* Icon with pulsing effect */}
-				<div className="shrink-0 w-10 h-10 rounded-lg bg-linear-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-md animate-pulse">
+				<div className="shrink-0 w-10 h-10 rounded-xl bg-linear-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-md shadow-red-500/25 animate-pulse">
 					<FaExclamationTriangle className="text-white text-lg" />
 				</div>
 

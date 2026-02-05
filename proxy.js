@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
 /**
- * Middleware to add security headers and protect routes
+ * Proxy to add security headers and protect routes
  * Protects against XSS, clickjacking, MIME sniffing, and other common attacks
  * Also handles authentication for protected routes
  */
-export async function middleware(request) {
+export async function proxy(request) {
 	const response = NextResponse.next();
 
 	// Security Headers
@@ -79,7 +79,7 @@ export async function middleware(request) {
 	return response;
 }
 
-// Apply middleware to all routes
+// Apply proxy to all routes
 export const config = {
 	matcher: [
 		/*
