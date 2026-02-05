@@ -98,6 +98,7 @@ export function filterTrainingByRole(training, userRole) {
 		access_type: training.access_type,
 		max_participants: training.max_participants,
 		status: training.status,
+		current_round: training.current_round || 0,
 		timer: {
 			started_at: training.timer?.started_at || null,
 			elapsed_time: training.timer?.elapsed_time || 0,

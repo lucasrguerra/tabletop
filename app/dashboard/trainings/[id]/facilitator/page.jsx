@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import DashboardLayout from '@/components/Dashboard/Layout';
 import TrainingHeader from '@/components/Trainings/TrainingHeader';
-import TimerDisplay from '@/components/Trainings/TimerDisplay';
+import TrainingTimerDisplay from '@/components/Trainings/TrainingTimerDisplay';
+import RoundTimerDisplay from '@/components/Trainings/RoundTimerDisplay';
 import ParticipantsList from '@/components/Trainings/ParticipantsList';
 import ScenarioInfo from '@/components/Trainings/ScenarioInfo';
 import TrainingStatusBadge from '@/components/Trainings/TrainingStatusBadge';
@@ -12,12 +13,14 @@ import AccessCodeCard from '@/components/Trainings/AccessCodeCard';
 import InviteParticipantCard from '@/components/Trainings/InviteParticipantCard';
 import LoadingSpinner from '@/components/Trainings/LoadingSpinner';
 import ErrorAlert from '@/components/Trainings/ErrorAlert';
+import RoundControl from '@/components/Trainings/RoundControl';
 import { FaPlay, FaPause, FaCheckCircle, FaUndoAlt } from 'react-icons/fa';
 
 export default function FacilitatorPage() {
 	const router = useRouter();
 	const params = useParams();
 	const [training, setTraining] = useState(null);
+	const [scenarioData, setScenarioData] = useState(null);
 	const [userRole, setUserRole] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
@@ -49,6 +52,29 @@ export default function FacilitatorPage() {
 
 			setTraining(data.training);
 			setUserRole(data.userRole);
+
+			// Fetch scenario data with rounds
+			if (data.training.scenario) {
+				try {
+					const scenarioResponse = await fetch(
+						`/api/trainings/scenarios?` +
+						new URLSearchParams({
+							scenario_id: data.training.scenario.id,
+							category: data.training.scenario.category,
+							type: data.training.scenario.type
+						}),
+						{ credentials: 'include' }
+					);
+					if (scenarioResponse.ok) {
+						const scenarioResult = await scenarioResponse.json();
+						if (scenarioResult.success) {
+							setScenarioData(scenarioResult.scenario);
+						}
+					}
+				} catch (err) {
+					console.error('Error fetching scenario data:', err);
+				}
+			}
 		} catch (err) {
 			console.error('Error fetching training:', err);
 			setError(err.message);
@@ -67,27 +93,28 @@ export default function FacilitatorPage() {
 		fetchTraining();
 	};
 
-	// Handle timer actions
+	// Handle timer actions (for round timer)
 	const handleTimerAction = async (action) => {
 		try {
 			setActionLoading(true);
 			
-			// TODO: Implement timer control API endpoint
-			// const response = await fetch(`/api/trainings/${params.id}/timer`, {
-			//   method: 'POST',
-			//   headers: { 'Content-Type': 'application/json' },
-			//   body: JSON.stringify({ action }),
-			//   credentials: 'include'
-			// });
-			
-			console.log('Timer action:', action);
-			alert(`Timer action "${action}" will be implemented in the API`);
+			const response = await fetch(`/api/trainings/${params.id}/timer`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ action }),
+				credentials: 'include'
+			});
+
+			if (!response.ok) {
+				const data = await response.json();
+				throw new Error(data.message || 'Erro ao controlar timer');
+			}
 			
 			// Refresh training data after action
 			await fetchTraining();
 		} catch (err) {
 			console.error('Error with timer action:', err);
-			alert('Erro ao executar ação no timer');
+			alert(err.message || 'Erro ao executar ação no timer');
 		} finally {
 			setActionLoading(false);
 		}
@@ -98,24 +125,53 @@ export default function FacilitatorPage() {
 		try {
 			setActionLoading(true);
 			
-			// TODO: Implement status change API endpoint
-			// const response = await fetch(`/api/trainings/${params.id}/status`, {
-			//   method: 'PATCH',
-			//   headers: { 'Content-Type': 'application/json' },
-			//   body: JSON.stringify({ status: newStatus }),
-			//   credentials: 'include'
-			// });
-			
-			console.log('Status change:', newStatus);
-			alert(`Status change to "${newStatus}" will be implemented in the API`);
+			const response = await fetch(`/api/trainings/${params.id}/status`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ status: newStatus }),
+				credentials: 'include'
+			});
+
+			if (!response.ok) {
+				const data = await response.json();
+				throw new Error(data.message || 'Erro ao mudar status');
+			}
 			
 			// Refresh training data after action
 			await fetchTraining();
 		} catch (err) {
 			console.error('Error changing status:', err);
-			alert('Erro ao mudar status do treinamento');
+			alert(err.message || 'Erro ao mudar status do treinamento');
 		} finally {
 			setActionLoading(false);
+		}
+	};
+
+	// Handle round change
+	const handleRoundChange = async (action, roundNumber = null) => {
+		try {
+			const body = { action };
+			if (action === 'set' && roundNumber !== null) {
+				body.round = roundNumber;
+			}
+
+			const response = await fetch(`/api/trainings/${params.id}/round`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(body),
+				credentials: 'include'
+			});
+
+			if (!response.ok) {
+				const data = await response.json();
+				throw new Error(data.message || 'Erro ao mudar rodada');
+			}
+			
+			// Refresh training data after action
+			await fetchTraining();
+		} catch (err) {
+			console.error('Error changing round:', err);
+			throw err;
 		}
 	};
 
@@ -254,7 +310,10 @@ export default function FacilitatorPage() {
 				<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 					{/* Left Column */}
 					<div className="space-y-6">
-						<TimerDisplay 
+						<TrainingTimerDisplay 
+							training={training}
+						/>
+						<RoundTimerDisplay 
 							training={training} 
 							userRole={userRole} 
 							onTimerAction={handleTimerAction}
@@ -267,6 +326,14 @@ export default function FacilitatorPage() {
 
 					{/* Right Column */}
 					<div className="space-y-6">
+						{scenarioData?.rounds && (
+							<RoundControl
+								training={training}
+								rounds={scenarioData.rounds}
+								onRoundChange={handleRoundChange}
+								disabled={actionLoading || training.status === 'completed'}
+							/>
+						)}
 						<ScenarioInfo scenario={training.scenario} />
 						<InviteParticipantCard 
 							trainingId={params.id}

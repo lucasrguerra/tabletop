@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import DashboardLayout from '@/components/Dashboard/Layout';
 import TrainingHeader from '@/components/Trainings/TrainingHeader';
-import TimerDisplay from '@/components/Trainings/TimerDisplay';
+import TrainingTimerDisplay from '@/components/Trainings/TrainingTimerDisplay';
+import RoundTimerDisplay from '@/components/Trainings/RoundTimerDisplay';
 import ParticipantsList from '@/components/Trainings/ParticipantsList';
 import ScenarioInfo from '@/components/Trainings/ScenarioInfo';
 import TrainingStatusBadge from '@/components/Trainings/TrainingStatusBadge';
@@ -125,7 +126,10 @@ export default function ParticipantPage() {
 				<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 					{/* Left Column */}
 					<div className="space-y-6">
-						<TimerDisplay 
+						<TrainingTimerDisplay 
+							training={training}
+						/>
+						<RoundTimerDisplay 
 							training={training} 
 							userRole={userRole}
 						/>
