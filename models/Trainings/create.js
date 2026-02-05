@@ -1,4 +1,4 @@
-import accessCode from '@/models/Trainings/code';
+import accessCode from '@/models/Trainings/accessCode';
 import Training from '@/database/schemas/Training';
 import connectDatabase from '@/database/database';
 import readScenario from './readScenario';

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/utils/auth';
 import { withCsrf } from '@/utils/csrf';
-import { validate } from '@/models/Trainings/code';
+import { validate } from '@/models/Trainings/accessCode';
 
 /**
  * POST /api/trainings/access-code/validate

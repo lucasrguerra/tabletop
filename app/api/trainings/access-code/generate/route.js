@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/utils/auth';
-import { generate } from '@/models/Trainings/code';
+import { generate } from '@/models/Trainings/accessCode';
 
 /**
  * GET /api/trainings/access-code/generate
