@@ -241,6 +241,23 @@ export default function InvitesPage() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [respondingId, setRespondingId] = useState(null);
+	const [csrfToken, setCsrfToken] = useState(null);
+
+	// Fetch CSRF token
+	useEffect(() => {
+		const fetchCsrf = async () => {
+			try {
+				const res = await fetch('/api/csrf');
+				const data = await res.json();
+				if (data.success && data.csrf_token) {
+					setCsrfToken(data.csrf_token);
+				}
+			} catch (err) {
+				console.error('Error fetching CSRF token:', err);
+			}
+		};
+		fetchCsrf();
+	}, []);
 
 	// Fetch invitations
 	const fetchInvitations = async () => {
@@ -279,7 +296,7 @@ export default function InvitesPage() {
 
 			const response = await fetch('/api/trainings/invites', {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
 				credentials: 'include',
 				body: JSON.stringify({ training_id: trainingId, action })
 			});
