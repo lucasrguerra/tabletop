@@ -2,6 +2,18 @@ import fs from 'fs';
 import path from 'path';
 
 /**
+ * Validates a path component to prevent directory traversal attacks.
+ * @param {string} component - Path component to validate
+ * @returns {boolean} True if safe
+ */
+function isSafePathComponent(component) {
+	if (typeof component !== 'string' || component.length === 0 || component.length > 100) {
+		return false;
+	}
+	return /^[a-zA-Z0-9_-]+$/.test(component);
+}
+
+/**
  * Returns all available scenarios for a specific incident type
  * 
  * @param {string} category_id - Category ID (e.g., 'NET_VOL')
@@ -24,8 +36,26 @@ export default async function getScenarios(category_id, type_id) {
 			};
 		}
 
-		const scenarios_base_path = path.join(process.cwd(), 'scenarios');
+		// Validate path components to prevent directory traversal
+		if (!isSafePathComponent(category_id) || !isSafePathComponent(type_id)) {
+			return {
+				success: false,
+				message: 'Parâmetros contêm caracteres inválidos',
+				scenarios: []
+			};
+		}
+
+		const scenarios_base_path = path.resolve(process.cwd(), 'scenarios');
 		const category_path = path.join(scenarios_base_path, category_id);
+
+		// Ensure resolved path stays within scenarios directory
+		if (!path.resolve(category_path).startsWith(scenarios_base_path + path.sep)) {
+			return {
+				success: false,
+				message: 'Caminho de categoria inválido',
+				scenarios: []
+			};
+		}
 
 		// Check if category folder exists
 		if (!fs.existsSync(category_path)) {
@@ -37,6 +67,15 @@ export default async function getScenarios(category_id, type_id) {
 		}
 
 		const type_path = path.join(category_path, type_id);
+
+		// Ensure resolved path stays within scenarios directory
+		if (!path.resolve(type_path).startsWith(scenarios_base_path + path.sep)) {
+			return {
+				success: false,
+				message: 'Caminho de tipo inválido',
+				scenarios: []
+			};
+		}
 
 		// Check if type folder exists
 		if (!fs.existsSync(type_path)) {

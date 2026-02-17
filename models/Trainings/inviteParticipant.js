@@ -2,6 +2,7 @@ import Training from '@/database/schemas/Training';
 import User from '@/database/schemas/User';
 import connectDatabase from '@/database/database';
 import mongoose from 'mongoose';
+import createNotification from '@/models/Notifications/create';
 
 /**
  * Invites a user to participate in a training
@@ -129,6 +130,23 @@ export default async function inviteParticipant(training_id, nickname, role, inv
 
 		// Save training
 		await training.save();
+
+		// Notify the invited user
+		const inviter_user = await User.findById(invited_by).select('name nickname');
+		const role_labels = { facilitator: 'Facilitador', participant: 'Participante', observer: 'Observador' };
+		await createNotification({
+			user_id: user._id.toString(),
+			type: 'invite_received',
+			title: 'Novo convite de treinamento',
+			message: `${inviter_user?.name || 'Alguém'} convidou você para o treinamento "${training.name}" como ${role_labels[role] || role}.`,
+			training_id: training._id,
+			metadata: {
+				invited_by: invited_by,
+				inviter_name: inviter_user?.name,
+				inviter_nickname: inviter_user?.nickname,
+				role,
+			},
+		});
 
 		return {
 			success: true,

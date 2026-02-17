@@ -9,7 +9,7 @@ import { hashToken } from '@/utils/jwt';
 export async function revokeToken(token) {
 	try {
 		const token_hash = hashToken(token);
-		const result = await Token.deleteOne({ tokenHash: token_hash });
+		const result = await Token.deleteOne({ token_hash: token_hash });
 
 		if (result.deletedCount === 0) {
 			return {
@@ -76,7 +76,7 @@ export async function revokeAllUserTokens(user_id, current_token = null) {
 		
 		if (current_token) {
 			const current_token_hash = hashToken(current_token);
-			query.tokenHash = { $ne: current_token_hash };
+			query.token_hash = { $ne: current_token_hash };
 		}
 
 		const result = await Token.deleteMany(query);

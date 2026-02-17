@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/utils/auth';
+import { withCsrf } from '@/utils/csrf';
 import inviteParticipant from '@/models/Trainings/inviteParticipant';
 
 /**
@@ -7,7 +8,7 @@ import inviteParticipant from '@/models/Trainings/inviteParticipant';
  * Invites a user to participate in a training
  * Requires authentication and facilitator role
  */
-export const POST = withAuth(async (request, context, session) => {
+export const POST = withAuth(withCsrf(async (request, context, session) => {
     try {
         const params = await context.params;
         const user_id = session.user.id;
@@ -56,4 +57,4 @@ export const POST = withAuth(async (request, context, session) => {
             { status: 500 }
         );
     }
-});
+}));

@@ -99,10 +99,15 @@ export function filterTrainingByRole(training, userRole) {
 		max_participants: training.max_participants,
 		status: training.status,
 		current_round: training.current_round || 0,
-		timer: {
-			started_at: training.timer?.started_at || null,
-			elapsed_time: training.timer?.elapsed_time || 0,
-			is_paused: training.timer?.is_paused !== false
+		training_timer: {
+			started_at: training.training_timer?.started_at || null,
+			elapsed_time: training.training_timer?.elapsed_time || 0,
+			is_paused: training.training_timer?.is_paused !== false
+		},
+		round_timer: {
+			started_at: training.round_timer?.started_at || null,
+			elapsed_time: training.round_timer?.elapsed_time || 0,
+			is_paused: training.round_timer?.is_paused !== false
 		},
 		created_at: training.created_at,
 		started_at: training.started_at,

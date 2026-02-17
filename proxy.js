@@ -24,10 +24,10 @@ export async function proxy(request) {
 	response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
 	
 	// Content Security Policy - Strict CSP to prevent XSS
-	// Adjust this based on your app's needs
+	const isDev = process.env.NODE_ENV === 'development';
 	const cspHeader = [
 		"default-src 'self'",
-		"script-src 'self' 'unsafe-eval' 'unsafe-inline'", // Next.js needs unsafe-eval for dev
+		`script-src 'self'${isDev ? " 'unsafe-eval' 'unsafe-inline'" : " 'unsafe-inline'"}`,
 		"style-src 'self' 'unsafe-inline'",
 		"img-src 'self' data: blob: https:",
 		"font-src 'self' data:",

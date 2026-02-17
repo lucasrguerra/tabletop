@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/utils/auth';
+import { withCsrf } from '@/utils/csrf';
 import { withTrainingRole } from '@/utils/trainingAuth';
 import Training from '@/database/schemas/Training';
 import connectDatabase from '@/database/database';
@@ -10,7 +11,7 @@ import connectDatabase from '@/database/database';
  * Only facilitators can control the round timer
  * Supports actions: 'start', 'pause', 'reset'
  */
-export const PATCH = withAuth(withTrainingRole(async (request, context, session, training, userRole) => {
+export const PATCH = withAuth(withCsrf(withTrainingRole(async (request, context, session, training, userRole) => {
 	try {
 		// Only facilitators can control round timer
 		if (userRole !== 'facilitator') {
@@ -100,4 +101,4 @@ export const PATCH = withAuth(withTrainingRole(async (request, context, session,
 			{ status: 500 }
 		);
 	}
-}, ['facilitator']));
+}, ['facilitator'])));

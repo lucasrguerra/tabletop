@@ -2,6 +2,20 @@ import fs from 'fs';
 import path from 'path';
 
 /**
+ * Validates a path component to prevent directory traversal attacks.
+ * Only allows alphanumeric characters, hyphens, and underscores.
+ * @param {string} component - Path component to validate
+ * @returns {boolean} True if safe, false if potentially malicious
+ */
+function isSafePathComponent(component) {
+    if (typeof component !== 'string' || component.length === 0 || component.length > 100) {
+        return false;
+    }
+    // Only allow alphanumeric, hyphens, underscores (no dots, slashes, etc.)
+    return /^[a-zA-Z0-9_-]+$/.test(component);
+}
+
+/**
  * Reads a scenario JSON file based on category, type, and scenario IDs
  * 
  * @param {string} scenario_id - Scenario ID
@@ -24,24 +38,37 @@ export default async function readScenario(scenario_id, category, type) {
             };
         }
 
-        const scenario_path = path.join(
-            process.cwd(),
-            'scenarios',
-            category,
-            type,
-            `${scenario_id}.json`
-        );
+        // Validate path components to prevent directory traversal
+        if (!isSafePathComponent(category) || !isSafePathComponent(type) || !isSafePathComponent(scenario_id)) {
+            return {
+                success: false,
+                message: 'Parâmetros contêm caracteres inválidos',
+                scenario: null
+            };
+        }
 
-        if (!fs.existsSync(scenario_path)) {
+        const scenarios_base = path.resolve(process.cwd(), 'scenarios');
+        const scenario_path = path.join(scenarios_base, category, type, `${scenario_id}.json`);
+
+        // Ensure resolved path is within the scenarios directory
+        const resolved_path = path.resolve(scenario_path);
+        if (!resolved_path.startsWith(scenarios_base + path.sep)) {
+            return {
+                success: false,
+                message: 'Caminho de cenário inválido',
+                scenario: null
+            };
+        }
+
+        if (!fs.existsSync(resolved_path)) {
             return {
                 success: false,
                 message: 'Cenário não encontrado',
                 scenario: null
             };
         }
-        console.log('Reading scenario from path:', scenario_path);
 
-        const file_content = fs.readFileSync(scenario_path, 'utf-8');
+        const file_content = fs.readFileSync(resolved_path, 'utf-8');
         const scenario_data = JSON.parse(file_content);
 
         return {
