@@ -1,6 +1,6 @@
 import Training from '@/database/schemas/Training';
 import connectDatabase from '@/database/database';
-import accessCode from '@/models/Trainings/accessCode';
+import accessCode, { validateFormat } from '@/models/Trainings/accessCode';
 import mongoose from 'mongoose';
 import { constantTimeCompare } from '@/utils/timingSafe';
 
@@ -34,8 +34,7 @@ export default async function joinTraining(training_id, user_id, options = {}) {
 		// If no training_id provided, try to find by access_code
 		if (!training_id && options.access_code) {
 			// Validate access code format first
-			const is_valid_code = await accessCode.validate(options.access_code);
-			if (!is_valid_code) {
+			if (!validateFormat(options.access_code)) {
 				return {
 					success: false,
 					message: 'Código de acesso inválido'
@@ -119,9 +118,8 @@ export default async function joinTraining(training_id, user_id, options = {}) {
 				};
 			}
 
-			// Validate the provided access code
-			const is_valid_code = await accessCode.validate(options.access_code);
-			if (!is_valid_code) {
+			// Validate the provided access code format
+			if (!validateFormat(options.access_code)) {
 				return {
 					success: false,
 					message: 'Código de acesso inválido'
