@@ -1,0 +1,499 @@
+{
+	"id": "rpki-invalid-routes",
+	"title": "Resposta a Bloqueio de Rotas por RPKI Inválido",
+	"description": "Simulação tabletop de resposta a um incidente onde rotas BGP legítimas estão sendo bloqueadas ou descartadas devido a falhas na validação RPKI, causadas por ROAs expirados, mal configurados ou ausentes",
+	"category": {
+		"id": "NET_ROUT",
+		"type": "NET_ROUT_RPKI_INVALID",
+		"title": "Bloqueio de Rotas por RPKI Inválido"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2025-02-17",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "35-50 minutos",
+		"difficulty": "Avançado",
+		"targetAudience": "Engenheiros de Rede, Equipe de NOC, Operadores de Backbone, Administradores de RPKI"
+	},
+	"objectives": [
+		"Validar capacidade de diagnóstico de problemas de validação RPKI e impacto na conectividade",
+		"Avaliar conhecimento da infraestrutura RPKI: CA, ROA, validador (Routinator/Fort/OctoRPKI)",
+		"Testar compreensão dos estados de validação (Valid, Invalid, Not Found) e seu efeito no BGP",
+		"Desenvolver habilidade de análise de ROAs, maxLength e AS de origem para troubleshooting",
+		"Promover entendimento de gestão de ROAs e procedimentos de emergência em caso de bloqueio",
+		"Exercitar resposta coordenada entre equipe de rede e equipe de registro (RIR)"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá alteração real em ROAs ou configuração de validadores RPKI",
+		"Não inclui modificações reais em sessões BGP ou políticas de rejeição RPKI",
+		"Foco na análise de ROAs, estados de validação e procedimentos de correção",
+		"Avaliação de conhecimento de RPKI, ROV (Route Origin Validation) e gestão de certificados"
+	],
+	"baseScenario": {
+		"context": "Segunda-feira, 07h30, início do expediente. Você opera o AS 64500, uma rede acadêmica/pesquisa que possui os prefixos 203.0.113.0/22. A organização implementou RPKI ROV em seus border routers há 6 meses, e também publicou ROAs para seus próprios prefixos via painel do RIR. Na sexta-feira anterior, a equipe de registro realizou manutenção no portal do RIR, que resultou em alteração inadvertida do ROA principal do AS 64500.",
+		"initialSituation": {
+			"alert": "Perda parcial de conectividade inbound - múltiplos ASes não conseguem alcançar 203.0.113.0/22",
+			"affectedPrefix": "203.0.113.0/22 (prefixo principal do AS 64500)",
+			"roaPublished": "ROA atual: Prefix 203.0.113.0/22, Origin AS 64501, maxLength /24",
+			"roaCorrect": "ROA correto deveria ser: Prefix 203.0.113.0/22, Origin AS 64500, maxLength /24",
+			"rpkiState": "RPKI Invalid - origin AS no ROA (64501) não confere com origin AS real (64500)",
+			"timestamp": "07:15:44"
+		},
+		"initialComplaints": [
+			"Usuários externos não conseguem acessar serviços web hospedados em 203.0.113.0/22",
+			"Parceiros reportam timeout ao se conectar à VPN da organização",
+			"Monitoramento mostra que tráfego inbound caiu 65% desde sexta-feira 18h",
+			"Conectividade com peers que NÃO implementaram RPKI ROV funciona normalmente",
+			"Testes internos mostram que a organização consegue acessar a Internet (outbound OK)"
+		],
+		"availableResources": [
+			"Acesso CLI ao border router (border-gw-01, border-gw-02)",
+			"Acesso ao painel do RIR para gestão de ROAs",
+			"Validador RPKI local (Routinator) com interface web e API JSON",
+			"RIPE Stat / RIPEdb para consulta de ROAs publicados",
+			"Ferramentas: show ip bgp, show rpki table, show rpki server, traceroute",
+			"Contato com equipe de registro do RIR (suporte técnico)",
+			"Monitoramento de BGP externo (BGPStream, Cloudflare Radar, RIPE RIS)"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe deve compreender a infraestrutura RPKI, o papel dos ROAs e como a validação afeta a propagação de rotas BGP.",
+			"inject": "Apresentação do cenário conforme descrito. A equipe tem 5 minutos para revisar a arquitetura RPKI e os sintomas reportados.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Detecção e Análise Inicial",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe investiga a perda de conectividade inbound. Ao consultar o validador RPKI e o estado das ROAs, descobre que o ROA do prefixo principal está com origin AS incorreto.",
+			"timeElapsed": "T+0 (início da investigação)",
+			"currentSituation": {
+				"inboundTraffic": "Reduzido ~65% - ASes com RPKI ROV (reject invalid) descartam rotas do AS 64500",
+				"outboundTraffic": "Normal - tráfego de saída não é afetado por ROA do próprio AS",
+				"partialConnectivity": "ASes sem RPKI ROV ainda aceitam rotas (RPKI Not Found ou não validam)",
+				"rpkiValidation": "203.0.113.0/22 origin AS 64500 → RPKI Invalid (ROA diz AS 64501)"
+			},
+			"metrics": [
+				{
+					"title": "Validador RPKI Local (Routinator)",
+					"type": "routing-analysis",
+					"data": {
+						"command": "rpki-client query 203.0.113.0/22",
+						"result": {
+							"prefix": "203.0.113.0/22",
+							"maxLength": 24,
+							"originAS": "AS 64501",
+							"validationState": "INVALID",
+							"reason": "Origin AS mismatch: announced AS 64500, ROA authorizes AS 64501",
+							"roaSource": "RIR portal - ROA ID roa-2024-1234",
+							"roaCreated": "2025-02-14 17:45:22 (sexta-feira, durante manutenção)",
+							"roaExpires": "2026-02-14 17:45:22"
+						},
+						"observation": "ROA autoriza AS 64501 (INCORRETO). O AS real que origina o prefixo é 64500. Typo no origin AS durante edição no portal do RIR."
+					}
+				},
+				{
+					"title": "BGP Table (border-gw-01) - Visão de Anúncio",
+					"type": "routing-analysis",
+					"data": {
+						"command": "show ip bgp 203.0.113.0/22",
+						"announcedBy": "AS 64500 (este AS)",
+						"rpkiState": "Invalid (conforme ROA publicado)",
+						"acceptance": {
+							"asesAccepting": "~35% dos ASes (não implementam ROV ou usam 'softfail')",
+							"asesRejecting": "~65% dos ASes (implementam ROV com 'reject invalid')"
+						},
+						"observation": "A rota está sendo anunciada CORRETAMENTE pelo AS 64500. O problema é que o ROA publicado autoriza AS 64501, então validadores marcam como INVALID."
+					}
+				},
+				{
+					"title": "Histórico de Alterações no Portal RIR",
+					"type": "network-analysis",
+					"data": {
+						"events": [
+							{
+								"timestamp": "2024-08-15 10:00:00",
+								"action": "ROA criado: 203.0.113.0/22, origin AS 64500, maxLength /24",
+								"user": "admin@instituicao.edu.br",
+								"status": "VÁLIDO - Correto"
+							},
+							{
+								"timestamp": "2025-02-14 17:45:22",
+								"action": "ROA atualizado: 203.0.113.0/22, origin AS 64501, maxLength /24",
+								"user": "registro@instituicao.edu.br",
+								"status": "INVÁLIDO - Typo: 64501 em vez de 64500"
+							}
+						],
+						"observation": "Em 14/02 (sexta), durante manutenção no portal, o operador digitou AS 64501 em vez de AS 64500 ao renovar/editar o ROA. Erro ficou despercebido no fim de semana."
+					}
+				},
+				{
+					"title": "Cloudflare Radar / RPKI Dashboard",
+					"type": "network-analysis",
+					"data": {
+						"prefix": "203.0.113.0/22",
+						"rpkiStatus": "INVALID",
+						"globalVisibility": "Reduzida - 65% dos coletores marcam como Invalid",
+						"top5RejectingASes": [
+							"AS 13335 (Cloudflare) - reject invalid",
+							"AS 15169 (Google) - reject invalid",
+							"AS 16509 (Amazon) - reject invalid",
+							"AS 8075 (Microsoft) - reject invalid",
+							"AS 32934 (Meta/Facebook) - reject invalid"
+						],
+						"observation": "Grandes operadores (hyperscalers) implementam RPKI ROV com reject policy. Eles descartam anúncios de 203.0.113.0/22 por serem RPKI Invalid."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"text": "O ROA publicado autoriza AS 64501, mas o prefixo é anunciado pelo AS 64500. Por que isto resulta em 'RPKI Invalid' e não 'RPKI Not Found'?",
+					"options": [
+						"Porque o validador não consegue contactar o repositório RPKI",
+						"Porque existe um ROA para o prefixo 203.0.113.0/22, mas ele autoriza um AS diferente (64501). Quando há ROA mas o origin AS não confere, o estado é Invalid",
+						"Porque o certificado X.509 do ROA expirou",
+						"Porque o maxLength /24 é maior que o prefixo /22 anunciado"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "RPKI validation states: (B) VALID = existe ROA e origin AS + prefixo conferem. INVALID = existe ROA para o prefixo mas o origin AS no anúncio BGP NÃO confere com o ROA (ou prefixo é mais específico que maxLength). NOT FOUND = não existe nenhum ROA cobrindo o prefixo. No caso, EXISTE ROA para 203.0.113.0/22 (autorizando AS 64501), e o anúncio vem de AS 64500 → origin AS não confere → INVALID. Se não existisse NENHUM ROA, seria NOT FOUND."
+				},
+				{
+					"id": "q2",
+					"type": "matching",
+					"text": "Conecte cada estado de validação RPKI ao seu significado e ação BGP correspondente:",
+					"leftColumn": [
+						{"id": "state1", "label": "RPKI Valid"},
+						{"id": "state2", "label": "RPKI Invalid"},
+						{"id": "state3", "label": "RPKI Not Found"}
+					],
+					"rightColumn": [
+						{"id": "action1", "label": "Existe ROA e origin AS confere - rota aceita com preferência"},
+						{"id": "action2", "label": "Existe ROA mas origin AS NÃO confere - rota rejeitada (se policy = reject)"},
+						{"id": "action3", "label": "Não existe ROA cobrindo o prefixo - rota aceita normalmente (sem validação)"}
+					],
+					"correctMatches": [
+						{"left": "state1", "right": "action1"},
+						{"left": "state2", "right": "action2"},
+						{"left": "state3", "right": "action3"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 6,
+					"justification": "Valid (↔ aceita com preferência): ROA existe, origin AS e prefixo são autorizados. Operadores podem dar local-pref mais alto. Invalid (↔ rejeitada): ROA existe mas origin AS ou prefixo violam o ROA - operadores com policy 'reject invalid' descartam a rota. Not Found (↔ aceita normalmente): nenhum ROA cobre o prefixo - sem informação para validar, rota é tratada como antes do RPKI. RFC 6811 define estes três estados."
+				},
+				{
+					"id": "q3",
+					"text": "A conectividade outbound da organização funciona normalmente. Por que o tráfego de SAÍDA não é afetado pelo ROA incorreto?",
+					"options": [
+						"Porque RPKI só se aplica a rotas IPv6, não IPv4",
+						"Porque o ROA afeta como outros ASes veem o anúncio do AS 64500 (validação é feita pelos ASes remotos ao receber o anúncio). O próprio AS 64500 não valida seus próprios anúncios",
+						"Porque o tráfego outbound usa rotas estáticas que não passam pelo BGP",
+						"Porque o validador local RPKI foi desabilitado"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "RPKI ROV (B) é aplicada pelo receptor do anúncio BGP, não pelo emissor. O AS 64500 anuncia 203.0.113.0/22 - os ASes remotos que recebem este anúncio validam o origin AS contra o ROA. Se INVALID, eles rejeitam a rota (não instalam no FIB). Mas o AS 64500 consegue ENVIAR tráfego para a Internet porque as rotas que ELE recebe de seus providers/peers são válidas. O problema é assimétrico: outbound OK (rotas dos outros válidas), inbound falha (rota do AS 64500 vista como INVALID)."
+				},
+				{
+					"id": "q4",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: A ação imediata mais eficaz é desabilitar RPKI ROV em todos os border routers da organização para restaurar a conectividade.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. Desabilitar ROV localmente NÃO resolve o problema. O bloqueio está nos ASes REMOTOS que implementam RPKI ROV e rejeitam o anúncio de 203.0.113.0/22 por ser INVALID. A ação correta é CORRIGIR O ROA no portal do RIR (alterar origin AS de 64501 para 64500). Desabilitar ROV localmente apenas removeria a proteção do próprio AS 64500 contra hijacking, sem resolver o bloqueio de inbound."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Contenção e Correção do ROA",
+			"phase": "Fase 2 - Contenção",
+			"description": "A equipe confirma que o ROA incorreto é a causa raiz. Acessa o portal do RIR para corrigir o origin AS no ROA. Enquanto isso, analisa alternativas temporárias.",
+			"timeElapsed": "T+15 minutos",
+			"currentSituation": {
+				"roaCorrection": "Em andamento - equipe acessando portal do RIR para editar ROA",
+				"propagationDelay": "Correção de ROA leva 15-60 min para propagar globalmente (validadores fazem refresh periódico)",
+				"partialConnectivity": "Ainda ~65% dos ASes rejeitando o anúncio do AS 64500"
+			},
+			"metrics": [
+				{
+					"title": "Processo de Correção de ROA",
+					"type": "network-analysis",
+					"data": {
+						"steps": [
+							{"step": 1, "action": "Login no portal do RIR (LACNIC/ARIN/RIPE)", "status": "Concluído"},
+							{"step": 2, "action": "Localizar ROA: 203.0.113.0/22, origin AS 64501", "status": "Concluído"},
+							{"step": 3, "action": "Editar ROA: alterar origin AS 64501 → 64500", "status": "Em andamento"},
+							{"step": 4, "action": "Publicar ROA atualizado no repositório RPKI", "status": "Pendente"},
+							{"step": 5, "action": "Aguardar refresh dos validadores globais (15-60 min)", "status": "Pendente"},
+							{"step": 6, "action": "Validar estado RPKI via Routinator/RIPE Stat", "status": "Pendente"}
+						],
+						"observation": "Após publicação, validadores como Routinator, Fort, rpki-client fazem refresh do repositório RPKI a cada 10-30 minutos. Convergência global pode levar até 60 minutos."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q5",
+					"text": "A correção do ROA foi publicada. Quanto tempo os validadores RPKI tipicamente levam para atualizar seus caches?",
+					"options": [
+						"Instantâneo - validadores recebem notificação push de mudanças no repositório RPKI",
+						"10-30 minutos - validadores fazem polling periódico via RRDP ou rsync (interval configurável)",
+						"24 horas - validadores atualizam apenas uma vez por dia",
+						"7 dias - por segurança, validadores mantêm cache por uma semana"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Validadores RPKI (B) fazem poll periódico do repositório RPKI usando RRDP (RFC 8182) ou rsync. O intervalo padrão do Routinator é ~10 minutos, Fort ~15 minutos, OctoRPKI ~30 minutos. Não existe mecanismo push (A) no RPKI atual — é polling puro. 24h ou 7d (C, D) são muito longos. Após o validador atualizar, o router RPKI-to-Router Protocol (RFC 8210) notifica os border routers, que atualizam a VRP table em segundos."
+				},
+				{
+					"id": "q6",
+					"text": "Enquanto aguarda propagação do ROA corrigido, a equipe cogita anunciar um /24 mais específico (203.0.113.0/24) esperando que seja aceito. Isso ajudaria?",
+					"options": [
+						"Sim - o ROA tem maxLength /24, então 203.0.113.0/24 seria RPKI Valid com origin AS 64500",
+						"Não - o ROA autoriza AS 64501, então qualquer anúncio de AS 64500 para qualquer sub-prefixo coberto pelo ROA será INVALID",
+						"Sim - prefixos mais específicos sempre são aceitos independente do RPKI",
+						"Não - /24 mais específicos são filtrados por default em BGP"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "O ROA cobre 203.0.113.0/22 com maxLength /24, autorizando AS 64501. Qualquer anúncio de sub-prefixo dentro de 203.0.113.0/22 até /24 será validado contra este ROA. Como o origin AS é 64500 e o ROA diz 64501, TODOS os anúncios (B) - /22, /23, /24 - serão RPKI INVALID. O maxLength define até que especificidade o ROA cobre, mas o origin AS deve sempre conferir. Anunciar /24 NÃO ajuda porque o origin AS está errado no ROA."
+				},
+				{
+					"id": "q7",
+					"type": "numeric",
+					"text": "Se o validador RPKI faz refresh a cada 15 minutos e os routers recebem atualização VRP em 30 segundos após o validador, qual é o TEMPO MÁXIMO para um router refletir a correção do ROA?",
+					"correctAnswer": 15.5,
+					"tolerance": 0.5,
+					"unit": "minutos",
+					"points": 6,
+					"justification": "Tempo máximo = intervalo de polling do validador + tempo de propagação router. Pior caso: ROA publicado 1 segundo APÓS o último refresh → próximo refresh em 15 min → propagação para router em ~30s = 15.5 minutos. Na prática, o tempo médio seria metade (7.75 min). Para convergência GLOBAL, considerar que diferentes validadores têm intervalos diferentes e que nem todos fazem refresh no mesmo momento — convergência global pode levar até 60 min."
+				},
+				{
+					"id": "q8",
+					"text": "Qual é a CONSEQUÊNCIA mais perigosa de erro no campo maxLength de um ROA?",
+					"options": [
+						"maxLength muito curto (ex: /22 sem maxLength) impede desagregação legítima para traffic engineering",
+						"maxLength muito longo (ex: /8) cria uma 'janela de hijacking': qualquer AS autorizado pode anunciar sub-prefixos específicos que serão RPKI Valid",
+						"maxLength não tem impacto na segurança - é apenas campo informativo",
+						"maxLength afeta apenas performance do validador, não a validação em si"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "maxLength excessivo (B) é considerado anti-pattern: se um ROA diz '203.0.0.0/8, AS 64500, maxLength /24', então QUALQUER anúncio de /8 até /24 por AS 64500 é Valid. Se AS 64500 for comprometido ou se houver hijack com o AS verdadeiro, sub-prefixos /24 podem ser anunciados legitimamente. Best practice: maxLength = prefixo anunciado (ou ausente para match exato). NIST e recomendações de RIRs aconselham maxLength igual ao prefixo como padrão."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Validação e Análise Avançada",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "ROA corrigido, validadores atualizando. A equipe monitora a convergência global e analisa a infraestrutura RPKI para prevenir recorrência.",
+			"timeElapsed": "T+35 minutos",
+			"currentSituation": {
+				"roaStatus": "Corrigido: 203.0.113.0/22, Origin AS 64500, maxLength /24",
+				"validationState": "RPKI Valid (propagando para validadores globais)",
+				"convergence": "~80% dos ASes já aceitaram - convergência em progresso",
+				"trafficRecovery": "Tráfego inbound recuperando gradualmente (45% → 70% do baseline)"
+			},
+			"metrics": [
+				{
+					"title": "Validador Routinator Local - Estado Atualizado",
+					"type": "routing-analysis",
+					"data": {
+						"command": "rpki-client query 203.0.113.0/22",
+						"result": {
+							"prefix": "203.0.113.0/22",
+							"maxLength": 24,
+							"originAS": "AS 64500",
+							"validationState": "VALID",
+							"roaSource": "RIR portal - ROA ID roa-2024-1234 (atualizado)",
+							"lastRefresh": "2025-02-17 08:02:15"
+						},
+						"observation": "Validador local atualizado. Validadores globais em propagação."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q9",
+					"text": "Quais componentes formam a infraestrutura RPKI end-to-end?",
+					"options": [
+						"Apenas validadores nos routers e ROAs no repositório",
+						"CA hierárquica (RIR → LIR/ISP) → Repositório RPKI (RRDP/rsync) → Validadores (Routinator/Fort/rpki-client) → RTR protocol (RFC 8210) → Border Routers",
+						"BGP speakers trocam ROAs diretamente entre si via BGP UPDATE",
+						"DNS autoritativo serve ROAs via registros TXT para validação"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "RPKI é infraestrutura hierárquica (B): (1) Certificate Authorities (CAs) dos RIRs emitem certificados de recurso para LIRs/ISPs. (2) ROAs são criados por titulares e publicados em repositórios RPKI acessíveis via RRDP (RFC 8182) ou rsync. (3) Validadores (Routinator, Fort, OctoRPKI, rpki-client) baixam e validam ROAs contra a cadeia de certificados. (4) Validadores enviam VRPs (Validated ROA Payloads) para border routers via RPKI-to-Router protocol (RFC 8210, TCP 323). (5) Routers usam VRPs para validar origin AS dos anúncios BGP."
+				},
+				{
+					"id": "q10",
+					"text": "A organização opera dois validadores RPKI. Qual é a recomendação para alta disponibilidade da validação?",
+					"options": [
+						"Um validador é suficiente - se falhar, rotas ficam 'Not Found' (fail-open) e são aceitas normalmente",
+						"Dois validadores com RTR sessions para cada border router, refresh offsets diferentes, monitoramento de saúde e alertas de divergência entre validadores",
+						"Validadores devem ser desabilitados em caso de incidente para evitar bloqueios",
+						"Usar apenas o validador do transit provider em vez de operar validador próprio"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Redundância de validadores (B) é best practice: (1) dois ou mais validadores independentes com RTR sessions para cada border router, (2) refresh times offset (não sincronizados) para reduzir janela de inconsistência, (3) monitoramento de saúde dos validadores (VRP count, refresh time, erros de certificado), (4) alertas se validadores divergem significativamente. Um validador (A) é ponto único de falha. Desabilitar validadores (C) remove proteção contra hijacking. Validador do transit (D) cria dependência externa."
+				},
+				{
+					"id": "q11",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Se todos os validadores RPKI da organização ficarem offline, os border routers automaticamente rejeitam todas as rotas BGP por precaução.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. Se os validadores ficarem offline, os border routers mantêm a última VRP table válida por um período configurável (stale timer, padrão 3600s em RFC 8210). Após expirar, todas as rotas ficam com estado 'Not Found' (fail-open), e são ACEITAS normalmente — o roteador volta a operar como se RPKI não existisse. Este é um design de segurança (fail-open): falha de infraestrutura RPKI NÃO causa blackhole de tráfego. Porém, remove a proteção contra hijacking."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Recuperação e Lições Aprendidas",
+			"phase": "Fase 3 e 4 - Recuperação e Pós-Incidente",
+			"description": "ROA corrigido, validação global convergida, tráfego normalizado. Tempo total de impacto: ~65 horas (sexta 18h a segunda 08h45). Discussão de prevenção e gestão de ROAs.",
+			"timeElapsed": "T+60 minutos (incidente encerrado)",
+			"currentSituation": {
+				"rpkiState": "RPKI Valid globalmente",
+				"trafficRecovery": "100% recuperado",
+				"convergenceComplete": true,
+				"impact": "Nenhum - operação normalizada"
+			},
+			"questions": [
+				{
+					"id": "q12",
+					"text": "O erro no ROA ficou despercebido por ~65 horas (sexta 18h a segunda 08h45). Qual mecanismo teria detectado o problema imediatamente?",
+					"options": [
+						"Monitoramento RPKI: alerta automático quando o estado de validação do próprio prefixo muda de Valid para Invalid (via API do Routinator ou RIPE Stat)",
+						"Ping monitor para o prefixo da organização a cada 5 minutos",
+						"Revisão manual diária dos ROAs publicados no portal do RIR",
+						"Monitoramento de BGP communities nos anúncios"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "Monitoramento RPKI automatizado (A) é essencial: (1) verificação periódica do estado de validação dos próprios prefixos, (2) alerta imediato se estado mudar de Valid para Invalid ou Not Found, (3) pode usar API JSON do Routinator, RIPE Stat Data API, ou Cloudflare RPKI Portal. Teria detectado a mudança em minutos após publicação do ROA incorreto. Ping (B) testa conectividade mas não identifica causa RPKI. Revisão manual (C) é insuficiente e não escalável. Communities (D) não detectam RPKI."
+				},
+				{
+					"id": "q13",
+					"text": "Para prevenir erros em ROAs, qual prática de gestão é mais eficaz?",
+					"options": [
+						"Publicar ROAs usando ferramentas de automação (delegated RPKI / hosted RPKI com scripting) com revisão por pares e versionamento",
+						"Nunca editar ROAs depois de criados - criar novos e excluir antigos",
+						"Delegar gestão de ROAs inteiramente ao transit provider",
+						"Publicar ROAs com maxLength /8 para cobrir qualquer desagregação futura"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "Automação com revisão (A): (1) usar ferramentas como RPKI Portal com approval workflow, (2) integration com config management (Git + CI/CD), (3) 4-eyes principle para alterações em ROAs (como para mudanças em route-maps), (4) versionamento para auditoria e rollback. Nunca editar (B) não é prático. Delegar ao transit (C) cria dependência. maxLength /8 (D) é anti-pattern que amplia superfície de hijacking."
+				},
+				{
+					"id": "q14",
+					"type": "ordering",
+					"text": "Ordene as etapas de resposta a um bloqueio RPKI do próprio prefixo, da mais urgente à menos urgente:",
+					"items": [
+						{"id": "a1", "label": "Confirmar estado RPKI (Valid/Invalid/Not Found) via validador local ou RIPE Stat"},
+						{"id": "a2", "label": "Identificar ROA incorreto e acessar portal do RIR para correção"},
+						{"id": "a3", "label": "Publicar ROA corrigido e monitorar propagação para validadores globais"},
+						{"id": "a4", "label": "Contatar transit providers para que mantenham rota via override temporário"},
+						{"id": "a5", "label": "Documentar incidente, implementar monitoramento RPKI e revisão de processo de gestão de ROAs"}
+					],
+					"correctOrder": ["a1", "a2", "a3", "a4", "a5"],
+					"partialCredit": false,
+					"points": 5,
+					"justification": "Ordem: (1) Confirmar estado RPKI - diagnóstico rápido antes de agir. (2) Identificar e corrigir ROA - ação na fonte do problema. (3) Publicar e monitorar propagação - garantir convergência. (4) Contatar transit providers - pedido temporário enquanto propaga (transit pode adicionar route-map override para manter rota). (5) Documentar e melhorar processos - lições aprendidas e prevenção futura."
+				},
+				{
+					"id": "q15",
+					"text": "Qual é a recomendação final mais importante para a organização após este incidente?",
+					"options": [
+						"Remover todos os ROAs e desabilitar RPKI para evitar bloqueios futuros",
+						"Implementar monitoramento RPKI contínuo + automação de ROA com approval workflow + alertas de mudança de estado + documentação de procedimento de emergência",
+						"Migrar todos os serviços para IPv6, onde RPKI não é necessário",
+						"Delegar toda a gestão RPKI para o RIR sem controle local"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Abordagem completa (B): (1) Monitoramento contínuo detecta problemas em minutos. (2) Automação com approval reduz erro humano. (3) Alertas de mudança de estado (Valid→Invalid) aciona equipe imediatamente. (4) Procedimento documentado de emergência define quem corrige ROA e como escalar. Remover RPKI (A) elimina proteção contra hijacking. IPv6 (C) também usa RPKI. Delegar ao RIR (D) sem controle local é arriscado."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 93,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 90,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de RPKI, gestão de ROAs e troubleshooting de validação"
+			},
+			{
+				"min": 75,
+				"max": 89,
+				"grade": "Bom",
+				"description": "Compreensão sólida de RPKI com pequenas lacunas em infraestrutura avançada"
+			},
+			{
+				"min": 60,
+				"max": 74,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica de RPKI suficiente, requer aprofundamento em gestão de ROAs e validadores"
+			},
+			{
+				"min": 45,
+				"max": 59,
+				"grade": "Insatisfatório",
+				"description": "Lacunas significativas em RPKI e Route Origin Validation"
+			},
+			{
+				"min": 0,
+				"max": 44,
+				"grade": "Inadequado",
+				"description": "Compreensão insuficiente, requer treinamento completo em RPKI e segurança de roteamento"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Apresentar informações progressivamente, focando na relação entre ROA, validação e conectividade",
+		"Permitir 3-4 minutos de discussão entre participantes antes de cada resposta",
+		"Usar diagrama da infraestrutura RPKI (CA → ROA → Repositório → Validador → Router) como referência visual",
+		"Destacar que RPKI é fail-open por design: falha de validador NÃO bloqueia tráfego",
+		"Fazer perguntas socráticas: 'Por que outbound funciona mas inbound não?', 'O que acontece se não existir ROA nenhum?'",
+		"Controlar tempo: Rodada 1 (5 min), Rodadas 2-4 (8-10 min cada), Rodada 5 (7 min)",
+		"Se possível, mostrar ferramentas em tempo real: RIPE Stat RPKI view, Cloudflare RPKI Portal, Routinator UI",
+		"Após exercício: revisar estados RPKI, maxLength best practices, gestão de ROAs, coletar feedback"
+	],
+	"technicalReferences": [
+		{
+			"title": "RFC 6811 - BGP Prefix Origin Validation",
+			"url": "https://www.rfc-editor.org/rfc/rfc6811"
+		},
+		{
+			"title": "RFC 8210 - The Resource Public Key Infrastructure (RPKI) to Router Protocol",
+			"url": "https://www.rfc-editor.org/rfc/rfc8210"
+		},
+		{
+			"title": "RFC 8182 - The RPKI Repository Delta Protocol (RRDP)",
+			"url": "https://www.rfc-editor.org/rfc/rfc8182"
+		},
+		{
+			"title": "RFC 6480 - An Infrastructure to Support Secure Internet Routing (RPKI Overview)",
+			"url": "https://www.rfc-editor.org/rfc/rfc6480"
+		},
+		{
+			"title": "NIST SP 800-189 - Resilient Interdomain Traffic Exchange: BGP Security and DDoS Mitigation",
+			"url": "https://csrc.nist.gov/publications/detail/sp/800-189/final"
+		}
+	]
+}

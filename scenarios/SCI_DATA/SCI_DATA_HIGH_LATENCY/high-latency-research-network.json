@@ -1,0 +1,518 @@
+{
+	"id": "high-latency-research-network",
+	"title": "Resposta a Alta Latência em Rede Científica",
+	"description": "Simulação tabletop de resposta a incidente de latência elevada em rede acadêmica, impactando videoconferências, experimentos remotos e transferências de dados entre instituições",
+	"category": {
+		"id": "SCI_DATA",
+		"type": "SCI_DATA_HIGH_LATENCY",
+		"title": "Alta Latência em Rede Científica"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-02-17",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "35-50 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Equipe de Operações de Rede Acadêmica, Engenheiros de Rede, Analistas de Performance"
+	},
+	"objectives": [
+		"Validar capacidade de detecção e diagnóstico de problemas de latência em redes de longa distância",
+		"Avaliar conhecimento de técnicas de análise de latência (traceroute, MTR, OWAMP)",
+		"Testar compreensão de impacto de latência em aplicações científicas sensíveis ao tempo",
+		"Desenvolver habilidade de identificação de causas raiz: congestionamento, roteamento subótimo, problemas físicos",
+		"Identificar estratégias de mitigação e otimização de rotas em redes acadêmicas",
+		"Promover compreensão de ferramentas de medição de performance (perfSONAR, OWAMP, TWAMP)"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá execução real de comandos em sistemas de produção",
+		"Não inclui reconfiguração real de roteadores ou políticas BGP",
+		"Foco na análise técnica, diagnóstico de latência e tomada de decisão",
+		"Avaliação de conhecimento de métricas de performance e ferramentas de medição em redes acadêmicas"
+	],
+	"baseScenario": {
+		"context": "Segunda-feira, 13h30, início da tarde. Você faz parte da equipe de operações de uma rede acadêmica que interconecta universidades e centros de pesquisa. A rede opera com enlaces de 100 Gbps no backbone principal e 10 Gbps para instituições. O enlace entre a Universidade A (laboratório de astronomia) e o Centro de Computação de Alto Desempenho (HPC) é utilizado para transmissão de dados de telescópios em tempo real e processamento de imagens. A latência normal neste caminho é de 8ms (RTT).",
+		"initialSituation": {
+			"alert": "Latência elevada no caminho Universidade A ↔ Centro HPC - RTT de 185ms (normal: 8ms)",
+			"affectedPath": "astro-lab.university-a.internal (10.20.5.100) ↔ hpc-cluster.compute.internal (10.80.40.10)",
+			"currentLatency": "185ms RTT (normal: 8ms)",
+			"jitter": "42ms (normal: <1ms)",
+			"timestamp": "13:22:18"
+		},
+		"initialComplaints": [
+			"Equipe de astronomia reporta que pipeline de processamento de imagens de telescópio está falhando por timeout",
+			"Sessões SSH interativas para o cluster HPC estão com delay perceptível de digitação",
+			"Transferências de dados de observação (5 TB/noite) estimando 3 dias em vez de 2 horas",
+			"Videoconferência internacional sobre resultados do telescópio com artefatos e freezes"
+		],
+		"availableResources": [
+			"Nós perfSONAR distribuídos em 8 pontos da rede (testes OWAMP, Throughput, Traceroute)",
+			"Sistema de monitoramento com grafos de latência e utilização (Grafana/LibreNMS)",
+			"Acesso administrativo a roteadores de backbone (looking glass BGP)",
+			"Ferramentas: traceroute, mtr, ping, iperf3, owping, bwctl",
+			"Mapa topológico da rede com RTTs de referência entre todos os PoPs",
+			"Contato com redes parceiras e provedores de trânsito",
+			"Histórico de perfSONAR dos últimos 30 dias"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe deve se familiarizar com a situação inicial, topologia da rede e recursos disponíveis.",
+			"inject": "Apresentação do cenário conforme descrito. A equipe tem 5 minutos para discutir a situação inicial e planejar diagnóstico.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Detecção e Análise Inicial",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe executa medições de latência e coleta evidências para identificar a origem do problema.",
+			"timeElapsed": "T+0 (início do diagnóstico)",
+			"currentSituation": {
+				"latencyRTT": "185ms (normal: 8ms)",
+				"jitter": "42ms (normal: <1ms)",
+				"packetLoss": "0.3% (normal: <0.01%)",
+				"impact": "Pipeline de astronomia parado, transferências falhando, videoconferência degradada"
+			},
+			"metrics": [
+				{
+					"title": "Traceroute Universidade A → Centro HPC",
+					"type": "network-analysis",
+					"data": {
+						"command": "mtr -rwzbc 100 10.80.40.10",
+						"hops": [
+							{"hop": 1, "host": "gw.astro-lab.university-a.internal (10.20.5.1)", "rtt": "0.4ms", "loss": "0%"},
+							{"hop": 2, "host": "router-campus.university-a.internal (10.20.0.1)", "rtt": "0.8ms", "loss": "0%"},
+							{"hop": 3, "host": "pe-router.pop-norte.internal (10.100.1.1)", "rtt": "1.2ms", "loss": "0%"},
+							{"hop": 4, "host": "core-router.pop-norte.internal (10.100.1.2)", "rtt": "2.1ms", "loss": "0%"},
+							{"hop": 5, "host": "transit-provider.external (203.0.113.45)", "rtt": "85ms", "loss": "0.1%"},
+							{"hop": 6, "host": "transit-hop2.external (203.0.113.78)", "rtt": "120ms", "loss": "0.2%"},
+							{"hop": 7, "host": "transit-hop3.external (203.0.113.112)", "rtt": "165ms", "loss": "0.2%"},
+							{"hop": 8, "host": "pe-router.pop-central.internal (10.100.2.1)", "rtt": "178ms", "loss": "0.3%"},
+							{"hop": 9, "host": "router-hpc.compute.internal (10.80.40.1)", "rtt": "182ms", "loss": "0.3%"},
+							{"hop": 10, "host": "hpc-cluster.compute.internal (10.80.40.10)", "rtt": "185ms", "loss": "0.3%"}
+						],
+						"observation": "Salto de latência entre hop 4 (2.1ms) e hop 5 (85ms) indica que tráfego está saindo pela rota de trânsito comercial ao invés da rota direta acadêmica. Rota normal deveria ir direto do PoP Norte ao PoP Central (2.1ms → 4ms)."
+					}
+				},
+				{
+					"title": "Histórico perfSONAR - Latência (últimos 7 dias)",
+					"type": "performance-history",
+					"data": {
+						"normalRTT": "7.8ms (média últimos 7 dias)",
+						"currentRTT": "185ms",
+						"changeTimestamp": "13:05:42 (hoje)",
+						"transitionType": "Abrupta (mudança em <30 segundos)",
+						"previousRoute": "PoP Norte → PoP Central (enlace direto acadêmico 100 Gbps)",
+						"currentRoute": "PoP Norte → Trânsito Comercial → PoP Central (via provedor externo)",
+						"observation": "Mudança abrupta de latência às 13:05 sugere evento de roteamento (convergência BGP, queda de sessão)"
+					}
+				},
+				{
+					"title": "Status BGP - Looking Glass do PoP Norte",
+					"type": "routing-analysis",
+					"data": {
+						"command": "show bgp neighbor 10.100.1.2 summary",
+						"peerStatus": {
+							"peer": "core-router.pop-central (10.100.3.1)",
+							"state": "Idle",
+							"lastStateChange": "13:05:38",
+							"previousState": "Established",
+							"prefixesReceived": 0,
+							"holdTimerExpired": true
+						},
+						"alternativeRoute": {
+							"nextHop": "transit-provider (203.0.113.45)",
+							"asPath": "AS65100 AS65200 AS65300",
+							"metric": "Higher (longer AS path)",
+							"type": "Trânsito comercial"
+						},
+						"observation": "Sessão BGP do enlace direto acadêmico caiu às 13:05:38 por expiração de hold timer. Tráfego convergiu para rota alternativa via trânsito comercial (mais lenta)."
+					}
+				},
+				{
+					"title": "Status da Interface do Enlace Direto",
+					"type": "interface-analysis",
+					"data": {
+						"interface": "et-0/0/0 (enlace PoP Norte → PoP Central)",
+						"adminStatus": "Up",
+						"operStatus": "Down",
+						"lastFlap": "13:05:35",
+						"inputErrors": 847293,
+						"crcErrors": 234567,
+						"opticalRxPower": "-14.2 dBm (normal: -6 a -8 dBm)",
+						"opticalTxPower": "-1.2 dBm (normal)",
+						"temperature": "72°C (alarme: >70°C)",
+						"observation": "Interface operacionalmente down com alto número de erros CRC, RX power degradado e temperatura elevada - possível falha de SFP ou degradação de fibra"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"text": "Com base no traceroute, onde está o ponto de inflexão da latência?",
+					"options": [
+						"No gateway da Universidade A (hop 1) - problema local",
+						"Entre o core-router do PoP Norte e o provedor de trânsito (hop 4 → hop 5) - mudança de rota",
+						"No roteador do Centro HPC (hop 9) - problema no destino",
+						"Distribuída uniformemente por todos os hops - problema generalizado"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "O salto de 2.1ms (hop 4) para 85ms (hop 5) é o ponto de inflexão claro. A latência salta ~83ms em um único hop, exatamente onde o tráfego sai da rede acadêmica para o trânsito comercial. Todos os hops anteriores têm latência normal (<3ms). Hops posteriores adicionam latência incremental do caminho via trânsito. Isso indica mudança de rota: tráfego que deveria usar enlace direto acadêmico está sendo roteado pelo provedor comercial."
+				},
+				{
+					"id": "q2",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Uma mudança abrupta de latência (em menos de 30 segundos) é mais indicativa de problema de roteamento do que de congestionamento gradual.",
+					"correctAnswer": true,
+					"points": 3,
+					"justification": "VERDADEIRO. Congestionamento geralmente causa aumento GRADUAL de latência conforme filas se enchem. Uma mudança ABRUPTA (7.8ms → 185ms em <30 segundos) é assinatura típica de convergência BGP: quando uma sessão cai, o tráfego migra imediatamente para a melhor rota alternativa disponível. A mudança de path se reflete instantaneamente na latência. Problemas físicos (fibra) também causam mudanças abruptas ao derrubar sessões."
+				},
+				{
+					"id": "q3",
+					"text": "As evidências mostram sessão BGP down, erros CRC, RX power degradado e temperatura elevada no SFP. Qual é a causa raiz MAIS provável?",
+					"options": [
+						"Ataque cibernético derrubando a sessão BGP remotamente",
+						"Falha de SFP/transceiver causando degradação óptica e perda do enlace direto",
+						"Erro de configuração BGP introduzido por manutenção programada",
+						"Congestionamento de tráfego saturando o enlace direto"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "As evidências convergem para falha de SFP: (1) RX power -14.2 dBm é muito abaixo do normal (-6 a -8 dBm), indicando degradação óptica severa. (2) 847k erros de input e 234k CRC errors confirmam corrupção de dados no enlace. (3) Temperatura 72°C acima do alarme (>70°C) indica componente em falha. (4) A interface caiu operacionalmente por causa destas falhas, derrubando a sessão BGP. Ataque (A) não causa degradação óptica. Configuração (C) não explica erros CRC. Congestionamento (D) não causa erros ópticos."
+				},
+				{
+					"id": "q4",
+					"type": "numeric",
+					"text": "A latência aumentou de 8ms para 185ms. Em quantos milissegundos a latência aumentou?",
+					"correctAnswer": 177,
+					"tolerance": 2,
+					"unit": "ms",
+					"points": 5,
+					"justification": "Aumento = 185 - 8 = 177ms. Este aumento de 177ms (22x o valor normal) é devastador para aplicações sensíveis a latência. Para referência: ITU-T G.114 recomenda RTT < 150ms para comunicação interativa de voz. O pipeline de astronomia que opera com timeouts de 100ms falha completamente. Transferências TCP sofrem redução drástica de throughput (BDP = 100 Gbps × 0.185s = 2.3 GB de window necessário)."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Contenção e Mitigação",
+			"phase": "Fase 2 - Contenção",
+			"description": "A equipe confirma que o SFP do enlace direto PoP Norte → PoP Central falhou. O enlace óptico precisa de substituição de SFP. Enquanto isso, o tráfego permanece na rota de trânsito comercial com latência de 185ms.",
+			"timeElapsed": "T+25 minutos",
+			"currentSituation": {
+				"directLinkStatus": "Down (SFP em falha)",
+				"currentRoute": "Via trânsito comercial (185ms RTT)",
+				"sfpReplacementETA": "2-4 horas (deslocamento de técnico + substituição)",
+				"impact": "Latência de 185ms afetando todas as aplicações entre PoP Norte e PoP Central"
+			},
+			"metrics": [
+				{
+					"title": "Impacto da Latência em Aplicações Científicas",
+					"type": "application-impact",
+					"data": {
+						"telescopePipeline": {"status": "PARADO", "reason": "Timeout 100ms excedido (RTT 185ms)", "dataBacklog": "~1.2 TB acumulados"},
+						"hpcFileTransfer": {"status": "DEGRADADO", "normalRate": "8 Gbps (via enlace direto)", "currentRate": "450 Mbps (via trânsito)", "degradation": "94.4%"},
+						"videoconference": {"status": "DEGRADADO", "mosScore": "2.1/5.0 (Ruim)", "normalMOS": "4.3/5.0 (Bom)"},
+						"sshInteractive": {"status": "DEGRADADO", "delay": "~185ms por keystroke"},
+						"observation": "Pipeline de astronomia é a aplicação mais crítica - dados de observação do telescópio precisam ser processados antes da próxima janela de observação (18h)"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q5",
+					"text": "Enquanto aguarda substituição do SFP (2-4h), qual ação IMEDIATA pode melhorar a latência?",
+					"options": [
+						"Solicitar ao provedor de trânsito priorização do tráfego acadêmico",
+						"Verificar se existe rota alternativa através de outro PoP acadêmico (rota indireta pela rede acadêmica)",
+						"Aumentar os timeouts de todas as aplicações para tolerar 185ms",
+						"Aguardar a substituição do SFP sem tomar ação intermediária"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Rota alternativa acadêmica (B) é a melhor opção porque: (1) Redes acadêmicas tipicamente têm topologia mesh com múltiplos caminhos. (2) Mesmo uma rota indireta (ex: PoP Norte → PoP Leste → PoP Central) pode ter latência de 12-20ms vs 185ms via trânsito. (3) É implementável em minutos via política BGP. Negociar com trânsito (A) é lento e incerto. Aumentar timeouts (C) é paliativo. Aguardar (D) desperdiça horas de capacidade operacional."
+				},
+				{
+					"id": "q6",
+					"type": "ordering",
+					"text": "Ordene as etapas corretas de diagnóstico para um aumento abrupto de latência em rede acadêmica:",
+					"items": [
+						{"id": "step1", "label": "Executar traceroute/MTR para identificar o ponto de inflexão da latência"},
+						{"id": "step2", "label": "Verificar status das sessões BGP e tabela de rotas no looking glass"},
+						{"id": "step3", "label": "Analisar status das interfaces ópticas (RX/TX power, erros, temperatura)"},
+						{"id": "step4", "label": "Consultar dados perfSONAR históricos para identificar momento da mudança"},
+						{"id": "step5", "label": "Correlacionar evidências para determinar causa raiz"}
+					],
+					"correctOrder": ["step1", "step4", "step2", "step3", "step5"],
+					"partialCredit": false,
+					"points": 5,
+					"justification": "Sequência ótima: (1) Traceroute localiza rapidamente ONDE está o problema. (2) perfSONAR histórico mostra QUANDO ocorreu e se foi abrupto/gradual. (3) BGP confirma se houve mudança de rota e por quê. (4) Interface óptica identifica causa física se houver queda de enlace. (5) Correlação final determina causa raiz. Iniciar por traceroute é consenso operacional pois dá visão rápida do caminho atual."
+				},
+				{
+					"id": "q7",
+					"text": "A equipe encontra rota alternativa via PoP Leste (PoP Norte → PoP Leste → PoP Central) com RTT estimado de 15ms. Como implementar a mudança?",
+					"options": [
+						"Adicionar rota estática no roteador do PoP Norte apontando para PoP Leste",
+						"Ajustar local-preference BGP para preferir a rota via PoP Leste sobre a rota de trânsito",
+						"Desconectar o cabo do provedor de trânsito para forçar convergência",
+						"Pedir ao provedor de trânsito para parar de anunciar os prefixos do PoP Central"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Ajustar local-preference BGP (B) é a abordagem correta e operacionalmente segura: (1) Local-preference é o atributo BGP de maior prioridade na seleção de rotas. (2) Permite intervenção granular sem afetar outras rotas. (3) É reversível (basta remover a política). Rota estática (A) ignora dinâmica BGP e é difícil de manter. Desconectar cabo (C) é drástico e afeta todo tráfego de trânsito. Pedir ao provedor (D) é lento e inviável."
+				},
+				{
+					"id": "q8",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: O perfSONAR é uma ferramenta que permite apenas medições passivas de throughput, não sendo capaz de medir latência unidirecional (one-way delay).",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. O perfSONAR é uma infraestrutura completa de medição que inclui: (1) OWAMP (One-Way Active Measurement Protocol) para latência unidirecional - fundamental para detectar assimetria de rotas. (2) TWAMP (Two-Way Active Measurement Protocol) para RTT. (3) Throughput tests (iperf3). (4) Traceroute/tracepath. (5) Alertas automáticos. A capacidade de medir one-way delay é diferencial importante pois RTT pode mascarar assimetrias (ex: 5ms ida + 180ms volta = 185ms RTT)."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Mitigação Avançada e Análise",
+			"phase": "Fase 2 - Contenção (Avançada)",
+			"description": "A equipe ajustou local-preference BGP para preferir rota via PoP Leste. Latência caiu de 185ms para 15ms. Pipeline de astronomia retomou operação. Técnico está a caminho para substituição do SFP no enlace direto.",
+			"timeElapsed": "T+40 minutos",
+			"currentSituation": {
+				"latencyRTT": "15ms (via PoP Leste - rota alternativa)",
+				"jitter": "1.5ms (quase normal)",
+				"packetLoss": "0.02% (quase normal)",
+				"directLinkStatus": "Down (aguardando substituição SFP)",
+				"impact": "Mínimo - aplicações operando com latência aceitável"
+			},
+			"metrics": [
+				{
+					"title": "Análise de SFP em Falha (dados DDM/DOM)",
+					"type": "optical-analysis",
+					"data": {
+						"sfpModel": "10GBASE-LR SFP+ (1310nm, 10km)",
+						"serialNumber": "FTL410QE2C",
+						"dateCode": "2019-03",
+						"operatingHours": "~49.000 horas (~5.6 anos)",
+						"rxPower": "-14.2 dBm (threshold: -14.4 dBm | normal: -6 a -8 dBm)",
+						"txPower": "-1.2 dBm (normal: -1 a -2 dBm)",
+						"temperature": "72°C (alarme: >70°C | normal: 35-55°C)",
+						"voltage": "3.28V (normal: 3.10-3.50V)",
+						"biasCurrent": "48.2 mA (normal: 15-40 mA)",
+						"observation": "SFP com 5.6 anos de uso, temperatura e bias current elevados indicam degradação por fim de vida útil. RX power próximo do threshold crítico."
+					}
+				},
+				{
+					"title": "Comparativo de Rotas Disponíveis",
+					"type": "route-comparison",
+					"data": {
+						"directRoute": {"path": "PoP Norte → PoP Central", "hops": 2, "rtt": "4ms", "status": "Down (SFP falho)", "bandwidth": "100 Gbps"},
+						"academicAlternative": {"path": "PoP Norte → PoP Leste → PoP Central", "hops": 4, "rtt": "15ms", "status": "Active (em uso)", "bandwidth": "100 Gbps"},
+						"transitRoute": {"path": "PoP Norte → Trânsito → PoP Central", "hops": 6, "rtt": "185ms", "status": "Available (backup)", "bandwidth": "10 Gbps"},
+						"observation": "Rota acadêmica alternativa oferece latência 12x menor que trânsito comercial com mesma capacidade"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q9",
+					"text": "O SFP tem 5.6 anos de operação contínua com temperatura e bias current elevados. Qual ação preventiva deveria existir para evitar este tipo de falha?",
+					"options": [
+						"Substituir SFPs a cada 2 anos independentemente do estado",
+						"Implementar monitoramento proativo de parâmetros DDM/DOM com alertas de threshold",
+						"Manter SFPs em operação até falha completa (reativo) para maximizar custo-benefício",
+						"Desabilitar monitoramento DDM/DOM pois consome recursos do equipamento"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Monitoramento DDM/DOM proativo (B) é a abordagem correta porque: (1) DDM (Digital Diagnostic Monitoring) fornece RX/TX power, temperatura, bias current em tempo real. (2) Alertas em -12 dBm (antes do threshold -14.4 dBm) permitiriam agendar substituição preventiva. (3) Evita surpresas e impactos não planejados. Substituição cíclica (A) é desperdício. Reativo (C) causa indisponibilidades. Desabilitar DDM (D) elimina visibilidade."
+				},
+				{
+					"id": "q10",
+					"type": "matching",
+					"text": "Conecte cada ferramenta de medição ao tipo de métrica que ela mede PRIMARIAMENTE:",
+					"leftColumn": [
+						{"id": "t1", "label": "OWAMP (One-Way Active Measurement)"},
+						{"id": "t2", "label": "iperf3"},
+						{"id": "t3", "label": "MTR (My Traceroute)"}
+					],
+					"rightColumn": [
+						{"id": "m1", "label": "Throughput máximo TCP/UDP entre dois pontos"},
+						{"id": "m2", "label": "Latência unidirecional e jitter com precisão de microsegundos"},
+						{"id": "m3", "label": "Latência por hop, perda de pacotes e rota com estatísticas contínuas"}
+					],
+					"correctMatches": [
+						{"left": "t1", "right": "m2"},
+						{"left": "t2", "right": "m1"},
+						{"left": "t3", "right": "m3"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 6,
+					"justification": "OWAMP (↔ m2): protocolo RFC 4656 para medição de one-way delay com precisão de microsegundos via sincronização NTP/PTP - essencial para detectar assimetria de rotas. iperf3 (↔ m1): ferramenta padrão para medir throughput TCP/UDP ponto-a-ponto, testa capacidade real do caminho. MTR (↔ m3): combina traceroute + ping contínuo, mostrando latência e perda hop-a-hop - ideal para localizar ponto de degradação."
+				},
+				{
+					"id": "q11",
+					"text": "Após ajuste BGP, a latência caiu de 185ms para 15ms. O pipeline de astronomia retomou operação, mas o throughput caiu de 8 Gbps para 6 Gbps. Qual é a causa MAIS provável?",
+					"options": [
+						"A rota alternativa via PoP Leste tem enlaces com capacidade menor",
+						"O aumento de 7ms na latência (8ms → 15ms) reduz o throughput TCP devido ao BDP (bandwidth-delay product)",
+						"O pipeline de astronomia não é otimizado para mudanças de rota",
+						"Buffer dos roteadores intermediários limitam o throughput"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "O BDP (B) explica a redução: BDP = Bandwidth × RTT. Com RTT de 8ms, TCP window de 8 MB sustenta ~8 Gbps. Com RTT de 15ms, mesma window sustenta ~4.3 Gbps. Para manter 8 Gbps com 15ms RTT, seria necessário window de ~15 MB. A queda de 8 Gbps para 6 Gbps é consistente com auto-tuning TCP parcialmente compensando. A rota alternativa tem mesma capacidade (100 Gbps). Pipeline e buffers não são a causa raiz."
+				},
+				{
+					"id": "q12",
+					"type": "numeric",
+					"text": "Se a rota direta tem RTT de 4ms e a rota alternativa via PoP Leste tem RTT de 15ms, quantos milissegundos de latência adicional são introduzidos pela rota alternativa?",
+					"correctAnswer": 11,
+					"tolerance": 0,
+					"unit": "ms",
+					"points": 5,
+					"justification": "Latência adicional = 15ms - 4ms = 11ms. Embora 11ms pareça pequeno, o impacto em aplicações de alta performance é significativo. Para transferências TCP de longa duração, o BDP aumenta: de 100 Gbps × 0.004s = 50 MB para 100 Gbps × 0.015s = 187.5 MB de buffer necessário. Para aplicações interativas (SSH, VNC), 15ms é aceitável. Para pipeline de astronomia em tempo real, 11ms extras podem requerer ajuste de parâmetros."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Recuperação e Lições Aprendidas",
+			"phase": "Fase 3 e 4 - Recuperação e Pós-Incidente",
+			"description": "SFP substituído com sucesso após 3 horas. Enlace direto restabelecido. Local-preference BGP revertido para preferir rota direta. Latência retornou a 4ms. Todas as aplicações normalizadas.",
+			"timeElapsed": "T+3.5 horas (incidente encerrado)",
+			"currentSituation": {
+				"directLinkStatus": "Up (SFP novo instalado)",
+				"latencyRTT": "4ms (normal via enlace direto)",
+				"jitter": "<1ms (normal)",
+				"packetLoss": "<0.01% (normal)",
+				"impact": "Nenhum - operação completamente normalizada"
+			},
+			"questions": [
+				{
+					"id": "q13",
+					"text": "Após substituição do SFP, qual validação é MAIS crítica antes de declarar o incidente encerrado?",
+					"options": [
+						"Verificar parâmetros DDM/DOM do SFP novo (RX/TX power, temperatura)",
+						"Executar teste perfSONAR completo (latência, throughput, traceroute) end-to-end",
+						"Confirmar que sessão BGP restabeleceu e rotas diretas estão preferenciais",
+						"Todas as validações acima são críticas"
+					],
+					"correctAnswer": 3,
+					"points": 5,
+					"justification": "Todas são críticas: (A) DDM valida que o novo SFP está saudável e dentro dos parâmetros. (B) perfSONAR end-to-end confirma que performance real está no baseline. (C) BGP verifica que roteamento convergiu corretamente para rota preferencial. Pular qualquer uma pode resultar em problemas latentes não detectados."
+				},
+				{
+					"id": "q14",
+					"text": "Qual melhoria de infraestrutura teria MINIMIZADO o impacto deste incidente?",
+					"options": [
+						"Enlaces redundantes (LAG ou paralelos) entre PoP Norte e PoP Central",
+						"SFPs com hot-swap automatizado e estoque em cada PoP",
+						"Roteamento ECMP (Equal-Cost Multi-Path) distribuindo tráfego entre múltiplos caminhos",
+						"Todas as respostas contribuiriam para minimizar impacto"
+					],
+					"correctAnswer": 3,
+					"points": 5,
+					"justification": "Todas contribuem: (A) LAG/enlaces paralelos fornecem failover instantâneo sem mudança de rota. (B) Hot-swap e estoque local reduzem tempo de reparo. (C) ECMP distribui tráfego entre caminhos de mesmo custo, fazendo failover automático quando um caminho falha. A combinação dessas tecnologias cria resiliência em camadas (L1, L2, L3)."
+				},
+				{
+					"id": "q15",
+					"text": "Em post-mortem, qual pergunta tem MAIOR valor para prevenção futura?",
+					"options": [
+						"Por que não havia monitoramento proativo de DDM/DOM com alertas de degradação nos SFPs da rede?",
+						"Quem era responsável por monitorar os parâmetros ópticos do enlace?",
+						"Quanto custaria implementar enlaces redundantes entre todos os PoPs?",
+						"Quando devemos agendar a próxima verificação manual de SFPs?"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "A pergunta (A) identifica falha SISTÊMICA no monitoramento proativo: se alertas de DDM/DOM estivessem configurados (threshold de RX power < -12 dBm), a degradação teria sido detectada DIAS antes da falha, permitindo substituição planejada sem impacto. Buscar culpados (B) é contraproducente. Custo (C) é relevante mas não resolve o processo. Verificação manual (D) não escala."
+				},
+				{
+					"id": "q16",
+					"text": "Qual é o PRINCIPAL benefício de redes acadêmicas terem topologia mesh em vez de hub-and-spoke?",
+					"options": [
+						"Menor custo total de propriedade (TCO)",
+						"Resiliência - múltiplos caminhos permitem failover para rotas alternativas com latência aceitável",
+						"Maior facilidade de gerenciamento e troubleshooting",
+						"Melhor segurança contra ataques DDoS"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Resiliência (B) é o principal benefício demonstrado por este incidente: quando o enlace direto falhou, a topologia mesh permitiu rota alternativa com 15ms vs 185ms via trânsito. Hub-and-spoke teria resultado em dependência total de um único enlace. Mesh é mais caro (A) e complexo (C) de gerenciar, mas a resiliência justifica em redes de pesquisa onde disponibilidade é crítica. Segurança (D) não é o benefício primário."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 91,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 90,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de diagnóstico de latência, análise óptica e engenharia de tráfego em redes científicas"
+			},
+			{
+				"min": 75,
+				"max": 89,
+				"grade": "Bom",
+				"description": "Compreensão sólida de métricas de performance e roteamento com pequenas lacunas"
+			},
+			{
+				"min": 60,
+				"max": 74,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica suficiente, requer aprofundamento em diagnóstico óptico e ferramentas perfSONAR"
+			},
+			{
+				"min": 45,
+				"max": 59,
+				"grade": "Insatisfatório",
+				"description": "Lacunas significativas em conhecimento de redes de longa distância e análise de latência"
+			},
+			{
+				"min": 0,
+				"max": 44,
+				"grade": "Inadequado",
+				"description": "Compreensão insuficiente, requer treinamento completo em operações de rede e diagnóstico de performance"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Enfatizar a importância da análise sistemática: traceroute primeiro, depois aprofundar onde encontrar anomalia",
+		"Apresentar informações progressivamente, simulando a descoberta natural durante investigação",
+		"Permitir 3-4 minutos de discussão entre participantes antes de cada resposta",
+		"Fazer perguntas socráticas: 'O que significam esses erros CRC?', 'Por que a latência na rota de trânsito é tão maior?'",
+		"Observar se a equipe diferencia problemas de roteamento vs problemas de camada física",
+		"Manter neutralidade técnica - não fornecer respostas diretas, apenas orientar pensamento crítico",
+		"Controlar tempo: Rodada 1 (5 min), Rodadas 2-4 (8-10 min cada), Rodada 5 (7 min)",
+		"Discutir o papel do perfSONAR como ferramenta padrão em redes acadêmicas para medição contínua",
+		"Após exercício: revisar gabarito, discutir importância de monitoramento proativo, coletar feedback"
+	],
+	"technicalReferences": [
+		{
+			"title": "perfSONAR - Network Measurement Toolkit",
+			"url": "https://www.perfsonar.net/"
+		},
+		{
+			"title": "RFC 4656 - A One-Way Active Measurement Protocol (OWAMP)",
+			"url": "https://www.rfc-editor.org/rfc/rfc4656"
+		},
+		{
+			"title": "RFC 5357 - A Two-Way Active Measurement Protocol (TWAMP)",
+			"url": "https://www.rfc-editor.org/rfc/rfc5357"
+		},
+		{
+			"title": "ESnet - Network Monitoring and Debugging",
+			"url": "https://fasterdata.es.net/performance-testing/"
+		},
+		{
+			"title": "RFC 4271 - A Border Gateway Protocol 4 (BGP-4)",
+			"url": "https://www.rfc-editor.org/rfc/rfc4271"
+		}
+	]
+}

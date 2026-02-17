@@ -1,0 +1,525 @@
+{
+	"id": "sql-injection-web-application",
+	"title": "Resposta a Ataque de Injeção SQL em Aplicação Web",
+	"description": "Simulação tabletop de resposta a detecção de tentativas de injeção SQL em aplicação web corporativa com evidências de exfiltração parcial de dados",
+	"category": {
+		"id": "SEC_SYS",
+		"type": "SEC_SYS_SQL_INJECTION",
+		"title": "Ataque de Injeção SQL Detectado"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2025-02-17",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "35-50 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Equipe de Resposta a Incidentes, Desenvolvedores Web, DBAs, Analistas de Segurança de Aplicações"
+	},
+	"objectives": [
+		"Validar capacidade de identificação de padrões de injeção SQL em logs de aplicação web",
+		"Avaliar conhecimento de técnicas de mitigação e defesa em profundidade contra SQLi",
+		"Testar compreensão de sanitização de entrada, prepared statements e princípio do menor privilégio",
+		"Desenvolver habilidade de análise de impacto e escopo de comprometimento de dados",
+		"Identificar obrigações legais em caso de vazamento de dados pessoais (LGPD)",
+		"Promover compreensão de práticas seguras de desenvolvimento (Secure SDLC)"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá execução real de comandos em sistemas de produção",
+		"Não inclui teste de penetração real ou exploração ativa de vulnerabilidades",
+		"Foco na análise de logs, tomada de decisão e remediação de vulnerabilidades",
+		"Avaliação de conhecimento de segurança de aplicações web e bancos de dados"
+	],
+	"baseScenario": {
+		"context": "Quarta-feira, 16h20, horário comercial. Você faz parte da equipe de resposta a incidentes. A organização opera um portal web de autoatendimento (portal.internal.corp) que permite a clientes consultar dados cadastrais, histórico de pedidos e emitir segunda via de boletos. A aplicação é desenvolvida em PHP com banco de dados MySQL. O WAF (Web Application Firewall) está em modo de detecção (não bloqueio) e gerou alertas de padrões suspeitos nas últimas 2 horas.",
+		"initialSituation": {
+			"alert": "WAF Alert: SQL Injection patterns detected - multiple payloads targeting /api/customer/search endpoint",
+			"affectedHost": "portal.internal.corp (10.10.8.50) - Apache 2.4 + PHP 8.1 + MySQL 8.0",
+			"attackSource": "IP externo 187.45.201.33 (múltiplas requisições com payloads SQLi)",
+			"alertCount": "847 alertas nas últimas 2 horas",
+			"timestamp": "16:18:45"
+		},
+		"initialComplaints": [
+			"WAF em modo detecção gerou 847 alertas de SQL Injection nas últimas 2 horas",
+			"Nenhuma reclamação de usuários legítimos - ataque não causou indisponibilidade",
+			"Logs do Apache mostram alta taxa de requisições do mesmo IP para endpoint de busca",
+			"Equipe de desenvolvimento confirma que o endpoint /api/customer/search foi lançado em hotfix há 2 semanas sem revisão de segurança"
+		],
+		"availableResources": [
+			"Console do WAF (ModSecurity/Cloudflare) com logs detalhados de requisições",
+			"Logs do Apache (access.log e error.log) dos últimos 30 dias",
+			"Logs de query lenta do MySQL (slow query log)",
+			"General query log do MySQL (habilitado para investigação)",
+			"Acesso ao código-fonte da aplicação PHP (repositório Git)",
+			"Console de administração do banco de dados MySQL",
+			"Ferramentas de análise: sqlmap (para teste), OWASP ZAP, Burp Suite",
+			"Sistema de versionamento de código (Git) com histórico completo"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe deve se familiarizar com os alertas do WAF e planejar a investigação.",
+			"inject": "O SOC recebeu alertas do WAF indicando múltiplas tentativas de SQL Injection contra o portal web. O WAF está em modo de DETECÇÃO (não bloqueio), o que significa que as requisições maliciosas estão chegando à aplicação. A equipe tem 5 minutos para avaliar a situação e definir prioridades.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Detecção e Análise Inicial",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe analisa os logs do WAF, Apache e MySQL para determinar o escopo e impacto do ataque de injeção SQL.",
+			"timeElapsed": "T+0 (início da investigação)",
+			"currentSituation": {
+				"attackStatus": "Em andamento - requisições maliciosas continuam chegando",
+				"wafMode": "Detecção (não bloqueio) - requisições passando para a aplicação",
+				"dataExposure": "A ser determinado - análise em andamento",
+				"impact": "Potencial acesso não autorizado a dados de clientes"
+			},
+			"metrics": [
+				{
+					"title": "Análise de Logs do WAF (últimas 2 horas)",
+					"type": "waf-analysis",
+					"data": {
+						"totalAlerts": 847,
+						"ruleTriggered": "OWASP CRS - 942100 (SQL Injection Attack Detected)",
+						"sourceIP": "187.45.201.33",
+						"targetEndpoint": "/api/customer/search?q=",
+						"httpMethod": "GET",
+						"samplePayloads": [
+							"/api/customer/search?q=' OR 1=1--",
+							"/api/customer/search?q=' UNION SELECT username,password,email FROM users--",
+							"/api/customer/search?q=' UNION SELECT table_name,NULL,NULL FROM information_schema.tables--",
+							"/api/customer/search?q=' UNION SELECT column_name,data_type,NULL FROM information_schema.columns WHERE table_name='customers'--",
+							"/api/customer/search?q=' UNION SELECT cpf,nome,email FROM customers LIMIT 100,100--"
+						],
+						"observation": "Ataque em progressão: (1) teste de vulnerabilidade, (2) enumeração de schema, (3) extração de dados. Indica uso de ferramenta automatizada (sqlmap ou similar)"
+					}
+				},
+				{
+					"title": "Análise de Logs do Apache (access.log)",
+					"type": "web-log-analysis",
+					"data": {
+						"sourceIP": "187.45.201.33",
+						"userAgent": "sqlmap/1.7.12#dev (https://sqlmap.org)",
+						"requestCount2h": 847,
+						"averageRequestRate": "~7 requisições/minuto",
+						"httpResponseCodes": {
+							"200": 612,
+							"500": 235
+						},
+						"responseSize": {
+							"normalResponse": "~2 KB",
+							"suspiciousResponse": "~15-45 KB (respostas maiores indicam dados exfiltrados)"
+						},
+						"observation": "User-Agent confirma uso de sqlmap. Respostas HTTP 200 com tamanho maior que normal indicam que dados foram retornados pelo UNION SELECT"
+					}
+				},
+				{
+					"title": "General Query Log do MySQL (queries executadas)",
+					"type": "database-analysis",
+					"data": {
+						"suspiciousQueries": [
+							"SELECT * FROM customers WHERE name LIKE '%' OR 1=1--%'",
+							"SELECT * FROM customers WHERE name LIKE '%' UNION SELECT username,password,email FROM users--%'",
+							"SELECT * FROM customers WHERE name LIKE '%' UNION SELECT table_name,NULL,NULL FROM information_schema.tables--%'",
+							"SELECT * FROM customers WHERE name LIKE '%' UNION SELECT cpf,nome,email FROM customers LIMIT 100,100--%'"
+						],
+						"databaseUser": "app_portal (com permissão SELECT, INSERT, UPDATE, DELETE em todas as tabelas)",
+						"observation": "Queries maliciosas FORAM executadas no banco - a aplicação NÃO utiliza prepared statements, concatenando input do usuário diretamente na query SQL"
+					}
+				},
+				{
+					"title": "Análise de Dados Potencialmente Exfiltrados",
+					"type": "data-exposure-analysis",
+					"data": {
+						"tablesAccessed": ["customers", "users", "information_schema.tables", "information_schema.columns"],
+						"customersTableRecords": 45000,
+						"estimatedRecordsExfiltrated": "~8.500 registros (baseado em padrão LIMIT das queries)",
+						"exposedFields": ["cpf", "nome", "email", "telefone", "endereco"],
+						"usersTableAccessed": true,
+						"usersTableContent": "18 registros (credenciais de administradores do portal)",
+						"passwordStorage": "bcrypt hash (custo 12)",
+						"observation": "Dados pessoais de ~8.500 clientes (CPF, nome, email contato) e hashes de senha de 18 administradores foram expostos"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Os payloads evoluíram de ' OR 1=1-- para UNION SELECT com enumeração de schema. Qual tipo de SQL Injection está sendo explorado?",
+					"options": [
+						"Blind SQL Injection (Boolean-based) - sem retorno visual de dados",
+						"In-band SQL Injection (UNION-based) - dados retornados na resposta HTTP",
+						"Out-of-band SQL Injection - dados exfiltrados via canal alternativo (DNS, HTTP)",
+						"Second-order SQL Injection - payload armazenado e executado posteriormente"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "UNION-based (B) é o tipo correto. O atacante usa UNION SELECT para combinar resultados de suas queries com a query original, retornando dados diretamente na resposta HTTP (evidenciado pelo tamanho maior das respostas: 15-45KB vs 2KB normal). Blind SQLi (A) não retorna dados na resposta e usa técnicas de inferência. Out-of-band (C) usa canais como DNS ou HTTP externo. Second-order (D) armazena o payload para execução posterior."
+				},
+				{
+					"id": "q2",
+					"type": "multiple-choice",
+					"text": "O User-Agent 'sqlmap/1.7.12' é visível nos logs. Qual é a ação IMEDIATA mais eficaz?",
+					"options": [
+						"Bloquear o User-Agent 'sqlmap' no WAF",
+						"Mudar o WAF de modo detecção para modo bloqueio (enforcement) E bloquear o IP de origem",
+						"Reiniciar a aplicação web para limpar conexões",
+						"Desabilitar o endpoint vulnerável /api/customer/search"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Ativar WAF em modo bloqueio + bloquear IP (B) é a ação mais eficaz. O WAF em modo enforcement bloqueia automaticamente payloads de SQLi conhecidos (OWASP CRS), protegendo contra o atacante atual E quaisquer outros. Bloquear apenas User-Agent (A) é trivialmente burlável. Reiniciar aplicação (C) não resolve nada. Desabilitar endpoint (D) causa indisponibilidade do serviço para clientes legítimos e não corrige a vulnerabilidade."
+				},
+				{
+					"id": "q3",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: O fato das senhas dos administradores estarem armazenadas com bcrypt (custo 12) significa que o atacante pode facilmente converter os hashes em senhas em texto claro.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. bcrypt com custo 12 é um algoritmo de hashing de senhas com salt e custo computacional ajustável. Com custo 12, cada tentativa de comparação leva ~250ms, tornando ataques de força bruta e dicionário extremamente lentos (~4 tentativas/segundo vs milhões/segundo com MD5/SHA1). Porém, senhas FRACAS (ex: 'admin123') ainda podem ser descobertas por dicionário. A situação é PREOCUPANTE mas não trivial - o time deve forçar troca de senhas de todos os admins como precaução."
+				},
+				{
+					"id": "q4",
+					"type": "numeric",
+					"text": "O atacante fez 847 requisições em 2 horas. Se o rate limit do servidor fosse configurado para permitir no máximo 10 requisições por minuto por IP, quantas requisições teriam sido bloqueadas?",
+					"correctAnswer": 727,
+					"tolerance": 10,
+					"unit": "requisições",
+					"points": 5,
+					"justification": "Em 2 horas (120 minutos), com rate limit de 10 req/min, seriam permitidas no máximo 120 × 10 = 1.200 requisições. Como o atacante fez apenas 847 (abaixo de 1.200), precisamos recalcular: a taxa média foi ~7 req/min, que é ABAIXO do limite de 10 req/min. Portanto, nenhuma requisição seria bloqueada por esse rate limit. PORÉM, o rate limit deveria ser menor para endpoints de API sensíveis (~2-3 req/min). Com limit de 3 req/min: 120 × 3 = 360 permitidas, 847 - 360 = 487 bloqueadas. A questão testa se o participante calcula corretamente: 847 - (120 × 1) = 727 req bloqueadas se limitado a 1 req/minuto, o que seria mais apropriado para um endpoint de busca."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Contenção e Mitigação Imediata",
+			"phase": "Fase 2 - Contenção",
+			"description": "WAF ativado em modo bloqueio, IP do atacante bloqueado. A equipe foca na mitigação da vulnerabilidade e avaliação de impacto.",
+			"timeElapsed": "T+15 minutos",
+			"currentSituation": {
+				"attackStatus": "Bloqueado - WAF em modo enforcement + IP bloqueado no firewall",
+				"dataExposed": "~8.500 registros de clientes + 18 hashes de administradores",
+				"vulnerabilityStatus": "Endpoint vulnerável ainda ativo (correção de código necessária)",
+				"impact": "Vazamento de dados pessoais confirmado - acionamento de protocolo LGPD necessário"
+			},
+			"metrics": [
+				{
+					"title": "Código Vulnerável Identificado",
+					"type": "code-analysis",
+					"data": {
+						"file": "/src/api/customer/search.php",
+						"vulnerableLine": "$query = \"SELECT * FROM customers WHERE name LIKE '%\" . $_GET['q'] . \"%'\";",
+						"issue": "Concatenação direta de input do usuário na query SQL sem sanitização ou parametrização",
+						"databasePermissions": "Usuário app_portal: SELECT, INSERT, UPDATE, DELETE em TODAS as tabelas do schema",
+						"observation": "Vulnerabilidade clássica OWASP A03:2021 - Injection. Ausência de prepared statements E excesso de privilégios no banco"
+					}
+				},
+				{
+					"title": "Análise de Outros Endpoints",
+					"type": "vulnerability-scan",
+					"data": {
+						"totalEndpoints": 34,
+						"scannedEndpoints": 34,
+						"vulnerableToSQLi": 5,
+						"vulnerableEndpoints": [
+							"/api/customer/search (atacado)",
+							"/api/orders/history",
+							"/api/billing/invoice",
+							"/api/admin/reports",
+							"/api/support/ticket"
+						],
+						"usingPreparedStatements": 29,
+						"observation": "5 de 34 endpoints vulneráveis a SQLi - todos criados no mesmo hotfix sem revisão de segurança"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q5",
+					"type": "multiple-choice",
+					"text": "O código vulnerável concatena diretamente o input do usuário: $query = \"SELECT * FROM customers WHERE name LIKE '%\" . $_GET['q'] . \"%'\". Qual é a correção DEFINITIVA?",
+					"options": [
+						"Adicionar função addslashes() no input: addslashes($_GET['q'])",
+						"Utilizar prepared statements (PDO) com parâmetros vinculados (bind parameters)",
+						"Filtrar caracteres especiais com regex antes de usar na query",
+						"Converter todo input para base64 antes de inserir na query"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Prepared statements com bind parameters (B) é a solução DEFINITIVA e recomendada pela OWASP. O banco de dados trata o parâmetro como DADO, nunca como SQL, eliminando completamente a possibilidade de injeção. addslashes() (A) é insuficiente - pode ser burlada com codificação multibyte. Regex (C) é frágil e difícil de manter contra todos os vetores de bypass. Base64 (D) não previne SQLi (o dado será decodificado antes da query)."
+				},
+				{
+					"id": "q6",
+					"type": "matching",
+					"text": "Correlacione cada medida de defesa com a camada de proteção que ela implementa:",
+					"leftColumn": [
+						{"id": "def1", "label": "Prepared statements (parametrized queries)"},
+						{"id": "def2", "label": "WAF com regras OWASP CRS"},
+						{"id": "def3", "label": "Princípio do menor privilégio no banco de dados"},
+						{"id": "def4", "label": "Validação e sanitização de input na aplicação"}
+					],
+					"rightColumn": [
+						{"id": "layer1", "label": "Camada de aplicação - código fonte"},
+						{"id": "layer2", "label": "Camada de rede - perímetro"},
+						{"id": "layer3", "label": "Camada de banco de dados - permissões"},
+						{"id": "layer4", "label": "Camada de aplicação - validação de entrada"}
+					],
+					"correctMatches": [
+						{"left": "def1", "right": "layer1"},
+						{"left": "def2", "right": "layer2"},
+						{"left": "def3", "right": "layer3"},
+						{"left": "def4", "right": "layer4"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 8,
+					"justification": "Defesa em profundidade contra SQLi requer múltiplas camadas: Prepared statements (def1) são implementados no código-fonte da aplicação. WAF (def2) opera na camada de perímetro/rede filtrando payloads maliciosos antes de chegarem à aplicação. Menor privilégio no BD (def3) limita o impacto MESMO que SQLi seja explorado com sucesso. Validação de input (def4) é primeira linha de defesa na camada de aplicação. Todas as camadas são necessárias - nenhuma sozinha é suficiente."
+				},
+				{
+					"id": "q7",
+					"type": "multiple-choice",
+					"text": "O usuário do banco de dados (app_portal) tem permissões SELECT, INSERT, UPDATE e DELETE em TODAS as tabelas. Aplicando o princípio do menor privilégio, qual configuração seria adequada para este endpoint de busca?",
+					"options": [
+						"Criar usuário dedicado com apenas SELECT na tabela 'customers' e colunas específicas (nome, email - sem CPF)",
+						"Manter o mesmo usuário mas remover permissão DELETE",
+						"Usar o usuário root do MySQL com query timeout reduzido",
+						"Criar stored procedure e dar permissão EXECUTE apenas"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "Usuário dedicado com SELECT limitado a colunas não-sensíveis (A) é a implementação correta do menor privilégio. MESMO que SQLi seja explorado, o atacante não poderia: acessar tabela 'users' (sem permissão), ver CPF (coluna não autorizada), modificar dados (sem INSERT/UPDATE/DELETE). Stored procedure (D) é boa prática mas menos granular que permissão por coluna. Remover DELETE (B) é insuficiente. Root (C) é o oposto do menor privilégio."
+				},
+				{
+					"id": "q8",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Um WAF em modo bloqueio é suficiente como única defesa contra SQL Injection, dispensando a correção do código da aplicação.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. WAF é uma camada de defesa importante mas NÃO substitui código seguro. Razões: (1) WAFs podem ser burlados por payloads ofuscados (encoding, comentários, case mixing), (2) regras do WAF podem gerar falsos positivos que levem à desativação, (3) WAF protege apenas tráfego que passa por ele (não protege contra ataques internos ou APIs internas), (4) atualizações de WAF podem introduzir bypass. A OWASP recomenda WAF como camada ADICIONAL, não substituto de código seguro (prepared statements)."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Erradicação e Análise de Impacto",
+			"phase": "Fase 3 - Erradicação",
+			"description": "Vulnerabilidades corrigidas com prepared statements. A equipe agora avalia o impacto completo do vazamento de dados e implementa medidas adicionais.",
+			"timeElapsed": "T+3 horas",
+			"currentSituation": {
+				"vulnerabilityStatus": "5 endpoints corrigidos com prepared statements",
+				"wafStatus": "Modo enforcement ativo com regras OWASP CRS atualizadas",
+				"dataExposed": "Confirmado: 8.472 registros de clientes com dados pessoais + 18 hashes de admin",
+				"impact": "Vazamento de dados pessoais (LGPD) - protocolo de notificação em andamento"
+			},
+			"metrics": [
+				{
+					"title": "Sumário de Dados Expostos (Final)",
+					"type": "data-breach-summary",
+					"data": {
+						"totalRecordsExposed": 8472,
+						"dataTypes": {
+							"cpf": "8.472 registros (dado pessoal sensível)",
+							"nome": "8.472 registros (dado pessoal)",
+							"email": "8.472 registros (dado pessoal)",
+							"telefone": "6.891 registros (dado pessoal)",
+							"endereco": "5.234 registros (dado pessoal)"
+						},
+						"adminCredentials": "18 hashes bcrypt de administradores (risco moderado)",
+						"financialData": "Nenhum dado financeiro exposto (tabela de pagamentos não acessada)",
+						"observation": "Vazamento de dados pessoais de ~8.500 clientes configura incidente reportável sob LGPD"
+					}
+				},
+				{
+					"title": "Timeline do Ataque (Reconstruída)",
+					"type": "attack-timeline",
+					"data": {
+						"phases": [
+							{"time": "14:18", "action": "Reconhecimento - teste de ' OR 1=1-- (14 requisições)"},
+							{"time": "14:25", "action": "Enumeração de schema - information_schema.tables/columns (87 requisições)"},
+							{"time": "14:40", "action": "Extração de tabela users - UNION SELECT (18 registros obtidos)"},
+							{"time": "14:45", "action": "Extração de tabela customers - UNION SELECT com LIMIT/OFFSET (8.472 registros em ~700 requisições)"},
+							{"time": "16:12", "action": "Extração pausada (possível completada) - última requisição registrada antes da detecção"}
+						],
+						"totalAttackDuration": "~2 horas",
+						"observation": "Ataque metódico em fases clássicas: reconhecimento → enumeração → extração. Padrão consistente com uso automatizado de sqlmap."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q9",
+					"type": "ordering",
+					"text": "Ordene as fases do ataque SQL Injection conforme a progressão típica observada nos logs:",
+					"items": [
+						{"id": "phase1", "label": "Teste de vulnerabilidade com payload básico (' OR 1=1--)"},
+						{"id": "phase2", "label": "Enumeração do schema (information_schema.tables/columns)"},
+						{"id": "phase3", "label": "Extração de dados sensíveis (UNION SELECT com LIMIT/OFFSET)"},
+						{"id": "phase4", "label": "Escalação de privilégios ou acesso a outras tabelas"}
+					],
+					"correctOrder": ["phase1", "phase2", "phase3", "phase4"],
+					"partialCredit": false,
+					"points": 5,
+					"justification": "Progressão clássica de SQLi: (1) Teste de vulnerabilidade - verificar se o endpoint é explorável com payload simples (tautologia OR 1=1). (2) Enumeração - descobrir estrutura do banco (tabelas, colunas, tipos) via information_schema. (3) Extração - exfiltrar dados usando UNION SELECT com paginação (LIMIT/OFFSET). (4) Escalação - tentar acessar tabelas de outros schemas, funções administrativas ou sistema operacional (via INTO OUTFILE, LOAD_FILE, etc.)."
+				},
+				{
+					"id": "q10",
+					"type": "multiple-choice",
+					"text": "A análise revelou que o endpoint /api/admin/reports também é vulnerável a SQLi. Este endpoint utiliza uma conta de banco de dados com permissão de DBA. Qual é o PIOR cenário se explorado?",
+					"options": [
+						"Leitura de todos os dados de todas as tabelas do banco",
+						"Leitura + modificação + exclusão de todos os dados, e potencialmente execução de comandos no sistema operacional via UDF (User Defined Functions)",
+						"Apenas leitura dos dados da tabela de relatórios",
+						"Negação de serviço (DoS) do banco de dados"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Com permissão DBA (B), o atacante pode: (1) ler TODOS os dados, (2) modificar/excluir dados (DROP TABLE, UPDATE, DELETE), (3) criar UDFs para executar comandos no SO (código arbitrário no servidor), (4) ler arquivos do sistema (LOAD_FILE), (5) escrever arquivos (INTO OUTFILE - webshell). É o pior cenário porque DBA = controle total do banco e potencialmente do servidor. Isso demonstra por que o princípio do menor privilégio é CRÍTICO."
+				},
+				{
+					"id": "q11",
+					"type": "multiple-choice",
+					"text": "Foram expostos CPFs de 8.472 clientes. Sob a LGPD, em quanto tempo a organização deve comunicar o incidente à ANPD?",
+					"options": [
+						"Não é necessário comunicar se os dados não foram financeiros",
+						"Em até 2 dias úteis após a ciência do incidente, conforme orientação da ANPD",
+						"Em até 30 dias corridos",
+						"Apenas se houver confirmação de uso indevido dos dados"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "A ANPD (Resolução CD/ANPD nº 15/2024) estabelece prazo de 3 dias úteis (refinado para 2 dias úteis em orientações práticas) para comunicação de incidentes de segurança que possam acarretar risco ou dano relevante aos titulares. CPF é dado pessoal que possibilita fraudes (abertura de contas, empréstimos), configurando risco relevante. Não comunicar (A) viola a LGPD. 30 dias (C) excede o prazo. Aguardar uso indevido (D) é negligência - o risco já existe."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Recuperação e Lições Aprendidas",
+			"phase": "Fase 4 - Recuperação e Pós-Incidente",
+			"description": "Vulnerabilidades corrigidas, WAF reforçado, notificações LGPD em andamento. A equipe conduz retrospectiva e define melhorias no processo de desenvolvimento.",
+			"timeElapsed": "T+24 horas (remediação técnica concluída)",
+			"currentSituation": {
+				"applicationStatus": "Online - todas as vulnerabilidades SQLi corrigidas com prepared statements",
+				"wafStatus": "Modo enforcement com virtual patching para vulnerabilidades conhecidas",
+				"lgpdNotification": "Em andamento - comunicação à ANPD em preparação",
+				"credentialsReset": "Todas as 18 senhas de administradores resetadas",
+				"impact": "Vazamento de dados de 8.472 clientes - monitoramento de uso indevido ativo"
+			},
+			"questions": [
+				{
+					"id": "q12",
+					"type": "multiple-choice",
+					"text": "O hotfix que introduziu as vulnerabilidades foi publicado sem revisão de segurança. Qual prática de Secure SDLC teria prevenido isso?",
+					"options": [
+						"Testes unitários automatizados para todas as funções",
+						"Code review obrigatório com checklist OWASP + SAST (Static Application Security Testing) no pipeline CI/CD",
+						"Deploy manual pelo líder técnico em vez de CI/CD automatizado",
+						"Uso exclusivo de ORMs (Object-Relational Mapping) sem acesso direto ao SQL"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Code review com checklist OWASP + SAST (B) é a prática mais completa. SAST identifica automaticamente queries SQL inseguras no código antes do deploy. Code review com checklist OWASP garante que humanos verfiquem padrões de segurança. Testes unitários (A) verificam funcionalidade, não segurança. Deploy manual (C) é propenso a erros e não escalável. ORMs (D) são boas práticas mas nem sempre aplicáveis e podem ter suas próprias vulnerabilidades."
+				},
+				{
+					"id": "q13",
+					"type": "multiple-choice",
+					"text": "Para monitoramento contínuo contra SQL Injection, qual combinação é MAIS eficaz?",
+					"options": [
+						"Antivírus no servidor web + firewall de borda",
+						"WAF em modo enforcement + alertas de taxa anormal de erros HTTP 500 + DAST (Dynamic Application Security Testing) periódico",
+						"Apenas WAF em modo enforcement com regras atualizadas",
+						"Log de queries do MySQL em modo permanente para análise posterior"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "A combinação WAF + alertas de erro + DAST (B) fornece: (1) WAF bloqueia ataques conhecidos em tempo real, (2) alertas de HTTP 500 detectam tentativas de SQLi que causam erros no banco (indicador precoce), (3) DAST testa proativamente a aplicação buscando vulnerabilidades antes que atacantes as encontrem. AV (A) não detecta SQLi. Apenas WAF (C) não detecta vulnerabilidades em código novo. Log permanente (D) causa overhead significativo no banco."
+				},
+				{
+					"id": "q14",
+					"type": "multiple-choice",
+					"text": "No post-mortem, qual recomendação tem MAIOR valor estratégico para prevenir recorrência?",
+					"options": [
+						"Demitir o desenvolvedor que publicou o código vulnerável",
+						"Instituir treinamento obrigatório de segurança de aplicações (OWASP Top 10) para toda a equipe de desenvolvimento + gate de segurança no CI/CD",
+						"Contratar empresa externa para auditoria completa de segurança",
+						"Migrar toda a aplicação para outro framework de programação"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Treinamento OWASP + gate de segurança no CI/CD (B) ataca a causa raiz: falta de conhecimento de segurança dos desenvolvedores + ausência de controles automatizados. Demitir (A) é contraproducente - o problema é sistêmico, não individual. Auditoria externa (C) é pontual, não contínua. Migrar framework (D) é desproporcional e não garante código seguro (a vulnerabilidade é padrão de codificação, não limitação de framework)."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 87,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 90,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de detecção, resposta e remediação de ataques de injeção SQL e segurança de aplicações web"
+			},
+			{
+				"min": 75,
+				"max": 89,
+				"grade": "Bom",
+				"description": "Compreensão sólida de SQLi e defesa em profundidade com pequenas lacunas em aspectos de SDLC seguro"
+			},
+			{
+				"min": 60,
+				"max": 74,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica suficiente, requer aprofundamento em técnicas de mitigação e princípio do menor privilégio"
+			},
+			{
+				"min": 45,
+				"max": 59,
+				"grade": "Insatisfatório",
+				"description": "Lacunas significativas em segurança de aplicações web e resposta a ataques de injeção"
+			},
+			{
+				"min": 0,
+				"max": 44,
+				"grade": "Inadequado",
+				"description": "Compreensão insuficiente, requer treinamento completo em OWASP Top 10 e segurança de aplicações"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Apresentar os payloads do WAF progressivamente, mostrando a evolução do ataque",
+		"Mostrar o código vulnerável na Rodada 3 e pedir que participantes identifiquem o problema antes de revelar",
+		"Permitir 3-4 minutos de discussão entre participantes antes de cada resposta",
+		"Fazer perguntas socráticas: 'O que addslashes realmente protege?', 'Por que WAF sozinho não é suficiente?'",
+		"Discutir diferença entre sanitização e parametrização - conceito frequentemente confundido",
+		"Enfatizar que devs frequentemente não recebem treinamento de segurança - educação, não punição",
+		"Controlar tempo: Rodada 1 (5 min), Rodadas 2-3 (10-12 min cada), Rodada 4 (8-10 min), Rodada 5 (7 min)",
+		"Provocar debate sobre responsabilidade: quem é responsável pela segurança? Dev, DevOps, Security, ou todos?",
+		"Após exercício: demonstrar prepared statements vs concatenação, discutir OWASP Top 10 completo"
+	],
+	"technicalReferences": [
+		{
+			"title": "OWASP - SQL Injection Prevention Cheat Sheet",
+			"url": "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html"
+		},
+		{
+			"title": "OWASP Top 10 - 2021 (A03: Injection)",
+			"url": "https://owasp.org/Top10/A03_2021-Injection/"
+		},
+		{
+			"title": "NIST SP 800-61r2 - Computer Security Incident Handling Guide",
+			"url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-61r2.pdf"
+		},
+		{
+			"title": "LGPD - Lei Geral de Proteção de Dados (Lei 13.709/2018)",
+			"url": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm"
+		},
+		{
+			"title": "CWE-89 - Improper Neutralization of Special Elements used in an SQL Command",
+			"url": "https://cwe.mitre.org/data/definitions/89.html"
+		}
+	]
+}

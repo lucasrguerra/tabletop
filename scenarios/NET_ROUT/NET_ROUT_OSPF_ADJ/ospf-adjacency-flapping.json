@@ -1,0 +1,521 @@
+{
+	"id": "ospf-adjacency-flapping",
+	"title": "Resposta a Queda de Adjacência OSPF (Neighbor Flapping)",
+	"description": "Simulação tabletop de resposta a falhas recorrentes de adjacências OSPF entre roteadores, causando instabilidade de rotas internas e reconvergência constante",
+	"category": {
+		"id": "NET_ROUT",
+		"type": "NET_ROUT_OSPF_ADJ",
+		"title": "Queda de Adjacência OSPF (Neighbor Flapping)"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2025-02-17",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "35-50 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Engenheiros de Rede, Equipe de NOC, Administradores de Rede Corporativa, Operadores de Backbone"
+	},
+	"objectives": [
+		"Validar capacidade de diagnóstico de falhas de adjacência OSPF e suas causas raiz",
+		"Avaliar conhecimento dos estados OSPF (Down → Init → Two-Way → ExStart → Exchange → Loading → Full)",
+		"Testar compreensão de causas comuns de flapping OSPF (MTU mismatch, timers, autenticação, L2)",
+		"Desenvolver habilidade de análise de logs OSPF e correlação com camada física",
+		"Identificar impacto da instabilidade OSPF em serviços dependentes (MPLS, BGP, VPN)",
+		"Promover entendimento da eleição DR/BDR e seu papel na estabilidade de redes OSPF"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá execução real de comandos em roteadores de produção",
+		"Não inclui alterações reais em configuração OSPF ou parâmetros de interface",
+		"Foco na análise de causa raiz, diagnóstico de adjacências e resolução de MTU mismatch",
+		"Avaliação de conhecimento de protocolo OSPF, estados de vizinhança e troubleshooting"
+	],
+	"baseScenario": {
+		"context": "Quinta-feira, 08h45, início do expediente. Você faz parte da equipe de rede. A organização opera uma rede corporativa com OSPF como IGP em uma topologia de 3 áreas: Área 0 (backbone com 4 roteadores), Área 1 (campus principal, 6 roteadores) e Área 2 (datacenter, 4 roteadores). Nos últimos 30 minutos, intermitência de rede vem sendo reportada por usuários do campus principal.",
+		"initialSituation": {
+			"alert": "Adjacência OSPF instável entre core-rtr-01 e dist-rtr-03 - oscilando entre FULL e DOWN",
+			"affectedLink": "core-rtr-01 (GigabitEthernet0/1) ↔ dist-rtr-03 (GigabitEthernet0/0)",
+			"flapInterval": "Adjacência cai a cada 2-5 minutos, restabelece em 40 segundos",
+			"ospfArea": "Área 1 (campus principal)",
+			"timestamp": "08:17:32"
+		},
+		"initialComplaints": [
+			"Usuários do campus principal reportam quedas intermitentes de acesso a sistemas do datacenter",
+			"Sessões SSH para servidores do datacenter desconectam aleatoriamente",
+			"Sistema de VoIP apresenta cortes de áudio e quedas de chamadas",
+			"Monitoramento SNMP mostra flap de rotas OSPF na Área 1"
+		],
+		"availableResources": [
+			"Acesso CLI aos roteadores (core-rtr-01 a core-rtr-04, dist-rtr-01 a dist-rtr-06)",
+			"Sistema de monitoramento (Zabbix) com métricas de interfaces e OSPF",
+			"Ferramentas: show ip ospf neighbor, show ip ospf interface, show ip ospf database, debug ip ospf adj",
+			"Logs de syslog centralizado com eventos OSPF",
+			"Documentação de topologia OSPF com IPs, áreas e custo de interfaces",
+			"Ferramenta de packet capture (tcpdump/Wireshark)",
+			"Acesso físico ao cabeamento entre core-rtr-01 e dist-rtr-03"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe deve se familiarizar com a topologia OSPF, as áreas configuradas e os sintomas reportados.",
+			"inject": "Apresentação do cenário conforme descrito. A equipe tem 5 minutos para discutir a topologia e planejar a investigação.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Detecção e Análise Inicial",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe acessa os roteadores e coleta informações sobre o estado das adjacências OSPF e eventos de instabilidade.",
+			"timeElapsed": "T+0 (início da investigação)",
+			"currentSituation": {
+				"adjacencyStatus": "core-rtr-01 ↔ dist-rtr-03: oscilando FULL ↔ DOWN a cada 2-5 min",
+				"otherAdjacencies": "Todas as demais adjacências OSPF estáveis (FULL)",
+				"routeFlaps": "12 rotas da Área 1 oscilando com cada flap de adjacência",
+				"spfRuns": "47 SPF runs nas últimas 30 minutos (normal: ~1/hora)",
+				"impact": "Intermitência para usuários do campus que dependem de rotas via dist-rtr-03"
+			},
+			"metrics": [
+				{
+					"title": "Status OSPF Neighbors (core-rtr-01)",
+					"type": "routing-analysis",
+					"data": {
+						"command": "show ip ospf neighbor",
+						"neighbors": [
+							{
+								"neighbor": "10.1.0.2",
+								"routerID": "10.1.0.2 (core-rtr-02)",
+								"state": "FULL/DR",
+								"deadTime": "00:00:38",
+								"interface": "GigabitEthernet0/0",
+								"uptime": "15d 07:22:14"
+							},
+							{
+								"neighbor": "10.1.1.3",
+								"routerID": "10.1.1.3 (dist-rtr-03)",
+								"state": "EXSTART/—",
+								"deadTime": "00:00:35",
+								"interface": "GigabitEthernet0/1",
+								"uptime": "00:00:05"
+							},
+							{
+								"neighbor": "10.1.1.4",
+								"routerID": "10.1.1.4 (dist-rtr-04)",
+								"state": "FULL/BDR",
+								"deadTime": "00:00:32",
+								"interface": "GigabitEthernet0/2",
+								"uptime": "15d 07:20:48"
+							}
+						],
+						"observation": "Adjacência com dist-rtr-03 presa em estado EXSTART - não progride para EXCHANGE/LOADING/FULL"
+					}
+				},
+				{
+					"title": "Logs OSPF (core-rtr-01 - últimos 30 min)",
+					"type": "routing-analysis",
+					"data": {
+						"command": "show logging | include OSPF",
+						"logEntries": [
+							"08:17:32 %OSPF-5-ADJCHG: Process 1, Nbr 10.1.1.3 on GigabitEthernet0/1 from FULL to DOWN, Neighbor Down: Dead timer expired",
+							"08:17:38 %OSPF-5-ADJCHG: Process 1, Nbr 10.1.1.3 on GigabitEthernet0/1 from DOWN to INIT, Received Hello",
+							"08:17:39 %OSPF-5-ADJCHG: Process 1, Nbr 10.1.1.3 on GigabitEthernet0/1 from INIT to TWO-WAY, Received Hello",
+							"08:17:40 %OSPF-5-ADJCHG: Process 1, Nbr 10.1.1.3 on GigabitEthernet0/1 from TWO-WAY to EXSTART, AdjOK?",
+							"08:17:55 %OSPF-5-ADJCHG: Process 1, Nbr 10.1.1.3 on GigabitEthernet0/1 from EXSTART to DOWN, Neighbor Down: Too many retransmits",
+							"08:18:02 %OSPF-5-ADJCHG: Process 1, Nbr 10.1.1.3 on GigabitEthernet0/1 from DOWN to INIT, Received Hello",
+							"... (padrão repetitivo: DOWN → INIT → TWO-WAY → EXSTART → DOWN)"
+						],
+						"flapCount": "14 ciclos nos últimos 30 minutos",
+						"observation": "Adjacência fica presa em EXSTART e cai por 'Too many retransmits'. NUNCA alcança EXCHANGE. Padrão clássico de MTU mismatch."
+					}
+				},
+				{
+					"title": "Configuração de Interface (ambos os lados)",
+					"type": "network-analysis",
+					"data": {
+						"coreRtr01": {
+							"interface": "GigabitEthernet0/1",
+							"ipAddress": "10.1.12.1/30",
+							"mtu": 9000,
+							"ospfCost": 10,
+							"ospfHelloTimer": 10,
+							"ospfDeadTimer": 40,
+							"ospfNetwork": "point-to-point"
+						},
+						"distRtr03": {
+							"interface": "GigabitEthernet0/0",
+							"ipAddress": "10.1.12.2/30",
+							"mtu": 1500,
+							"ospfCost": 10,
+							"ospfHelloTimer": 10,
+							"ospfDeadTimer": 40,
+							"ospfNetwork": "point-to-point"
+						},
+						"observation": "MTU MISMATCH: core-rtr-01 = 9000 (jumbo frames), dist-rtr-03 = 1500 (padrão). DBD packets > 1500 bytes são descartados pelo dist-rtr-03"
+					}
+				},
+				{
+					"title": "Estatísticas SPF (core-rtr-01)",
+					"type": "routing-analysis",
+					"data": {
+						"command": "show ip ospf statistics",
+						"spfRuns30min": 47,
+						"normalSpfRate": "1-2 por hora",
+						"lastSpfReason": "Adjacency change on GigabitEthernet0/1",
+						"spfDelay": "5000 ms (padrão)",
+						"observation": "47 SPF runs em 30 min (normal: 1-2/hora). Cada flap de adjacência gera recomputação SPF, consumindo CPU e causando micro-convergência"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"text": "A adjacência fica presa em EXSTART e cai por 'Too many retransmits'. O core-rtr-01 tem MTU 9000 e o dist-rtr-03 tem MTU 1500. Qual é a relação entre MTU mismatch e a falha em EXSTART?",
+					"options": [
+						"MTU mismatch causa perda de Hello packets que são maiores que 1500 bytes",
+						"No estado EXSTART, roteadores trocam DBD (Database Description) packets. Com MTU 9000, o core-rtr-01 envia DBDs maiores que 1500 bytes, que são descartados pelo dist-rtr-03",
+						"MTU mismatch causa incompatibilidade de área OSPF entre os roteadores",
+						"OSPF verifica MTU no Hello e rejeita vizinhos com MTU diferente"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "No estado EXSTART/EXCHANGE (B), roteadores negociam master/slave e trocam DBD packets descrevendo seu LSDB. Com MTU 9000, core-rtr-01 pode enviar DBDs de até 9000 bytes. O dist-rtr-03 (MTU 1500) descarta pacotes > 1500 bytes na camada IP (fragmentação geralmente desabilitada com DF bit). Resultado: DBDs não chegam, retransmissões esgotam, adjacência volta para DOWN. Hellos (A) são pequenos (~60 bytes), não afetados por MTU. OSPF verifica MTU no DBD (D), não no Hello."
+				},
+				{
+					"id": "q2",
+					"type": "ordering",
+					"text": "Ordene corretamente os estados OSPF de adjacência, do inicial ao final:",
+					"items": [
+						{"id": "s1", "label": "Down - Nenhum Hello recebido do vizinho"},
+						{"id": "s2", "label": "Init - Hello recebido, mas sem confirmação bidirecional"},
+						{"id": "s3", "label": "Two-Way - Bidirecionalidade confirmada, decisão DR/BDR"},
+						{"id": "s4", "label": "ExStart - Negociação master/slave para troca de DBD"},
+						{"id": "s5", "label": "Exchange - Troca de DBD (resumo do LSDB)"},
+						{"id": "s6", "label": "Loading - Download de LSAs faltantes via LSR/LSU"},
+						{"id": "s7", "label": "Full - Adjacência completa, LSDBs sincronizados"}
+					],
+					"correctOrder": ["s1", "s2", "s3", "s4", "s5", "s6", "s7"],
+					"partialCredit": false,
+					"points": 5,
+					"justification": "Os 7 estados OSPF seguem ordem estrita: (1) Down: estado inicial. (2) Init: Hello recebido mas sem o próprio Router ID na lista de vizinhos do peer. (3) Two-Way: bidirecionalidade confirmada, eleição DR/BDR ocorre aqui. (4) ExStart: negociação de master/slave e initial sequence number para troca de DBD. (5) Exchange: troca de DBD descrevendo LSAs no LSDB. (6) Loading: request e download de LSAs que o vizinho tem mas o local não. (7) Full: LSDBs completamente sincronizados, adjacência operacional."
+				},
+				{
+					"id": "q3",
+					"text": "A adjacência progride até EXSTART mas nunca chega a EXCHANGE. Qual comando CONFIRMARIA definitivamente que o problema é MTU mismatch?",
+					"options": [
+						"ping 10.1.12.2 size 9000 df-bit - testa se pacotes de 9000 bytes passam com DF bit",
+						"show ip ospf interface GigabitEthernet0/1 - mostra MTU da interface OSPF",
+						"debug ip ospf packet - mostra conteúdo dos pacotes OSPF trocados",
+						"show ip route ospf - mostra rotas aprendidas via OSPF"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "Ping com tamanho 9000 e df-bit (A) é o teste definitivo: se o ping falhar (packet too big / need to fragment), confirma que pacotes de 9000 bytes não passam pelo link. O df-bit (Don't Fragment) impede fragmentação, forçando descarte se MTU for excedida. show ip ospf interface (B) mostra MTU configurada localmente mas não testa o caminho end-to-end. debug ospf (C) mostraria retransmissões mas é mais complexo de analisar. show ip route (D) mostra consequência, não causa."
+				},
+				{
+					"id": "q4",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: O comando 'ip ospf mtu-ignore' na interface resolve permanentemente o problema de MTU mismatch sem efeitos colaterais.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. 'ip ospf mtu-ignore' faz o OSPF ignorar a verificação de MTU durante a troca de DBD, permitindo que a adjacência se forme. PORÉM: (1) o problema de MTU REAL persiste - pacotes de dados maiores que 1500 bytes serão descartados silenciosamente, (2) tráfego IP com pacotes jumbo será afetado, (3) mascara a causa raiz ao invés de corrigi-la. A solução correta é alinhar a MTU em ambos os lados (ambos 9000 ou ambos 1500, dependendo da capacidade do switch intermediário)."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Contenção e Correção",
+			"phase": "Fase 2 - Contenção",
+			"description": "A equipe identifica MTU mismatch como causa raiz. Investiga a origem: o core-rtr-01 teve jumbo frames habilitado recentemente em uma mudança de configuração para suporte a iSCSI, mas o switch intermediário e o dist-rtr-03 não foram atualizados.",
+			"timeElapsed": "T+15 minutos",
+			"currentSituation": {
+				"rootCause": "MTU 9000 configurada em core-rtr-01 (jumbo frames para iSCSI), mas dist-rtr-03 e switch intermediário permanecem com MTU 1500",
+				"proposedFix": "Alinhar MTU: reduzir core-rtr-01 GigabitEthernet0/1 para MTU 1500 (contenção imediata)",
+				"longTermFix": "Planejar habilitação de jumbo frames em toda a cadeia (switch + dist-rtr-03)",
+				"impact": "Adjacência ainda oscilando enquanto não corrigido"
+			},
+			"metrics": [
+				{
+					"title": "Análise da Cadeia de MTU",
+					"type": "network-analysis",
+					"data": {
+						"path": [
+							{"device": "core-rtr-01 Gi0/1", "mtu": 9000, "status": "Jumbo frames habilitado"},
+							{"device": "switch-core-01 port Gi1/0/1", "mtu": 1500, "status": "MTU padrão - NÃO suporta jumbo (configuração)"},
+							{"device": "switch-core-01 port Gi1/0/5", "mtu": 1500, "status": "MTU padrão"},
+							{"device": "dist-rtr-03 Gi0/0", "mtu": 1500, "status": "MTU padrão"}
+						],
+						"observation": "Toda a cadeia L2 entre os roteadores deve suportar a mesma MTU. Switch intermediário com MTU 1500 descarta frames > 1500 bytes silenciosamente"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q5",
+					"text": "A equipe decide reduzir a MTU do core-rtr-01 Gi0/1 de 9000 para 1500 como contenção imediata. Qual é o risco desta ação?",
+					"options": [
+						"A adjacência OSPF cairá permanentemente e nunca mais se formará",
+						"Tráfego iSCSI que utiliza jumbo frames nesta interface será afetado (fragmentação ou descarte)",
+						"O roteador precisará ser reiniciado para aplicar a mudança de MTU",
+						"Não há risco - a mudança é transparente e sem impacto"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Se iSCSI está usando jumbo frames nesta interface (razão original da mudança), reduzir MTU para 1500 causará fragmentação ou descarte de pacotes iSCSI maiores (B). A equipe deve verificar se iSCSI utiliza esta interface específica antes de alterar. Mudanças de MTU são aplicadas imediatamente (C falso). A adjacência se formará corretamente com MTU alinhada (A falso). Há impacto potencial em outros tráfegos (D falso)."
+				},
+				{
+					"id": "q6",
+					"text": "Após corrigir a MTU para 1500 em ambos os lados, a adjacência OSPF se forma e estabiliza em FULL. Quanto tempo leva para as rotas da Área 1 convergirem?",
+					"options": [
+						"Imediatamente (0 segundos) - as rotas são restauradas assim que a adjacência forma",
+						"Depende do SPF delay timer + tempo de cálculo SPF + atualização da RIB/FIB (tipicamente 5-30 segundos)",
+						"Depende do Dead Timer (40 segundos por padrão)",
+						"Exatamente 1 minuto - é o tempo padrão de convergência OSPF"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Após adjacência FULL (B): (1) LSAs são trocados e instalados no LSDB (segundos), (2) SPF delay timer é acionado (padrão 5s, evita múltiplos SPF runs), (3) algoritmo SPF calcula shortest paths (ms), (4) rotas são instaladas na RIB e FIB. Tempo total: 5-30 segundos dependendo da complexidade da rede e timers configurados. Não é instantâneo (A) pois SPF tem delay. Dead Timer (C) é para detecção de falha, não convergência. Não existe '1 minuto padrão' (D)."
+				},
+				{
+					"id": "q7",
+					"type": "matching",
+					"text": "Conecte cada causa comum de flapping OSPF ao seu sintoma diagnóstico:",
+					"leftColumn": [
+						{"id": "cause1", "label": "MTU mismatch"},
+						{"id": "cause2", "label": "Autenticação incorreta"},
+						{"id": "cause3", "label": "Timer mismatch (Hello/Dead)"}
+					],
+					"rightColumn": [
+						{"id": "symp1", "label": "Adjacência nunca passa de INIT - vizinho não aparece na lista"},
+						{"id": "symp2", "label": "Adjacência presa em EXSTART, cai por 'Too many retransmits'"},
+						{"id": "symp3", "label": "Adjacência não se forma - logs mostram 'authentication type mismatch'"}
+					],
+					"correctMatches": [
+						{"left": "cause1", "right": "symp2"},
+						{"left": "cause2", "right": "symp3"},
+						{"left": "cause3", "right": "symp1"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 6,
+					"justification": "MTU mismatch (↔ EXSTART): DBD packets grandes são descartados, adjacência não progride de EXSTART para EXCHANGE. Autenticação incorreta (↔ authentication mismatch): Hello packets são rejeitados por chave/tipo incorreto, log explícito. Timer mismatch (↔ never past INIT): se Hello/Dead timers diferem, OSPF rejeita o vizinho e a adjacência nunca se forma - Hellos são descartados silenciosamente por timer incompatível."
+				},
+				{
+					"id": "q8",
+					"type": "numeric",
+					"text": "Se o SPF foi executado 47 vezes em 30 minutos devido ao flapping, qual é a taxa média de SPF runs por minuto?",
+					"correctAnswer": 1.57,
+					"tolerance": 0.1,
+					"unit": "SPF runs/minuto",
+					"points": 5,
+					"justification": "Taxa = 47 SPF runs / 30 minutos = 1.57 SPF runs/minuto. Em operação normal (1-2 SPF runs/hora), a taxa seria ~0.03 SPF/minuto. A taxa de 1.57/minuto é ~50x acima do normal, indicando instabilidade severa. Cada SPF run consome CPU para recalcular a tabela de roteamento, e múltiplos SPF em sequência podem causar micro-loops transitórios durante a convergência."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Validação e Hardening OSPF",
+			"phase": "Fase 2 - Contenção (Avançada)",
+			"description": "Adjacência estabilizada após correção de MTU. A equipe agora revisa a configuração OSPF para identificar outras vulnerabilidades e aplicar hardening preventivo.",
+			"timeElapsed": "T+25 minutos",
+			"currentSituation": {
+				"adjacencyStatus": "FULL e estável há 10 minutos",
+				"spfRuns": "0 nos últimos 10 minutos (estável)",
+				"routesConverged": "Todas as 12 rotas da Área 1 restauradas",
+				"impact": "Nenhum - serviço restaurado"
+			},
+			"metrics": [
+				{
+					"title": "Configuração OSPF Atual (core-rtr-01)",
+					"type": "routing-analysis",
+					"data": {
+						"command": "show running-config | section ospf",
+						"config": [
+							"router ospf 1",
+							" router-id 10.1.0.1",
+							" network 10.1.0.0 0.0.255.255 area 0",
+							" network 10.1.12.0 0.0.0.3 area 1",
+							" passive-interface default",
+							" no passive-interface GigabitEthernet0/0",
+							" no passive-interface GigabitEthernet0/1",
+							" no passive-interface GigabitEthernet0/2"
+						],
+						"observation": "Configuração básica sem SPF throttling, sem autenticação, sem referência de bandwidth. Potencial para melhorias de hardening."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q9",
+					"text": "Qual configuração de SPF throttling é recomendada para limitar o impacto de futuros flappings na CPU?",
+					"options": [
+						"timers throttle spf 1000 5000 90000 - SPF delay inicial 1s, incremento 5s, máximo 90s",
+						"Desabilitar SPF throttling para convergência instantânea",
+						"timers throttle spf 50 50 50 - delay fixo de 50ms para todas as situações",
+						"Configurar SPF para executar apenas 1 vez por hora"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "SPF throttling exponencial (A) é a best practice: primeiro SPF executa após 1s (reação rápida), se houver mais mudanças o intervalo dobra para 5s, depois 10s, até máximo de 90s (proteção contra flapping). Desabilitar throttling (B) sobrecarrega CPU em cenários de flapping. Delay fixo baixo (C) não protege contra bursts. Uma vez por hora (D) é excessivamente lento para convergência normal."
+				},
+				{
+					"id": "q10",
+					"text": "A configuração atual não possui autenticação OSPF. Qual é o risco de segurança e qual autenticação deve ser implementada?",
+					"options": [
+						"Sem risco - OSPF opera apenas na rede local (link-local multicast)",
+						"Risco de injeção de rotas falsas - implementar OSPF MD5 ou SHA authentication na área",
+						"Risco de sniffing apenas - implementar criptografia TLS nos Hello packets",
+						"Risco de DDoS - implementar rate limiting de Hello packets"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Sem autenticação (B): qualquer dispositivo conectado ao segmento pode enviar Hello OSPF, formar adjacência e injetar rotas falsas, desviando tráfego (similar a BGP hijacking mas na camada IGP). OSPF MD5 ou SHA-256 (HMAC) autentica cada pacote OSPF, impedindo injeção de rotas por dispositivos não autorizados. OSPF opera via multicast (A incorreto - mas link-local não significa seguro). TLS (C) não existe para OSPF. Rate limiting (D) não é autenticação."
+				},
+				{
+					"id": "q11",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Em uma rede OSPF ponto-a-ponto (point-to-point), a eleição de DR/BDR é realizada e é importante para a estabilidade da adjacência.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. Em redes ponto-a-ponto, NÃO há eleição de DR/BDR. A eleição DR/BDR ocorre apenas em redes multi-access (broadcast ou NBMA). Em ponto-a-ponto, a adjacência é formada diretamente entre os dois roteadores sem necessidade de DR/BDR. Configurar interface como 'ip ospf network point-to-point' em links ponto-a-ponto é uma best practice que evita a eleição desnecessária de DR/BDR e acelera a formação de adjacência."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Recuperação e Lições Aprendidas",
+			"phase": "Fase 3 e 4 - Recuperação e Pós-Incidente",
+			"description": "Adjacência OSPF estabilizada, rotas convergidas, serviços restaurados. MTU será alinhada em toda a rede em janela de manutenção futura. Tempo total de impacto: 45 minutos.",
+			"timeElapsed": "T+45 minutos (incidente encerrado)",
+			"currentSituation": {
+				"adjacencyStatus": "Todas FULL e estáveis",
+				"spfRuns": "Estáveis (baseline normal)",
+				"allRoutesConverged": true,
+				"impact": "Nenhum - operação normalizada"
+			},
+			"questions": [
+				{
+					"id": "q12",
+					"text": "Qual ferramenta automatizada poderia ter detectado o MTU mismatch ANTES de causar impacto nos usuários?",
+					"options": [
+						"Auditoria automatizada de configuração (ansible/NAPALM) comparando MTU entre interfaces conectadas",
+						"Ping monitor entre roteadores (com tamanho padrão de 64 bytes)",
+						"Monitoramento de uptime das interfaces via SNMP",
+						"Análise de tráfego NetFlow para detectar pacotes descartados"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "Auditoria de configuração automatizada (A) pode comparar MTU entre interfaces conectadas e alertar sobre mismatch ANTES de causar problema. Ping com 64 bytes (B) não detecta mismatch (pacotes pequenos passam). SNMP uptime (C) mostra interface up/down, não MTU. NetFlow (D) pode mostrar descartes mas é reativo, não proativo. A detecção proativa via configuration compliance é a abordagem mais eficaz."
+				},
+				{
+					"id": "q13",
+					"text": "O incidente foi causado por mudança de MTU em core-rtr-01 sem verificar a cadeia completa. Qual princípio de mudança foi violado?",
+					"options": [
+						"Princípio de idempotência - a mudança deveria ser reversível",
+						"Princípio de impacto mínimo - a mudança deveria afetar o menor escopo possível",
+						"Princípio de validação end-to-end - toda a cadeia L2/L3 deve ser verificada antes de alterar MTU",
+						"Princípio de automação - a mudança deveria ser automatizada"
+					],
+					"correctAnswer": 2,
+					"points": 5,
+					"justification": "Validação end-to-end (C): alterar MTU em um roteador requer verificar que TODOS os dispositivos no caminho (switches L2, roteadores L3, firewalls) suportam a nova MTU. Sem isso, pacotes maiores que a menor MTU do caminho (Path MTU) serão descartados. O princípio de Path MTU Discovery (RFC 1191) define que o caminho end-to-end deve ser considerado. Idempotência (A) e impacto mínimo (B) são válidos mas não são a causa raiz. Automação (D) não previne o erro lógico."
+				},
+				{
+					"id": "q14",
+					"text": "Para planejamento futuro, qual abordagem é recomendada para habilitar jumbo frames em toda a rede?",
+					"options": [
+						"Habilitar interface por interface durante horário comercial, testando cada uma",
+						"Planejar janela de manutenção, habilitar em toda a cadeia L2/L3 simultaneamente, validar com ping size 9000 df-bit",
+						"Deixar cada equipe decidir o MTU de suas interfaces independentemente",
+						"Não habilitar jumbo frames - o benefício não justifica o risco"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Habilitação coordenada em janela de manutenção (B) é a abordagem correta: (1) documentar toda a cadeia L2/L3, (2) habilitar jumbo frames SIMULTANEAMENTE em todos os dispositivos do caminho, (3) validar com ping de tamanho grande e df-bit, (4) ter plano de rollback. Interface por interface (A) cria mismatch temporário. Decisões independentes (C) causam exatamente este tipo de incidente. Jumbo frames (D) são necessários para workloads como iSCSI, NFS, backup."
+				},
+				{
+					"id": "q15",
+					"text": "Qual é a recomendação de MAIOR impacto para o NOC prevenir e detectar problemas similares?",
+					"options": [
+						"Monitoramento proativo: alerta de SPF runs > threshold + auditoria automática de configuração OSPF (MTU, timers, autenticação)",
+						"Aumentar o dead timer OSPF de 40s para 120s para tolerar mais flapping",
+						"Configurar ip ospf mtu-ignore em todas as interfaces OSPF preventivamente",
+						"Desabilitar OSPF e migrar para roteamento estático para eliminar instabilidade"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "Monitoramento proativo + auditoria (A) combina: (1) alertas de SPF runs anormais para detecção rápida de instabilidade, (2) auditoria automatizada de configuração para detectar MTU mismatch, timer inconsistências, falta de autenticação antes que causem impacto. Aumentar dead timer (B) mascara problemas. mtu-ignore (C) mascara MTU mismatch sem resolver. Roteamento estático (D) é impraticável em redes modernas e remove resiliência dinâmica."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 96,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 90,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de diagnóstico OSPF, estados de adjacência e hardening de IGP"
+			},
+			{
+				"min": 75,
+				"max": 89,
+				"grade": "Bom",
+				"description": "Compreensão sólida de OSPF e troubleshooting de adjacência com pequenas lacunas"
+			},
+			{
+				"min": 60,
+				"max": 74,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica de OSPF suficiente, requer aprofundamento em estados e diagnóstico avançado"
+			},
+			{
+				"min": 45,
+				"max": 59,
+				"grade": "Insatisfatório",
+				"description": "Lacunas significativas em conhecimento de OSPF e diagnóstico de problemas de roteamento"
+			},
+			{
+				"min": 0,
+				"max": 44,
+				"grade": "Inadequado",
+				"description": "Compreensão insuficiente, requer treinamento completo em protocolos IGP e troubleshooting"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Apresentar informações progressivamente, focando na correlação entre MTU, estados OSPF e impacto nos usuários",
+		"Permitir 3-4 minutos de discussão entre participantes antes de cada resposta",
+		"Destacar que OSPF EXSTART é o estado onde mais problemas de MTU se manifestam",
+		"Fazer perguntas socráticas: 'Por que Hello funciona mas DBD não?', 'O que muda entre Two-Way e ExStart?'",
+		"Observar se a equipe correlaciona o AS path de log com localização do problema",
+		"Controlar tempo: Rodada 1 (5 min), Rodadas 2-4 (8-10 min cada), Rodada 5 (7 min)",
+		"Usar diagrama de estados OSPF (FSM) como referência visual se disponível",
+		"Após exercício: revisar conceitos de MTU, Path MTU Discovery, SPF throttling, coletar feedback",
+		"Documentar nível de familiaridade da equipe com diagnóstico OSPF e comandos de verificação"
+	],
+	"technicalReferences": [
+		{
+			"title": "RFC 2328 - OSPF Version 2",
+			"url": "https://www.rfc-editor.org/rfc/rfc2328"
+		},
+		{
+			"title": "RFC 1191 - Path MTU Discovery",
+			"url": "https://www.rfc-editor.org/rfc/rfc1191"
+		},
+		{
+			"title": "RFC 5765 - Security Issues with OSPF",
+			"url": "https://www.rfc-editor.org/rfc/rfc6039"
+		},
+		{
+			"title": "Cisco OSPF Design Guide",
+			"url": "https://www.cisco.com/c/en/us/support/docs/ip/open-shortest-path-first-ospf/7039-1.html"
+		},
+		{
+			"title": "NIST SP 800-54 - Border Gateway Protocol Security (includes IGP security)",
+			"url": "https://csrc.nist.gov/publications/detail/sp/800-54/final"
+		}
+	]
+}

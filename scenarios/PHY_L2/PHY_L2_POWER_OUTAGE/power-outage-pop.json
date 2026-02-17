@@ -1,0 +1,563 @@
+{
+	"id": "power-outage-pop",
+	"title": "Resposta a Falha de Energia em PoP com Indisponibilidade de UPS e Gerador",
+	"description": "Simulação tabletop de resposta a falha completa de energia em PoP causada por esgotamento de UPS e falha na partida automática do gerador",
+	"category": {
+		"id": "PHY_L2",
+		"type": "PHY_L2_POWER_OUTAGE",
+		"title": "Falha de Energia no PoP (UPS/Gerador)"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2025-02-17",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "40-55 minutos",
+		"difficulty": "Intermediário a Avançado",
+		"targetAudience": "Equipe de NOC, Engenheiros de Infraestrutura, Gestores de Facilities, Equipe de Operações de Datacenter"
+	},
+	"objectives": [
+		"Validar capacidade de resposta a falhas completas de energia em sites de telecomunicações",
+		"Avaliar conhecimento de infraestrutura de energia (UPS, gerador, ATS, PDU) e seus modos de falha",
+		"Testar procedimentos de comunicação com stakeholders durante indisponibilidade total de PoP",
+		"Desenvolver compreensão de sequências de desligamento e religamento controlado de equipamentos",
+		"Identificar processos de manutenção preventiva de sistemas de energia e testes periódicos",
+		"Promover entendimento de dimensionamento de redundância elétrica e cálculos de autonomia de bateria"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá execução real de comandos ou ações de campo",
+		"Não inclui acionamento real de equipes de manutenção ou concessionárias de energia",
+		"Foco na análise técnica, tomada de decisão e coordenação operacional durante blackout",
+		"Avaliação de conhecimento de infraestrutura de energia e procedimentos de contingência"
+	],
+	"baseScenario": {
+		"context": "Quinta-feira, 14h30, horário comercial. Você faz parte da equipe de NOC. A organização opera um PoP (Point of Presence) que hospeda roteadores de borda, switches de distribuição e servidores de monitoramento. O PoP atende ~15 instituições conectadas via enlaces de fibra óptica com tráfego agregado de 40 Gbps. A infraestrutura de energia consiste em: alimentação dupla da concessionária (circuitos A e B), UPS de 30 kVA com banco de baterias (autonomia nominal de 30 minutos a plena carga), e um gerador diesel de 60 kVA com ATS (Automatic Transfer Switch). A carga atual do PoP é de ~22 kVA.",
+		"initialSituation": {
+			"alert": "POWER FAILURE: UPS em modo bateria - Circuitos A e B da concessionária DOWN",
+			"affectedSite": "PoP Principal - Todos os equipamentos operando em bateria UPS",
+			"upsStatus": "Bateria a 85% - Autonomia estimada: 25 minutos",
+			"generatorStatus": "ATS acionou partida automática do gerador - STATUS: FALHA DE PARTIDA",
+			"timestamp": "14:28:15"
+		},
+		"initialComplaints": [
+			"Sistema de monitoramento (DCIM) reporta queda de ambos os circuitos da concessionária",
+			"ATS registrou 3 tentativas de partida automática do gerador - todas falharam",
+			"Alarme sonoro de UPS ativo indicando operação em bateria",
+			"Nenhum impacto nos serviços AINDA - UPS sustentando toda a carga"
+		],
+		"availableResources": [
+			"Acesso remoto ao painel DCIM (DC Infrastructure Management) via web",
+			"Acesso SSH aos roteadores e switches do PoP (ainda operacionais via UPS)",
+			"Contato telefônico com concessionária de energia",
+			"Contato com empresa de manutenção de geradores (contrato de SLA 2h)",
+			"Equipe de facilities local (1 técnico no site, com acesso à sala de energia)",
+			"Procedimento documentado de desligamento controlado (graceful shutdown)",
+			"Documentação do gerador: manual técnico e histórico de manutenção"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe deve se familiarizar com a infraestrutura de energia do PoP, equipamentos críticos e situação inicial.",
+			"inject": "Apresentação do cenário conforme descrito. A equipe tem 5 minutos para revisar diagrama de energia, inventário de equipamentos e discutir abordagem inicial.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Avaliação Inicial e Triagem",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe de NOC avalia a situação de energia e tenta determinar a janela de tempo disponível antes do desligamento total. O técnico local verifica o gerador.",
+			"timeElapsed": "T+0 (14:28 - início do incidente)",
+			"currentSituation": {
+				"upsStatus": "Bateria a 82% - descarga linear",
+				"generatorStatus": "Falha de partida automática - técnico verificando causa",
+				"serviceStatus": "100% operacional via UPS",
+				"estimatedAutonomy": "~23 minutos restantes a carga atual (22 kVA)"
+			},
+			"metrics": [
+				{
+					"title": "Status do UPS - Painel DCIM",
+					"type": "ups-status",
+					"data": {
+						"model": "UPS Trifásico 30 kVA - Double Conversion Online",
+						"inputVoltage": "0V (sem alimentação da rede)",
+						"outputVoltage": "220V (alimentando carga normalmente)",
+						"currentLoad": "22.1 kVA (73.7% da capacidade)",
+						"batteryLevel": "82%",
+						"batteryVoltage": "384V DC (nominal: 384V)",
+						"estimatedRuntime": "23 min (a carga atual)",
+						"batteryAge": "3.2 anos (vida útil nominal: 3-5 anos)",
+						"lastBatteryTest": "há 8 meses",
+						"temperature": "28°C (sala de baterias)",
+						"observation": "Autonomia real pode ser menor que estimada - baterias têm 3.2 anos e não foram testadas há 8 meses"
+					}
+				},
+				{
+					"title": "Status do Gerador - Relatório do Técnico Local",
+					"type": "generator-status",
+					"data": {
+						"model": "Gerador Diesel 60 kVA - Motor 4 cilindros",
+						"fuelLevel": "85% (tanque de 200 litros)",
+						"startAttempts": "3 tentativas automáticas via ATS - todas falharam",
+						"errorCode": "ERR-07: Falha de pré-aquecimento (glow plug circuit)",
+						"lastMaintenance": "há 11 meses (preventiva semestral ATRASADA)",
+						"lastSuccessfulStart": "há 6 meses (teste mensal atrasado há 5 meses)",
+						"batteryStarterVoltage": "10.8V (nominal: 12.6V - BAIXA)",
+						"ambientTemperature": "18°C",
+						"observation": "Bateria de partida fraca (10.8V vs 12.6V nominal) combinada com falha de pré-aquecimento. Manutenção preventiva atrasada em 5 meses."
+					}
+				},
+				{
+					"title": "Inventário de Equipamentos Críticos no PoP",
+					"type": "equipment-inventory",
+					"data": {
+						"routers": [
+							{"name": "RTR-BORDA-01", "function": "Roteador de borda BGP", "power": "450W", "priority": "Crítico"},
+							{"name": "RTR-BORDA-02", "function": "Roteador de borda BGP (redundante)", "power": "450W", "priority": "Crítico"}
+						],
+						"switches": [
+							{"name": "SW-DIST-01", "function": "Switch de distribuição L3", "power": "350W", "priority": "Crítico"},
+							{"name": "SW-ACCESS-01", "function": "Switch de acesso gerência", "power": "150W", "priority": "Médio"}
+						],
+						"servers": [
+							{"name": "SRV-MON-01", "function": "Servidor de monitoramento", "power": "500W", "priority": "Alto"},
+							{"name": "SRV-DNS-01", "function": "Servidor DNS recursivo", "power": "300W", "priority": "Alto"}
+						],
+						"totalCriticalLoad": "2200W (roteadores + switch distribuição)",
+						"totalLoad": "22100W (todos os equipamentos)",
+						"observation": "Equipamentos críticos consomem apenas 10% da carga total - desligar equipamentos não-críticos estenderia autonomia significativamente"
+					}
+				},
+				{
+					"title": "Contato com Concessionária de Energia",
+					"type": "utility-contact",
+					"data": {
+						"callTimestamp": "14:32",
+						"utilityResponse": "Falha na subestação que alimenta a região. Previsão de restauração: 2-4 horas",
+						"affectedArea": "Bairro inteiro sem energia - não é problema localizado",
+						"observation": "Previsão MÍNIMA de 2 horas sem energia da concessionária - gerador é essencial"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Com a informação de que a concessionária prevê restauração em 2-4 horas e o UPS tem ~23 minutos de autonomia, qual é a ação MAIS urgente?",
+					"options": [
+						"Aguardar mais 10 minutos para ver se a concessionária restaura antecipadamente",
+						"Resolver a falha do gerador OU iniciar desligamento controlado dos equipamentos não-críticos para estender autonomia",
+						"Desligar imediatamente TODOS os equipamentos do PoP de forma controlada",
+						"Ligar para a concessionária novamente e solicitar priorização do circuito do PoP"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "A ação mais urgente (B) combina duas frentes: (1) tentar resolver o gerador (causa raiz da falta de backup) e (2) simultaneamente reduzir carga para estender autonomia do UPS. Aguardar (A) desperdiça tempo precioso - se gerador não funcionar, terão ~23 min menos de bateria. Desligar tudo (C) é prematuro - UPS ainda sustenta e há chance de resolver gerador. Ligar para concessionária (D) não muda a previsão de 2-4 horas."
+				},
+				{
+					"id": "q2",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: A autonomia estimada de 23 minutos do UPS é confiável, pois baterias de chumbo-ácido mantêm sua capacidade nominal durante toda a vida útil.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. Baterias VRLA (chumbo-ácido seladas) degradam progressivamente: com 3.2 anos de uso, a capacidade real pode ser 60-80% da nominal. Fatores que reduzem autonomia: (1) idade da bateria (3.2 anos de 3-5 de vida útil), (2) temperatura da sala (28°C - acima do ideal de 20-25°C que acelera degradação), (3) falta de teste recente (8 meses) impede verificar capacidade real. A autonomia REAL pode ser 15-18 minutos ao invés dos 23 estimados."
+				},
+				{
+					"id": "q3",
+					"type": "multiple-choice",
+					"text": "O técnico local reporta que o gerador falhou por 'ERR-07: Falha de pré-aquecimento' e a bateria de partida está com 10.8V (nominal 12.6V). Qual é a causa raiz mais provável?",
+					"options": [
+						"Tanque de combustível com diesel contaminado (água ou sedimentos)",
+						"Manutenção preventiva atrasada: bateria de partida descarregada e sistema de pré-aquecimento sem verificação",
+						"Falha no ATS que não enviou sinal correto de partida ao gerador",
+						"Temperatura ambiente de 18°C é baixa demais para partida do motor diesel"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Manutenção atrasada (B) é a causa raiz: (1) bateria de partida a 10.8V indica descarga por falta de carga de manutenção - sem testes mensais, bateria perde carga gradualmente, (2) pré-aquecimento (glow plugs) falhando indica componentes não verificados na preventiva semestral que está 5 meses atrasada, (3) último teste bem-sucedido foi há 6 meses. Diesel contaminado (A) não causa erro de pré-aquecimento. ATS (C) enviou 3 tentativas de partida. 18°C (D) não é problema para diesel moderno com pré-aquecimento funcionando."
+				},
+				{
+					"id": "q4",
+					"type": "numeric",
+					"text": "Se desligar todos os equipamentos não-críticos (reduzindo carga de 22.1 kVA para 2.2 kVA, apenas equipamentos críticos), qual seria a nova autonomia aproximada do UPS?",
+					"correctAnswer": 230,
+					"tolerance": 30,
+					"unit": "minutos",
+					"points": 5,
+					"justification": "Cálculo simplificado: Autonomia é inversamente proporcional à carga. Autonomia original = 23 min a 22.1 kVA. Nova carga = 2.2 kVA (10% da original). Nova autonomia ≈ 23 × (22.1 / 2.2) ≈ 23 × 10.05 ≈ 231 minutos (~3h51min). Nota: na prática, a relação não é perfeitamente linear (baterias têm descarga não-linear), mas a estimativa de ~3.5-4 horas é razoável. Isso cobriria confortavelmente a previsão de 2-4 horas da concessionária."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Contenção e Mitigação da Carga",
+			"phase": "Fase 2 - Contenção",
+			"description": "A equipe executa desligamento controlado de equipamentos não-críticos. O técnico local tenta partida manual do gerador com bateria auxiliar.",
+			"timeElapsed": "T+12 minutos (14:40)",
+			"currentSituation": {
+				"upsStatus": "Bateria a 68% (descarga mais rápida que estimada - baterias degradadas)",
+				"generatorStatus": "Técnico tentando partida manual com bateria auxiliar",
+				"shutdownProgress": "Servidor de monitoramento e DNS desligados - carga reduzida para 14.5 kVA",
+				"serviceStatus": "Roteamento BGP e distribuição L3 operacionais"
+			},
+			"metrics": [
+				{
+					"title": "Status UPS - Atualização T+12min",
+					"type": "ups-status-update",
+					"data": {
+						"batteryLevel": "68%",
+						"dischargeRate": "Mais rápida que linear - indica degradação de baterias",
+						"realAutonomy": "Reestimada: 18 min restantes (a 14.5 kVA)",
+						"currentLoad": "14.5 kVA (após desligamento parcial)",
+						"equipmentsShutdown": ["SRV-MON-01", "SRV-DNS-01", "SW-ACCESS-01"],
+						"equipmentsRunning": ["RTR-BORDA-01", "RTR-BORDA-02", "SW-DIST-01", "Iluminação de emergência", "Sistema DCIM"],
+						"observation": "Bateria descargando 40% mais rápido que estimado - consistente com baterias de 3.2 anos"
+					}
+				},
+				{
+					"title": "Tentativa de Partida Manual do Gerador",
+					"type": "generator-manual-start",
+					"data": {
+						"attempt1": "Partida com bateria auxiliar (jump start) - motor girou mas não pegou",
+						"attempt2": "Verificação de glow plugs - 2 de 4 estão queimados (não pré-aquecem)",
+						"fuelSystem": "Filtro de combustível parcialmente obstruído (diesel degradado por falta de uso)",
+						"assessment": "Gerador NÃO será recuperado sem peças de reposição (glow plugs + filtro)",
+						"maintenanceETA": "Empresa de manutenção acionada - ETA 2 horas para chegada com peças",
+						"observation": "Gerador NÃO estará disponível no curto prazo. Decisão: desligar tudo exceto críticos ou aceitar blackout total."
+					}
+				},
+				{
+					"title": "Análise de Impacto do Desligamento",
+					"type": "impact-analysis",
+					"data": {
+						"scenarioA": {
+							"description": "Manter apenas roteadores + switch distribuição (2.2 kVA)",
+							"autonomyEstimate": "~45-60 min (considerando degradação de baterias)",
+							"serviceImpact": "BGP sessions mantidas, tráfego fluindo, sem monitoramento local",
+							"risk": "Se energia não voltar em 1h, blackout total sem graceful shutdown"
+						},
+						"scenarioB": {
+							"description": "Desligamento controlado total AGORA (enquanto UPS sustenta)",
+							"autonomyEstimate": "N/A - equipamentos desligados de forma segura",
+							"serviceImpact": "Indisponibilidade total imediata, mas sem risco de corrupção",
+							"risk": "Indisponibilidade antecipada, mas com integridade de dados garantida"
+						},
+						"observation": "Trade-off entre maximizar uptime (risco de blackout sujo) vs. garantir integridade (shutdown proativo)"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q5",
+					"type": "multiple-choice",
+					"text": "Com gerador indisponível e UPS a 68% com descarga acelerada, qual estratégia é MAIS adequada?",
+					"options": [
+						"Manter todos os equipamentos ligados e esperar a concessionária restaurar",
+						"Desligar equipamentos não-críticos restantes, manter apenas roteadores de borda, e preparar procedimento de shutdown para executar quando bateria atingir 20%",
+						"Executar shutdown total imediato de todos os equipamentos para preservar integridade",
+						"Transferir carga para o circuito B da concessionária que pode estar disponível"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Estratégia B é a mais adequada: (1) minimiza carga para estender autonomia, (2) mantém serviço crítico (BGP) o máximo possível, (3) define threshold de 20% para shutdown controlado (margem de segurança). Manter tudo (A) drena bateria rapidamente. Shutdown total imediato (C) é desnecessariamente agressivo - ainda há bateria. Circuito B (D) está DOWN conforme incidente - falha na subestação afeta ambos os circuitos."
+				},
+				{
+					"id": "q6",
+					"type": "ordering",
+					"text": "Ordene corretamente a sequência de desligamento controlado (graceful shutdown) de equipamentos de rede em um PoP:",
+					"items": [
+						{"id": "step1", "label": "Notificar NOC, clientes e stakeholders sobre desligamento planejado"},
+						{"id": "step2", "label": "Desligar servidores de aplicação e monitoramento (shutdown -h now)"},
+						{"id": "step3", "label": "Desligar switches de acesso (menor impacto primeiro)"},
+						{"id": "step4", "label": "Salvar configuração e desligar switches de distribuição"},
+						{"id": "step5", "label": "Salvar configuração e desligar roteadores de borda (últimos)"}
+					],
+					"correctOrder": ["step1", "step2", "step3", "step4", "step5"],
+					"partialCredit": false,
+					"points": 6,
+					"justification": "Sequência segue princípio de 'menor criticidade primeiro': (1) Notificação ANTES de qualquer ação permite que stakeholders se preparem. (2) Servidores são desligados primeiro (OS requer shutdown seguro para evitar corrupção). (3) Switches de acesso (menos críticos que distribuição). (4) Switches de distribuição com 'write memory' antes do shutdown. (5) Roteadores de borda POR ÚLTIMO - são os mais críticos e mantêm sessões BGP até o último momento. Inverter resulta em dependências quebradas."
+				},
+				{
+					"id": "q7",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Se o UPS desligar abruptamente (bateria esgotada) enquanto roteadores estiverem ligados, as configurações salvas no NVRAM não serão perdidas.",
+					"correctAnswer": true,
+					"points": 3,
+					"justification": "VERDADEIRO. Configurações salvas em NVRAM (startup-config) são não-voláteis e sobrevivem a desligamento abrupto. O que pode ser perdido: (1) running-config NÃO salva desde a última alteração (diferença startup vs running), (2) logs em RAM, (3) tabelas de roteamento dinâmicas (BGP, OSPF), (4) sessions TCP. Por isso, 'write memory' antes de desligamento é importante para garantir que TODAS as alterações recentes estejam persistidas. Dados em memória volátil (RAM) serão perdidos."
+				},
+				{
+					"id": "q8",
+					"type": "matching",
+					"text": "Conecte cada componente da infraestrutura de energia à sua função no sistema:",
+					"leftColumn": [
+						{"id": "ups", "label": "UPS (Uninterruptible Power Supply)"},
+						{"id": "ats", "label": "ATS (Automatic Transfer Switch)"},
+						{"id": "pdu", "label": "PDU (Power Distribution Unit)"}
+					],
+					"rightColumn": [
+						{"id": "func1", "label": "Comuta automaticamente entre fontes de energia (rede/gerador) sem interrupção"},
+						{"id": "func2", "label": "Fornece energia de bateria durante falha e condiciona energia (filtra surtos)"},
+						{"id": "func3", "label": "Distribui energia para múltiplos equipamentos no rack com monitoramento por tomada"}
+					],
+					"correctMatches": [
+						{"left": "ups", "right": "func2"},
+						{"left": "ats", "right": "func1"},
+						{"left": "pdu", "right": "func3"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 6,
+					"justification": "UPS (↔ func2) fornece backup de bateria e condiciona energia. ATS (↔ func1) faz a transferência automática entre rede comercial e gerador. PDU (↔ func3) distribui energia dentro do rack. No fluxo: Rede e Gerador → ATS → UPS → PDU → Equipamentos. Cada componente tem função distinta e a falha de qualquer um compromete a cadeia."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Blackout e Recuperação Parcial",
+			"phase": "Fase 3 - Recuperação",
+			"description": "Após 45 minutos, a bateria do UPS atingiu 15% (abaixo do threshold de shutdown). Os equipamentos críticos foram desligados de forma controlada. Após 2h15min, a concessionária restabelece energia parcial no circuito A.",
+			"timeElapsed": "T+135 minutos (16:43 - energia parcial restaurada)",
+			"currentSituation": {
+				"powerStatus": "Circuito A restaurado pela concessionária - tensão estável em 220V",
+				"upsStatus": "Recarregando - bateria a 8% - modo bypass até baterias carregarem acima de 20%",
+				"generatorStatus": "Ainda indisponível - equipe de manutenção chegou e está trocando glow plugs",
+				"equipmentStatus": "Todos os equipamentos desligados há ~90 minutos"
+			},
+			"metrics": [
+				{
+					"title": "Status de Energia Pós-Restauração",
+					"type": "power-restoration",
+					"data": {
+						"circuitA": "220V - estável - 18A (normal)",
+						"circuitB": "0V - ainda indisponível",
+						"upsInput": "220V (recebendo energia da rede)",
+						"upsOutput": "220V (bypass - alimentando direto da rede)",
+						"upsBattery": "8% - recarregando a ~2% por minuto",
+						"upsMode": "Bypass (sem proteção de bateria até 20%)",
+						"observation": "Energia disponível via bypass, mas SEM proteção de bateria. Qualquer nova queda causará blackout instantâneo."
+					}
+				},
+				{
+					"title": "Procedimento de Religamento (Power-On Sequence)",
+					"type": "power-on-procedure",
+					"data": {
+						"step1": "Verificar estabilidade da energia (aguardar 5 min sem flutuação)",
+						"step2": "Ligar switches de distribuição primeiro (SW-DIST-01)",
+						"step3": "Ligar roteadores de borda (RTR-BORDA-01, RTR-BORDA-02)",
+						"step4": "Aguardar convergência BGP (~3-5 minutos)",
+						"step5": "Ligar servidores e switches de acesso",
+						"step6": "Validar serviços e monitoramento",
+						"estimatedRecoveryTime": "15-20 minutos para full recovery",
+						"observation": "Sequência de religamento é INVERSA ao desligamento: infraestrutura interna primeiro, borda por último"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q9",
+					"type": "multiple-choice",
+					"text": "A energia foi restaurada parcialmente (apenas circuito A). O UPS está em modo bypass a 8% de bateria. É seguro religar todos os equipamentos imediatamente?",
+					"options": [
+						"Sim, a energia da concessionária é confiável e pode-se religar tudo de uma vez",
+						"Não - deve-se aguardar estabilidade da energia E bateria UPS acima de 20%, religando equipamentos gradualmente",
+						"Sim, mas apenas durante horário comercial quando a concessionária tem mais suporte técnico",
+						"Não - deve-se esperar o gerador estar operacional antes de religar qualquer equipamento"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Opção B é correta: (1) energia pode oscilar em restauração pós-falha de subestação, (2) UPS em bypass a 8% NÃO protege contra novas quedas - religamento massivo sem bateria é arriscado, (3) aguardar bateria acima de 20% garante margem mínima para um novo shutdown controlado, (4) religamento gradual evita inrush current excessivo. Religar tudo de uma vez (A) pode causar sobrecarga. Esperar gerador (D) é desnecessariamente conservador se energia está estável."
+				},
+				{
+					"id": "q10",
+					"type": "multiple-choice",
+					"text": "Na sequência de religamento, por que os switches de distribuição devem ser ligados ANTES dos roteadores de borda?",
+					"options": [
+						"Porque switches consomem menos energia e não causam surto de corrente (inrush)",
+						"Porque roteadores de borda precisam de conectividade L2 local para estabelecer sessões BGP e adjacências OSPF",
+						"Porque switches demoram mais para inicializar e precisam de head start",
+						"Porque roteadores devem esperar descoberta de vizinhos LLDP/CDP antes de iniciar"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Opção B é correta: roteadores de borda dependem da infraestrutura L2 (switches de distribuição) para: (1) estabelecer adjacências OSPF/IS-IS com outros roteadores locais, (2) manter sessões iBGP com route reflectors, (3) acessar servidores DNS e NTP locais. Se roteadores forem ligados primeiro, tentarão estabelecer adjacências que falharão por falta de L2, causando timeouts e logs de erro desnecessários. Inrush current (A) não é fator decisivo entre switches e roteadores."
+				},
+				{
+					"id": "q11",
+					"type": "numeric",
+					"text": "O PoP ficou completamente indisponível por 90 minutos. Se o SLA acordado com as 15 instituições prevê 99.9% de disponibilidade mensal, quantos minutos de indisponibilidade são permitidos por mês?",
+					"correctAnswer": 43.2,
+					"tolerance": 1,
+					"unit": "minutos",
+					"points": 5,
+					"justification": "Cálculo: 99.9% de disponibilidade mensal = 0.1% de indisponibilidade. Minutos no mês = 30 dias × 24 horas × 60 minutos = 43.200 minutos. Indisponibilidade permitida = 43.200 × 0.001 = 43.2 minutos. Com 90 minutos de indisponibilidade, o PoP EXCEDEU o SLA em mais do dobro (90 / 43.2 = 2.08x). Isso resulta em violação de SLA e possíveis penalidades contratuais."
+				},
+				{
+					"id": "q12",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Em topologia de UPS 'Double Conversion Online', a carga SEMPRE é alimentada pelo inversor (energia da bateria convertida para AC), mesmo quando há energia da rede disponível.",
+					"correctAnswer": true,
+					"points": 3,
+					"justification": "VERDADEIRO. UPS Double Conversion Online converte energia da rede para DC (retificador), carrega as baterias, e converte de volta para AC (inversor) para alimentar a carga. A carga NUNCA é alimentada diretamente pela rede em operação normal - sempre passa pelo inversor. Benefício: isolamento total de surtos, flutuações e harmônicos da rede. Quando a rede falha, não há tempo de transferência (0 ms) pois a bateria já alimenta o inversor. Modo bypass é usado apenas em sobrecarga ou manutenção."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Restauração Completa e Lições Aprendidas",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Todos os equipamentos foram religados com sucesso. Sessões BGP reconvergidas em 8 minutos. Gerador reparado (glow plugs substituídos) e testado com sucesso. Operação 100% normalizada.",
+			"timeElapsed": "T+180 minutos (17:28 - incidente encerrado)",
+			"currentSituation": {
+				"powerStatus": "Circuito A operacional, Circuito B restaurado às 17:15",
+				"upsStatus": "Online - bateria a 45% (recarregando)",
+				"generatorStatus": "Reparado e testado - operacional",
+				"serviceStatus": "100% operacional - tráfego normalizado",
+				"totalDowntime": "90 minutos de indisponibilidade total"
+			},
+			"questions": [
+				{
+					"id": "q13",
+					"type": "multiple-choice",
+					"text": "Analisando o incidente, qual foi a CAUSA RAIZ da falha em cadeia que levou à indisponibilidade?",
+					"options": [
+						"A queda de energia da concessionária, que é evento externo incontrolável",
+						"Falha no programa de manutenção preventiva do gerador (5 meses sem teste, preventiva atrasada)",
+						"O UPS deveria ter 2 horas de autonomia e não apenas 30 minutos",
+						"Falta de um segundo gerador como redundância N+1"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "A causa raiz (B) foi falha de PROCESSO, não de equipamento: (1) manutenção preventiva semestral atrasada em 5 meses, (2) testes mensais de partida não realizados há 5 meses, (3) bateria de partida descarregou por falta de exercício, (4) glow plugs queimaram sem detecção. A queda de energia (A) é evento ESPERADO - geradores existem para isso. UPS maior (C) apenas adiaria o problema. Segundo gerador (D) é boa prática mas a falha foi operacional, não de projeto."
+				},
+				{
+					"id": "q14",
+					"type": "multiple-choice",
+					"text": "Qual política de manutenção preventiva teria EVITADO esta falha do gerador?",
+					"options": [
+						"Teste mensal de partida com carga (exercício do gerador sob carga por 30 minutos)",
+						"Manutenção anual com troca preventiva de óleo e filtros",
+						"Monitoramento remoto do nível de combustível em tempo real",
+						"Contrato de SLA com tempo de resposta de 1 hora ao invés de 2 horas"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "Teste mensal com carga (A) teria detectado: (1) bateria de partida fraca (falharia no teste), (2) glow plugs queimados (motor não pré-aqueceria), (3) combustível degradado (motor falharia sob carga). Manutenção anual (B) é insuficiente - problemas se desenvolvem em semanas/meses. Monitoramento de combustível (C) não detecta falha mecânica. SLA mais rápido (D) é reativo, não preventivo."
+				},
+				{
+					"id": "q15",
+					"type": "matching",
+					"text": "Conecte cada modo de falha à sua causa mais provável em infraestrutura de energia:",
+					"leftColumn": [
+						{"id": "battery", "label": "Bateria UPS com autonomia reduzida"},
+						{"id": "generator", "label": "Gerador falha na partida automática"},
+						{"id": "ats", "label": "ATS não transfere para gerador"}
+					],
+					"rightColumn": [
+						{"id": "cause1", "label": "Falta de testes de transferência periódicos e falha na programação do controlador"},
+						{"id": "cause2", "label": "Envelhecimento natural, temperatura elevada e falta de testes de capacidade"},
+						{"id": "cause3", "label": "Falta de exercício mensal, bateria de partida descarregada e componentes sem manutenção"}
+					],
+					"correctMatches": [
+						{"left": "battery", "right": "cause2"},
+						{"left": "generator", "right": "cause3"},
+						{"left": "ats", "right": "cause1"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 6,
+					"justification": "Baterias UPS (↔ causa2) degradam por envelhecimento químico, temperatura acelerada e capacidade não testada. Geradores (↔ causa3) falham por falta de exercício regular que mantém componentes lubrificados e bateria carregada. ATS (↔ causa1) falha por lógica de controlador não testada ou configuração incorreta de sensing de tensão."
+				},
+				{
+					"id": "q16",
+					"type": "multiple-choice",
+					"text": "Qual melhoria de infraestrutura traria o MAIOR impacto na resiliência energética do PoP?",
+					"options": [
+						"Duplicar a capacidade do UPS (de 30 kVA para 60 kVA) para maior autonomia",
+						"Implementar alimentação redundante N+1 de gerador com teste automático semanal",
+						"Contratar um terceiro circuito de energia de subestação diferente",
+						"Instalar painéis solares como fonte alternativa de energia"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Gerador N+1 com teste semanal (B) é a melhoria de MAIOR impacto: (1) redundância elimina ponto único de falha do gerador, (2) teste semanal automático garante que pelo menos um gerador sempre funcione, (3) atende requisitos de uptime Tier III/IV. UPS maior (A) apenas estende tempo de bateria mas não resolve falta de gerador. Terceiro circuito (C) é caro e subestações adjacentes podem ter falhas correlacionadas. Solar (D) não fornece energia suficiente para carga de 22 kVA de forma confiável."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 93,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 90,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de infraestrutura de energia, contingência elétrica e procedimentos de recuperação"
+			},
+			{
+				"min": 75,
+				"max": 89,
+				"grade": "Bom",
+				"description": "Compreensão sólida de UPS, geradores e procedimentos de desligamento/religamento com pequenas lacunas"
+			},
+			{
+				"min": 60,
+				"max": 74,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica suficiente, requer aprofundamento em dimensionamento de energia e manutenção preventiva"
+			},
+			{
+				"min": 45,
+				"max": 59,
+				"grade": "Insatisfatório",
+				"description": "Lacunas significativas em conhecimento de infraestrutura elétrica e procedimentos de contingência"
+			},
+			{
+				"min": 0,
+				"max": 44,
+				"grade": "Inadequado",
+				"description": "Compreensão insuficiente, requer treinamento completo em infraestrutura de energia para datacenters"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Apresentar informações progressivamente, simulando a pressão temporal real de uma falha de energia",
+		"Permitir 3-5 minutos de discussão entre participantes antes de cada resposta",
+		"Fazer perguntas orientadoras: 'Quanto tempo temos de bateria?', 'Qual a ordem de desligamento?'",
+		"Enfatizar a PRESSÃO TEMPORAL - cada minuto de discussão é bateria sendo consumida",
+		"Se grupo não tem experiência com UPS/geradores, explicar conceitos antes da Rodada 2",
+		"Manter neutralidade técnica - não fornecer respostas diretas",
+		"Controlar tempo: Rodada 1 (5 min), Rodadas 2-4 (10-12 min cada), Rodada 5 (8 min)",
+		"Mediar debates sobre trade-offs (manter serviço vs. risco de blackout não-controlado)",
+		"Após exercício: revisar gabarito e discutir programa de manutenção preventiva local",
+		"Coletar feedback sobre realismo do cenário e ajustes necessários",
+		"Documentar insights para melhorar procedimentos de resposta a falhas de energia"
+	],
+	"technicalReferences": [
+		{
+			"title": "ANSI/TIA-942 - Telecommunications Infrastructure Standard for Data Centers",
+			"url": "https://tiaonline.org/resources/tia-942/"
+		},
+		{
+			"title": "NFPA 110 - Standard for Emergency and Standby Power Systems",
+			"url": "https://www.nfpa.org/codes-and-standards/nfpa-110-standard-development/110"
+		},
+		{
+			"title": "IEEE 1100 (Emerald Book) - Powering and Grounding Electronic Equipment",
+			"url": "https://standards.ieee.org/ieee/1100/3498/"
+		},
+		{
+			"title": "Uptime Institute - Tier Classification System",
+			"url": "https://uptimeinstitute.com/tiers"
+		},
+		{
+			"title": "ASHRAE TC 9.9 - Thermal Guidelines for Data Processing Environments",
+			"url": "https://www.ashrae.org/technical-resources/bookstore/datacom-series"
+		},
+		{
+			"title": "IEEE 450 - Recommended Practice for Maintenance, Testing, and Replacement of VRLA Batteries",
+			"url": "https://standards.ieee.org/ieee/1188/4363/"
+		}
+	]
+}

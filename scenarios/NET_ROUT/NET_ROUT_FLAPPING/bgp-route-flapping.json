@@ -1,0 +1,518 @@
+{
+	"id": "bgp-route-flapping",
+	"title": "Resposta a Instabilidade de Rotas BGP (Route Flapping)",
+	"description": "Simulação tabletop de resposta a oscilação excessiva de rotas BGP causando instabilidade de roteamento, consumo de CPU em roteadores e potencial dampening de rotas legítimas",
+	"category": {
+		"id": "NET_ROUT",
+		"type": "NET_ROUT_FLAPPING",
+		"title": "Instabilidade de Rotas BGP (Route Flapping)"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2025-02-17",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "35-50 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Engenheiros de Rede, Equipe de NOC, Operadores de Backbone, Administradores de Roteadores"
+	},
+	"objectives": [
+		"Validar capacidade de detecção de instabilidade de rotas BGP através de análise de logs e contadores",
+		"Avaliar conhecimento do mecanismo de BGP Route Flap Dampening (RFC 2439) e seus parâmetros",
+		"Testar compreensão das causas raiz de flapping (link físico, sessão BGP, política de roteamento)",
+		"Desenvolver habilidade de análise de impacto de flapping em convergência e estabilidade da rede",
+		"Identificar melhores práticas de configuração de timers BGP e proteção contra instabilidade",
+		"Promover entendimento dos trade-offs entre estabilidade e convergência rápida"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá execução real de comandos em roteadores de produção",
+		"Não inclui alteração real de sessões BGP ou políticas de dampening",
+		"Foco na análise de causa raiz, tomada de decisão e aplicação de contramedidas",
+		"Avaliação de conhecimento de BGP timers, dampening e diagnóstico de instabilidade"
+	],
+	"baseScenario": {
+		"context": "Quarta-feira, 11h00. Você faz parte da equipe de operações de rede. A organização opera um backbone regional com 12 roteadores BGP, peering com 4 provedores de trânsito e 3 IXPs (Internet Exchange Points). Nos últimos 20 minutos, o NOC começou a receber alertas de instabilidade de rotas BGP para múltiplos prefixos. Os roteadores de borda estão apresentando consumo elevado de CPU.",
+		"initialSituation": {
+			"alert": "Instabilidade BGP detectada - múltiplos prefixos sendo anunciados e retirados repetidamente",
+			"affectedSession": "Sessão eBGP com upstream-A (AS 64501) via border-gw-01",
+			"flapRate": "~180 withdrawals + 180 announcements por minuto para 45 prefixos",
+			"cpuImpact": "border-gw-01: CPU 87% (normal: 25%)",
+			"timestamp": "10:42:15"
+		},
+		"initialComplaints": [
+			"Alertas de CPU alta nos roteadores de borda (border-gw-01, border-gw-02)",
+			"Clientes reportam intermitência de acesso a destinos específicos",
+			"Monitoramento mostra latência variável e packet loss intermitente para prefixos do upstream A",
+			"Sistema de tickets recebe chamados de oscilação de conectividade"
+		],
+		"availableResources": [
+			"Acesso CLI aos roteadores BGP (border-gw-01, border-gw-02, core-rtr-01 a core-rtr-04)",
+			"Sistema de monitoramento (Zabbix/PRTG) com métricas de CPU, memória e interfaces",
+			"Logs de BGP (syslog centralizado com debug BGP habilitado)",
+			"Ferramentas de análise: show ip bgp, show ip bgp summary, show ip bgp dampening, show logging",
+			"Contato com NOC do upstream A (AS 64501)",
+			"Documentação de topologia e políticas BGP da rede",
+			"Acesso a gráficos de tráfego (MRTG/Cacti) das interfaces de peering"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe deve se familiarizar com a topologia da rede, sessões BGP e os alertas de instabilidade.",
+			"inject": "Apresentação do cenário conforme descrito. A equipe tem 5 minutos para discutir a situação e planejar a investigação.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Detecção e Análise Inicial",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe acessa os roteadores e coleta evidências sobre a instabilidade BGP.",
+			"timeElapsed": "T+0 (início da investigação)",
+			"currentSituation": {
+				"bgpUpdatesReceived": "~360 updates/minuto do upstream A (normal: ~5/minuto)",
+				"affectedPrefixes": "45 prefixos oscilando (de ~12.000 recebidos do upstream A)",
+				"cpuBorderGw01": "87% (normal: 25%)",
+				"cpuBorderGw02": "32% (normal: 22%, peer backup estável)",
+				"impact": "Intermitência para destinos acessíveis via upstream A"
+			},
+			"metrics": [
+				{
+					"title": "BGP Summary (border-gw-01)",
+					"type": "routing-analysis",
+					"data": {
+						"command": "show ip bgp summary",
+						"sessions": [
+							{
+								"neighbor": "172.16.1.1",
+								"asn": "AS 64501",
+								"description": "upstream-A",
+								"state": "Established",
+								"prefixesReceived": 12847,
+								"uptime": "5d 12:34:56",
+								"messagesReceived": 284520,
+								"messagesSent": 18943,
+								"lastResetReason": "N/A"
+							},
+							{
+								"neighbor": "172.16.2.1",
+								"asn": "AS 64502",
+								"description": "upstream-B",
+								"state": "Established",
+								"prefixesReceived": 11923,
+								"uptime": "32d 08:15:42",
+								"messagesReceived": 145230,
+								"messagesSent": 12845,
+								"lastResetReason": "N/A"
+							}
+						],
+						"observation": "Sessão com upstream A estável (Established) mas com volume anormal de mensagens recebidas"
+					}
+				},
+				{
+					"title": "Log de Updates BGP (últimos 10 minutos)",
+					"type": "routing-analysis",
+					"data": {
+						"command": "show logging | include BGP-5",
+						"logEntries": [
+							"10:42:15 %BGP-5-ADJCHANGE: neighbor 172.16.1.1 Up",
+							"10:42:18 BGP: 172.16.1.1 rcvd UPDATE w/ attr: nexthop 172.16.1.1, origin i, path 64501 64510 64520",
+							"10:42:18 BGP: 172.16.1.1 rcvd 203.0.113.0/24 - WITHDRAWN",
+							"10:42:19 BGP: 172.16.1.1 rcvd UPDATE 203.0.113.0/24 path 64501 64510 64520",
+							"10:42:21 BGP: 172.16.1.1 rcvd 203.0.113.0/24 - WITHDRAWN",
+							"10:42:22 BGP: 172.16.1.1 rcvd UPDATE 203.0.113.0/24 path 64501 64510 64520",
+							"10:42:24 BGP: 172.16.1.1 rcvd 198.18.0.0/24 - WITHDRAWN",
+							"10:42:25 BGP: 172.16.1.1 rcvd UPDATE 198.18.0.0/24 path 64501 64510 64520",
+							"... (padrão repetitivo a cada 2-3 segundos para 45 prefixos)"
+						],
+						"flapPattern": {
+							"withdrawInterval": "2-3 segundos entre withdrawal e re-announcement",
+							"affectedPrefixes": 45,
+							"commonAsPath": "64501 64510 64520",
+							"observation": "Todos os prefixos afetados passam pelo mesmo AS path (64501 → 64510 → 64520). O problema está no AS 64520 ou no link entre AS 64510 e AS 64520"
+						}
+					}
+				},
+				{
+					"title": "CPU e Processos (border-gw-01)",
+					"type": "server-status",
+					"data": {
+						"command": "show processes cpu sorted",
+						"topProcesses": [
+							{"process": "BGP Router", "cpu5sec": "62%", "cpu1min": "58%", "cpu5min": "45%"},
+							{"process": "BGP I/O", "cpu5sec": "18%", "cpu1min": "15%", "cpu5min": "12%"},
+							{"process": "IP Input", "cpu5sec": "4%", "cpu1min": "3%", "cpu5min": "3%"},
+							{"process": "BGP Scanner", "cpu5sec": "3%", "cpu1min": "2%", "cpu5min": "2%"}
+						],
+						"totalCPU": "87%",
+						"observation": "80% da CPU consumida por processos BGP (Router + I/O) processando volume anormal de updates"
+					}
+				},
+				{
+					"title": "Interface Física para Upstream A",
+					"type": "network-analysis",
+					"data": {
+						"command": "show interfaces GigabitEthernet0/0",
+						"interface": "GigabitEthernet0/0 (link upstream A)",
+						"status": "up/up",
+						"inputErrors": 0,
+						"outputErrors": 0,
+						"crcErrors": 0,
+						"inputRate": "450 Mbps (normal)",
+						"outputRate": "120 Mbps (normal)",
+						"observation": "Interface física estável, sem erros - problema NÃO é na camada física local"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"text": "Analisando os logs, todos os 45 prefixos oscilantes compartilham o AS path 64501 64510 64520. Qual é a causa raiz MAIS provável do flapping?",
+					"options": [
+						"Bug no software BGP do roteador local (border-gw-01)",
+						"Problema na sessão eBGP entre AS 64501 (upstream A) e o roteador local",
+						"Instabilidade no link ou sessão BGP entre AS 64510 e AS 64520 (ponto remoto)",
+						"Ataque DDoS contra o roteador local causando perda de pacotes BGP"
+					],
+					"correctAnswer": 2,
+					"points": 5,
+					"justification": "O AS path comum (64501 → 64510 → 64520) indica que todos os prefixos são originados ou transitados pelo AS 64520 via AS 64510. A oscilação simultânea de todos esses prefixos indica problema no link entre AS 64510 e AS 64520 (ou no próprio AS 64520). Se fosse problema local (A, B), todos os prefixos do upstream seriam afetados, não apenas os 45 que passam por esse caminho específico. A interface local está sem erros (D irrelevante)."
+				},
+				{
+					"id": "q2",
+					"text": "A CPU do border-gw-01 está em 87%, majoritariamente por processos BGP. Qual é o risco imediato se não for tratado?",
+					"options": [
+						"O roteador reiniciará automaticamente por proteção térmica",
+						"Processos BGP podem não processar keepalives a tempo, causando queda de TODAS as sessões BGP",
+						"O roteador parará de encaminhar pacotes de dados (forwarding plane)",
+						"A memória RAM esgotará antes de any impacto de CPU"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "CPU alta no control plane pode impedir o processamento de BGP keepalives dentro do hold timer (padrão 180s). Se keepalives não forem processados, o peer declara a sessão Down, causando queda de TODAS as sessões BGP - não apenas a do upstream com problema. O forwarding plane (C) geralmente é separado do control plane em roteadores modernos. Proteção térmica (A) não é acionada por carga de CPU. Memória (D) não é o gargalo principal neste caso."
+				},
+				{
+					"id": "q3",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: BGP Route Flap Dampening é recomendado como primeira ação de contenção, pois suprime automaticamente as rotas instáveis sem afetar rotas estáveis.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO (parcialmente). Dampening suprime rotas instáveis, mas traz trade-offs significativos: (1) aumenta o tempo de convergência para rotas legítimas que oscilam transitoriamente, (2) pode causar blackholing se rotas suprimidas não têm alternativa, (3) RFC 7196 desaconselha dampening em sessões eBGP com peers em muitos cenários. A primeira ação deveria ser identificar e tratar a causa raiz (link entre AS 64510 e 64520), não aplicar dampening indiscriminadamente."
+				},
+				{
+					"id": "q4",
+					"type": "numeric",
+					"text": "O hold timer BGP padrão é 180 segundos e keepalives são enviados a cada 60 segundos (1/3 do hold timer). Se a CPU estiver tão alta que atrasar o processamento de keepalives por 200 segundos, o que acontecerá com a sessão BGP?",
+					"correctAnswer": 180,
+					"tolerance": 0,
+					"unit": "segundos (hold timer expira)",
+					"points": 5,
+					"justification": "Se nenhum keepalive ou update for recebido dentro do hold timer de 180 segundos, o peer remoto declarará a sessão como Down. O atraso de 200 segundos excede os 180 segundos do hold timer, portanto a sessão será encerrada. Isso demonstra por que CPU alta é crítica em roteadores BGP: o control plane deve processar keepalives dentro do hold timer para manter sessões ativas."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Contenção Imediata",
+			"phase": "Fase 2 - Contenção",
+			"description": "A equipe identifica que o problema é remoto (entre AS 64510 e AS 64520). Como medida imediata, configura prefix-list para filtrar os 45 prefixos oscilantes no border-gw-01, reduzindo a carga de CPU.",
+			"timeElapsed": "T+15 minutos",
+			"currentSituation": {
+				"action": "Prefix-list filtrando 45 prefixos instáveis aplicada na sessão com upstream A",
+				"cpuBorderGw01": "32% (normalizado)",
+				"filteredPrefixes": "45 prefixos suprimidos localmente",
+				"alternativeRouting": "38 dos 45 prefixos acessíveis via upstream B (caminho alternativo)",
+				"unreachablePrefixes": "7 prefixos sem rota alternativa - inacessíveis temporariamente",
+				"impact": "Estabilidade restaurada, porém 7 destinos inacessíveis"
+			},
+			"metrics": [
+				{
+					"title": "Status Pós-Filtragem",
+					"type": "routing-analysis",
+					"data": {
+						"bgpUpdatesFromUpstreamA": "~5/minuto (normalizado)",
+						"cpu": "32%",
+						"prefixesFiltered": 45,
+						"prefixesWithAlternative": 38,
+						"prefixesNoAlternative": 7,
+						"observation": "Filtragem resolveu instabilidade de CPU mas criou 7 destinos inacessíveis sem rota alternativa"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q5",
+					"text": "A filtragem dos 45 prefixos resultou em 7 destinos sem rota alternativa. Qual seria a abordagem MAIS balanceada para esses 7 prefixos?",
+					"options": [
+						"Manter filtrados - a estabilidade da rede é mais importante que 7 destinos",
+						"Remover o filtro para os 7 prefixos sem alternativa e aplicar dampening seletivo neles",
+						"Criar rotas estáticas manuais para os 7 prefixos via upstream A",
+						"Desabilitar completamente a sessão com upstream A até o problema remoto ser resolvido"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Dampening seletivo (B) é a melhor solução: permite que os 7 prefixos sejam acessíveis quando estáveis, mas os suprime automaticamente quando oscilam excessivamente. Manter filtrados (A) causa indisponibilidade desnecessária. Rotas estáticas (C) não acompanham mudanças de topologia e podem causar blackholing. Desabilitar a sessão (D) afetaria todos os 12.847 prefixos, não apenas os 45 problemáticos."
+				},
+				{
+					"id": "q6",
+					"text": "Qual parâmetro de BGP dampening define o limite de penalty a partir do qual uma rota é suprimida?",
+					"options": [
+						"Half-life - tempo para penalty decair pela metade",
+						"Suppress limit - valor de penalty acima do qual a rota é suprimida",
+						"Reuse limit - valor de penalty abaixo do qual a rota é reutilizada",
+						"Max suppress time - tempo máximo que uma rota pode ficar suprimida"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Suppress limit (B) é o threshold que define quando uma rota com penalty acumulado é suprimida (padrão típico: 2000). Half-life (A) controla a velocidade de decaimento do penalty (padrão: 15 min). Reuse limit (C) define quando uma rota suprimida volta a ser usada (padrão: 750). Max suppress time (D) limita o tempo máximo de supressão (padrão: 60 min). A sequência é: penalty cresce com cada flap → suprime quando > suppress limit → decai exponencialmente (half-life) → reutiliza quando < reuse limit."
+				},
+				{
+					"id": "q7",
+					"type": "matching",
+					"text": "Conecte cada parâmetro de BGP dampening ao seu valor padrão típico:",
+					"leftColumn": [
+						{"id": "param1", "label": "Half-life"},
+						{"id": "param2", "label": "Suppress limit"},
+						{"id": "param3", "label": "Reuse limit"}
+					],
+					"rightColumn": [
+						{"id": "val1", "label": "750"},
+						{"id": "val2", "label": "15 minutos"},
+						{"id": "val3", "label": "2000"}
+					],
+					"correctMatches": [
+						{"left": "param1", "right": "val2"},
+						{"left": "param2", "right": "val3"},
+						{"left": "param3", "right": "val1"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 6,
+					"justification": "Half-life = 15 minutos (tempo para penalty decair 50%). Suppress limit = 2000 (threshold para suprimir rota). Reuse limit = 750 (threshold para reutilizar rota suprimida). Estes são valores padrão do RFC 2439. A relação suppress/reuse garante histerese: rota só volta quando penalty cai significativamente abaixo do suppress limit, evitando oscilação na borda do threshold."
+				},
+				{
+					"id": "q8",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: A RFC 7196 recomenda que operadores NÃO utilizem dampening em sessões eBGP por padrão, devido aos impactos negativos na convergência.",
+					"correctAnswer": true,
+					"points": 3,
+					"justification": "VERDADEIRO. A RFC 7196 ('Making Route Flap Damping Usable') reconhece que dampening com parâmetros padrão (RFC 2439) pode causar mais dano do que benefício, suprimindo desnecessariamente rotas legítimas durante eventos normais de convergência. Recomenda: (1) não habilitar dampening por padrão, (2) se usar, ajustar parâmetros (suppress limit mais alto, half-life mais curto), (3) nunca aplicar dampening em rotas de clientes. Dampening seletivo e com parâmetros conservadores é a abordagem moderna."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Diagnóstico Remoto e Coordenação",
+			"phase": "Fase 2 - Contenção (Avançada)",
+			"description": "A equipe contata o NOC do upstream A (AS 64501). Eles confirmam que o AS 64520 está enfrentando instabilidade de link físico em um enlace de fibra óptica. O upstream A está aplicando dampening nos prefixos do AS 64520.",
+			"timeElapsed": "T+30 minutos",
+			"currentSituation": {
+				"rootCause": "Link de fibra óptica degradado entre AS 64510 e AS 64520 (perda de sinal intermitente)",
+				"upstreamAction": "AS 64501 aplicou dampening nos prefixos originados pelo AS 64520",
+				"localStatus": "Filtros locais mantidos nos 45 prefixos, CPU estável em 28%",
+				"estimatedResolution": "AS 64520 redirecionando tráfego por enlace backup - ETA 30 minutos"
+			},
+			"metrics": [
+				{
+					"title": "Timeline de Eventos Consolidada",
+					"type": "incident-timeline",
+					"data": {
+						"events": [
+							{"time": "10:42", "event": "Início do flapping detectado nos logs BGP"},
+							{"time": "10:47", "event": "NOC alerta CPU alta em border-gw-01 (87%)"},
+							{"time": "10:55", "event": "Equipe identifica AS path comum (64501→64510→64520)"},
+							{"time": "10:57", "event": "Prefix-list aplicada filtrando 45 prefixos - CPU normalizada"},
+							{"time": "11:05", "event": "Contato com NOC do upstream A"},
+							{"time": "11:12", "event": "Confirmação: link físico degradado entre AS 64510 e AS 64520"},
+							{"time": "11:15", "event": "Upstream A aplica dampening nos prefixos do AS 64520"}
+						],
+						"observation": "Tempo de detecção a contenção: 15 minutos. Identificação de causa raiz: 30 minutos."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q9",
+					"text": "A causa raiz foi um link físico degradado entre AS 64510 e AS 64520. Por que isso causa flapping BGP ao invés de queda permanente?",
+					"options": [
+						"O protocolo BGP automaticamente reconecta sessões caídas a cada 30 segundos",
+						"O link físico oscila (up/down) intermitentemente, causando alternância na tabela de roteamento que se propaga via BGP",
+						"O roteador local está gerando os flaps artificialmente como proteção",
+						"O sistema de monitoramento está reportando falsos positivos"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Link físico degradado (fibra com atenuação, SFP com falha intermitente) causa oscilação da interface: sinal recupera momentaneamente (link up → BGP update/announcement), então cai novamente (link down → BGP withdrawal). Esta oscilação física se propaga pela Internet como updates BGP. Cada up/down gera um par announcement/withdrawal que percorre toda a cadeia de ASes. Não é reconexão BGP automática (A) - é a interface física oscilando."
+				},
+				{
+					"id": "q10",
+					"text": "Qual recurso de proteção do control plane poderia ter evitado CPU de 87% durante o flapping?",
+					"options": [
+						"Control Plane Policing (CoPP) / Control Plane Protection",
+						"Unicast Reverse Path Forwarding (uRPF)",
+						"NetFlow export para análise offline",
+						"SNMP trap throttling"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "CoPP (A) limita a taxa de tráfego direcionado ao control plane (incluindo BGP updates), protegendo o roteador contra sobrecarga. Com CoPP, o volume excessivo de updates BGP seria rate-limited antes de saturar a CPU. uRPF (B) protege contra IP spoofing, não sobrecarga de control plane. NetFlow (C) é para análise, não proteção. SNMP trap throttling (D) limita traps, não protege o control plane."
+				},
+				{
+					"id": "q11",
+					"type": "numeric",
+					"text": "Se o BGP penalty incrementa 1000 pontos por cada flap, o suppress limit é 2000 e o half-life é 15 minutos, após quantos flaps a rota será suprimida?",
+					"correctAnswer": 2,
+					"tolerance": 0,
+					"unit": "flaps",
+					"points": 5,
+					"justification": "Penalty por flap = 1000. Suppress limit = 2000. Após 2 flaps: penalty = 2000 ≥ suppress limit (2000), portanto a rota é suprimida. Nota: se os flaps forem rápidos (antes do decay), o penalty acumula linearmente. Se houver intervalo, o decay exponencial reduz o penalty. Com flaps a cada 2-3 segundos como no cenário, não há tempo significativo para decay, então 2 flaps são suficientes para atingir o suppress limit."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Recuperação e Lições Aprendidas",
+			"phase": "Fase 3 e 4 - Recuperação e Pós-Incidente",
+			"description": "O AS 64520 ativou enlace backup e o link primário foi estabilizado. Os prefixos pararam de oscilar. Filtros locais removidos gradualmente. Tempo total de impacto: 1h30min.",
+			"timeElapsed": "T+90 minutos (incidente encerrado)",
+			"currentSituation": {
+				"bgpUpdates": "~5/minuto (baseline normal)",
+				"cpu": "25% (normal)",
+				"allPrefixesStable": true,
+				"filtersRemoved": true,
+				"impact": "Nenhum - operação normalizada"
+			},
+			"questions": [
+				{
+					"id": "q12",
+					"text": "Qual configuração preventiva poderia ter limitado o impacto do flapping automaticamente, sem intervenção manual?",
+					"options": [
+						"Maximum-prefix limit na sessão BGP com upstream A (com warning threshold)",
+						"BGP dampening seletivo aplicado apenas em rotas com AS path > 3 hops",
+						"Redução do BGP hold timer de 180s para 30s para detecção mais rápida",
+						"Configuração de route-map para aceitar apenas /16 ou menores"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "Maximum-prefix com warning threshold (A) alerta quando o número de prefixos ou updates excede limites, permitindo ação proativa. Dampening seletivo (B) é válido mas controverso (RFC 7196). Reduzir hold timer (C) PIORA a situação - sessões cairiam mais facilmente sob carga. Route-map (D) não previne flapping, apenas filtra por tamanho de prefixo."
+				},
+				{
+					"id": "q13",
+					"text": "Qual melhoria de monitoramento teria detectado o flapping MAIS rapidamente?",
+					"options": [
+						"Alerta de CPU > 70% nos roteadores de borda",
+						"Alerta de taxa de BGP updates/segundo > threshold (ex: > 50 updates/min)",
+						"Alerta de perda de pacotes ICMP para destinos monitorados",
+						"Verificação periódica de 'show ip bgp summary' via script"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Monitoramento de taxa de BGP updates (B) é o indicador mais precoce e específico de flapping. CPU alta (A) é consequência, não causa - alerta chega depois. ICMP (C) detecta impacto mas não causa. Script periódico (D) depende de frequência de execução e não é em tempo real. Ferramentas como BGP Update Rate Monitoring via SNMP (bgpPeerInUpdates counter) ou syslog filtering detectam flapping em segundos."
+				},
+				{
+					"id": "q14",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Utilizar BFD (Bidirectional Forwarding Detection) como mecanismo de detecção de falha de link para BGP teria PIORADO a situação neste cenário, causando flapping mais rápido.",
+					"correctAnswer": true,
+					"points": 3,
+					"justification": "VERDADEIRO. BFD detecta falhas de link em milissegundos (vs. segundos/minutos do BGP hold timer). Com BFD habilitado entre AS 64501 e o roteador local, cada micro-oscilação do link remoto que se propagasse causaria o BFD a derrubar a sessão BGP instantaneamente, e restabelecê-la logo em seguida - amplificando o flapping. BFD é excelente para detecção rápida de falhas permanentes, mas pode agravar instabilidade intermitente. Solução: BFD com dampening ou multiplier ajustado."
+				},
+				{
+					"id": "q15",
+					"text": "No post-mortem, qual é a lição aprendida de MAIOR impacto para resiliência da rede?",
+					"options": [
+						"Implementar redundância de upstream para que nenhum destino dependa de um único caminho",
+						"Desabilitar BGP dampening em todas as sessões permanentemente",
+						"Reduzir timers BGP para detecção mais rápida de falhas",
+						"Bloquear prefixos de ASes com histórico de instabilidade"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "Redundância de caminhos (A) é a lição mais valiosa: se todos os 45 prefixos tivessem rota alternativa, o impacto do flapping seria zero (tráfego migraria para backup automaticamente). Os 7 prefixos sem alternativa demonstram vulnerabilidade de single-point-of-failure. Desabilitar dampening (B) completamente remove uma ferramenta útil. Reduzir timers (C) pode piorar instabilidade. Bloquear ASes (D) é punitivo e impraticável."
+				},
+				{
+					"id": "q16",
+					"text": "Qual abordagem moderna substitui o dampening tradicional (RFC 2439) com menores efeitos colaterais?",
+					"options": [
+						"BGP Graceful Restart - mantém rotas durante restart de sessão",
+						"RPKI ROV - valida origem dos prefixos criptograficamente",
+						"BGP Maximum-Prefix com restart automático e timer exponencial",
+						"Parâmetros de dampening conservadores conforme RFC 7196 (suppress limit mais alto)"
+					],
+					"correctAnswer": 3,
+					"points": 5,
+					"justification": "RFC 7196 (D) propõe parâmetros conservadores de dampening que minimizam supressão indevida: suppress limit mais alto (ex: 6000 vs. 2000 padrão), half-life mais curto (5 min vs. 15 min), reduzindo a probabilidade de suprimir rotas por oscilações legítimas transitórias. Graceful Restart (A) protege contra restart de sessão, não flapping. RPKI (B) é para validação de origem. Maximum-prefix (C) é proteção contra overflow, não dampening refinado."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 96,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 90,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de diagnóstico de instabilidade BGP, dampening e técnicas de mitigação"
+			},
+			{
+				"min": 75,
+				"max": 89,
+				"grade": "Bom",
+				"description": "Compreensão sólida de BGP flapping e seus mecanismos de controle com pequenas lacunas"
+			},
+			{
+				"min": 60,
+				"max": 74,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica suficiente, requer aprofundamento em dampening e diagnóstico avançado"
+			},
+			{
+				"min": 45,
+				"max": 59,
+				"grade": "Insatisfatório",
+				"description": "Lacunas significativas em conhecimento de estabilidade BGP e técnicas de contenção"
+			},
+			{
+				"min": 0,
+				"max": 44,
+				"grade": "Inadequado",
+				"description": "Compreensão insuficiente, requer treinamento completo em operação e troubleshooting BGP"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Apresentar informações progressivamente, simulando a investigação natural de instabilidade de rede",
+		"Permitir 3-4 minutos de discussão entre participantes antes de cada resposta",
+		"Destacar que flapping afeta não apenas o roteador local, mas toda a cadeia de propagação BGP",
+		"Fazer perguntas socráticas: 'O que acontece quando um link oscila?', 'Como distinguir flap local de remoto?'",
+		"Observar se a equipe correlaciona AS path com localização do problema (skill de troubleshooting)",
+		"Controlar tempo: Rodada 1 (5 min), Rodadas 2-4 (8-10 min cada), Rodada 5 (7 min)",
+		"Mediar debates sobre dampening vs. filtro manual - ambos têm prós e contras",
+		"Após exercício: discutir RFC 7196, trade-offs de convergência vs. estabilidade, coletar feedback",
+		"Documentar nível de familiaridade da equipe com parâmetros de dampening e CoPP"
+	],
+	"technicalReferences": [
+		{
+			"title": "RFC 4271 - A Border Gateway Protocol 4 (BGP-4)",
+			"url": "https://www.rfc-editor.org/rfc/rfc4271"
+		},
+		{
+			"title": "RFC 2439 - BGP Route Flap Damping",
+			"url": "https://www.rfc-editor.org/rfc/rfc2439"
+		},
+		{
+			"title": "RFC 7196 - Making Route Flap Damping Usable",
+			"url": "https://www.rfc-editor.org/rfc/rfc7196"
+		},
+		{
+			"title": "RFC 4098 - Terminology for Benchmarking BGP Device Convergence",
+			"url": "https://www.rfc-editor.org/rfc/rfc4098"
+		},
+		{
+			"title": "RIPE-580 - BGP Best Current Practices",
+			"url": "https://www.ripe.net/publications/docs/ripe-580"
+		}
+	]
+}

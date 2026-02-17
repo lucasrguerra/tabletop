@@ -1,0 +1,571 @@
+{
+	"id": "judicial-log-request",
+	"title": "Resposta a Solicitação Judicial de Logs de Acesso",
+	"description": "Simulação tabletop de resposta a ordem judicial para fornecimento de registros de acesso e dados de usuários no contexto de investigação criminal de crimes cibernéticos",
+	"category": {
+		"id": "GOV_LEGAL",
+		"type": "GOV_LEGAL_LOG_REQUEST",
+		"title": "Solicitação Judicial de Logs de Acesso"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2025-02-02",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "40-55 minutos",
+		"difficulty": "Intermediário a Avançado",
+		"targetAudience": "Equipe Jurídica, Administradores de Sistemas, DPO (Data Protection Officer), Compliance, Equipe de Segurança da Informação"
+	},
+	"objectives": [
+		"Validar capacidade de resposta a solicitações judiciais de logs de acesso em conformidade com o Marco Civil da Internet",
+		"Avaliar conhecimento sobre tipos de registros (conexão vs. aplicação) e prazos legais de retenção",
+		"Testar procedimentos de preservação de evidências e cadeia de custódia digital",
+		"Desenvolver compreensão sobre limites de fornecimento de dados e proteção de privacidade (LGPD)",
+		"Identificar processos de coleta, tratamento e entrega segura de logs a autoridades judiciais",
+		"Promover conhecimento sobre interseção entre Marco Civil, LGPD e Código de Processo Penal"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá extração real de logs ou fornecimento de dados a autoridades",
+		"Não inclui consultoria jurídica formal ou resposta processual real a mandados judiciais",
+		"Foco na tomada de decisão operacional, preservação de evidências e compliance legal",
+		"Avaliação de conhecimento do Marco Civil da Internet, LGPD e procedimentos de cadeia de custódia"
+	],
+	"baseScenario": {
+		"context": "Terça-feira, 9h45, horário comercial. Você faz parte da equipe de segurança da informação e compliance de um provedor de serviços de internet e aplicações web. A organização opera serviços de e-mail corporativo, hospedagem web, e plataforma de colaboração para ~15.000 usuários (empresas clientes). A equipe jurídica acaba de receber, via oficial de justiça, um mandado judicial expedido pela Vara Criminal solicitando fornecimento de registros de acesso (logs) de usuário específico investigado por fraude eletrônica e estelionato digital. O mandado é acompanhado de ofício da Delegacia de Crimes Cibernéticos.",
+		"initialSituation": {
+			"alert": "Mandado judicial recebido via oficial de justiça solicitando logs de acesso de usuário",
+			"court": "3ª Vara Criminal da Comarca - Inquérito Policial nº 0098765-43.2025.8.00.0001",
+			"requestedData": "Registros de acesso (logs) do usuário user47832@platform.internal referentes ao período de 01/11/2024 a 31/01/2025",
+			"crime": "Fraude eletrônica (Art. 171, §2º-A, CP) e estelionato digital",
+			"deadline": "5 dias úteis para fornecimento integral dos registros",
+			"timestamp": "09:45:00"
+		},
+		"initialComplaints": [
+			"Mandado assinado digitalmente por juiz criminal com certificado ICP-Brasil válido",
+			"Ofício da Delegacia de Crimes Cibernéticos detalha que usuário é suspeito de operar esquema de phishing",
+			"Investigação apura prejuízo estimado de R$ 2.3 milhões a 47 vítimas",
+			"Delegacia solicita especificamente: IPs de acesso, horários de login, e-mails enviados e metadados de sessão"
+		],
+		"availableResources": [
+			"Sistema de logs centralizado (ELK Stack - Elasticsearch, Logstash, Kibana)",
+			"Servidor de autenticação com registros de login/logout (LDAP + RADIUS)",
+			"Servidor de e-mail com logs de envio/recebimento (Postfix + Dovecot)",
+			"Firewall com registros de conexão (IP de origem, destino, porta, protocolo)",
+			"Política de retenção de logs configurada: 12 meses para conexão, 6 meses para aplicação",
+			"Ferramenta de hash SHA-256 para integridade de evidências",
+			"DPO (Data Protection Officer) designado conforme LGPD"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe deve se familiarizar com o mandado judicial, os dados solicitados e os recursos disponíveis para coleta de evidências.",
+			"inject": "Apresentação do cenário conforme descrito. A equipe tem 5 minutos para ler o mandado judicial, identificar os dados solicitados e planejar abordagem de resposta.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Análise do Mandado e Obrigações Legais",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe analisa o mandado judicial para verificar validade formal, escopo da solicitação e prazos legais. Identifica quais dados estão disponíveis e quais obrigações são aplicáveis.",
+			"timeElapsed": "T+0 (09:45 - recebimento do mandado)",
+			"currentSituation": {
+				"mandateStatus": "Recebido - em análise pela equipe jurídica e segurança da informação",
+				"dataAvailability": "Em verificação - período solicitado está dentro da janela de retenção",
+				"deadline": "5 dias úteis (expira terça-feira seguinte, 09:45)",
+				"legalRisk": "Alto - descumprimento pode configurar desobediência (Art. 330, CP)"
+			},
+			"metrics": [
+				{
+					"type": "mandate-analysis",
+					"title": "Análise do Mandado Judicial Recebido",
+					"data": {
+						"court": "3ª Vara Criminal da Comarca",
+						"processType": "Inquérito Policial (fase pré-processual)",
+						"judge": "Dr(a). [Nome Redacted] - Juiz(a) Criminal",
+						"digitalSignature": "✅ Assinatura digital ICP-Brasil válida (certificado A3)",
+						"legalBasis": "Art. 22 do Marco Civil da Internet (Lei 12.965/2014); Art. 13 e 15 do Marco Civil; Art. 240-250 do CPP",
+						"targetUser": "user47832@platform.internal (conta ativa desde 15/03/2023)",
+						"requestedPeriod": "01/11/2024 a 31/01/2025 (3 meses)",
+						"requestedData": [
+							"Registros de conexão (IPs de origem, data/hora de login/logout)",
+							"Registros de acesso a aplicações (e-mail, plataforma web)",
+							"Metadados de e-mails enviados (destinatários, assunto, data/hora, IP de envio)",
+							"Logs de sessão (duração, páginas acessadas, ações realizadas)"
+						],
+						"observation": "Mandado formalmente válido. Art. 22 do Marco Civil autoriza solicitação judicial de registros. ATENÇÃO: delegacia solicita 'e-mails enviados' (conteúdo) além de logs (metadados). Conteúdo de e-mails requer fundamentação adicional sob sigilo de correspondência (Art. 5º, XII, CF). Verificar se mandado autoriza expressamente interceptação de conteúdo."
+					}
+				},
+				{
+					"type": "data-inventory",
+					"title": "Inventário de Dados Disponíveis para o Usuário Investigado",
+					"data": {
+						"connectionLogs": {
+							"source": "Firewall + RADIUS",
+							"available": "✅ 12 meses de registros (dentro da janela solicitada)",
+							"fields": "IP de origem, data/hora, duração da sessão, protocolo"
+						},
+						"applicationLogs": {
+							"source": "ELK Stack (Elasticsearch)",
+							"available": "✅ 6 meses de registros (dentro da janela solicitada)",
+							"fields": "URLs acessadas, timestamps, user-agent, ações realizadas"
+						},
+						"emailMetadata": {
+							"source": "Postfix logs",
+							"available": "✅ 6 meses de metadados",
+							"fields": "Remetente, destinatário, assunto, data/hora, IP de envio, tamanho"
+						},
+						"emailContent": {
+							"source": "Dovecot (mailbox do usuário)",
+							"available": "⚠️ Disponível, mas requer análise jurídica sobre sigilo de correspondência",
+							"fields": "Corpo do e-mail, anexos, headers completos"
+						},
+						"observation": "Logs de conexão e aplicação estão disponíveis para o período completo. Metadados de e-mail estão disponíveis. CONTEÚDO de e-mails é sensível - requer verificação se mandado autoriza expressamente quebra de sigilo de correspondência (Art. 5º, XII, CF)."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"question": "O mandado judicial solicita 'registros de acesso' e 'e-mails enviados'. A equipe identifica que o conteúdo dos e-mails é protegido pelo sigilo de correspondência (Art. 5º, XII, CF). Qual é a ação mais apropriada?",
+					"points": 6,
+					"options": [
+						"Fornecer todos os dados solicitados, incluindo conteúdo dos e-mails, sem questionamento",
+						"Fornecer apenas logs e metadados, e peticionar ao juízo questionando se o mandado autoriza expressamente acesso ao conteúdo dos e-mails",
+						"Recusar fornecimento de qualquer dado até que novo mandado específico seja emitido",
+						"Fornecer conteúdo dos e-mails apenas se o provedor considerar que há evidência suficiente de crime"
+					],
+					"correctAnswer": 1,
+					"justification": "Fornecer metadados e peticionar sobre conteúdo (B) é a ação mais equilibrada e juridicamente correta. Registros de acesso (IPs, horários, metadados) são obrigatórios sob Art. 22 do Marco Civil. Porém, CONTEÚDO de e-mails é protegido por sigilo de correspondência (Art. 5º, XII, CF) e sua quebra requer fundamentação específica na decisão judicial. (A) pode violar sigilo constitucional se mandado não for explícito. (C) é excessivo - logs são devidos. (D) provedor não é autoridade investigativa."
+				},
+				{
+					"id": "q2",
+					"type": "true-false",
+					"question": "Segundo o Art. 22 do Marco Civil da Internet, a parte interessada pode solicitar registros de conexão ou acesso a aplicações diretamente ao provedor, sem necessidade de ordem judicial, desde que demonstre legítimo interesse.",
+					"points": 3,
+					"correctAnswer": false,
+					"justification": "FALSO. Art. 22 do Marco Civil é claro: 'A parte interessada poderá, com o propósito de formar conjunto probatório em processo judicial cível ou penal, em caráter incidental ou autônomo, requerer ao juiz que ordene ao responsável pela guarda o fornecimento de registros'. A solicitação DEVE passar pelo juiz - não é possível requerer diretamente ao provedor. Isso protege o sigilo dos dados e garante controle judicial. Exceção: autoridades policiais podem solicitar PRESERVAÇÃO (não fornecimento) dos dados (Art. 13, §2º)."
+				},
+				{
+					"id": "q3",
+					"type": "multiple-choice",
+					"question": "O mandado solicita logs do período 01/11/2024 a 31/01/2025. A polícia também solicita verbalmente (por telefone) que o provedor preserve logs futuros do usuário a partir de hoje. Qual é a resposta correta?",
+					"points": 6,
+					"options": [
+						"Atender à solicitação verbal e preservar logs futuros imediatamente",
+						"Recusar qualquer solicitação que não seja formalizada por escrito via mandado judicial",
+						"Preservar cautelarmente os dados existentes e informar que preservação futura prolongada requer ordem judicial formal",
+						"Ignorar a solicitação verbal pois não tem valor legal"
+					],
+					"correctAnswer": 2,
+					"justification": "Preservação cautelar + exigir formalização (C) é a abordagem correta. Art. 13, §2º do Marco Civil permite que autoridade policial ou Ministério Público solicite preservação provisória de registros por prazo superior ao obrigatório, mas essa solicitação deve ser formalizada. Preservar cautelarmente os dados EXISTENTES (não destruir) é prudente e cooperativo. Para monitoramento FUTURO contínuo, é necessária ordem judicial específica (interceptação telemática - Lei 9.296/96). (A) pode configurar interceptação ilegal. (B) é formalista demais - preservação é diferente de fornecimento. (D) é negligente."
+				},
+				{
+					"id": "q4",
+					"type": "multiple-choice",
+					"question": "Durante a análise, a equipe descobre que parte dos logs de aplicação do mês de novembro/2024 foram sobrescritos por rotação automática (log rotation) configurada para 90 dias. Qual é a providência adequada?",
+					"points": 5,
+					"options": [
+						"Informar ao juízo que os dados não existem mais e fornecer apenas o que está disponível",
+						"Tentar recuperar os dados sobrescritos via ferramentas forenses de disco",
+						"Documentar formalmente a indisponibilidade parcial, fornecer todos os dados existentes e informar o juízo sobre a lacuna com justificativa técnica",
+						"Aguardar que o juízo solicite novamente os dados específicos que faltam"
+					],
+					"correctAnswer": 2,
+					"justification": "Documentar, fornecer o disponível e informar o juízo (C) é o procedimento correto. Transparência protege o provedor: (1) fornecer TODOS os dados existentes demonstra boa-fé, (2) documentar a lacuna com justificativa técnica (rotação de logs) demonstra que não houve destruição intencional, (3) informar o juízo proativamente evita acusação de descumprimento parcial. (A) é incompleto - não menciona documentação da causa. (B) pode ser tentado, mas dados sobrescritos geralmente são irrecuperáveis e não é obrigação do provedor. (D) é passivo e pode ser interpretado como descumprimento."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Coleta e Preservação de Evidências",
+			"phase": "Fase 2 - Contenção e Coleta",
+			"description": "Após validar o mandado e definir o escopo dos dados a fornecer, a equipe inicia o processo de coleta de logs com preservação de cadeia de custódia digital.",
+			"timeElapsed": "T+4 horas (13:45)",
+			"currentSituation": {
+				"mandateValidated": "✅ Mandado validado pela equipe jurídica",
+				"scopeDefined": "Logs de conexão + aplicação + metadados de e-mail (conteúdo pendente de clarificação judicial)",
+				"collectionStatus": "Em andamento - extração de logs dos sistemas",
+				"deadline": "Restam 4 dias úteis"
+			},
+			"metrics": [
+				{
+					"type": "log-extraction",
+					"title": "Processo de Extração de Logs",
+					"data": {
+						"connectionLogs": {
+							"source": "Firewall (pfSense) + RADIUS (FreeRADIUS)",
+							"period": "01/11/2024 a 31/01/2025",
+							"records": "14.823 registros de conexão",
+							"sizeRaw": "2.3 MB (CSV exportado)",
+							"fields": "timestamp, src_ip, dst_ip, protocol, port, duration, bytes_transferred"
+						},
+						"applicationLogs": {
+							"source": "ELK Stack (Elasticsearch)",
+							"period": "05/11/2024 a 31/01/2025 (novembro parcial devido a rotação)",
+							"records": "47.291 registros de acesso",
+							"sizeRaw": "18.7 MB (JSON exportado)",
+							"fields": "timestamp, user_id, action, url, http_method, user_agent, response_code"
+						},
+						"emailMetadata": {
+							"source": "Postfix mail logs",
+							"period": "01/11/2024 a 31/01/2025",
+							"records": "3.847 e-mails enviados, 1.203 e-mails recebidos",
+							"sizeRaw": "1.8 MB (CSV exportado)",
+							"fields": "timestamp, from, to, subject, message_id, src_ip, size, status"
+						},
+						"observation": "Total de dados coletados: ~22.8 MB abrangendo 65.961 registros. Logs de aplicação de novembro estão parcialmente indisponíveis (dias 01-04) devido a log rotation. Todos os registros extraídos serão preservados com hash SHA-256 para garantir integridade."
+					}
+				},
+				{
+					"type": "chain-of-custody",
+					"title": "Registro de Cadeia de Custódia Digital",
+					"data": {
+						"extractedBy": "Analista de Segurança [ID: SEC-042] - 13:20",
+						"witnessedBy": "Coordenador de Compliance [ID: CMP-015] - 13:20",
+						"extractionTool": "Elasticsearch API (GET /_search) + psql (RADIUS) + grep/awk (Postfix)",
+						"storageLocation": "/secure/evidence/IP-0098765-2025/ (volume criptografado LUKS AES-256)",
+						"hashAlgorithm": "SHA-256",
+						"hashes": {
+							"connection_logs.csv": "a3f8b2c1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1",
+							"application_logs.json": "b4c9d3e2f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2",
+							"email_metadata.csv": "c5d0e4f3a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3"
+						},
+						"observation": "Cadeia de custódia registrada com: identificação do profissional responsável, testemunha, ferramentas utilizadas, hashes SHA-256 de cada arquivo e armazenamento em volume criptografado. Qualquer alteração nos arquivos invalida o hash, permitindo detecção de adulteração."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q5",
+					"type": "multiple-choice",
+					"question": "Qual é o principal objetivo de calcular hashes SHA-256 dos arquivos de log extraídos antes do envio ao juízo?",
+					"points": 5,
+					"options": [
+						"Criptografar os dados para transporte seguro até o tribunal",
+						"Comprimir os arquivos para reduzir tamanho de envio",
+						"Garantir integridade dos dados - permitir verificação de que os logs não foram alterados após extração",
+						"Autenticar a identidade do provedor que forneceu os dados"
+					],
+					"correctAnswer": 2,
+					"justification": "Integridade de dados (C) é o objetivo principal do hash SHA-256 em cadeia de custódia. O hash funciona como 'impressão digital' do arquivo: qualquer alteração (mesmo 1 bit) produz hash completamente diferente, permitindo detectar adulteração. Ao registrar o hash no momento da extração e incluí-lo no relatório ao juízo, qualquer parte pode verificar que os dados não foram modificados. (A) hash não é criptografia - é função de resumo unidirecional. (B) hash não comprime dados. (D) hash não autentica identidade - assinatura digital faz isso."
+				},
+				{
+					"id": "q6",
+					"type": "ordering",
+					"question": "Ordene as etapas corretas do processo de coleta e fornecimento de logs em resposta a mandado judicial:",
+					"points": 6,
+					"partialCredit": false,
+					"items": [
+						{"id": "step1", "text": "Validar autenticidade e escopo do mandado judicial com equipe jurídica"},
+						{"id": "step2", "text": "Identificar e localizar todos os sistemas que contêm logs relevantes"},
+						{"id": "step3", "text": "Extrair dados com registro de cadeia de custódia (quem, quando, como)"},
+						{"id": "step4", "text": "Calcular hashes de integridade (SHA-256) dos arquivos extraídos"},
+						{"id": "step5", "text": "Armazenar cópia em ambiente seguro e criptografado"},
+						{"id": "step6", "text": "Entregar dados ao juízo com relatório técnico e hashes de integridade"}
+					],
+					"correctOrder": ["step1", "step2", "step3", "step4", "step5", "step6"],
+					"justification": "Sequência obrigatória: (1) Validação jurídica SEMPRE primeiro - confirmar autenticidade e escopo. (2) Inventariar fontes de dados (não esquecer nenhum sistema). (3) Extrair com registro formal (cadeia de custódia). (4) Gerar hashes IMEDIATAMENTE após extração (antes de qualquer movimentação). (5) Armazenar cópia segura (backup da evidência). (6) Entregar com documentação completa. Hashes devem ser calculados ANTES do armazenamento para garantir que o ponto de referência é o momento da extração."
+				},
+				{
+					"id": "q7",
+					"type": "true-false",
+					"question": "O provedor de internet pode ser compelido a fornecer registros de conexão de qualquer período, mesmo que anterior ao prazo obrigatório de retenção de 1 ano estabelecido pelo Marco Civil, caso os dados ainda existam em seus sistemas.",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. O Art. 13, §2º do Marco Civil permite que autoridade policial, MP ou juiz requeira preservação de registros por prazo SUPERIOR ao obrigatório (1 ano para conexão, 6 meses para aplicação). Se o provedor AINDA possui os dados (mesmo que além do prazo obrigatório), pode ser compelido a fornecê-los mediante ordem judicial. O prazo de retenção obrigatório é um MÍNIMO, não um máximo. Se dados existem, são acessíveis judicialmente. O provedor não é obrigado a MANTER além do prazo, mas se mantém voluntariamente, pode ser obrigado a fornecer."
+				},
+				{
+					"id": "q8",
+					"type": "matching",
+					"question": "Associe cada tipo de registro de dados ao seu prazo mínimo obrigatório de retenção segundo o Marco Civil da Internet:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "conn", "text": "Registros de conexão (Art. 13)"},
+						{"id": "app", "text": "Registros de acesso a aplicações (Art. 15)"},
+						{"id": "content", "text": "Conteúdo de comunicações privadas (e-mails, mensagens)"}
+					],
+					"rightColumn": [
+						{"id": "t1", "text": "1 ano (12 meses) de guarda obrigatória"},
+						{"id": "t2", "text": "6 meses de guarda obrigatória"},
+						{"id": "t3", "text": "Sem prazo de retenção obrigatória definido no Marco Civil"}
+					],
+					"correctMatches": [
+						{"left": "conn", "right": "t1"},
+						{"left": "app", "right": "t2"},
+						{"left": "content", "right": "t3"}
+					],
+					"justification": "Registros de CONEXÃO (Art. 13): 1 ano (12 meses) - quem se conectou, quando, de qual IP. Registros de APLICAÇÃO (Art. 15): 6 meses - quais aplicações o usuário acessou, ações realizadas. CONTEÚDO de comunicações: o Marco Civil NÃO define prazo obrigatório de retenção de conteúdo (corpo de e-mails, mensagens). O Marco Civil regula apenas METADADOS (registros de acesso/conexão), não o conteúdo em si. Conteúdo é protegido por sigilo de correspondência (Art. 5º, XII, CF)."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Tratamento de Dados e Proteção de Privacidade",
+			"phase": "Fase 3 - Análise e Entrega",
+			"description": "O juízo respondeu que o mandado autoriza acesso ao conteúdo de e-mails enviados pelo investigado. A equipe agora precisa preparar a entrega dos dados respeitando LGPD e minimização de dados.",
+			"timeElapsed": "T+2 dias (quinta-feira, 09:45)",
+			"currentSituation": {
+				"courtResponse": "✅ Juízo esclareceu: mandado autoriza acesso a conteúdo de e-mails do investigado",
+				"dataCollected": "✅ Logs + metadados + conteúdo de e-mails extraídos",
+				"privacyConcern": "Logs contêm dados de TERCEIROS (destinatários, correspondentes) não investigados",
+				"deadline": "Restam 3 dias úteis"
+			},
+			"metrics": [
+				{
+					"type": "data-analysis",
+					"title": "Análise dos Dados Coletados - Impacto em Terceiros",
+					"data": {
+						"investigatedUser": "user47832@platform.internal",
+						"emailsSent": 3847,
+						"uniqueRecipients": 892,
+						"recipientCategories": {
+							"potentialVictims": "~340 destinatários de e-mails com padrão de phishing (links suspeitos, urgência artificial)",
+							"legitimateContacts": "~520 destinatários de e-mails pessoais/profissionais legítimos",
+							"internalUsers": "~32 usuários da mesma plataforma"
+						},
+						"sensitiveData": "Logs contêm IPs de destinatários, user-agents (informações de dispositivo), e padrões de navegação de terceiros não investigados",
+						"observation": "ATENÇÃO LGPD: Os dados coletados contêm informações pessoais de ~892 terceiros não investigados. O princípio de minimização (Art. 6º, III, LGPD) requer que apenas dados NECESSÁRIOS à investigação sejam fornecidos. Avaliar se dados de terceiros podem ser anonimizados ou filtrados sem comprometer a investigação."
+					}
+				},
+				{
+					"type": "delivery-preparation",
+					"title": "Preparação dos Dados para Entrega ao Juízo",
+					"data": {
+						"format": "Arquivos CSV e JSON com documentação técnica (README.txt)",
+						"encryption": "Volume criptografado AES-256 em mídia física (pen drive)",
+						"deliveryMethod": "Entrega presencial ao cartório judicial com recibo assinado",
+						"documentation": [
+							"Relatório técnico descrevendo metodologia de extração",
+							"Inventário de todos os arquivos entregues com hashes SHA-256",
+							"Declaração de cadeia de custódia digital",
+							"Nota técnica sobre dados parcialmente indisponíveis (novembro/2024)",
+							"Informação sobre dados de terceiros presentes nos registros"
+						],
+						"observation": "Entrega em mídia criptografada com relatório técnico completo. Recomenda-se não enviar por e-mail ou sistemas não seguros devido à sensibilidade dos dados (registros de investigação criminal)."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q9",
+					"type": "multiple-choice",
+					"question": "Os logs extraídos contêm dados pessoais de ~892 terceiros não investigados (destinatários de e-mails). Considerando a LGPD (Lei 13.709/2018), qual princípio deve guiar o tratamento desses dados?",
+					"points": 6,
+					"options": [
+						"Princípio do consentimento - obter autorização de cada destinatário antes de fornecer dados",
+						"Princípio da finalidade - fornecer todos os dados pois a finalidade (investigação criminal) justifica",
+						"Princípio da minimização - fornecer apenas dados estritamente necessários à investigação, anonimizando informações de terceiros quando possível",
+						"Princípio da transparência - notificar todos os destinatários que seus dados estão sendo compartilhados"
+					],
+					"correctAnswer": 2,
+					"justification": "Minimização de dados (C) - Art. 6º, III, LGPD: 'limitação do tratamento ao mínimo necessário para a realização de suas finalidades'. Embora o fornecimento ao juízo seja obrigatório (base legal: cumprimento de obrigação legal - Art. 7º, II, LGPD), deve-se fornecer apenas o necessário. Dados de terceiros não relacionados à investigação podem ser anonimizados (mascarar IPs, e-mails). (A) consentimento não é necessário para cumprimento de obrigação legal. (B) fornece dados em excesso. (D) notificação poderia comprometer a investigação sigilosa."
+				},
+				{
+					"id": "q10",
+					"type": "numeric",
+					"question": "A delegacia solicita urgência na preservação de logs que podem ser sobrescritos por rotação automática. Segundo o Art. 13, §2º do Marco Civil, por qual prazo máximo (em dias) a autoridade policial pode requerer preservação cautelar de registros de conexão, antes de obter ordem judicial?",
+					"points": 5,
+					"correctAnswer": 60,
+					"tolerance": 0,
+					"unit": "dias",
+					"justification": "60 dias. Art. 13, §2º do Marco Civil: 'A autoridade policial ou administrativa ou o Ministério Público poderá requerer cautelarmente que os registros de conexão sejam guardados por prazo superior ao previsto no caput [...] devendo, no prazo de 60 (sessenta) dias, contados do requerimento, ingressar com pedido de autorização judicial'. Ou seja, a autoridade pode pedir preservação EXTRA por até 60 dias, mas DEVE formalizar judicialmente nesse prazo, caso contrário a preservação cautelar expira."
+				},
+				{
+					"id": "q11",
+					"type": "multiple-choice",
+					"question": "Qual é o método mais seguro e auditável para entregar os dados extraídos ao juízo criminal?",
+					"points": 5,
+					"options": [
+						"Enviar por e-mail criptografado (PGP/GPG) diretamente ao juiz titular",
+						"Upload em plataforma de compartilhamento em nuvem com link protegido por senha",
+						"Entrega presencial de mídia criptografada (pen drive AES-256) ao cartório judicial com recibo assinado",
+						"Disponibilizar os dados via SFTP em servidor do provedor com credenciais temporárias"
+					],
+					"correctAnswer": 2,
+					"justification": "Entrega presencial de mídia criptografada (C) é o método mais seguro e auditável: (1) mídia física impossibilita interceptação em trânsito via rede, (2) criptografia AES-256 protege contra acesso não autorizado, (3) recibo assinado pelo cartório documenta a entrega (cadeia de custódia), (4) processo judicial formal requer protocolamento oficial. (A) e-mail pode ser interceptado, juiz pode não ter PGP. (B) dados criminais em nuvem compartilhada é risco inaceitável. (D) servidor do provedor mantém acesso contínuo aos dados - não é entrega definitiva."
+				},
+				{
+					"id": "q12",
+					"type": "true-false",
+					"question": "O provedor de internet pode ser processado por crime de desobediência (Art. 330, Código Penal) se não atender ao mandado judicial de fornecimento de logs dentro do prazo estipulado, mesmo que a demora seja por dificuldade técnica legítima.",
+					"points": 3,
+					"correctAnswer": false,
+					"justification": "FALSO. O crime de desobediência (Art. 330, CP) requer DOLO - intenção deliberada de desobedecer. Dificuldade técnica legítima e documentada (ex: dados parcialmente sobrescritos, sistemas complexos, volume de dados) NÃO configura desobediência se o provedor demonstrar boa-fé e diligência. O correto é: (1) comunicar o juízo ANTES do vencimento do prazo sobre a impossibilidade de cumprir integralmente, (2) solicitar dilatação de prazo (Art. 185, CPP), (3) fornecer o que já está disponível. Omissão dolosa sem justificativa, SIM, pode configurar desobediência."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Pós-Entrega e Melhoria de Processos",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Dados entregues ao juízo com sucesso dentro do prazo. A equipe agora analisa o processo para identificar melhorias em retenção de logs, cadeia de custódia e procedimentos de resposta a mandados.",
+			"timeElapsed": "T+5 dias (terça-feira - prazo cumprido)",
+			"currentSituation": {
+				"deliveryStatus": "✅ Dados entregues ao cartório judicial com recibo assinado",
+				"complianceReport": "✅ Relatório técnico com hashes, cadeia de custódia e documentação completa",
+				"pendingIssues": "⚠️ Log rotation de novembro identificado como lacuna operacional",
+				"lgpdCompliance": "✅ Dados de terceiros minimizados conforme orientação da equipe jurídica"
+			},
+			"metrics": [
+				{
+					"type": "lessons-learned",
+					"title": "Lições Aprendidas - Análise do Processo",
+					"data": {
+						"timeToComplete": "5 dias úteis (prazo integral utilizado)",
+						"bottlenecks": [
+							"Clarificação judicial sobre conteúdo de e-mails (+2 dias)",
+							"Identificação de dados parcialmente sobrescritos (log rotation)",
+							"Análise de impacto em terceiros não investigados (LGPD)"
+						],
+						"improvements": [
+							"Implementar política de retenção de logs alinhada aos requisitos legais",
+							"Criar procedimento operacional padrão (POP) para resposta a mandados",
+							"Configurar alertas de log rotation para evitar perda de dados relevantes",
+							"Treinar equipe sobre cadeia de custódia digital"
+						],
+						"observation": "O prazo de 5 dias foi apertado devido a necessidade de clarificação judicial. Recomenda-se criar POP que permita iniciar coleta em paralelo à análise jurídica, reduzindo tempo total de resposta."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q13",
+					"type": "multiple-choice",
+					"question": "Qual melhoria de processo teria maior impacto para agilizar futuras respostas a mandados judiciais de logs?",
+					"points": 6,
+					"options": [
+						"Contratar escritório de advocacia externo para analisar todos os mandados",
+						"Implementar sistema automatizado de coleta e exportação de logs com cadeia de custódia integrada",
+						"Reduzir o período de retenção de logs para minimizar volume de dados a fornecer",
+						"Armazenar todos os logs em formato impresso (papel) para facilitar entrega ao juízo"
+					],
+					"correctAnswer": 1,
+					"justification": "Sistema automatizado de coleta com cadeia de custódia (B) teria maior impacto: (1) reduz tempo de extração de dias para horas, (2) gera hashes automaticamente, (3) registra cadeia de custódia de forma padronizada, (4) permite exportação em formatos judiciais padronizados, (5) mantém consistência entre diferentes mandados. (A) não acelera a parte técnica. (C) viola obrigações legais de retenção mínima (Art. 13/15 Marco Civil). (D) é impraticável para volumes de dados modernos."
+				},
+				{
+					"id": "q14",
+					"type": "multiple-choice",
+					"question": "A equipe identificou que a política de log rotation destruiu dados potencialmente relevantes. Qual configuração de retenção atenderia simultaneamente ao Marco Civil E à capacidade operacional?",
+					"points": 5,
+					"options": [
+						"Reter todos os logs indefinidamente para garantir disponibilidade máxima",
+						"Logs de conexão: 12 meses; logs de aplicação: 6 meses; com archive comprimido após o período ativo",
+						"Reter apenas 30 dias de logs (suficiente para troubleshooting operacional)",
+						"Delegar a retenção de logs ao provedor de nuvem (AWS/Azure) sem controle local"
+					],
+					"correctAnswer": 1,
+					"justification": "Retenção alinhada ao Marco Civil com archive (B): logs de conexão 12 meses (Art. 13) e aplicação 6 meses (Art. 15) são os mínimos legais. Archive comprimido após período ativo economiza armazenamento sem destruir dados. (A) é custoso, pode violar LGPD (armazena dados além do necessário). (C) viola prazo mínimo legal. (D) transfere controle sem garantia de compliance e pode criar riscos de acesso não autorizado. Retenção deve ser EXATAMENTE conforme exigência legal, com margem de segurança."
+				},
+				{
+					"id": "q15",
+					"type": "multiple-choice",
+					"question": "Após cumprimento do mandado, o usuário investigado (user47832) contacta o provedor solicitando, com base na LGPD, informações sobre quais dados foram fornecidos à justiça. Qual é a resposta adequada?",
+					"points": 6,
+					"options": [
+						"Informar detalhadamente todos os dados fornecidos ao juízo, incluindo cópias integrais",
+						"Negar qualquer informação pois o fornecimento foi sob sigilo judicial",
+						"Confirmar que dados foram fornecidos por determinação judicial, sem detalhar conteúdo, e orientar que solicite informações ao juízo",
+						"Apagar todos os dados do usuário para proteger sua privacidade"
+					],
+					"correctAnswer": 2,
+					"justification": "Confirmar e redirecionar ao juízo (C) equilibra transparência e sigilo. Art. 18, VII da LGPD garante ao titular direito de saber com quem seus dados foram compartilhados. Porém, investigações criminais possuem sigilo (Art. 20, CPP). O provedor pode confirmar que dados foram compartilhados POR ORDEM JUDICIAL sem detalhar conteúdo (que está sob sigilo). O investigado deve solicitar acesso ao juízo criminal. (A) quebra sigilo da investigação. (B) nega direito do titular completamente. (D) destrói evidências e viola obrigação de retenção."
+				},
+				{
+					"id": "q16",
+					"type": "numeric",
+					"question": "Considerando que a entrega foi feita em mídia criptografada, qual é o tamanho mínimo recomendado (em bits) para a chave de criptografia AES para proteção de dados sensíveis em contexto judicial?",
+					"points": 5,
+					"correctAnswer": 256,
+					"tolerance": 0,
+					"unit": "bits",
+					"justification": "256 bits (AES-256) é o padrão recomendado para dados sensíveis. AES (Advanced Encryption Standard) suporta chaves de 128, 192 e 256 bits. Para dados de natureza criminal/judicial: (1) AES-128 é seguro mas pode não atender requisitos de compliance de longo prazo, (2) AES-192 é intermediário e pouco utilizado, (3) AES-256 é padrão para dados governamentais classificados (NIST FIPS 197) e garante proteção contra ataques quânticos futuros (margem de segurança). Instituições como NSA recomendam AES-256 para dados 'TOP SECRET'."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 90,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 85,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de resposta a mandados judiciais de logs, cadeia de custódia digital e proteção de privacidade"
+			},
+			{
+				"min": 70,
+				"max": 84,
+				"grade": "Bom",
+				"description": "Compreensão sólida de obrigações legais e procedimentos de coleta com pequenas lacunas em LGPD ou cadeia de custódia"
+			},
+			{
+				"min": 60,
+				"max": 69,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica suficiente, requer aprofundamento em prazos legais e procedimentos de preservação de evidências"
+			},
+			{
+				"min": 40,
+				"max": 59,
+				"grade": "Insuficiente",
+				"description": "Lacunas significativas em conhecimento do Marco Civil, LGPD e procedimentos de resposta a mandados"
+			},
+			{
+				"min": 0,
+				"max": 39,
+				"grade": "Inadequado",
+				"description": "Conhecimento mínimo sobre fornecimento judicial de logs - recomenda-se treinamento formal em compliance e privacidade"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Apresentar informações progressivamente, simulando recebimento e processamento de mandado judicial em tempo real",
+		"Permitir 4-5 minutos de discussão entre participantes antes de cada resposta (questões jurídicas são complexas)",
+		"Fazer perguntas orientadoras: 'Qual a diferença entre registro de conexão e de aplicação?', 'O que é cadeia de custódia?', 'Por que a LGPD se aplica aqui?'",
+		"Enfatizar importância de EQUILÍBRIO: cumprimento de obrigação legal vs. proteção de privacidade de terceiros",
+		"Se grupo não tem experiência jurídica, explicar conceitos de Marco Civil Art. 13/15/22 antes da Rodada 2",
+		"Se grupo não tem experiência técnica, explicar conceitos de hash, cadeia de custódia e criptografia antes da Rodada 3",
+		"Manter neutralidade - não opinar sobre mérito da investigação criminal",
+		"Controlar tempo: Rodada 1 (5 min), Rodadas 2-4 (10-12 min cada), Rodada 5 (8 min)",
+		"Mediar debates sobre privacidade vs. segurança pública e limites de fornecimento de dados",
+		"Após exercício: revisar gabarito, discutir implementação de POP para resposta a mandados",
+		"Coletar feedback sobre realismo do cenário e ajustar para contexto operacional específico",
+		"Documentar insights para melhorar políticas de retenção de logs e processos de compliance"
+	],
+	"technicalReferences": [
+		{
+			"title": "Marco Civil da Internet - Lei 12.965/2014 (Art. 13, 15, 22)",
+			"url": "https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2014/lei/l12965.htm"
+		},
+		{
+			"title": "Lei Geral de Proteção de Dados (LGPD) - Lei 13.709/2018",
+			"url": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm"
+		},
+		{
+			"title": "Código de Processo Penal - Art. 240-250 (Busca e Apreensão)",
+			"url": "https://www.planalto.gov.br/ccivil_03/decreto-lei/del3689compilado.htm"
+		},
+		{
+			"title": "NIST SP 800-86 - Guide to Integrating Forensic Techniques into Incident Response",
+			"url": "https://csrc.nist.gov/pubs/sp/800/86/final"
+		},
+		{
+			"title": "RFC 3227 - Guidelines for Evidence Collection and Archiving",
+			"url": "https://www.rfc-editor.org/rfc/rfc3227"
+		},
+		{
+			"title": "ABNT NBR ISO/IEC 27037 - Diretrizes para Identificação, Coleta e Preservação de Evidência Digital",
+			"url": "https://www.abntcatalogo.com.br/"
+		},
+		{
+			"title": "Lei 12.737/2012 - Lei de Crimes Cibernéticos (Lei Carolina Dieckmann)",
+			"url": "https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2012/lei/l12737.htm"
+		}
+	]
+}

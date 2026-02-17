@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { FaQuestionCircle, FaCheckCircle, FaListOl, FaExchangeAlt, FaSortNumericDown, FaChevronLeft, FaChevronRight, FaHashtag, FaArrowsAltV, FaArrowUp, FaArrowDown, FaPaperPlane, FaCheck, FaTimes, FaLock } from 'react-icons/fa';
+import { FaQuestionCircle, FaCheckCircle, FaListOl, FaExchangeAlt, FaSortNumericDown, FaChevronLeft, FaChevronRight, FaHashtag, FaArrowsAltV, FaArrowUp, FaArrowDown, FaPaperPlane, FaCheck, FaTimes, FaLock, FaEye } from 'react-icons/fa';
 
 const TYPE_CONFIG = {
 	'multiple-choice': {
@@ -430,8 +430,9 @@ function isAnswerReady(question, answer) {
  * @param {Array} responses - User's existing responses for this round
  * @param {boolean} submitting - Whether a submission is in progress
  * @param {boolean} canAnswer - Whether the user can currently answer (training active + participant role)
+ * @param {boolean} readOnly - Whether to show in read-only mode (e.g., for observers). Hides submit controls.
  */
-export default function RoundQuestions({ questions, roundIndex, roundTitle, onSubmitAnswer, responses = [], submitting = false, canAnswer = false }) {
+export default function RoundQuestions({ questions, roundIndex, roundTitle, onSubmitAnswer, responses = [], submitting = false, canAnswer = false, readOnly = false }) {
 	const [currentQuestion, setCurrentQuestion] = useState(0);
 	const [selectedAnswers, setSelectedAnswers] = useState({});
 	const [submitError, setSubmitError] = useState(null);
@@ -570,39 +571,48 @@ export default function RoundQuestions({ questions, roundIndex, roundTitle, onSu
 			{isAnswered && <AnswerResult response={currentResponse} />}
 
 			{/* Submit button & status */}
-			<div className="mt-6">
-				{!canAnswer && !isAnswered && (
-					<div className="flex items-center gap-2 text-sm text-slate-500 bg-slate-50 px-4 py-3 rounded-xl border border-slate-200">
-						<FaLock className="text-slate-400" />
-						O treinamento precisa estar ativo para responder
-					</div>
-				)}
+			{!readOnly && (
+				<div className="mt-6">
+					{!canAnswer && !isAnswered && (
+						<div className="flex items-center gap-2 text-sm text-slate-500 bg-slate-50 px-4 py-3 rounded-xl border border-slate-200">
+							<FaLock className="text-slate-400" />
+							O treinamento precisa estar ativo para responder
+						</div>
+					)}
 
-				{canAnswer && !isAnswered && (
-					<button
-						type="button"
-						onClick={() => handleSubmit(question.id)}
-						disabled={!readyToSubmit || submitting}
-						className="flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold transition-all bg-emerald-600 text-white hover:bg-emerald-700 shadow-md shadow-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed"
-					>
-						{submitting ? (
-							<>
-								<span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-								Enviando...
-							</>
-						) : (
-							<>
-								<FaPaperPlane className="text-xs" />
-								Enviar Resposta
-							</>
-						)}
-					</button>
-				)}
+					{canAnswer && !isAnswered && (
+						<button
+							type="button"
+							onClick={() => handleSubmit(question.id)}
+							disabled={!readyToSubmit || submitting}
+							className="flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold transition-all bg-emerald-600 text-white hover:bg-emerald-700 shadow-md shadow-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed"
+						>
+							{submitting ? (
+								<>
+									<span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+									Enviando...
+								</>
+							) : (
+								<>
+									<FaPaperPlane className="text-xs" />
+									Enviar Resposta
+								</>
+							)}
+						</button>
+					)}
 
-				{submitError && (
-					<p className="mt-2 text-sm text-red-600">{submitError}</p>
-				)}
-			</div>
+					{submitError && (
+						<p className="mt-2 text-sm text-red-600">{submitError}</p>
+					)}
+				</div>
+			)}
+
+			{readOnly && (
+				<div className="mt-6 flex items-center gap-2 text-sm text-slate-500 bg-slate-50 px-4 py-3 rounded-xl border border-slate-200">
+					<FaEye className="text-slate-400" />
+					Modo de visualização — observadores não podem responder questões
+				</div>
+			)}
 
 			{/* Navigation controls */}
 			<div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-100">

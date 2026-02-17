@@ -1,0 +1,512 @@
+{
+	"id": "mpls-ldp-signaling-failure",
+	"title": "Resposta a Falha de Sinalização MPLS/LDP",
+	"description": "Simulação tabletop de resposta a falha na distribuição de labels MPLS via LDP, causando queda de LSPs e degradação de serviços VPN L3 e Traffic Engineering",
+	"category": {
+		"id": "NET_ROUT",
+		"type": "NET_ROUT_MPLS_LDP",
+		"title": "Falha de Sinalização MPLS/LDP (Label Distribution Protocol)"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2025-02-17",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "40-55 minutos",
+		"difficulty": "Avançado",
+		"targetAudience": "Engenheiros de Rede MPLS, Equipe de NOC, Operadores de Backbone, Administradores de Roteadores de Core"
+	},
+	"objectives": [
+		"Validar capacidade de diagnóstico de falhas de sinalização MPLS/LDP e suas consequências em serviços",
+		"Avaliar conhecimento da arquitetura MPLS (label operations, FIB/LFIB, LSP, PHP)",
+		"Testar compreensão do protocolo LDP, seus mecanismos de adjacência e distribuição de labels",
+		"Desenvolver habilidade de correlação entre falha de LDP e impacto em serviços dependentes (VPN L3, TE)",
+		"Identificar causas comuns de falha de adjacência LDP (MTU, TCP 646, ACL, autenticação)",
+		"Promover entendimento da relação entre IGP, LDP e BGP em redes MPLS"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá execução real de comandos em roteadores de produção",
+		"Não inclui alterações reais em configuração MPLS/LDP ou políticas de label",
+		"Foco na análise técnica, diagnóstico de causa raiz e compreensão da arquitetura MPLS",
+		"Avaliação de conhecimento de stack MPLS (LDP, LFIB, VPNv4, PHP, label operations)"
+	],
+	"baseScenario": {
+		"context": "Terça-feira, 14h30. Você faz parte da equipe de operações de backbone. A organização opera uma rede MPLS com 8 roteadores PE (Provider Edge) e 4 roteadores P (Provider). LDP é utilizado para distribuição de labels de transporte, e MP-BGP para VPNv4 (VPN L3). A rede atende 15 clientes corporativos com VPN L3 MPLS. Nos últimos 10 minutos, vários clientes reportam perda de conectividade entre sites remotos.",
+		"initialSituation": {
+			"alert": "Múltiplos alarmes de VPN L3 down - clientes sem conectividade entre sites",
+			"affectedDevice": "core-p-01 (roteador P central do backbone MPLS)",
+			"ldpNeighbors": "Perdeu adjacência LDP com 3 de 4 vizinhos",
+			"servicesAffected": "8 de 15 VPNs L3 com perda de conectividade",
+			"timestamp": "14:22:08"
+		},
+		"initialComplaints": [
+			"Clientes corporativos reportam perda de conectividade entre filiais (VPN L3)",
+			"Aplicações ERP/SAP entre sites retornam timeout de conexão",
+			"Monitoramento SNMP mostra queda de adjacências LDP no core-p-01",
+			"Traceroute entre PEs mostra pacotes sendo descartados no core-p-01"
+		],
+		"availableResources": [
+			"Acesso CLI aos roteadores P e PE (core-p-01 a core-p-04, pe-01 a pe-08)",
+			"Sistema de monitoramento com métricas de MPLS (labels, LSPs, VPNs)",
+			"Ferramentas: show mpls ldp neighbor, show mpls forwarding-table, show mpls ldp discovery, traceroute mpls",
+			"Logs de syslog centralizado com eventos LDP e MPLS",
+			"Documentação de topologia MPLS e mapa de labels",
+			"Acesso à configuração running de todos os roteadores",
+			"Ferramenta de packet capture (tcpdump/Wireshark) nas interfaces do core-p-01"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe deve se familiarizar com a topologia MPLS, arquitetura de labels e serviços VPN L3 afetados.",
+			"inject": "Apresentação do cenário conforme descrito. A equipe tem 5 minutos para discutir a topologia MPLS, os serviços afetados e planejar a abordagem de diagnóstico.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Detecção e Análise Inicial",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe acessa o roteador core-p-01 e coleta informações sobre o estado das adjacências LDP e labels MPLS.",
+			"timeElapsed": "T+0 (início da investigação)",
+			"currentSituation": {
+				"ldpNeighbors": "1 de 4 adjacências LDP ativas (apenas core-p-02)",
+				"lfibEntries": "Reduzido de 847 labels para 212 labels",
+				"vpnL3Affected": "8 de 15 VPNs sem conectividade end-to-end",
+				"ospfAdj": "4 de 4 adjacências OSPF ativas (IGP estável)",
+				"impact": "Serviços VPN L3 degradados, tráfego de transporte descartado"
+			},
+			"metrics": [
+				{
+					"title": "Status de Adjacências LDP (core-p-01)",
+					"type": "routing-analysis",
+					"data": {
+						"command": "show mpls ldp neighbor",
+						"neighbors": [
+							{
+								"peer": "10.0.0.2 (core-p-02)",
+								"state": "Operational",
+								"uptime": "45d 12:33:18",
+								"tcpConnection": "10.0.0.1:646 → 10.0.0.2:31245",
+								"labelsReceived": 212,
+								"labelsSent": 198
+							},
+							{
+								"peer": "10.0.0.3 (core-p-03)",
+								"state": "Down",
+								"lastUptime": "14:22:08 (há 8 minutos)",
+								"tcpConnection": "NO TCP session",
+								"labelsReceived": 0,
+								"labelsSent": 0
+							},
+							{
+								"peer": "10.0.0.4 (core-p-04)",
+								"state": "Down",
+								"lastUptime": "14:22:08 (há 8 minutos)",
+								"tcpConnection": "NO TCP session",
+								"labelsReceived": 0,
+								"labelsSent": 0
+							},
+							{
+								"peer": "10.0.1.1 (pe-01)",
+								"state": "Down",
+								"lastUptime": "14:22:08 (há 8 minutos)",
+								"tcpConnection": "NO TCP session",
+								"labelsReceived": 0,
+								"labelsSent": 0
+							}
+						],
+						"observation": "3 adjacências LDP caíram simultaneamente no mesmo instante (14:22:08). Apenas core-p-02 permanece operacional."
+					}
+				},
+				{
+					"title": "Status OSPF (core-p-01)",
+					"type": "routing-analysis",
+					"data": {
+						"command": "show ip ospf neighbor",
+						"neighbors": [
+							{"neighbor": "10.0.0.2", "state": "FULL/DR", "interface": "GigabitEthernet0/0"},
+							{"neighbor": "10.0.0.3", "state": "FULL/BDR", "interface": "GigabitEthernet0/1"},
+							{"neighbor": "10.0.0.4", "state": "FULL/DROTHER", "interface": "GigabitEthernet0/2"},
+							{"neighbor": "10.0.1.1", "state": "FULL/DROTHER", "interface": "GigabitEthernet0/3"}
+						],
+						"observation": "TODAS as adjacências OSPF estão FULL - problema NÃO é no IGP/IP. Causa é específica do LDP."
+					}
+				},
+				{
+					"title": "Logs de Eventos LDP (core-p-01)",
+					"type": "routing-analysis",
+					"data": {
+						"command": "show logging | include LDP",
+						"logEntries": [
+							"14:22:08 %LDP-5-NBRCHG: LDP Neighbor 10.0.0.3 is DOWN (TCP connection closed)",
+							"14:22:08 %LDP-5-NBRCHG: LDP Neighbor 10.0.0.4 is DOWN (TCP connection closed)",
+							"14:22:08 %LDP-5-NBRCHG: LDP Neighbor 10.0.1.1 is DOWN (TCP connection closed)",
+							"14:22:09 %MPLS-5-LFIB: Label 24015 removed from LFIB (no LDP binding)",
+							"14:22:09 %MPLS-5-LFIB: Label 24016 removed from LFIB (no LDP binding)",
+							"14:22:09 %MPLS-5-LFIB: 635 labels removed from LFIB",
+							"14:22:15 %LDP-5-DISCOVERY: LDP discovery hello from 10.0.0.3 on GigabitEthernet0/1",
+							"14:22:16 %LDP-5-SESSOPEN: LDP session 10.0.0.1 - 10.0.0.3 TCP FAILED (connection refused)",
+							"14:22:20 %LDP-5-DISCOVERY: LDP discovery hello from 10.0.0.4 on GigabitEthernet0/2",
+							"14:22:21 %LDP-5-SESSOPEN: LDP session 10.0.0.1 - 10.0.0.4 TCP FAILED (connection refused)"
+						],
+						"observation": "LDP discovery (UDP/646 hellos) está FUNCIONANDO, mas sessão TCP (TCP/646) FALHA - 'connection refused'"
+					}
+				},
+				{
+					"title": "Verificação de Porta TCP 646 (core-p-01)",
+					"type": "network-analysis",
+					"data": {
+						"command": "show control-plane host open-ports",
+						"tcpPorts": [
+							{"port": 22, "protocol": "SSH", "state": "LISTEN"},
+							{"port": 179, "protocol": "BGP", "state": "LISTEN"},
+							{"port": 646, "protocol": "LDP", "state": "NOT LISTENING"}
+						],
+						"observation": "Porta TCP/646 NÃO está em estado LISTEN no core-p-01 - LDP não consegue aceitar conexões TCP de peers"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"text": "A investigação revela que OSPF está estável mas LDP caiu para 3 vizinhos. LDP discovery (UDP) funciona, mas sessão TCP falha com 'connection refused'. Qual é a causa MAIS provável?",
+					"options": [
+						"A interface física está com problemas de camada 2, descartando pacotes TCP",
+						"Uma ACL ou firewall no roteador está bloqueando a porta TCP/646 de entrada",
+						"O processo LDP crashou e não está mais escutando na porta TCP/646",
+						"Os vizinhos mudaram de versão LDP e há incompatibilidade de protocolo"
+					],
+					"correctAnswer": 2,
+					"points": 5,
+					"justification": "A evidência chave é: TCP/646 NÃO está em estado LISTEN. LDP precisa de dois canais: UDP/646 para discovery (hellos) e TCP/646 para sessão (label bindings). UDP discovery funciona (hellos chegando), mas TCP session falha ('connection refused'), indicando que o processo LDP não está escutando na porta TCP. Crash ou restart do processo LDP é a causa mais provável. ACL (B) bloquearia ambos UDP e TCP. Camada 2 (A) afetaria OSPF também. Incompatibilidade (D) resultaria em erro de negociação, não 'connection refused'."
+				},
+				{
+					"id": "q2",
+					"text": "Por que os serviços VPN L3 são afetados se o OSPF (IGP) está completamente estável?",
+					"options": [
+						"VPN L3 depende de OSPF para funcionar, e OSPF deve estar com problema oculto",
+						"VPN L3 sobre MPLS requer LSPs (Label Switched Paths) formados via LDP para transporte - sem LDP, não há labels para encaminhar pacotes VPN",
+						"VPN L3 usa apenas BGP, que também deve estar com problema",
+						"Os clientes estão com problemas locais que coincidiram com o evento de LDP"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "VPN L3 MPLS funciona em camadas: (1) OSPF/IGP fornece roteamento IP interno, (2) LDP distribui labels de transporte (LSP) sobre os caminhos IGP, (3) MP-BGP com VPNv4 distribui rotas dos clientes entre PEs. Sem LDP (camada 2), os LSPs não existem, e os pacotes VPN não podem ser encaminhados pelo backbone MPLS mesmo que o IGP funcione. OSPF está estável (A falso). BGP pode estar up mas sem LSPs os pacotes não chegam (C incompleto)."
+				},
+				{
+					"id": "q3",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: LDP utiliza a mesma porta (646) tanto para discovery (UDP) quanto para sessão de troca de labels (TCP).",
+					"correctAnswer": true,
+					"points": 3,
+					"justification": "VERDADEIRO. LDP utiliza porta 646 em ambos os protocolos: UDP/646 para discovery (envio de Hello messages via multicast 224.0.0.2 para descoberta de vizinhos) e TCP/646 para sessão (conexão ponto-a-ponto para troca de label bindings, notificações e keepalives). O fato de usarem a mesma porta mas protocolos diferentes (UDP vs TCP) é importante para troubleshooting: é possível que discovery funcione (UDP) enquanto sessão falha (TCP)."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Conecte cada componente MPLS à sua função correta:",
+					"leftColumn": [
+						{"id": "comp1", "label": "LFIB (Label Forwarding Information Base)"},
+						{"id": "comp2", "label": "LDP (Label Distribution Protocol)"},
+						{"id": "comp3", "label": "PHP (Penultimate Hop Popping)"}
+					],
+					"rightColumn": [
+						{"id": "func1", "label": "Remoção do label de transporte no penúltimo roteador para reduzir lookups no egress PE"},
+						{"id": "func2", "label": "Tabela de encaminhamento baseada em labels usada pelo forwarding plane MPLS"},
+						{"id": "func3", "label": "Protocolo de sinalização para distribuição automática de labels entre roteadores vizinhos"}
+					],
+					"correctMatches": [
+						{"left": "comp1", "right": "func2"},
+						{"left": "comp2", "right": "func3"},
+						{"left": "comp3", "right": "func1"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 6,
+					"justification": "LFIB (↔ tabela de encaminhamento): armazena mapeamentos label-in → label-out/interface, usado pelo data plane para encaminhar pacotes MPLS em hardware. LDP (↔ distribuição de labels): protocolo de sinalização que negocia e distribui label bindings entre vizinhos, construindo os LSPs. PHP (↔ remoção no penúltimo hop): otimização onde o roteador antes do egress PE remove o label de transporte, evitando double lookup (MPLS + IP) no egress PE."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Contenção e Recuperação do Serviço LDP",
+			"phase": "Fase 2 - Contenção",
+			"description": "A equipe identifica que o processo LDP sofreu crash após uma atualização de software parcial que não completou corretamente. O restart do processo LDP é executado manualmente.",
+			"timeElapsed": "T+12 minutos",
+			"currentSituation": {
+				"action": "Processo LDP reiniciado no core-p-01",
+				"ldpNeighbors": "4 de 4 adjacências LDP restabelecidas",
+				"lfibEntries": "832 labels (convergindo para 847 normal)",
+				"vpnL3Status": "Reconectando - 6 de 8 VPNs restauradas, 2 ainda convergindo",
+				"impact": "Serviços sendo restaurados progressivamente"
+			},
+			"metrics": [
+				{
+					"title": "Convergência LDP Pós-Restart",
+					"type": "routing-analysis",
+					"data": {
+						"ldpConvergenceTime": "45 segundos para restabelecer todas as adjacências",
+						"labelDownloadTime": "2 minutos para popular LFIB completa",
+						"vpnL3RecoveryTime": "3-5 minutos para todas as VPNs reconvergirem",
+						"transientPacketLoss": "~15 segundos de descarte durante convergência",
+						"observation": "Convergência LDP é mais lenta que OSPF porque depende de TCP session establishment + label negotiation"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q5",
+					"text": "A convergência LDP levou 45 segundos para adjacências e 2 minutos para LFIB completa. Qual mecanismo poderia ter REDUZIDO o tempo de indisponibilidade durante o restart do LDP?",
+					"options": [
+						"LDP Graceful Restart (RFC 3478) - mantém labels no forwarding plane durante restart do control plane",
+						"Redução do LDP hold timer de 15s para 5s para detecção mais rápida",
+						"Aumento do tamanho da LFIB para pré-alocar mais labels",
+						"Configuração de LDP em modo targeted ao invés de link-local"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "LDP Graceful Restart (A) permite que o forwarding plane mantenha as labels existentes na LFIB enquanto o control plane (processo LDP) é reiniciado. Vizinhos marcam labels como 'stale' ao invés de removê-las, evitando perda de tráfego durante o restart. Após reconvergência, labels são atualizadas ou removidas. Sem Graceful Restart, todas as labels são removidas simultaneamente causando blackholing. Reduzir hold timer (B) piora instabilidade. Tamanho LFIB (C) não é o gargalo. Targeted LDP (D) é para LSPs remotos, não adjacências diretas."
+				},
+				{
+					"id": "q6",
+					"text": "Qual é a sequência correta de dependências para que uma VPN L3 MPLS funcione end-to-end?",
+					"options": [
+						"BGP → LDP → OSPF → VPN operacional",
+						"OSPF → LDP → BGP (VPNv4) → VPN operacional",
+						"LDP → OSPF → BGP → VPN operacional",
+						"OSPF → BGP → LDP → VPN operacional"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "A sequência de dependências é: (1) OSPF/IGP estabelece roteamento IP no backbone (adjacências, reachability dos loopbacks), (2) LDP usa IGP para formar adjacências e distribuir labels (LSPs sobre caminhos IGP), (3) MP-BGP com VPNv4 distribui rotas dos clientes entre PEs usando os LSPs como transporte. Sem OSPF, LDP não forma adjacências. Sem LDP, BGP VPNv4 não tem transporte. A dependência é OSPF → LDP → BGP."
+				},
+				{
+					"id": "q7",
+					"type": "ordering",
+					"text": "Ordene corretamente as operações de label MPLS em um pacote que transita de PE de ingresso ao PE de egresso (3 hops: PE1 → P → PE2):",
+					"items": [
+						{"id": "step1", "label": "PE1 (ingresso): PUSH - adiciona label de transporte ao pacote IP"},
+						{"id": "step2", "label": "P (core): SWAP - troca label de entrada por label de saída"},
+						{"id": "step3", "label": "P (penúltimo hop): POP - remove label de transporte (PHP)"},
+						{"id": "step4", "label": "PE2 (egresso): processa pacote IP sem label de transporte (apenas VPN label se aplicável)"}
+					],
+					"correctOrder": ["step1", "step2", "step3", "step4"],
+					"partialCredit": false,
+					"points": 5,
+					"justification": "Operações MPLS: (1) PUSH no ingress PE: encapsula pacote IP com label MPLS. (2) SWAP nos roteadores P intermediários: troca label de entrada pela label de saída conforme LFIB. (3) POP no penúltimate hop (PHP): remove label de transporte antes do egress PE. (4) Egress PE recebe pacote sem label de transporte, faz lookup IP (ou processa VPN label se houver stack de labels). Nota: no cenário com 3 hops, P faz SWAP e PHP simultaneamente se for o penúltimo hop."
+				},
+				{
+					"id": "q8",
+					"type": "numeric",
+					"text": "Se a LFIB tinha 847 labels antes da falha e caiu para 212 labels (apenas adjacência com core-p-02), qual percentual de labels foi perdido?",
+					"correctAnswer": 74.97,
+					"tolerance": 1.0,
+					"unit": "%",
+					"points": 5,
+					"justification": "Labels perdidas = 847 - 212 = 635. Percentual = (635 / 847) × 100 = 74.97%. Esta perda massiva de labels (75%) explica por que 8 de 15 VPNs foram afetadas - os LSPs de transporte para os PEs acessíveis apenas via core-p-03, core-p-04 e pe-01 foram completamente removidos da LFIB."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Análise de Causa Raiz e Prevenção",
+			"phase": "Fase 2 - Contenção (Avançada)",
+			"description": "Com LDP restaurado, a equipe investiga a causa raiz do crash. Descobre-se que uma atualização de IOS/software foi executada fora da janela de manutenção e não completou corretamente, corrompendo o processo LDP.",
+			"timeElapsed": "T+30 minutos",
+			"currentSituation": {
+				"ldpStatus": "Todas as adjacências operacionais e estáveis",
+				"lfibEntries": "847 labels (100% restaurado)",
+				"vpnL3Status": "15 de 15 VPNs operacionais",
+				"rootCause": "Atualização de software parcial corrompeu processo LDP",
+				"impact": "Nenhum - serviços restaurados"
+			},
+			"metrics": [
+				{
+					"title": "Análise Forense do Crash LDP",
+					"type": "system-analysis",
+					"data": {
+						"crashLog": "Process 'ldp' crash at 14:22:08, signal SIGSEGV",
+						"lastConfigChange": "14:20:15 - 'software upgrade' command executed by user 'admin'",
+						"softwareVersion": "Mismatch: running v16.12.4 partially upgraded from v16.12.3",
+						"coreFile": "core-p-01_ldp_crash_20250218_142208.core",
+						"observation": "Upgrade parcial causou inconsistência entre binários de LDP e kernel MPLS - crash por segmentation fault"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q9",
+					"text": "A causa raiz foi uma atualização de software executada fora da janela de manutenção. Qual prática de gestão de mudanças teria prevenido este incidente?",
+					"options": [
+						"Bloquear completamente atualizações de software em equipamentos de rede",
+						"Processo de change management com janela programada, plano de rollback e validação pré/pós-upgrade",
+						"Automatizar todas as atualizações para que sejam aplicadas sem intervenção humana",
+						"Manter sempre a versão mais antiga do software para máxima estabilidade"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Change management estruturado (B) com: (1) janela de manutenção programada (fora do horário de pico), (2) plano de rollback documentado, (3) validação pré-upgrade (verificar compatibilidade, backup de config), (4) validação pós-upgrade (verificar LDP, LFIB, VPNs). Bloquear upgrades (A) deixa vulnerabilidades sem correção. Automação sem validação (C) pode propagar erros em massa. Software antigo (D) acumula vulnerabilidades."
+				},
+				{
+					"id": "q10",
+					"text": "Se LDP Graceful Restart estivesse habilitado, qual seria o comportamento durante o crash e restart do processo LDP?",
+					"options": [
+						"O roteador vizinho desconectaria imediatamente e removeria todas as labels",
+						"O roteador vizinho manteria as labels na LFIB como 'stale' durante o tempo de restart, preservando o forwarding de tráfego",
+						"O forwarding plane também pararia até o restart completo",
+						"O roteador automaticamente faria rollback da atualização de software"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Com LDP Graceful Restart (B): (1) ao detectar queda da sessão TCP/646, o vizinho marca labels como 'stale' (não remove), (2) o forwarding plane continua encaminhando com labels stale, (3) durante o restart timer (configurável, ex: 120s), o processo LDP se reconecta, (4) labels são validadas e atualizadas, stale labels expiradas são removidas. Resultado: zero ou mínima perda de tráfego durante restart. Sem GR, todas as labels são removidas instantaneamente (blackholing)."
+				},
+				{
+					"id": "q11",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Em uma rede MPLS bem projetada, a perda de adjacência LDP entre dois roteadores P sempre causa indisponibilidade de VPNs L3.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. Em uma rede MPLS bem projetada com redundância, a perda de adjacência LDP entre dois roteadores P causa convergência para caminhos alternativos via outros roteadores P. Se existem LSPs alternativos (via outros P routers), o tráfego VPN é redirecionado. Mecanismos como MPLS Fast Reroute (FRR) ou LDP Multi-Path podem minimizar ou eliminar o impacto. A indisponibilidade total só ocorre se não há caminho alternativo, como neste cenário onde core-p-01 era ponto central sem redundância adequada."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Recuperação e Lições Aprendidas",
+			"phase": "Fase 3 e 4 - Recuperação e Pós-Incidente",
+			"description": "Todos os serviços restaurados. Atualização de software revertida para versão estável. Plano de upgrade adequado agendado para janela de manutenção. Tempo total de impacto: 25 minutos.",
+			"timeElapsed": "T+55 minutos (incidente encerrado)",
+			"currentSituation": {
+				"ldpNeighbors": "4 de 4 estáveis",
+				"lfibEntries": "847 labels",
+				"vpnL3Status": "15 de 15 operacionais",
+				"softwareVersion": "Revertido para v16.12.3 (estável)",
+				"impact": "Nenhum - operação normalizada"
+			},
+			"questions": [
+				{
+					"id": "q12",
+					"text": "Qual melhoria de arquitetura da rede MPLS reduziria o impacto de falha em um único roteador P?",
+					"options": [
+						"MPLS Fast Reroute (FRR) com túneis de backup pré-calculados para desviar tráfego automaticamente",
+						"Aumentar a memória de todos os roteadores P para armazenar mais labels",
+						"Reduzir o número de VPNs para simplificar a topologia",
+						"Migrar de LDP para RSVP-TE exclusivamente em todos os enlaces"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "MPLS FRR (A) pré-calcula caminhos de backup e configura túneis de proteção. Quando um roteador ou link falha, o forwarding plane desvía tráfego para o túnel de backup em ~50ms, antes mesmo da convergência do IGP/LDP. É a solução padrão para alta disponibilidade em redes MPLS. Memória (B) não é o problema. Reduzir VPNs (C) afeta negócio. RSVP-TE exclusivo (D) é mais complexo e não necessariamente resolve o problema de SPF."
+				},
+				{
+					"id": "q13",
+					"text": "Qual validação pós-incidente é MAIS importante para confirmar recuperação completa dos serviços MPLS?",
+					"options": [
+						"Verificar que a CPU do core-p-01 está em níveis normais",
+						"Executar traceroute MPLS (LSP ping) entre todos os pares de PEs para validar caminhos de label end-to-end",
+						"Confirmar que a versão de software foi revertida corretamente",
+						"Verificar que o syslog não mostra mais erros recentes"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "LSP ping/traceroute MPLS (B) é a validação mais completa: verifica que os LSPs estão operacionais end-to-end, que labels estão corretamente programadas em cada hop, e que pacotes MPLS são encaminhados corretamente entre todos os PEs. CPU (A) é indicador geral. Software (C) é importante mas não valida serviço. Syslog (D) mostra eventos passados, não estado atual. A validação funcional (LSP ping) é superior à validação de estado individual."
+				},
+				{
+					"id": "q14",
+					"text": "Qual mecanismo de redundância de control plane teria evitado completamente o impacto deste incidente no core-p-01?",
+					"options": [
+						"NSR (Non-Stop Routing) / NSF (Non-Stop Forwarding) com supervisor redundante",
+						"VRRP (Virtual Router Redundancy Protocol) entre roteadores P",
+						"BGP Additional Paths para advertir rotas VPN por múltiplos caminhos",
+						"ECMP (Equal-Cost Multi-Path) no IGP para balancear carga"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "NSR/NSF (A) com hardware redundante (dual supervisors) permite que o control plane faça failover para a supervisor standby sem afetar o forwarding plane. O processo LDP seria reiniciado na supervisor backup enquanto o forwarding continua com labels existentes. VRRP (B) é para gateway redundancy em L3, não para roteadores P MPLS. Additional Paths (C) é para diversidade BGP. ECMP (D) distribui carga mas não protege contra crash de processo."
+				},
+				{
+					"id": "q15",
+					"text": "No post-mortem, qual é a recomendação de MAIOR impacto para prevenir recorrência?",
+					"options": [
+						"Implementar LDP Graceful Restart + MPLS FRR + NSR em todos os roteadores P do backbone",
+						"Proibir atualizações de software em equipamentos de rede",
+						"Substituir MPLS por SD-WAN para eliminar dependência de LDP",
+						"Aumentar a equipe de NOC para monitoramento 24/7 do backbone MPLS"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "Defesa em profundidade (A) combina: LDP Graceful Restart (resiliência a restart de processo), MPLS FRR (proteção contra falha de link/node em ~50ms), NSR (failover de control plane transparente). Juntas, essas tecnologias tornam o backbone MPLS resiliente a falhas individuais sem impacto nos serviços. Proibir upgrades (B) é impraticável. SD-WAN (C) é complementar, não substituto para backbone MPLS. NOC 24/7 (D) melhora resposta mas não prevenção."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 96,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 90,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de arquitetura MPLS, diagnóstico de LDP e mecanismos de alta disponibilidade"
+			},
+			{
+				"min": 75,
+				"max": 89,
+				"grade": "Bom",
+				"description": "Compreensão sólida de MPLS/LDP e troubleshooting com pequenas lacunas em HA"
+			},
+			{
+				"min": 60,
+				"max": 74,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica de MPLS suficiente, requer aprofundamento em LDP e mecanismos de proteção"
+			},
+			{
+				"min": 45,
+				"max": 59,
+				"grade": "Insatisfatório",
+				"description": "Lacunas significativas em conhecimento de MPLS, LDP e arquitetura de backbone"
+			},
+			{
+				"min": 0,
+				"max": 44,
+				"grade": "Inadequado",
+				"description": "Compreensão insuficiente, requer treinamento completo em tecnologias MPLS e LDP"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Apresentar informações progressivamente, focando na correlação entre LDP, LFIB e serviços VPN",
+		"Permitir 3-4 minutos de discussão entre participantes antes de cada resposta",
+		"Destacar a diferença entre OSPF estável e LDP down - conceito de camadas de dependência MPLS",
+		"Fazer perguntas socráticas: 'Por que VPN cai se o IP routing funciona?', 'O que acontece com um pacote sem label?'",
+		"Observar se a equipe entende a cadeia de dependências OSPF → LDP → BGP VPNv4",
+		"Controlar tempo: Rodada 1 (5 min), Rodadas 2-4 (10-12 min cada), Rodada 5 (7 min)",
+		"Apresentar diagrama de topologia MPLS para facilitar visualização (se disponível)",
+		"Após exercício: revisar conceitos de MPLS FRR, Graceful Restart, NSR e coletar feedback",
+		"Documentar nível de familiaridade da equipe com operações MPLS e LDP troubleshooting"
+	],
+	"technicalReferences": [
+		{
+			"title": "RFC 5036 - LDP Specification",
+			"url": "https://www.rfc-editor.org/rfc/rfc5036"
+		},
+		{
+			"title": "RFC 3478 - Graceful Restart Mechanism for Label Distribution Protocol",
+			"url": "https://www.rfc-editor.org/rfc/rfc3478"
+		},
+		{
+			"title": "RFC 3031 - Multiprotocol Label Switching Architecture",
+			"url": "https://www.rfc-editor.org/rfc/rfc3031"
+		},
+		{
+			"title": "RFC 4090 - Fast Reroute Extensions to RSVP-TE for LSP Tunnels",
+			"url": "https://www.rfc-editor.org/rfc/rfc4090"
+		},
+		{
+			"title": "RFC 4364 - BGP/MPLS IP Virtual Private Networks (VPNs)",
+			"url": "https://www.rfc-editor.org/rfc/rfc4364"
+		}
+	]
+}

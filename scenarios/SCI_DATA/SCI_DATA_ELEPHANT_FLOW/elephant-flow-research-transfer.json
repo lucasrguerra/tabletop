@@ -1,0 +1,498 @@
+{
+	"id": "elephant-flow-research-transfer",
+	"title": "Resposta a Elephant Flow em Rede Científica",
+	"description": "Simulação tabletop de resposta a detecção de fluxo de dados massivo (elephant flow) em rede acadêmica, impactando tráfego de múltiplas instituições",
+	"category": {
+		"id": "SCI_DATA",
+		"type": "SCI_DATA_ELEPHANT_FLOW",
+		"title": "Elephant Flow - Fluxo de Dados de Grande Volume"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-02-17",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "35-50 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Equipe de Operações de Rede Acadêmica, Engenheiros de Tráfego, Analistas de Performance"
+	},
+	"objectives": [
+		"Validar capacidade de identificação e classificação de elephant flows em redes científicas",
+		"Avaliar conhecimento de técnicas de engenharia de tráfego para acomodar transferências massivas",
+		"Testar compreensão de protocolos de transferência científica de alto desempenho (GridFTP, Globus)",
+		"Desenvolver habilidade de análise de métricas de utilização de enlaces e identificação de gargalos",
+		"Identificar estratégias de QoS para balancear tráfego científico e operacional",
+		"Promover compreensão de políticas de uso aceitável em redes de pesquisa"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá execução real de comandos em sistemas de produção",
+		"Não inclui ativação real de políticas de QoS ou reconfiguração de roteadores",
+		"Foco na análise técnica, tomada de decisão e coordenação entre equipes",
+		"Avaliação de conhecimento de engenharia de tráfego e protocolos de transferência de dados científicos"
+	],
+	"baseScenario": {
+		"context": "Quarta-feira, 09h45, início do horário comercial. Você faz parte da equipe de operações de uma rede acadêmica que interconecta múltiplas universidades e centros de pesquisa. A rede backbone opera com enlaces de 100 Gbps entre os principais pontos de presença, com conexões de 10 Gbps para as instituições. O enlace principal entre o PoP Norte e o PoP Central, que serve 12 universidades, é de 100 Gbps e opera normalmente a 15-25% de utilização média.",
+		"initialSituation": {
+			"alert": "Utilização do enlace PoP-Norte ↔ PoP-Central acima de 92% por mais de 30 minutos",
+			"affectedLink": "backbone-norte.internal ↔ backbone-central.internal (100 Gbps)",
+			"currentUtilization": "92.3 Gbps (92.3%)",
+			"normalUtilization": "15-25 Gbps (15-25%)",
+			"timestamp": "09:12:33"
+		},
+		"initialComplaints": [
+			"Múltiplas universidades reportam lentidão em acessos a recursos externos",
+			"Sistema de videoconferência entre campi apresentando alta latência e quedas",
+			"Transferências de dados entre laboratórios falhando por timeout",
+			"Monitoramento detecta aumento de latência de 2ms para 45ms no enlace afetado"
+		],
+		"availableResources": [
+			"Sistema de monitoramento com NetFlow/sFlow (coleta de fluxos em tempo real)",
+			"Dashboards Grafana/Prometheus com métricas de utilização de enlaces",
+			"Acesso administrativo a roteadores de backbone (Junos/IOS-XR)",
+			"Ferramentas de análise de fluxo: nfdump, nfsen, ElasticFlow",
+			"Contato com instituições conectadas para coordenação",
+			"Políticas de uso aceitável e SLAs vigentes",
+			"Sistema de tickets para comunicação com instituições"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe deve se familiarizar com a situação inicial e recursos disponíveis.",
+			"inject": "Apresentação do cenário conforme descrito. A equipe tem 5 minutos para discutir a situação inicial e planejar abordagem de investigação.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Detecção e Análise Inicial",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe acessa as ferramentas de monitoramento e coleta evidências iniciais para identificar a origem do tráfego anômalo.",
+			"timeElapsed": "T+0 (início da investigação)",
+			"currentSituation": {
+				"linkUtilization": "92.3% (92.3 Gbps de 100 Gbps)",
+				"latency": "45ms (normal: 2ms)",
+				"packetLoss": "1.8% (normal: <0.01%)",
+				"impact": "Degradação severa para 12 universidades no PoP Norte"
+			},
+			"metrics": [
+				{
+					"title": "Análise de Fluxos NetFlow - Top Talkers",
+					"type": "network-analysis",
+					"data": {
+						"command": "nfdump -R /data/netflow/ -s srcip/bytes -n 10",
+						"topFlows": [
+							{"srcIP": "10.50.12.45", "dstIP": "10.80.33.200", "protocol": "TCP/2811", "bandwidth": "78.4 Gbps", "percentage": 84.9, "institution": "Universidade A - Laboratório de Física de Partículas"},
+							{"srcIP": "10.30.5.20", "dstIP": "10.80.33.201", "protocol": "TCP/443", "bandwidth": "4.2 Gbps", "percentage": 4.6, "institution": "Universidade B - Departamento de Bioinformática"},
+							{"srcIP": "diversos", "dstIP": "diversos", "protocol": "diversos", "bandwidth": "9.7 Gbps", "percentage": 10.5, "institution": "Tráfego agregado restante (12 instituições)"}
+						],
+						"observation": "Um ÚNICO fluxo de 10.50.12.45 → 10.80.33.200 consome 84.9% da capacidade total do enlace (78.4 Gbps)"
+					}
+				},
+				{
+					"title": "Detalhes do Fluxo Dominante",
+					"type": "flow-analysis",
+					"data": {
+						"sourceHost": "data-server-01.physlab.university-a.internal (10.50.12.45)",
+						"destHost": "storage-cluster.computecenter.internal (10.80.33.200)",
+						"protocol": "GridFTP (TCP porta 2811 controle, 50000-51000 dados)",
+						"parallelStreams": 32,
+						"transferStartTime": "08:47:22",
+						"estimatedDataVolume": "~180 TB",
+						"estimatedCompletion": "~5.2 horas (a taxa atual)",
+						"tcpWindowSize": "64 MB",
+						"mtu": 9000,
+						"observation": "Transferência GridFTP com 32 streams paralelos e jumbo frames - padrão de movimentação de dados científicos de alta performance"
+					}
+				},
+				{
+					"title": "Impacto nos Demais Usuários",
+					"type": "impact-analysis",
+					"data": {
+						"affectedInstitutions": 12,
+						"latencyIncrease": "2ms → 45ms (+2150%)",
+						"packetLoss": "0.01% → 1.8%",
+						"videoconferenceQuality": "Degradada - artefatos visuais e áudio entrecortado",
+						"webBrowsingImpact": "Páginas levando 5-8 segundos para carregar (normal: <1s)",
+						"activeResearchTransfers": "3 outras transferências falhando por timeout",
+						"observation": "O elephant flow está causando congestionamento severo, impactando todos os demais usuários do enlace"
+					}
+				},
+				{
+					"title": "Histórico de Utilização do Enlace (últimas 24h)",
+					"type": "baseline-analysis",
+					"data": {
+						"average24h": "18.7 Gbps (18.7%)",
+						"peak24h": "32.1 Gbps (32.1%) - às 14:30 (horário de pico normal)",
+						"currentUtilization": "92.3 Gbps (92.3%)",
+						"deviationFromAverage": "4.94x acima da média",
+						"deviationFromPeak": "2.87x acima do pico normal",
+						"observation": "Utilização sem precedentes nos últimos 30 dias - claramente fora do padrão operacional normal"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"text": "Com base na análise NetFlow, qual é a MELHOR classificação para este evento?",
+					"options": [
+						"Ataque DDoS volumétrico contra o centro de computação",
+						"Elephant flow legítimo - transferência massiva de dados científicos entre instituições",
+						"Exfiltração de dados por malware interno comprometendo servidor do laboratório",
+						"Erro de configuração de roteamento causando loop de tráfego"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Evidências apontam para elephant flow legítimo: (1) GridFTP na porta 2811 é protocolo padrão de transferência científica, (2) 32 streams paralelos é configuração típica de transferência de alta performance, (3) jumbo frames (MTU 9000) indica rede preparada para dados científicos, (4) origem é laboratório de física de partículas (grandes datasets). DDoS (A) teria múltiplos IPs de origem. Exfiltração (C) usaria protocolos comuns (HTTPS, DNS). Loop (D) mostraria mesmos pacotes repetidos."
+				},
+				{
+					"id": "q2",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Em redes científicas, elephant flows devem SEMPRE ser bloqueados imediatamente pois consomem largura de banda de outros usuários.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. Redes científicas existem JUSTAMENTE para viabilizar transferências massivas de dados de pesquisa. Bloquear um elephant flow legítimo seria contrário à missão da rede. A abordagem correta é: (1) identificar e validar a legitimidade, (2) aplicar QoS para proteger outros usuários, (3) agendar transferências massivas em horários de menor demanda quando possível, (4) engenharia de tráfego para otimizar rotas. O objetivo é ACOMODAR, não bloquear."
+				},
+				{
+					"id": "q3",
+					"text": "Qual é a PRIMEIRA ação recomendada ao identificar este elephant flow legítimo?",
+					"options": [
+						"Bloquear imediatamente o fluxo para restaurar serviço aos demais usuários",
+						"Contatar a instituição de origem para entender a natureza e urgência da transferência",
+						"Aplicar rate-limiting de 10 Gbps no fluxo sem consultar a instituição",
+						"Ignorar o problema - elephant flows são normais em redes científicas"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Contatar a instituição (B) é a primeira ação correta porque: (1) valida legitimidade e urgência da transferência, (2) permite negociar janela de transferência ou rate limit acordado, (3) demonstra profissionalismo e respeito à comunidade acadêmica. Bloquear (A) é drástico e pode impactar pesquisa. Rate-limit unilateral (C) sem comunicação gera conflitos. Ignorar (D) afeta todos os demais usuários."
+				},
+				{
+					"id": "q4",
+					"type": "numeric",
+					"text": "O enlace de 100 Gbps está a 92.3% de utilização, com o elephant flow consumindo 78.4 Gbps. Se aplicarmos rate-limiting de 40 Gbps ao elephant flow, qual será a utilização estimada do enlace (em %)?",
+					"correctAnswer": 53.9,
+					"tolerance": 1.0,
+					"unit": "%",
+					"points": 5,
+					"justification": "Tráfego sem elephant flow = 92.3 - 78.4 = 13.9 Gbps. Com elephant flow limitado a 40 Gbps: 13.9 + 40 = 53.9 Gbps = 53.9% de 100 Gbps. Este nível de utilização (53.9%) permite acomodar o elephant flow E manter qualidade de serviço para os demais usuários, com margem suficiente para picos normais."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Contenção e Engenharia de Tráfego",
+			"phase": "Fase 2 - Contenção",
+			"description": "Após contato com a Universidade A, confirmou-se que é uma transferência de dados do experimento do acelerador de partículas (~180 TB). O pesquisador responsável não agendou previamente a transferência. A equipe decide aplicar QoS para proteger os demais usuários enquanto acomoda a transferência.",
+			"timeElapsed": "T+20 minutos",
+			"currentSituation": {
+				"elephantFlowRate": "78.4 Gbps (sem controle)",
+				"totalLinkUtilization": "92.3%",
+				"impactedInstitutions": 12,
+				"researcherResponse": "Transferência urgente - dados são do último ciclo de colisões e precisam ser processados em 48h",
+				"impact": "Degradação severa para todos os demais usuários"
+			},
+			"metrics": [
+				{
+					"title": "Análise de Capacidade para Engenharia de Tráfego",
+					"type": "capacity-analysis",
+					"data": {
+						"linkCapacity": "100 Gbps",
+						"currentElephantFlow": "78.4 Gbps",
+						"otherTraffic": "13.9 Gbps",
+						"peakOtherTraffic": "32.1 Gbps (horário de pico 14h-16h)",
+						"safeOperatingThreshold": "75% (75 Gbps) - recomendação operacional",
+						"availableForElephant": "75 - 32.1 = 42.9 Gbps (considerando pico)",
+						"transferTimeAt40Gbps": "~10 horas",
+						"transferTimeAt78Gbps": "~5.2 horas",
+						"observation": "Limitar elephant flow a 40 Gbps permite completar transferência em ~10h mantendo enlace abaixo de 75% mesmo em pico"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q5",
+					"text": "Qual estratégia de QoS é MAIS adequada para este cenário?",
+					"options": [
+						"Strict Priority Queuing - prioridade absoluta para tráfego não-científico",
+						"Weighted Fair Queuing (WFQ) com classes: tráfego interativo (40%), bulk transfer (50%), gerência (10%)",
+						"FIFO (First In, First Out) sem QoS - tratar todo tráfego igualmente",
+						"Priority queuing com drop de pacotes do elephant flow quando enlace > 50%"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "WFQ com classes (B) é a abordagem ideal porque: (1) garante banda mínima para cada classe, (2) permite elephant flow utilizar banda excedente, (3) protege tráfego interativo (videoconferência, web), (4) é flexível e escalável. Strict Priority (A) pode starve o tráfego científico. FIFO (C) é o problema atual. Drop agressivo (D) desperdiça capacidade e afeta a transferência."
+				},
+				{
+					"id": "q6",
+					"type": "ordering",
+					"text": "Ordene as etapas corretas para implementar engenharia de tráfego para acomodar o elephant flow:",
+					"items": [
+						{"id": "step1", "label": "Identificar e classificar o fluxo via NetFlow/sFlow"},
+						{"id": "step2", "label": "Comunicar com a instituição de origem sobre a transferência"},
+						{"id": "step3", "label": "Definir política de QoS com alocação de banda por classe"},
+						{"id": "step4", "label": "Aplicar a política nos roteadores de borda do enlace afetado"},
+						{"id": "step5", "label": "Monitorar métricas pós-implementação para validar eficácia"}
+					],
+					"correctOrder": ["step1", "step2", "step3", "step4", "step5"],
+					"partialCredit": false,
+					"points": 5,
+					"justification": "A sequência lógica é: (1) Identificar antes de agir, (2) Comunicar para entender contexto e urgência, (3) Definir política baseada em dados e necessidades, (4) Implementar nos equipamentos, (5) Validar que a solução funciona. Pular a comunicação (step2) pode gerar conflitos. Implementar sem definir política clara gera resultados imprevisíveis."
+				},
+				{
+					"id": "q7",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: GridFTP utiliza múltiplas conexões TCP paralelas para aumentar throughput porque uma única conexão TCP não consegue saturar enlaces de alta capacidade devido ao mecanismo de controle de congestionamento.",
+					"correctAnswer": true,
+					"points": 3,
+					"justification": "VERDADEIRO. Uma única conexão TCP é limitada pelo produto bandwidth-delay (BDP). Em enlaces de alta capacidade e longa distância, o controle de congestionamento TCP (slow start, congestion avoidance) limita cada stream individualmente. GridFTP usa 8-64 streams paralelos para: (1) agregar throughput de múltiplas conexões, (2) superar limitações de window size de cada conexão, (3) compensar perdas em streams individuais. Isso é essencial para saturar enlaces de 10 Gbps+ em redes de longa distância."
+				},
+				{
+					"id": "q8",
+					"type": "numeric",
+					"text": "A transferência de ~180 TB a 78.4 Gbps levaria aproximadamente 5.2 horas. Se o rate-limit for aplicado a 40 Gbps, aproximadamente quantas horas a transferência levará?",
+					"correctAnswer": 10.0,
+					"tolerance": 0.5,
+					"unit": "horas",
+					"points": 5,
+					"justification": "Tempo = Volume / Taxa. A 78.4 Gbps = 5.2h, logo Volume ≈ 78.4 × 5.2 = 407.7 Gb·h (ou ~180 TB). A 40 Gbps: 407.7 / 40 ≈ 10.2 horas. Alternativa: (78.4/40) × 5.2 = 1.96 × 5.2 ≈ 10.2h. Arredondando: ~10 horas. O pesquisador precisa dos dados em 48h, então 10h é aceitável e mantém o enlace saudável."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Mitigação Avançada e Políticas",
+			"phase": "Fase 2 - Contenção (Avançada)",
+			"description": "Após aplicar QoS com WFQ limitando o elephant flow a 40 Gbps, o enlace opera a ~55% de utilização. A latência caiu para 4ms e os demais usuários reportam normalização. A equipe analisa políticas e medidas preventivas.",
+			"timeElapsed": "T+45 minutos",
+			"currentSituation": {
+				"linkUtilization": "55% (~55 Gbps)",
+				"elephantFlowRate": "40 Gbps (limitado por QoS)",
+				"latency": "4ms (quase normal)",
+				"packetLoss": "0.02% (quase normal)",
+				"impact": "Mínimo - serviço restaurado para a maioria dos usuários"
+			},
+			"metrics": [
+				{
+					"title": "Eficácia da Política de QoS",
+					"type": "qos-analysis",
+					"data": {
+						"classInteractive": {"allocated": "40%", "actual": "14%", "drops": 0},
+						"classBulkTransfer": {"allocated": "50%", "actual": "41%", "drops": 12400},
+						"classManagement": {"allocated": "10%", "actual": "2%", "drops": 0},
+						"totalUtilization": "55%",
+						"elephantFlowThroughput": "40.1 Gbps",
+						"observation": "QoS eficaz - tráfego interativo sem drops, elephant flow respeitando limite, margem de 45% disponível"
+					}
+				},
+				{
+					"title": "Comparativo de Protocolos de Transferência Científica",
+					"type": "protocol-analysis",
+					"data": {
+						"gridFTP": {"maxThroughput": "~90 Gbps (com tuning)", "parallelism": "Sim (N streams)", "encryption": "Opcional (GSI)", "scheduling": "Manual"},
+						"globusTransfer": {"maxThroughput": "~80 Gbps", "parallelism": "Automático", "encryption": "Sim (TLS)", "scheduling": "Sim (agendamento)"},
+						"bbcp": {"maxThroughput": "~60 Gbps", "parallelism": "Sim", "encryption": "Opcional", "scheduling": "Manual"},
+						"scp": {"maxThroughput": "~1 Gbps", "parallelism": "Não", "encryption": "Sim (SSH)", "scheduling": "Manual"},
+						"observation": "Globus Transfer oferece agendamento nativo - teria permitido programar a transferência para horário de menor demanda"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q9",
+					"text": "Qual política preventiva teria o MAIOR impacto para evitar recorrência deste tipo de incidente?",
+					"options": [
+						"Bloquear transferências acima de 1 TB sem autorização prévia",
+						"Implementar sistema de agendamento de transferências massivas (scheduling)",
+						"Limitar todos os fluxos individuais a 10 Gbps permanentemente",
+						"Proibir uso de GridFTP e ferramentas de transferência paralela"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Sistema de agendamento (B) é a solução ideal porque: (1) permite planejar transferências em horários de menor demanda, (2) provisiona capacidade adequada com antecedência, (3) evita conflitos entre múltiplas transferências massivas, (4) mantém visibilidade operacional. Bloquear (A) e proibir (D) são contraproducentes à missão da rede. Limite fixo (C) desperdiça capacidade em horários de baixa demanda."
+				},
+				{
+					"id": "q10",
+					"type": "matching",
+					"text": "Conecte cada protocolo de transferência à sua principal vantagem em redes científicas:",
+					"leftColumn": [
+						{"id": "p1", "label": "GridFTP"},
+						{"id": "p2", "label": "Globus Transfer"},
+						{"id": "p3", "label": "SCP/SFTP"}
+					],
+					"rightColumn": [
+						{"id": "a1", "label": "Agendamento automático e retomada de transferências interrompidas"},
+						{"id": "a2", "label": "Máximo throughput com controle fino de paralelismo e tuning TCP"},
+						{"id": "a3", "label": "Simplicidade e disponibilidade universal em qualquer sistema Unix/Linux"}
+					],
+					"correctMatches": [
+						{"left": "p1", "right": "a2"},
+						{"left": "p2", "right": "a1"},
+						{"left": "p3", "right": "a3"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 6,
+					"justification": "GridFTP (↔ a2): projetado para máximo throughput com N streams paralelos, tuning de TCP window, e suporte a striping entre múltiplos nós. Globus Transfer (↔ a1): serviço gerenciado com agendamento, retry automático, e interface web para pesquisadores. SCP/SFTP (↔ a3): presente em todo sistema Unix, simples de usar mas limitado a uma conexão TCP (baixo throughput em alta latência)."
+				},
+				{
+					"id": "q11",
+					"text": "O conceito de bandwidth-delay product (BDP) é fundamental para entender elephant flows. Se o enlace tem 100 Gbps e o RTT é 20ms, qual deve ser o tamanho mínimo da TCP window para saturar o enlace com UMA conexão?",
+					"options": [
+						"2 Mbps (100 Gbps × 0.02s / 1000)",
+						"250 MB (100 Gbps × 0.02s / 8)",
+						"2 GB (100 Gbps × 0.02s × 8)",
+						"20 MB (100 Gbps × 0.02s / 100)"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "BDP = Bandwidth × Delay = 100 Gbps × 20ms = 100 × 10⁹ bits/s × 0.02s = 2 × 10⁹ bits = 2 Gbits = 250 MB (dividindo por 8 para converter bits em bytes). A TCP window precisa ser ≥ BDP para saturar o enlace. Com window padrão de 64 KB, throughput máximo seria 64KB/0.02s ≈ 25.6 Mbps. Por isso GridFTP usa window de 64 MB e múltiplos streams."
+				},
+				{
+					"id": "q12",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Jumbo frames (MTU 9000) são utilizados em transferências científicas porque reduzem o overhead de cabeçalhos e o número de interrupções por pacote, aumentando significativamente o throughput em enlaces de alta capacidade.",
+					"correctAnswer": true,
+					"points": 3,
+					"justification": "VERDADEIRO. Com frames padrão (MTU 1500), overhead de cabeçalhos Ethernet+IP+TCP ≈ 54 bytes/pacote. Para transferir 1 GB: ~715.000 pacotes com MTU 1500 vs ~119.000 pacotes com MTU 9000. Menos pacotes = menos interrupções de CPU, menos overhead de cabeçalhos (proporcionalmente), e processamento mais eficiente. Em enlaces de 10-100 Gbps, a diferença de throughput pode ser 10-20%."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Recuperação e Lições Aprendidas",
+			"phase": "Fase 3 e 4 - Recuperação e Pós-Incidente",
+			"description": "A transferência completou com sucesso em ~10 horas com QoS ativo. A política de QoS foi removida e o enlace retornou ao padrão normal de utilização. A equipe realiza análise pós-incidente para prevenir recorrência.",
+			"timeElapsed": "T+11 horas (transferência concluída)",
+			"currentSituation": {
+				"linkUtilization": "17.2% (normal)",
+				"latency": "2ms (normal)",
+				"packetLoss": "<0.01% (normal)",
+				"transferCompleted": true,
+				"impact": "Nenhum - operação normalizada"
+			},
+			"questions": [
+				{
+					"id": "q13",
+					"text": "Qual ferramenta ou serviço deveria ser recomendado à Universidade A para futuras transferências massivas?",
+					"options": [
+						"Manter GridFTP manual, pois oferece melhor performance",
+						"Globus Transfer - oferece agendamento, notificações e retry automático",
+						"SCP com compressão (scp -C) para reduzir volume de dados",
+						"BitTorrent para distribuir a carga entre múltiplos peers"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Globus Transfer (B) é a recomendação ideal porque: (1) integra agendamento nativo (pesquisador pode programar para madrugada), (2) retry automático em caso de falhas, (3) interface web acessível para pesquisadores não-técnicos, (4) provisionamento coordenado com equipe de rede. GridFTP (A) tem boa performance mas requer coordenação manual. SCP (C) é muito lento para 180 TB. BitTorrent (D) não é adequado para transferência ponto-a-ponto de dados científicos."
+				},
+				{
+					"id": "q14",
+					"text": "Qual arquitetura de rede seria MAIS eficaz para acomodar elephant flows sem impactar o tráfego regular?",
+					"options": [
+						"Aumentar capacidade do enlace de 100 Gbps para 400 Gbps",
+						"Implementar Science DMZ com DTN (Data Transfer Nodes) dedicados e caminhos separados",
+						"Criar VLANs separadas para cada instituição com banda fixa garantida",
+						"Implementar traffic shaping em todos os fluxos com limite de 1 Gbps por conexão"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Science DMZ com DTN (B) é a arquitetura recomendada pelo ESnet (Energy Sciences Network) e NSF porque: (1) separa tráfego científico de alta performance do tráfego operacional, (2) DTNs são servidores otimizados para transferência (tuned TCP, disk I/O rápido), (3) permite políticas de firewall diferenciadas (bypass para transferências confiáveis), (4) QoS dedicado. Aumentar enlace (A) é caro e não resolve o problema fundamental. VLANs fixas (C) desperdiçam banda. Limite de 1 Gbps (D) é inaceitável para pesquisa."
+				},
+				{
+					"id": "q15",
+					"text": "Antes de encerrar o incidente, qual validação é MAIS importante?",
+					"options": [
+						"Confirmar que a política de QoS temporária foi completamente removida",
+						"Verificar integridade dos dados transferidos (checksums)",
+						"Validar que as métricas de utilização retornaram ao baseline normal",
+						"Todas as validações acima são importantes"
+					],
+					"correctAnswer": 3,
+					"points": 5,
+					"justification": "Todas são importantes: (A) Remover QoS temporário evita impactos desnecessários na operação normal. (B) Integridade dos dados garante que a transferência foi bem-sucedida e não precisa ser repetida. (C) Métricas no baseline confirmam que não há impacto residual. Cada validação cobre uma dimensão diferente: infraestrutura (A), dados (B) e operação (C)."
+				},
+				{
+					"id": "q16",
+					"text": "Em post-mortem, qual pergunta tem MAIOR valor estratégico para a rede acadêmica?",
+					"options": [
+						"Como implementar um sistema de agendamento de transferências massivas integrado ao NOC?",
+						"Quem deveria ter comunicado a transferência com antecedência?",
+						"Quanto custaria implementar enlaces de 400 Gbps?",
+						"Quando o pesquisador deveria ter sido bloqueado?"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "A pergunta de maior valor estratégico (A) foca em solução SISTÊMICA: criar um processo de agendamento que coordene transferências com operações. Buscar culpados (B) é contraproducente. Custo de upgrades (C) é relevante mas não resolve o processo. Bloquear pesquisador (D) é contrário à missão da rede acadêmica. O objetivo é criar processos que acomodem a pesquisa, não que a impeçam."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 90,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 90,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de identificação, análise e gerenciamento de elephant flows em redes científicas"
+			},
+			{
+				"min": 75,
+				"max": 89,
+				"grade": "Bom",
+				"description": "Compreensão sólida de engenharia de tráfego e protocolos de transferência científica com pequenas lacunas"
+			},
+			{
+				"min": 60,
+				"max": 74,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica suficiente, requer aprofundamento em QoS e arquitetura Science DMZ"
+			},
+			{
+				"min": 45,
+				"max": 59,
+				"grade": "Insatisfatório",
+				"description": "Lacunas significativas em conhecimento de engenharia de tráfego e redes de pesquisa"
+			},
+			{
+				"min": 0,
+				"max": 44,
+				"grade": "Inadequado",
+				"description": "Compreensão insuficiente, requer treinamento completo em operações de rede científica"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Enfatizar que redes científicas existem para viabilizar pesquisa - elephant flows são esperados, não anomalias",
+		"Apresentar informações progressivamente, simulando a descoberta natural durante investigação",
+		"Permitir 3-4 minutos de discussão entre participantes antes de cada resposta",
+		"Fazer perguntas socráticas: 'Qual é o propósito primário de uma rede acadêmica?', 'Como balancear pesquisa e operação?'",
+		"Observar se a equipe diferencia resposta a incidente de segurança vs. gerenciamento de capacidade",
+		"Manter neutralidade técnica - não fornecer respostas diretas, apenas orientar pensamento crítico",
+		"Controlar tempo: Rodada 1 (5 min), Rodadas 2-4 (8-10 min cada), Rodada 5 (7 min)",
+		"Discutir o conceito de Science DMZ e DTN como padrão de mercado para redes acadêmicas",
+		"Após exercício: revisar gabarito, discutir trade-offs entre performance e fairness, coletar feedback"
+	],
+	"technicalReferences": [
+		{
+			"title": "ESnet - Science DMZ Architecture",
+			"url": "https://fasterdata.es.net/science-dmz/"
+		},
+		{
+			"title": "ESnet - Data Transfer Nodes (DTN)",
+			"url": "https://fasterdata.es.net/science-dmz/DTN/"
+		},
+		{
+			"title": "Globus Transfer Service",
+			"url": "https://www.globus.org/data-transfer"
+		},
+		{
+			"title": "RFC 6349 - Framework for TCP Throughput Testing",
+			"url": "https://www.rfc-editor.org/rfc/rfc6349"
+		},
+		{
+			"title": "NIST SP 800-61r2 - Computer Security Incident Handling Guide",
+			"url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-61r2.pdf"
+		}
+	]
+}
