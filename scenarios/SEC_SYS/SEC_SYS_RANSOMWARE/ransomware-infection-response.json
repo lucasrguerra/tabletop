@@ -1,0 +1,542 @@
+{
+	"id": "ransomware-infection-response",
+	"title": "Resposta a Infecção por Ransomware em Servidor de Arquivos",
+	"description": "Simulação tabletop de resposta a incidente de ransomware que criptografa dados de servidor de arquivos corporativo, exigindo resgate em criptomoeda",
+	"category": {
+		"id": "SEC_SYS",
+		"type": "SEC_SYS_RANSOMWARE",
+		"title": "Infecção por Ransomware"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2025-02-17",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "40-55 minutos",
+		"difficulty": "Avançado",
+		"targetAudience": "Equipe de Resposta a Incidentes, Analistas de Segurança, Administradores de Sistemas, Gestores de TI"
+	},
+	"objectives": [
+		"Validar capacidade de identificação e classificação de incidentes de ransomware",
+		"Avaliar conhecimento de procedimentos de contenção para limitar propagação de ransomware",
+		"Testar compreensão de estratégias de recuperação baseadas em backups e priorização de sistemas",
+		"Desenvolver habilidade de tomada de decisão sob pressão (pagar vs. não pagar resgate)",
+		"Identificar vetores de entrada comuns e medidas preventivas contra ransomware",
+		"Promover compreensão de obrigações legais e de comunicação durante incidentes de ransomware"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá execução real de comandos em sistemas de produção",
+		"Não inclui negociação real com operadores de ransomware",
+		"Foco na análise técnica, tomada de decisão estratégica e coordenação de resposta",
+		"Avaliação de conhecimento de resposta a incidentes, backup/recovery e criptografia"
+	],
+	"baseScenario": {
+		"context": "Segunda-feira, 07h45, início do expediente. Você faz parte da equipe de resposta a incidentes. A organização opera uma rede com 500 estações de trabalho e 60 servidores, incluindo servidor de arquivos central (file-server.internal.corp) com 12 TB de dados compartilhados entre departamentos (financeiro, RH, engenharia, jurídico). O backup é realizado diariamente com retenção de 30 dias, último backup completo realizado sexta-feira às 23h.",
+		"initialSituation": {
+			"alert": "Alerta do antivírus: múltiplas detecções de comportamento de criptografia em massa no file-server",
+			"affectedHost": "file-server.internal.corp (10.10.5.20)",
+			"encryptedFiles": "Extensão .locked adicionada a milhares de arquivos",
+			"ransomNote": "README_RESTORE.txt encontrado em múltiplos diretórios",
+			"timestamp": "07:42:33"
+		},
+		"initialComplaints": [
+			"Funcionários do turno da manhã reportam impossibilidade de abrir arquivos nos compartilhamentos de rede",
+			"Antivírus reportando detecções em massa: 'Ransom.Generic' e 'Suspicious.Encryption'",
+			"Arquivos com extensão .locked aparecendo em diretórios compartilhados",
+			"Nota de resgate encontrada exigindo 5 BTC (~US$ 250.000) para chave de descriptografia"
+		],
+		"availableResources": [
+			"Console do antivírus/EDR centralizado com visibilidade de todos os endpoints",
+			"Sistema de backup (Veeam/Commvault) com backups diários do file-server",
+			"Firewall de borda com logs de conexões e capacidade de isolamento de segmentos",
+			"Active Directory com GPOs e controle de contas de serviço",
+			"Sistema de monitoramento (Zabbix/PRTG) com alertas de performance",
+			"Documentação de baseline de processos e serviços do file-server",
+			"Contato com CSIRT nacional/setorial para suporte e compartilhamento de IoCs",
+			"Plano de continuidade de negócios (BCP) e plano de recuperação de desastres (DR)"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe deve se familiarizar com a situação emergencial e decidir prioridades imediatas.",
+			"inject": "São 07h45 de segunda-feira. O help desk começa a receber ligações de funcionários que não conseguem acessar arquivos. O time de segurança verifica o console do antivírus e encontra centenas de alertas do file-server. A equipe tem 5 minutos para avaliar a situação e definir ações imediatas.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Detecção e Análise Inicial",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe acessa o file-server e analisa as evidências iniciais do ataque de ransomware.",
+			"timeElapsed": "T+0 (início do incidente)",
+			"currentSituation": {
+				"encryptionStatus": "Em andamento - novos arquivos sendo criptografados continuamente",
+				"encryptedPercentage": "~35% dos 12 TB (estimado ~4.2 TB criptografados)",
+				"serviceAvailability": "Parcial - diretórios ainda não criptografados acessíveis",
+				"impact": "Dados de múltiplos departamentos comprometidos, operações interrompidas"
+			},
+			"metrics": [
+				{
+					"title": "Status do Servidor de Arquivos",
+					"type": "server-status",
+					"data": {
+						"hostname": "file-server.internal.corp",
+						"ip": "10.10.5.20",
+						"os": "Windows Server 2022",
+						"cpu": "98% (processo de criptografia consumindo recursos)",
+						"diskIO": "100% (leitura + escrita contínua)",
+						"memory": "72%",
+						"networkIO": "Baixo (criptografia local, sem exfiltração aparente)",
+						"observation": "CPU e disco saturados pelo processo de criptografia em andamento"
+					}
+				},
+				{
+					"title": "Análise de Processos Suspeitos",
+					"type": "process-analysis",
+					"data": {
+						"suspiciousProcess": {
+							"name": "winlogon-svc.exe",
+							"pid": 6284,
+							"parentProcess": "cmd.exe (PID 5190)",
+							"grandParentProcess": "wscript.exe (PID 4820)",
+							"path": "C:\\ProgramData\\winlogon-svc.exe",
+							"hash_sha256": "b7d4e8f2a1c3d5e6f7890123456789abcdef0123456789abcdef012345678901",
+							"digitalSignature": "Not signed",
+							"cpuUsage": "94%",
+							"fileOperations": "Read + Write em alta taxa (encryptando arquivos sequencialmente)"
+						},
+						"executionChain": "wscript.exe → cmd.exe → winlogon-svc.exe",
+						"observation": "Cadeia de execução típica de ransomware: script VBS → shell → payload de criptografia"
+					}
+				},
+				{
+					"title": "Nota de Resgate (Ransom Note)",
+					"type": "ransom-note",
+					"data": {
+						"filename": "README_RESTORE.txt",
+						"content": "YOUR FILES HAVE BEEN ENCRYPTED. To restore your files, send 5 BTC to wallet: bc1q...xyz. Contact: restore_files@protonmail.com with your unique ID: VICTIM-8A3F2D. You have 72 hours before the price doubles. DO NOT attempt to decrypt files yourself - this will cause permanent data loss.",
+						"btcAmount": "5 BTC (~US$ 250.000)",
+						"deadline": "72 horas",
+						"contactEmail": "restore_files@protonmail.com",
+						"victimID": "VICTIM-8A3F2D",
+						"observation": "Nota típica de ransomware com pressão de tempo (72h), ameaça de aumento de valor e alerta contra descriptografia independente"
+					}
+				},
+				{
+					"title": "Análise de Extensões e Padrão de Criptografia",
+					"type": "encryption-analysis",
+					"data": {
+						"encryptedExtension": ".locked",
+						"encryptedFilesCount": "~847.000 arquivos",
+						"affectedDirectories": ["/Financeiro (100%)", "/RH (100%)", "/Engenharia (45%)", "/Juridico (30%)", "/Compartilhado (25%)", "/TI (10%)"],
+						"originalExtensionsAffected": [".docx", ".xlsx", ".pdf", ".pptx", ".jpg", ".png", ".sql", ".bak", ".zip"],
+						"encryptionAlgorithm": "AES-256 (simétrica) + RSA-2048 (para proteger chave AES)",
+						"observation": "Criptografia híbrida (AES+RSA) - descriptografia sem chave privada RSA é computacionalmente inviável"
+					}
+				},
+				{
+					"title": "Status dos Backups",
+					"type": "backup-status",
+					"data": {
+						"lastFullBackup": "2025-02-14 (sexta-feira) 23:00",
+						"lastIncrementalBackup": "2025-02-14 23:45",
+						"backupTarget": "NAS de backup (backup-nas.internal.corp - 10.10.5.100)",
+						"backupNASStatus": "ONLINE - não afetado (rede de backup isolada)",
+						"retentionPolicy": "30 dias de retenção",
+						"backupIntegrity": "Último teste de restore: 2025-01-31 (bem-sucedido)",
+						"observation": "Backup de sexta-feira disponível - RPO de ~56 horas (dados de sexta noite a segunda manhã seriam perdidos)"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "O processo de criptografia AINDA está em andamento (35% concluído). Qual é a ação MAIS URGENTE neste momento?",
+					"options": [
+						"Documentar todas as evidências antes de tomar qualquer ação",
+						"Desconectar imediatamente o file-server da rede para impedir propagação e interromper criptografia",
+						"Contactar o atacante via email para negociar o resgate",
+						"Aguardar a criptografia terminar para ter cenário completo antes de agir"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Desconectar da rede (B) é a ação mais urgente quando a criptografia está em andamento. Cada segundo de atraso resulta em mais dados perdidos. Desconectar impede: (1) criptografia de compartilhamentos remotos, (2) propagação para outros servidores, (3) potencial exfiltração de dados. Documentar (A) é importante mas secundário à contenção imediata. Contactar atacante (C) não é prioridade imediata. Aguardar (D) é inaceitável - maximiza o dano."
+				},
+				{
+					"id": "q2",
+					"type": "multiple-choice",
+					"text": "A cadeia de execução é: wscript.exe → cmd.exe → winlogon-svc.exe. O que isso indica sobre o vetor de infecção MAIS PROVÁVEL?",
+					"options": [
+						"Exploração de vulnerabilidade RDP exposta à internet",
+						"Abertura de documento malicioso com macro VBS (phishing/email)",
+						"Comprometimento de software de terceiros via supply chain attack",
+						"Ataque de força bruta em credenciais de administrador"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "A presença de wscript.exe (Windows Script Host) como processo pai indica execução de script VBS/VBScript, que é tipicamente associado a macros em documentos Office (B). Sequência clássica: usuário abre documento com macro → macro executa VBScript → VBScript baixa/executa payload. RDP (A) geraria processo pai diferente (explorer.exe ou serviço RDP). Supply chain (C) executaria via instalador de software. Força bruta (D) geraria processo a partir de sessão de logon."
+				},
+				{
+					"id": "q3",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: A criptografia híbrida usada pelo ransomware (AES-256 + RSA-2048) pode ser revertida por força bruta computacional com recursos suficientes.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. A combinação AES-256 + RSA-2048 é considerada computacionalmente inquebrável com tecnologia atual. AES-256 tem espaço de chave de 2^256 combinações. RSA-2048 requer fatoração de números primos de 617 dígitos. Mesmo os supercomputadores mais poderosos levariam bilhões de anos para quebrar qualquer um dos dois. A única forma de recuperar dados sem backup é: (1) obter a chave privada RSA do atacante, (2) encontrar falha na implementação do ransomware (raro em variantes modernas), ou (3) utilizar ferramentas de descriptografia se disponíveis (ex: No More Ransom project)."
+				},
+				{
+					"id": "q4",
+					"type": "numeric",
+					"text": "O backup mais recente é de sexta-feira 23:00. O incidente foi detectado segunda-feira 07:45. Qual é o RPO (Recovery Point Objective) real em horas, ou seja, quantas horas de dados seriam perdidas ao restaurar o backup?",
+					"correctAnswer": 56.75,
+					"tolerance": 1,
+					"unit": "horas",
+					"points": 5,
+					"justification": "RPO = tempo entre último backup e momento do incidente. De sexta 23:00 a segunda 07:45 = 2 dias e 8h45min = 56 horas e 45 minutos ≈ 56.75 horas. Dados criados/modificados nesse período (incluindo possíveis trabalhos no fim de semana) seriam perdidos. Este RPO elevado destaca a importância de backups mais frequentes (ex: a cada 4h) para sistemas críticos."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Contenção e Decisões Críticas",
+			"phase": "Fase 2 - Contenção",
+			"description": "O file-server foi desconectado da rede. A criptografia parou em ~40%. A equipe agora deve avaliar o escopo total e tomar decisões sobre pagamento de resgate e estratégia de recuperação.",
+			"timeElapsed": "T+15 minutos",
+			"currentSituation": {
+				"encryptionStatus": "Parada - servidor desconectado da rede",
+				"encryptedPercentage": "~40% dos 12 TB (~4.8 TB criptografados)",
+				"unencryptedData": "~7.2 TB de dados ainda íntegros",
+				"backupAvailable": "Backup de sexta-feira disponível e íntegro",
+				"impact": "File-server offline, departamentos sem acesso a dados compartilhados"
+			},
+			"metrics": [
+				{
+					"title": "Avaliação de Impacto por Departamento",
+					"type": "impact-assessment",
+					"data": {
+						"departments": [
+							{"name": "Financeiro", "encrypted": "100%", "criticality": "Alta", "dataLoss": "Relatórios fiscais, notas fiscais, conciliações bancárias"},
+							{"name": "RH", "encrypted": "100%", "criticality": "Alta", "dataLoss": "Folha de pagamento, contratos, dados pessoais (LGPD)"},
+							{"name": "Engenharia", "encrypted": "45%", "criticality": "Média", "dataLoss": "Projetos em andamento, documentação técnica"},
+							{"name": "Jurídico", "encrypted": "30%", "criticality": "Alta", "dataLoss": "Contratos, processos judiciais, documentos confidenciais"},
+							{"name": "Compartilhado", "encrypted": "25%", "criticality": "Baixa", "dataLoss": "Templates, procedimentos (recriáveis)"},
+							{"name": "TI", "encrypted": "10%", "criticality": "Média", "dataLoss": "Scripts, configurações (maioria versionada em Git)"}
+						],
+						"observation": "Dados de RH criptografados incluem dados pessoais protegidos pela LGPD - possível necessidade de notificação à ANPD"
+					}
+				},
+				{
+					"title": "Varredura de Propagação na Rede",
+					"type": "propagation-analysis",
+					"data": {
+						"scannedHosts": 560,
+						"infectedHosts": 1,
+						"suspiciousHosts": 2,
+						"details": {
+							"infected": "file-server.internal.corp (10.10.5.20) - ransomware ativo",
+							"suspicious": ["workstation-PC089 (10.10.25.89) - wscript.exe executado recentemente", "workstation-PC203 (10.10.25.203) - mesmo email de phishing recebido"],
+							"clean": "557 hosts sem indicadores de comprometimento"
+						},
+						"lateralMovement": "Sem evidência de movimentação lateral automatizada do ransomware",
+						"observation": "Infecção limitada ao file-server. Estações suspeitas podem ter sido vetor de entrada (phishing)"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q5",
+					"type": "multiple-choice",
+					"text": "A organização tem backup íntegro de sexta-feira e 60% dos dados do file-server estão intactos. Sobre o pagamento do resgate de 5 BTC (~US$ 250.000), qual é a recomendação técnica?",
+					"options": [
+						"Pagar imediatamente para minimizar o tempo de indisponibilidade",
+						"NÃO pagar - restaurar do backup e aceitar perda de dados de ~57 horas, priorizando recuperação dos 60% não criptografados",
+						"Negociar valor menor com os atacantes antes de decidir",
+						"Pagar apenas se a descriptografia for garantida por escrito pelo atacante"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "NÃO pagar (B) é a recomendação consensual de CSIRTs, agências (FBI, Europol, CISA) e especialistas. Razões: (1) backup disponível viabiliza recuperação sem pagamento, (2) pagamento NÃO garante descriptografia (taxa de recuperação após pagamento ~65%), (3) financia operações criminosas futuras, (4) organização pode ser marcada como 'pagadora' e atacada novamente. Negociar (C) é perda de tempo quando há backup. Garantia escrita (D) não tem valor legal com criminosos."
+				},
+				{
+					"id": "q6",
+					"type": "ordering",
+					"text": "Ordene corretamente a prioridade de recuperação dos departamentos baseado em criticidade de negócio e impacto:",
+					"items": [
+						{"id": "dept1", "label": "Financeiro - relatórios fiscais e conciliações"},
+						{"id": "dept2", "label": "RH - folha de pagamento e dados pessoais (LGPD)"},
+						{"id": "dept3", "label": "Engenharia - projetos técnicos em andamento"},
+						{"id": "dept4", "label": "Compartilhado - templates e procedimentos"}
+					],
+					"correctOrder": ["dept2", "dept1", "dept3", "dept4"],
+					"partialCredit": false,
+					"points": 5,
+					"justification": "Prioridade: (1) RH - contém dados pessoais protegidos pela LGPD (obrigação legal de proteção + possível notificação à ANPD) e folha de pagamento (impacto direto em funcionários). (2) Financeiro - obrigações fiscais e operações bancárias. (3) Engenharia - projetos em andamento com impacto operacional. (4) Compartilhado - dados recriáveis com menor impacto. A priorização considera: obrigação legal > impacto financeiro > impacto operacional > dados substituíveis."
+				},
+				{
+					"id": "q7",
+					"type": "multiple-choice",
+					"text": "Dados de RH criptografados incluem dados pessoais (CPF, endereço, dados bancários). Sob a LGPD, qual é a obrigação legal da organização?",
+					"options": [
+						"Nenhuma obrigação - ransomware não configura vazamento de dados pessoais",
+						"Comunicar o incidente à ANPD e aos titulares dos dados se houver risco relevante aos titulares",
+						"Comunicar apenas ao Ministério Público Federal",
+						"Publicar nota oficial na imprensa sobre o incidente"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "A LGPD (Art. 48) determina que o controlador deve comunicar à ANPD e aos titulares a ocorrência de incidente de segurança que possa acarretar risco ou dano relevante. Embora ransomware tipicamente criptografe sem exfiltrar, a ANPD considera que a perda de disponibilidade de dados pessoais é um incidente reportável. O prazo é 'em prazo razoável' (orientação da ANPD: 2 dias úteis). A opção A é incorreta - indisponibilidade de dados pessoais configura incidente sob LGPD."
+				},
+				{
+					"id": "q8",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Se a organização possui backups íntegros, a restauração completa do file-server pode ser realizada diretamente sobre o sistema comprometido sem necessidade de reinstalação do sistema operacional.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. Restaurar dados sobre o sistema comprometido é PERIGOSO porque: (1) mecanismos de persistência do ransomware podem sobreviver à restauração de dados, (2) o SO pode estar comprometido com backdoors adicionais, (3) chaves de registro e serviços maliciosos permanecem ativos. A prática correta é: (1) realizar imagem forense do disco comprometido, (2) fazer fresh install do SO, (3) aplicar patches de segurança, (4) restaurar APENAS dados do backup, (5) implementar hardening antes de reconectar à rede."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Erradicação e Investigação de Causa Raiz",
+			"phase": "Fase 3 - Erradicação",
+			"description": "Com a contenção realizada, a equipe investiga a causa raiz da infecção e implementa medidas para prevenir reinfecção durante a recuperação.",
+			"timeElapsed": "T+2 horas",
+			"currentSituation": {
+				"recoveryStatus": "Reinstalação do SO em andamento, restauração de dados planejada",
+				"investigationStatus": "Vetor de entrada identificado - phishing com macro VBS",
+				"networkStatus": "File-server ainda isolado, demais sistemas operando normalmente",
+				"impact": "Departamentos operando com dados locais e email, sem acesso a compartilhamentos"
+			},
+			"metrics": [
+				{
+					"title": "Vetor de Entrada Identificado",
+					"type": "initial-access-analysis",
+					"data": {
+						"method": "Spearphishing com macro VBA/VBS (T1566.001 + T1059.005)",
+						"emailSubject": "Proposta Comercial - Urgente [Ref. 2025-0842]",
+						"sender": "contato@fornecedor-parceiro.net (domínio fraudulento)",
+						"attachment": "Proposta_Comercial_2025.xlsm (macro habilitada pelo usuário)",
+						"recipientCount": 8,
+						"openedBy": 3,
+						"macroEnabledBy": 1,
+						"executionPath": "Macro VBA → WScript → Download payload → Criptografia",
+						"initialHost": "workstation-PC089 (10.10.25.89) → propagou para file-server via compartilhamento admin C$",
+						"observation": "Ransomware entrou via estação de trabalho e propagou para file-server usando credenciais de administrador do domínio"
+					}
+				},
+				{
+					"title": "Análise de Credenciais Comprometidas",
+					"type": "credential-analysis",
+					"data": {
+						"compromisedAccount": "admin-backup (conta de serviço com permissão de Domain Admin)",
+						"credentialSource": "Credencial armazenada em planilha Excel no compartilhamento (senhas.xlsx)",
+						"accessMethod": "Ransomware leu arquivo de senhas e usou credenciais para acessar C$ do file-server",
+						"otherExposedCredentials": ["admin-sistemas (Domain Admin)", "svc-backup (Backup Operator)", "admin-db (SQL Server SA)"],
+						"observation": "Arquivo 'senhas.xlsx' no compartilhamento continha credenciais de contas privilegiadas em texto claro"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q9",
+					"type": "multiple-choice",
+					"text": "A investigação revelou que o ransomware propagou para o file-server usando credenciais de Domain Admin encontradas em uma planilha compartilhada. Qual falha de segurança é MAIS crítica?",
+					"options": [
+						"Falta de segmentação de rede entre estações e servidores",
+						"Armazenamento de credenciais privilegiadas em texto claro em compartilhamento acessível",
+						"Ausência de MFA (Multi-Factor Authentication) para contas administrativas",
+						"Todas as opções representam falhas críticas que em conjunto permitiram a propagação"
+					],
+					"correctAnswer": 3,
+					"points": 5,
+					"justification": "Todas as falhas (D) contribuíram em conjunto: (1) senhas em texto claro (B) permitiram obter credenciais, (2) ausência de MFA (C) permitiu usar credenciais sem segundo fator, (3) falta de segmentação (A) permitiu acesso direto de estação a servidor via C$. A defesa em profundidade requer correção de TODOS os pontos: vault de credenciais (CyberArk, HashiCorp Vault), MFA em contas privilegiadas, e micro-segmentação de rede."
+				},
+				{
+					"id": "q10",
+					"type": "matching",
+					"text": "Correlacione cada ação de erradicação com a fase apropriada de resposta:",
+					"leftColumn": [
+						{"id": "action1", "label": "Reinstalar SO do file-server a partir de imagem limpa"},
+						{"id": "action2", "label": "Revogar todas as credenciais privilegiadas encontradas no arquivo de senhas"},
+						{"id": "action3", "label": "Implementar política de bloqueio de macros VBA via GPO"},
+						{"id": "action4", "label": "Restaurar dados do backup após verificação de integridade"}
+					],
+					"rightColumn": [
+						{"id": "phase1", "label": "Erradicação - remover presença do adversário"},
+						{"id": "phase2", "label": "Erradicação - prevenir reinfecção imediata"},
+						{"id": "phase3", "label": "Recuperação - restaurar operação normal"},
+						{"id": "phase4", "label": "Pós-incidente - melhoria de controles preventivos"}
+					],
+					"correctMatches": [
+						{"left": "action1", "right": "phase1"},
+						{"left": "action2", "right": "phase2"},
+						{"left": "action3", "right": "phase4"},
+						{"left": "action4", "right": "phase3"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 8,
+					"justification": "Reinstalar SO (action1) é erradicação direta - remove malware. Revogar credenciais (action2) previne reinfecção com mesmas credenciais comprometidas. Restaurar dados (action4) é ação de recuperação para retomar operação. Bloqueio de macros (action3) é melhoria preventiva de longo prazo no pós-incidente (requer planejamento, testes, exceções para macros legítimas)."
+				},
+				{
+					"id": "q11",
+					"type": "multiple-choice",
+					"text": "Antes de restaurar o backup, qual verificação é ESSENCIAL para evitar restaurar dados já comprometidos?",
+					"options": [
+						"Verificar se o arquivo executável do ransomware existe nos dados do backup",
+						"Escanear o backup completo com antivírus atualizado e verificar integridade com checksums",
+						"Restaurar em ambiente isolado (sandbox) e verificar ausência de artefatos maliciosos antes de mover para produção",
+						"Todas as verificações acima são necessárias"
+					],
+					"correctAnswer": 3,
+					"points": 5,
+					"justification": "Todas as verificações (D) são necessárias: (1) verificar presença do executável do ransomware nos dados do backup (o malware pode ter sido copiado antes da criptografia iniciar), (2) escanear com AV atualizado para detectar outros malwares que possam estar nos dados, (3) restaurar em ambiente isolado para validar integridade sem risco de reinfecção da rede. Pular qualquer verificação arrisca restaurar dados contaminados ou reintroduzir o ransomware."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Recuperação e Lições Aprendidas",
+			"phase": "Fase 4 - Recuperação e Pós-Incidente",
+			"description": "File-server reinstalado, dados restaurados do backup. A equipe conduz atividades de recuperação final e documenta lições aprendidas para fortalecer a postura de segurança.",
+			"timeElapsed": "T+18 horas (recuperação concluída)",
+			"currentSituation": {
+				"fileServerStatus": "Online - SO reinstalado, dados restaurados do backup de sexta-feira",
+				"dataLoss": "~57 horas de dados (sexta 23h a segunda 07h45)",
+				"credentialsReset": "Todas as credenciais privilegiadas rotacionadas",
+				"networkStatus": "Operação normalizada com monitoramento reforçado",
+				"impact": "Perda parcial de dados do fim de semana, sem pagamento de resgate"
+			},
+			"questions": [
+				{
+					"id": "q12",
+					"type": "multiple-choice",
+					"text": "Para prevenir incidentes futuros de ransomware, qual estratégia de backup é considerada MELHOR PRÁTICA?",
+					"options": [
+						"Backup diário em NAS na mesma rede com retenção de 30 dias",
+						"Regra 3-2-1: 3 cópias dos dados, em 2 tipos de mídia diferentes, com 1 cópia off-site (air-gapped ou imutável)",
+						"Backup semanal completo em fita armazenada no mesmo data center",
+						"Replicação em tempo real para outro servidor na mesma rede"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "A regra 3-2-1 (B) é o padrão ouro para proteção contra ransomware: 3 cópias (produção + 2 backups) garante redundância, 2 tipos de mídia (disco + nuvem/fita) protege contra falha de tecnologia, 1 cópia off-site/air-gapped garante que ransomware não possa criptografar TODOS os backups. NAS na mesma rede (A) é vulnerável se o ransomware tiver credenciais de rede. Fita no mesmo DC (C) não protege contra desastres físicos. Replicação (D) replicaria a criptografia em tempo real."
+				},
+				{
+					"id": "q13",
+					"type": "multiple-choice",
+					"text": "Qual controle técnico teria sido MAIS eficaz para impedir a propagação do ransomware da estação de trabalho para o file-server via C$ share?",
+					"options": [
+						"Desabilitar SMBv1 em todos os servidores",
+						"Implementar LAPS (Local Administrator Password Solution) + tiering model de contas administrativas",
+						"Instalar antivírus mais recente em todas as estações",
+						"Habilitar Windows Defender Firewall em todas as estações"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "LAPS + tiering model (B) é a medida mais eficaz: LAPS garante que cada estação tenha senha de admin local única (impede lateral movement via credencial compartilhada), e tiering model separa contas de admin de servidor (Tier 0/1) de contas de estação (Tier 2), impedindo que credenciais de Domain Admin sejam usadas a partir de estações de trabalho. SMBv1 (A) é importante mas SMBv2/3 ainda permite C$ com credenciais válidas. AV (C) falhou neste caso. Windows Firewall (D) bloqueia conexões mas pode interferir em operações legítimas."
+				},
+				{
+					"id": "q14",
+					"type": "multiple-choice",
+					"text": "No post-mortem, qual recomendação tem MAIOR impacto na redução do tempo de detecção (MTTD) de futuros ataques de ransomware?",
+					"options": [
+						"Implementar honeypots de arquivos (canary files) em compartilhamentos que alertam quando acessados/modificados",
+						"Aumentar a frequência de backup de diário para a cada 4 horas",
+						"Bloquear todas as extensões de arquivo executáveis no email",
+						"Implementar treinamento de phishing mensal para todos os funcionários"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "Honeypots/canary files (A) são a medida mais eficaz para reduzir MTTD de ransomware especificamente. Arquivos 'isca' em cada compartilhamento acionam alerta IMEDIATO quando ransomware tenta criptografá-los, potencialmente reduzindo MTTD de horas para minutos. Backups mais frequentes (B) reduzem RPO, não MTTD. Bloqueio de executáveis (C) é prevenção, não detecção. Treinamento (D) previne a entrada, mas não melhora a detecção após comprometimento."
+				},
+				{
+					"id": "q15",
+					"type": "multiple-choice",
+					"text": "O site No More Ransom (nomoreransom.org) é um projeto colaborativo que oferece:",
+					"options": [
+						"Serviço de negociação com operadores de ransomware a preços reduzidos",
+						"Ferramentas gratuitas de descriptografia para variantes conhecidas de ransomware",
+						"Seguro cibernético gratuito contra ataques de ransomware",
+						"Serviço de rastreamento de pagamentos em Bitcoin para recuperar resgates"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "O No More Ransom (B) é iniciativa da Europol, polícia holandesa, Kaspersky e McAfee que oferece ferramentas GRATUITAS de descriptografia para variantes de ransomware cujas chaves foram obtidas por forças da lei ou pesquisadores. Antes de considerar pagar resgate, sempre verificar se existe ferramenta disponível. O projeto não negocia com criminosos (A), não oferece seguro (C) nem rastreia pagamentos (D)."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 89,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 90,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de resposta a ransomware, incluindo contenção, recuperação e aspectos legais (LGPD)"
+			},
+			{
+				"min": 75,
+				"max": 89,
+				"grade": "Bom",
+				"description": "Compreensão sólida de procedimentos de resposta a ransomware com pequenas lacunas em aspectos regulatórios"
+			},
+			{
+				"min": 60,
+				"max": 74,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica suficiente, requer aprofundamento em estratégias de backup e defesa em profundidade"
+			},
+			{
+				"min": 45,
+				"max": 59,
+				"grade": "Insatisfatório",
+				"description": "Lacunas significativas em procedimentos de contenção e recuperação de ransomware"
+			},
+			{
+				"min": 0,
+				"max": 44,
+				"grade": "Inadequado",
+				"description": "Compreensão insuficiente, requer treinamento completo em resposta a incidentes de segurança"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Apresentar informações progressivamente, simulando a pressão real de um incidente de ransomware em andamento",
+		"Enfatizar urgência na Rodada 2 - criptografia em andamento cria senso real de pressão temporal",
+		"Permitir 3-4 minutos de discussão entre participantes antes de cada resposta",
+		"Provocar debate sobre pagamento vs. não pagamento de resgate - questão controversa com bons argumentos dos dois lados",
+		"Discutir aspectos legais (LGPD) quando dados pessoais estão envolvidos - tema frequentemente negligenciado",
+		"Manter neutralidade técnica - não fornecer respostas diretas, apenas orientar pensamento crítico",
+		"Controlar tempo: Rodada 1 (5 min), Rodadas 2-3 (10-12 min cada), Rodada 4 (8-10 min), Rodada 5 (7 min)",
+		"Observar se a equipe prioriza contenção sobre documentação quando criptografia está em andamento",
+		"Após exercício: discutir importância de testes regulares de restore de backup e simulações de DR"
+	],
+	"technicalReferences": [
+		{
+			"title": "NIST SP 800-61r2 - Computer Security Incident Handling Guide",
+			"url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-61r2.pdf"
+		},
+		{
+			"title": "CISA - Ransomware Guide (Stop Ransomware)",
+			"url": "https://www.cisa.gov/stopransomware"
+		},
+		{
+			"title": "No More Ransom Project - Free Decryption Tools",
+			"url": "https://www.nomoreransom.org"
+		},
+		{
+			"title": "LGPD - Lei Geral de Proteção de Dados (Lei 13.709/2018)",
+			"url": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm"
+		},
+		{
+			"title": "MITRE ATT&CK - Ransomware Techniques",
+			"url": "https://attack.mitre.org/techniques/T1486/"
+		}
+	]
+}

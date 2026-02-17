@@ -1,0 +1,481 @@
+{
+	"id": "memcached-udp-amplification",
+	"title": "Resposta a Ataque DDoS de Amplificação Memcached UDP",
+	"description": "Simulação tabletop de resposta a ataque de amplificação DDoS explorando servidor Memcached com protocolo UDP habilitado e exposto à Internet",
+	"category": {
+		"id": "NET_VOL",
+		"type": "NET_VOL_UDP_AMP",
+		"title": "Ataque de Amplificação Memcached UDP"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2025-02-02",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "35-50 minutos",
+		"difficulty": "Intermediário a Avançado",
+		"targetAudience": "Equipe de Resposta a Incidentes, Analistas de Segurança, Administradores de Sistemas, DevOps"
+	},
+	"objectives": [
+		"Validar capacidade de detecção e resposta a ataques de amplificação Memcached UDP",
+		"Avaliar conhecimento sobre Memcached, protocolo UDP e o fator de amplificação recorde (51.000x)",
+		"Testar compreensão de hardening de serviços de cache e segmentação de rede",
+		"Desenvolver habilidade de análise de tráfego anômalo e identificação de serviços expostos",
+		"Identificar riscos de expor serviços de infraestrutura interna à Internet",
+		"Promover práticas de defesa em profundidade e princípio de menor privilégio em rede"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá execução real de comandos em sistemas de produção",
+		"Não inclui configuração real de Memcached ou alteração de regras de firewall",
+		"Foco na análise técnica, tomada de decisão e mitigação de serviços de cache expostos",
+		"Avaliação de conhecimento de Memcached, amplificação UDP e segmentação de rede"
+	],
+	"baseScenario": {
+		"context": "Segunda-feira, 9h45, início do expediente. Você faz parte da equipe de resposta a incidentes. A organização opera uma plataforma web de e-commerce com alto tráfego. A infraestrutura inclui cluster de servidores web (Nginx), servidores de aplicação (Node.js), banco de dados (PostgreSQL) e dois servidores Memcached (cache-01.internal - 10.0.5.20, cache-02.internal - 10.0.5.21) usados para cache de sessões e dados frequentemente acessados. O link de Internet é de 10 Gbps.",
+		"initialSituation": {
+			"alert": "Link de saída saturado a 99.7% - tráfego UDP anômalo massivo na porta 11211",
+			"affectedHost": "cache-01.internal (10.0.5.20)",
+			"outboundTraffic": "9.97 Gbps (baseline outbound: 800 Mbps)",
+			"protocol": "UDP/11211 (Memcached) responde por 99.2% do tráfego de saída",
+			"timestamp": "09:41:55"
+		},
+		"initialComplaints": [
+			"Plataforma de e-commerce extremamente lenta - páginas levam >30 segundos para carregar",
+			"Clientes reportam impossibilidade de completar compras - timeout no checkout",
+			"API de integração com parceiros retornando erros 504 Gateway Timeout",
+			"Sistema de monitoramento alerta perda de pacotes de 67% no link de saída"
+		],
+		"availableResources": [
+			"Acesso administrativo aos servidores Memcached (SSH, console)",
+			"Sistema de monitoramento de rede com NetFlow/sFlow (Grafana, Prometheus)",
+			"Ferramentas de análise: tcpdump, Wireshark, memcstat, memcached-tool",
+			"Acesso administrativo a firewall de borda (iptables/nftables)",
+			"Configuração Memcached (/etc/memcached.conf ou parâmetros de inicialização)",
+			"Documentação de arquitetura de rede (diagramas de topologia)",
+			"Contato com provedor upstream/trânsito"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe deve se familiarizar com a arquitetura da plataforma e o problema de saturação de link.",
+			"inject": "Apresentação do cenário conforme descrito. A equipe tem 5 minutos para discutir a situação inicial e planejar investigação.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Detecção e Análise Inicial",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe investiga a origem do tráfego anômalo e descobre que o servidor Memcached está respondendo a requisições externas via UDP.",
+			"timeElapsed": "T+0 (início do incidente)",
+			"currentSituation": {
+				"outboundTraffic": "9.97 Gbps (1.146% acima do baseline)",
+				"memcachedTraffic": "9.89 Gbps (99.2% do tráfego de saída)",
+				"inboundMemcached": "~18 Mbps (requisições de ataque - entrada)",
+				"cpuUsage": "72% (processo memcached)",
+				"impact": "Plataforma e-commerce indisponível - link de saída saturado"
+			},
+			"metrics": [
+				{
+					"title": "Status do Servidor Memcached",
+					"type": "server-status",
+					"data": {
+						"hostname": "cache-01.internal",
+						"ip": "10.0.5.20",
+						"os": "Ubuntu 20.04 LTS",
+						"software": "Memcached 1.6.9",
+						"listenAddress": "0.0.0.0 (TODAS as interfaces)",
+						"listenPort": "11211 (TCP e UDP)",
+						"udpEnabled": true,
+						"maxMemory": "4 GB",
+						"currentItems": 2847523,
+						"totalDataStored": "3.2 GB",
+						"cpu": "72% (processo memcached)",
+						"saslAuth": false,
+						"observation": "Memcached ouvindo em TODAS as interfaces (0.0.0.0) com UDP habilitado e sem autenticação - exposição crítica"
+					}
+				},
+				{
+					"title": "Análise de Tráfego Memcached (tcpdump)",
+					"type": "network-analysis",
+					"data": {
+						"inbound": {
+							"packetsPerSecond": 42000,
+							"avgPacketSize": "54 bytes",
+							"totalBandwidth": "18 Mbps",
+							"commands": "stats, get <large_keys>, version",
+							"sourcePort": "random (spoofed)",
+							"destPort": 11211
+						},
+						"outbound": {
+							"packetsPerSecond": 42000,
+							"avgPacketSize": "~29.5 KB (múltiplos fragmentos por resposta)",
+							"totalBandwidth": "9.89 Gbps",
+							"sourcePort": 11211,
+							"destPort": "random"
+						},
+						"amplificationFactor": "~549x (observado neste ataque)",
+						"observation": "Requisições de 54 bytes gerando respostas de ~29.5 KB - amplificação extrema via dados cached"
+					}
+				},
+				{
+					"title": "Análise de Requisições de Ataque",
+					"type": "query-analysis",
+					"data": {
+						"topCommands": [
+							{"command": "stats", "count": 18500, "percentage": 44.0, "responseSize": "~2 KB"},
+							{"command": "stats slabs", "count": 12300, "percentage": 29.3, "responseSize": "~4 KB"},
+							{"command": "get <payload_key>", "count": 11200, "percentage": 26.7, "responseSize": "~1 MB"}
+						],
+						"attackerInjectedKey": {
+							"key": "payload_aaaaa...a (100 bytes)",
+							"valueSize": "1.048.576 bytes (1 MB exato)",
+							"note": "Atacante previamente inseriu valor de 1 MB no cache via TCP para maximizar amplificação"
+						},
+						"uniqueSourceIPs": 5240,
+						"observation": "Atacante pré-populou cache com valor de 1 MB e agora solicita via UDP com IP spoofed da vítima"
+					}
+				},
+				{
+					"title": "Exposição do Serviço Memcached",
+					"type": "security-analysis",
+					"data": {
+						"externallyAccessible": true,
+						"firewallRuleUDP11211": "ALLOW from ANY to 10.0.5.20:11211/udp",
+						"firewallRuleTCP11211": "ALLOW from ANY to 10.0.5.20:11211/tcp",
+						"shodanVisibility": "Servidor indexado em Shodan.io há ~6 meses",
+						"authenticationEnabled": false,
+						"networkSegmentation": "Nenhuma - Memcached na mesma rede que servidores web",
+						"observation": "Memcached completamente exposto à Internet sem autenticação - configuração extremamente perigosa"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"text": "Com base nas evidências (UDP/11211 exposto, amplificação 549x, dados pré-populados pelo atacante), qual é a classificação MAIS precisa do ataque?",
+					"options": [
+						"Ataque de exfiltração de dados sensíveis do cache Memcached",
+						"Ataque de amplificação DDoS usando Memcached UDP como refletor/amplificador",
+						"Ataque de envenenamento de cache (cache poisoning) para manipular dados",
+						"Ataque de negação de seviço local contra a aplicação web"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "O ataque é amplificação DDoS via Memcached UDP (B): atacante envia requisições com IP spoofed da vítima ao Memcached, que responde com dados cached amplificados direcionados à vítima. Fator de 549x observado é característico. Exfiltração (A) teria fluxo de dados para o atacante, não para IP spoofed. Cache poisoning (C) manipularia dados, não geraria tráfego massivo. DoS local (D) não explicaria tráfego de saída."
+				},
+				{
+					"id": "q2",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: O fator de amplificação do Memcached UDP pode atingir até 51.000x, sendo o maior já registrado em ataques DDoS de amplificação.",
+					"correctAnswer": true,
+					"points": 3,
+					"justification": "VERDADEIRO. Memcached UDP possui o maior fator de amplificação já documentado em ataques DDoS: até 51.000x. Isso ocorre porque: (1) requisições podem ter apenas 15-54 bytes, (2) valores armazenados no cache podem ter até 1 MB (padrão Memcached), (3) o atacante pode pré-popular o cache com valores grandes via TCP e depois solicitar via UDP com IP spoofed. Em fevereiro de 2018, ataques Memcached atingiram 1.7 Tbps (ataque contra GitHub)."
+				},
+				{
+					"id": "q3",
+					"text": "O atacante pré-populou o cache com um valor de 1 MB antes de iniciar o ataque de amplificação. Por que esta etapa prévia é necessária?",
+					"options": [
+						"Memcached requer autenticação e o payload contém credenciais de bypass",
+						"O valor pré-populado maximiza o fator de amplificação - requisição de ~54 bytes gera resposta de 1 MB (~19.000x)",
+						"É necessário para explorar uma vulnerabilidade de buffer overflow no Memcached",
+						"O payload contém código malicioso que será executado no servidor alvo"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "O pré-populate maximiza a amplificação (B): sem dados no cache, as respostas seriam pequenas (NOT_FOUND). Com um valor de 1 MB, cada 'get <key>' de ~54 bytes retorna 1 MB = amplificação de ~19.000x para aquela key específica. Os comandos 'stats' já geram amplificação natural, mas valores grandes no cache multiplicam o fator dramaticamente. Não há vulnerabilidade de buffer overflow (C) ou execução de código (D) envolvida."
+				},
+				{
+					"id": "q4",
+					"type": "numeric",
+					"text": "O tráfego de entrada Memcached é 18 Mbps e o de saída é 9.89 Gbps. Qual é o fator de amplificação observado?",
+					"correctAnswer": 549.4,
+					"tolerance": 10,
+					"unit": "x",
+					"points": 5,
+					"justification": "Fator de amplificação = Saída / Entrada = 9.89 Gbps / 0.018 Gbps = 549.4x. O atacante envia apenas 18 Mbps de requisições e gera 9.89 Gbps de respostas amplificadas. Este fator (549x) é alto mas ainda abaixo do máximo teórico (51.000x), pois o ataque mistura comandos 'stats' (amplificação menor) com 'get' de valor de 1 MB (amplificação maior)."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Contenção Imediata",
+			"phase": "Fase 2 - Contenção",
+			"description": "A equipe implementou bloqueio de UDP/11211 no firewall de borda e desabilitou UDP no Memcached. O tráfego de saída normalizou imediatamente.",
+			"timeElapsed": "T+8 minutos",
+			"currentSituation": {
+				"outboundTraffic": "850 Mbps (próximo do baseline)",
+				"memcachedUDP": "Desabilitado (-U 0)",
+				"firewallRule": "DROP UDP/11211 from ANY",
+				"applicationStatus": "E-commerce restaurado - cache funcionando via TCP",
+				"impact": "Serviço restaurado - latência normalizando"
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"text": "Qual é a forma correta de desabilitar UDP no Memcached mantendo o serviço funcional via TCP?",
+					"options": [
+						"Iniciar memcached com parâmetro -U 0 (desabilita listener UDP)",
+						"Remover a porta UDP/11211 do /etc/services",
+						"Configurar iptables para bloquear localhost UDP/11211",
+						"Desinstalar completamente o Memcached e usar Redis"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "O parâmetro -U 0 (A) desabilita o listener UDP do Memcached mantendo TCP funcional. No arquivo de configuração (/etc/memcached.conf), adicionar '-U 0'. Versões Memcached >= 1.5.6 desabilitam UDP por padrão. Editar /etc/services (B) não afeta o Memcached. Bloquear localhost (C) é desnecessário se UDP está desabilitado. Desinstalar Memcached (D) é medida extrema que impacta a aplicação."
+				},
+				{
+					"id": "q6",
+					"type": "ordering",
+					"text": "Ordene corretamente as etapas de contenção e hardening do Memcached:",
+					"items": [
+						{"id": "step1", "label": "Bloquear UDP/11211 e TCP/11211 de IPs externos no firewall (contenção imediata)"},
+						{"id": "step2", "label": "Desabilitar UDP no Memcached (-U 0) e reiniciar serviço"},
+						{"id": "step3", "label": "Configurar Memcached para ouvir apenas em interface local (-l 127.0.0.1 ou rede interna)"},
+						{"id": "step4", "label": "Habilitar autenticação SASL no Memcached"},
+						{"id": "step5", "label": "Validar que serviço não está acessível externamente (nmap, Shodan)"}
+					],
+					"correctOrder": ["step1", "step2", "step3", "step4", "step5"],
+					"partialCredit": false,
+					"points": 5,
+					"justification": "Sequência de hardening Memcached: (1) Firewall IMEDIATO para interromper ataque (segundos), (2) Desabilitar UDP no daemon (remove vetor de amplificação), (3) Restringir interface de escuta (defense in depth - mesmo com firewall falho, Memcached não ouvirá interfaces externas), (4) Habilitar SASL (autenticação requerida), (5) Validar externamente que todas as medidas são efetivas."
+				},
+				{
+					"id": "q7",
+					"text": "O segundo servidor Memcached (cache-02 - 10.0.5.21) tem a mesma configuração vulnerável. Qual ação deve ser tomada?",
+					"options": [
+						"Monitorar e agir apenas se for atacado",
+						"Aplicar hardening idêntico imediatamente (firewall + desabilitar UDP + bind local + SASL)",
+						"Desligar o servidor secundário por precaução",
+						"Migrar cache-02 para sub-rede diferente sem alterar configuração"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Hardening imediato em todas as instâncias vulneráveis (B) é obrigatório. Se cache-01 foi descoberto (indexado no Shodan há 6 meses), cache-02 provavelmente também está. Aguardar ataque (A) é irresponsável quando a vulnerabilidade é conhecida. Desligar (C) remove capacidade de cache. Mudar sub-rede (D) sem corrigir configuração não resolve - atacante encontrará via scan."
+				},
+				{
+					"id": "q8",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Memcached em versões 1.5.6 e superiores desabilita o protocolo UDP por padrão, tornando desnecessária qualquer configuração adicional de segurança.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. Embora Memcached >= 1.5.6 desabilite UDP por padrão (corrigindo o vetor de amplificação), isso NÃO elimina outros riscos: (1) TCP ainda permite acesso sem autenticação se exposto, (2) Atacante pode ler/escrever dados do cache via TCP, (3) Cache poisoning via TCP continua possível, (4) Binding em 0.0.0.0 ainda expõe o serviço. Segurança requer: bind em localhost, autenticação SASL, firewall E versão atualizada - defesa em profundidade."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Análise Avançada e Investigação",
+			"phase": "Fase 2 - Contenção (Avançada)",
+			"description": "Com contenção aplicada, a equipe investiga o escopo da exposição e potenciais dados comprometidos. Descobre-se que o Memcached armazenava tokens de sessão de usuários.",
+			"timeElapsed": "T+25 minutos",
+			"currentSituation": {
+				"outboundTraffic": "800 Mbps (baseline normal)",
+				"memcachedHardened": "Ambos servidores com hardening completo",
+				"dataExposure": "Tokens de sessão de ~2.800 usuários potencialmente acessíveis via TCP/UDP sem autenticação",
+				"impact": "Ataque DDoS mitigado, mas risco de exposição de dados em investigação"
+			},
+			"questions": [
+				{
+					"id": "q9",
+					"text": "A investigação revela que o Memcached armazenava tokens de sessão de ~2.800 usuários sem autenticação. Qual é a implicação de segurança MAIS grave além do DDoS?",
+					"options": [
+						"Perda de performance do cache durante o período do ataque",
+						"Atacante ou terceiros poderiam ter acessado tokens de sessão via TCP/UDP, permitindo hijacking de sessões de usuários",
+						"Os dados do cache precisam ser reconstruídos após reinicialização do Memcached",
+						"O servidor Memcached consumiu mais CPU durante o ataque"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "A implicação mais grave (B) é que qualquer pessoa na Internet poderia ter acessado dados do Memcached (sem autenticação), incluindo tokens de sessão. Isso permite session hijacking: atacante obtém token, impersona usuário, acessa conta sem credenciais. O Memcached esteve exposto no Shodan por 6 meses - impossível garantir que dados não foram acessados. Ações: invalidar TODAS as sessões, forçar re-login, investigar logs de acesso."
+				},
+				{
+					"id": "q10",
+					"type": "matching",
+					"text": "Correlacione cada medida de hardening com a camada de defesa que ela implementa:",
+					"leftColumn": [
+						{"id": "measure1", "label": "Desabilitar UDP (-U 0)"},
+						{"id": "measure2", "label": "Bind em localhost (-l 127.0.0.1)"},
+						{"id": "measure3", "label": "Regra de firewall bloqueando porta 11211"}
+					],
+					"rightColumn": [
+						{"id": "layer1", "label": "Camada de rede - filtragem de pacotes no perímetro"},
+						{"id": "layer2", "label": "Camada de aplicação - eliminação do vetor de protocolo UDP"},
+						{"id": "layer3", "label": "Camada de transporte - restrição de interface de escuta"}
+					],
+					"correctMatches": [
+						{"left": "measure1", "right": "layer2"},
+						{"left": "measure2", "right": "layer3"},
+						{"left": "measure3", "right": "layer1"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 6,
+					"justification": "Desabilitar UDP (↔ layer2): remove o protocolo vulnerável a amplificação no nível da aplicação. Bind localhost (↔ layer3): restringe o socket TCP/UDP para aceitar conexões apenas da interface local (loopback). Firewall (↔ layer1): filtragem de pacotes no perímetro da rede. As três camadas se complementam - falha em uma é coberta pelas outras (defesa em profundidade)."
+				},
+				{
+					"id": "q11",
+					"text": "A equipe descobre que o Memcached foi configurado com '-l 0.0.0.0' (todas as interfaces) por um desenvolvedor que precisava de acesso remoto durante testes. Qual processo organizacional teria prevenido isso?",
+					"options": [
+						"Separação de ambientes: desenvolvimento, staging e produção com configurações distintas e revisão obrigatória de configurações antes do deploy em produção",
+						"Permissão de acesso root apenas ao líder técnico",
+						"Auditoria financeira trimestral dos gastos com infraestrutura",
+						"Implementação de VPN para acesso remoto de toda a equipe"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "Separação de ambientes com revisão de configuração (A) previne que configurações de desenvolvimento (permissivas) cheguem à produção. Em desenvolvimento, '-l 0.0.0.0' é aceitável; em produção, deve ser '-l 127.0.0.1'. Processo de deploy deve incluir checklist de segurança e revisão de pares. Acesso root (B) é controle parcial. VPN (D) é válida mas não previne a configuração incorreta."
+				},
+				{
+					"id": "q12",
+					"type": "numeric",
+					"text": "O ataque ao GitHub em fevereiro de 2018 atingiu 1.7 Tbps usando amplificação Memcached. Se o fator de amplificação foi 51.000x, qual foi o tráfego de requisições enviado pelos atacantes em Gbps?",
+					"correctAnswer": 0.033,
+					"tolerance": 0.005,
+					"unit": "Gbps",
+					"points": 5,
+					"justification": "Tráfego do atacante = 1.7 Tbps / 51.000 = 1.700 Gbps / 51.000 = 0.0333 Gbps ≈ 33 Mbps. Com apenas ~33 Mbps de requisições, o atacante gerou 1.7 TERABITS por segundo de tráfego contra o GitHub. Isso demonstra o perigo extraordinário de amplificação Memcached: uma conexão doméstica de 50 Mbps poderia teoricamente gerar 2.5 Tbps de ataque."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Recuperação e Lições Aprendidas",
+			"phase": "Fase 3 e 4 - Recuperação e Pós-Incidente",
+			"description": "Incidente de DDoS mitigado em 8 minutos. Investigação de dados expostos concluída. Todas as sessões de usuários foram invalidadas preventivamente. Nenhuma evidência de acesso malicioso aos dados do cache foi encontrada nos logs disponíveis.",
+			"timeElapsed": "T+90 minutos (incidente encerrado)",
+			"currentSituation": {
+				"outboundTraffic": "800 Mbps (baseline normal)",
+				"memcachedStatus": "Hardened (UDP desabilitado, bind localhost, SASL habilitado, firewall)",
+				"sessionsInvalidated": true,
+				"impact": "Nenhum - operação completamente normalizada"
+			},
+			"questions": [
+				{
+					"id": "q13",
+					"text": "A equipe debate se deve notificar os ~2.800 usuários cujos tokens de sessão estavam no Memcached exposto. Qual é a abordagem CORRETA?",
+					"options": [
+						"Não notificar - não há evidência de que dados foram acessados",
+						"Notificar apenas se houver evidência concreta de acesso malicioso aos dados",
+						"Invalidar sessões preventivamente, forçar re-autenticação e avaliar necessidade de notificação conforme legislação de proteção de dados",
+						"Notificar apenas os usuários que reclamaram de problemas durante o incidente"
+					],
+					"correctAnswer": 2,
+					"points": 5,
+					"justification": "A abordagem correta (C) é preventiva: (1) Invalidar TODAS as sessões imediatamente (elimina risco de hijacking), (2) Forçar re-autenticação (garante sessões legítimas), (3) Avaliar obrigação legal de notificação conforme LGPD/GDPR (tokens de sessão podem ser considerados dados pessoais). Não notificar (A, B) pode violar legislação. Ausência de evidência de acesso não significa ausência de acesso - logs podem ser incompletos."
+				},
+				{
+					"id": "q14",
+					"text": "Para prevenir que serviços internos sejam expostos à Internet no futuro, qual medida arquitetural é MAIS eficaz?",
+					"options": [
+						"Segmentação de rede com DMZ: serviços de cache/banco em rede interna isolada, sem rota para Internet",
+						"Monitoramento contínuo de portas abertas com Shodan",
+						"Treinamento de desenvolvedores sobre configuração segura de Memcached",
+						"Política de uso obrigatório de autenticação em todos os serviços"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "Segmentação de rede com DMZ (A) é a medida mais eficaz: coloca serviços internos (Memcached, PostgreSQL) em rede sem rota direta para Internet. Mesmo com configuração incorreta (0.0.0.0), o serviço não seria acessível externamente. É controle de infraestrutura que não depende de configuração correta da aplicação. Shodan (B) é detecção reativa. Treinamento (C) depende de comportamento humano. Autenticação (D) é importante mas não substitui segmentação."
+				},
+				{
+					"id": "q15",
+					"text": "A equipe propõe migrar de Memcached para Redis como solução de cache. Qual vantagem de segurança o Redis oferece NATIVAMENTE sobre Memcached?",
+					"options": [
+						"Redis é imune a ataques DDoS por design",
+						"Redis suporta autenticação nativa (requirepass/ACL) e TLS, e não possui listener UDP",
+						"Redis criptografa todos os dados em cache automaticamente",
+						"Redis é mais rápido que Memcached, eliminando necessidade de cache"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Redis (B) oferece: autenticação nativa via requirepass (Redis < 6) ou ACL (Redis >= 6), suporte a TLS para conexões criptografadas, e NÃO possui listener UDP (elimina vetor de amplificação por design). Redis NÃO é imune a DDoS (A) - pode ser alvo de outros tipos. NÃO criptografa dados em repouso automaticamente (C). Performance (D) é comparável, não elimina necessidade de cache."
+				},
+				{
+					"id": "q16",
+					"text": "Qual lição aprendida é MAIS relevante para o nível de gestão (não apenas técnico)?",
+					"options": [
+						"Memcached não deveria ser usado em ambientes de produção",
+						"Inventário de ativos e serviços expostos à Internet deve ser mantido atualizado e auditado regularmente como parte da gestão de risco",
+						"Todos os desenvolvedores devem aprender a configurar Memcached corretamente",
+						"A equipe deve ser punida por não ter detectado a exposição antes"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Para gestão (B): o incidente revela falha no processo de GESTÃO DE ATIVOS - o Memcached estava exposto há 6 meses sem que ninguém soubesse. Inventário atualizado + auditorias periódicas de exposição na Internet (ex: scan Shodan, nmap externo) teriam detectado o problema. Memcached é válido em produção quando configurado corretamente (A é incorreto). Punição (D) é contraproducente para cultura de aprendizado."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 92,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 90,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de detecção, análise e resposta a ataques de amplificação Memcached e hardening de serviços de cache"
+			},
+			{
+				"min": 75,
+				"max": 89,
+				"grade": "Bom",
+				"description": "Compreensão sólida de Memcached e amplificação UDP com pequenas lacunas em segmentação ou hardening"
+			},
+			{
+				"min": 60,
+				"max": 74,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica suficiente, requer aprofundamento em defesa em profundidade e gestão de ativos"
+			},
+			{
+				"min": 45,
+				"max": 59,
+				"grade": "Insatisfatório",
+				"description": "Lacunas significativas em conhecimento de serviços de cache e resposta a incidentes de amplificação"
+			},
+			{
+				"min": 0,
+				"max": 44,
+				"grade": "Inadequado",
+				"description": "Compreensão insuficiente, requer treinamento completo em segurança de infraestrutura e protocolos de rede"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Apresentar informações progressivamente - revelar que Memcached estava no Shodan há 6 meses gera impacto",
+		"Enfatizar que Memcached UDP é o vetor de amplificação mais poderoso já documentado (51.000x)",
+		"Permitir 3-5 minutos de discussão por rodada - incluir debates sobre segmentação vs. configuração",
+		"Fazer perguntas socráticas: 'Por que um servidor de cache precisa ouvir na Internet?', 'Qual é o princípio de menor privilégio aplicado aqui?'",
+		"Se grupo incluir desenvolvedores, explorar tema de configuração dev vs. produção",
+		"Destacar o caso real do ataque ao GitHub (1.7 Tbps) como exemplo concreto",
+		"Manter neutralidade técnica - não fornecer respostas diretas, orientar raciocínio",
+		"Controlar tempo: Rodada 1 (5 min), Rodadas 2-4 (10-12 min cada), Rodada 5 (8 min)",
+		"Mediar debates Memcached vs. Redis - ambos são válidos quando configurados corretamente",
+		"Após exercício: revisar gabarito, discutir implementação de inventário de ativos e scan externo",
+		"Documentar insights para melhorar processos de deploy e gestão de configuração"
+	],
+	"technicalReferences": [
+		{
+			"title": "US-CERT Alert (TA18-106A) - UDP-Based Amplification Attacks (Memcached)",
+			"url": "https://www.cisa.gov/news-events/alerts/2018/04/16/udp-based-amplification-attacks"
+		},
+		{
+			"title": "Cloudflare Blog - Memcrashed: Major Amplification Attacks from UDP port 11211",
+			"url": "https://blog.cloudflare.com/memcrashed-major-amplification-attacks-from-port-11211/"
+		},
+		{
+			"title": "Memcached Wiki - Security Best Practices",
+			"url": "https://github.com/memcached/memcached/wiki/ConfiguringServer#networking"
+		},
+		{
+			"title": "RFC 2827 / BCP 38 - Network Ingress Filtering",
+			"url": "https://www.rfc-editor.org/info/bcp38"
+		},
+		{
+			"title": "NIST SP 800-61r2 - Computer Security Incident Handling Guide",
+			"url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-61r2.pdf"
+		}
+	]
+}

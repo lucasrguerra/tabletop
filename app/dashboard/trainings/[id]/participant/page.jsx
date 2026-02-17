@@ -16,6 +16,7 @@ import RoundQuestions from '@/components/Trainings/RoundQuestions';
 import MetricsDisplay from '@/components/Trainings/MetricsDisplay';
 import RoundNavigator from '@/components/Trainings/RoundNavigator';
 import ParticipantResultsDashboard from '@/components/Trainings/ParticipantResultsDashboard';
+import EvaluationForm from '@/components/Trainings/EvaluationForm';
 import { FaLightbulb } from 'react-icons/fa';
 
 export default function ParticipantPage() {
@@ -30,6 +31,7 @@ export default function ParticipantPage() {
 	const [responses, setResponses] = useState([]);
 	const [submitting, setSubmitting] = useState(false);
 	const [resultsData, setResultsData] = useState(null);
+	const [evaluationData, setEvaluationData] = useState(undefined);
 
 	// Keep viewingRound in sync when facilitator advances
 	const syncViewingRound = useCallback((currentRound, prevCurrentRound) => {
@@ -127,6 +129,24 @@ export default function ParticipantPage() {
 		}
 	};
 
+	// Fetch evaluation status (only when training is completed)
+	const fetchEvaluation = async () => {
+		try {
+			const response = await fetch(`/api/trainings/${params.id}/evaluations`, {
+				method: 'GET',
+				credentials: 'include'
+			});
+			if (response.ok) {
+				const data = await response.json();
+				if (data.success) {
+					setEvaluationData(data.evaluation || null);
+				}
+			}
+		} catch (err) {
+			console.error('Error fetching evaluation:', err);
+		}
+	};
+
 	// Submit an answer to a question
 	const handleSubmitAnswer = async (roundIndex, questionId, answer) => {
 		setSubmitting(true);
@@ -171,10 +191,11 @@ export default function ParticipantPage() {
 		}
 	}, [training?.current_round, params.id]);
 
-	// Fetch results when training is completed
+	// Fetch results and evaluation when training is completed
 	useEffect(() => {
 		if (training?.status === 'completed') {
 			fetchResults();
+			fetchEvaluation();
 		}
 	}, [training?.status, params.id]);
 
@@ -210,7 +231,6 @@ export default function ParticipantPage() {
 	const currentRound = training.current_round ?? 0;
 	const rounds = scenarioData?.rounds || [];
 	const viewingRoundData = rounds[viewingRound] || null;
-	const isViewingCurrent = viewingRound === currentRound;
 	const totalRounds = scenarioData ? rounds.length : 0;
 	const metricsRounds = rounds.slice(0, viewingRound + 1);
 
@@ -254,6 +274,15 @@ export default function ParticipantPage() {
 					/>
 				)}
 
+				{/* ── EVALUATION FORM (completed) ── */}
+				{training.status === 'completed' && evaluationData !== undefined && (
+					<EvaluationForm
+						trainingId={params.id}
+						existingEvaluation={evaluationData}
+						onSubmitted={(eval_) => setEvaluationData(eval_)}
+					/>
+				)}
+
 				{/* ── ROUND NAVIGATION ── */}
 				{training.status !== 'not_started' && rounds.length > 0 && (
 					<RoundNavigator
@@ -269,6 +298,14 @@ export default function ParticipantPage() {
 
 					{/* LEFT: Questions - Primary task (3/5 width) */}
 					<div className="lg:col-span-3 space-y-5">
+						{/* Metrics & Evidence */}
+						{metricsRounds.length > 0 && (
+							<MetricsDisplay
+								rounds={metricsRounds}
+								currentRound={viewingRound}
+							/>
+						)}
+
 						{/* Questions - the participant's main task */}
 						{viewingRoundData?.questions?.length > 0 && (
 							<RoundQuestions
@@ -298,14 +335,6 @@ export default function ParticipantPage() {
 								round={viewingRoundData}
 								roundIndex={viewingRound}
 								totalRounds={totalRounds}
-							/>
-						)}
-
-						{/* Metrics & Evidence */}
-						{metricsRounds.length > 0 && (
-							<MetricsDisplay
-								rounds={metricsRounds}
-								currentRound={viewingRound}
 							/>
 						)}
 

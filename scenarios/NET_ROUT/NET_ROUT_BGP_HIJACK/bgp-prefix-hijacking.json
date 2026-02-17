@@ -1,0 +1,532 @@
+{
+	"id": "bgp-prefix-hijacking",
+	"title": "Resposta a Sequestro de Prefixo BGP (Prefix Hijacking)",
+	"description": "Simulação tabletop de resposta a incidente de sequestro de prefixo BGP, onde um AS malicioso anuncia prefixos IP da organização, desviando tráfego legítimo",
+	"category": {
+		"id": "NET_ROUT",
+		"type": "NET_ROUT_BGP_HIJACK",
+		"title": "Sequestro de Prefixo BGP (Prefix Hijacking)"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2025-02-17",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "40-55 minutos",
+		"difficulty": "Avançado",
+		"targetAudience": "Engenheiros de Rede, Equipe de NOC, Analistas de Segurança, Administradores de Backbone"
+	},
+	"objectives": [
+		"Validar capacidade de detecção de anomalias em anúncios BGP e identificação de prefix hijacking",
+		"Avaliar conhecimento de mecanismos de proteção de roteamento (RPKI, ROA, IRR, prefix filters)",
+		"Testar compreensão do processo de seleção de rotas BGP e impacto de anúncios mais específicos",
+		"Desenvolver habilidade de coordenação com upstreams e comunidade de operadores para mitigação",
+		"Identificar melhores práticas de prevenção baseadas em MANRS (Mutually Agreed Norms for Routing Security)",
+		"Promover entendimento dos impactos operacionais e de segurança do sequestro de prefixos"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá execução real de comandos em roteadores de produção",
+		"Não inclui alterações reais em sessões BGP ou políticas de roteamento",
+		"Foco na análise técnica, tomada de decisão e coordenação interorganizacional",
+		"Avaliação de conhecimento de protocolo BGP, RPKI e práticas de segurança de roteamento"
+	],
+	"baseScenario": {
+		"context": "Segunda-feira, 09h15, início do expediente. Você faz parte da equipe de operações de rede de uma organização que opera o AS 64500 e anuncia o bloco 198.51.100.0/16 via BGP para dois provedores de trânsito (upstream A - AS 64501 e upstream B - AS 64502). A organização hospeda serviços críticos nesse bloco, incluindo servidores web, e-mail, VPN e DNS autoritário. O monitoramento de roteamento externo está configurado via RIPE RIS e BGPStream.",
+		"initialSituation": {
+			"alert": "Anomalia BGP detectada - prefixos mais específicos do bloco 198.51.100.0/16 sendo anunciados por AS desconhecido",
+			"affectedPrefixes": "198.51.100.0/24, 198.51.101.0/24, 198.51.102.0/24 (sub-redes do /16 legítimo)",
+			"legitimateAS": "AS 64500 (sua organização)",
+			"hijackerAS": "AS 65530 (desconhecido, não pertence à organização)",
+			"timestamp": "09:12:47"
+		},
+		"initialComplaints": [
+			"Clientes externos reportam impossibilidade de acessar serviços hospedados no bloco 198.51.100.0/16",
+			"Monitoramento externo (RIPE RIS, BGPStream) alerta sobre new origin AS para sub-redes do bloco",
+			"Traceroutes de localidades externas mostram caminhos divergentes para IPs do bloco",
+			"E-mails legítimos da organização sendo rejeitados por servidores de destino (SPF fail)"
+		],
+		"availableResources": [
+			"Acesso CLI aos roteadores de borda BGP (border-gw-01, border-gw-02)",
+			"Looking glass de provedores upstream (AS 64501, AS 64502)",
+			"Ferramentas de monitoramento BGP: RIPE RIS Live, BGPStream, RouteViews, RIPE Stat",
+			"Console RPKI com ROAs configurados para o bloco 198.51.100.0/16",
+			"Registro no IRR (Internet Routing Registry) com objetos route para o /16",
+			"Contatos de peering e operações dos provedores upstream",
+			"Comunidades BGP documentadas dos upstreams para blackhole e traffic engineering"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe deve se familiarizar com a topologia BGP, os prefixos anunciados e os recursos disponíveis para investigação.",
+			"inject": "Apresentação do cenário conforme descrito. A equipe tem 5 minutos para discutir a situação e planejar a abordagem de investigação.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Detecção e Análise Inicial",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe analisa os alertas de monitoramento BGP e coleta evidências sobre o sequestro de prefixos.",
+			"timeElapsed": "T+0 (início do incidente)",
+			"currentSituation": {
+				"legitimateAnnouncement": "198.51.100.0/16 via AS 64500 (normal)",
+				"hijackedAnnouncements": "198.51.100.0/24, 198.51.101.0/24, 198.51.102.0/24 via AS 65530 (malicioso)",
+				"affectedRegions": "~60% do tráfego global desviado para AS 65530",
+				"impact": "Serviços parcialmente inacessíveis; tráfego desviado potencialmente interceptado"
+			},
+			"metrics": [
+				{
+					"title": "Alertas do BGPStream / RIPE RIS",
+					"type": "routing-analysis",
+					"data": {
+						"events": [
+							{
+								"timestamp": "09:12:47",
+								"type": "Anomaly",
+								"prefix": "198.51.100.0/24",
+								"originAS": "AS 65530",
+								"expectedOriginAS": "AS 64500",
+								"asPath": "AS 64510 AS 65530",
+								"visibility": "Visto por 847 de 1.200 coletores RIS (70.6%)"
+							},
+							{
+								"timestamp": "09:12:49",
+								"type": "Anomaly",
+								"prefix": "198.51.101.0/24",
+								"originAS": "AS 65530",
+								"expectedOriginAS": "AS 64500",
+								"asPath": "AS 64510 AS 65530",
+								"visibility": "Visto por 812 de 1.200 coletores RIS (67.7%)"
+							},
+							{
+								"timestamp": "09:12:52",
+								"type": "Anomaly",
+								"prefix": "198.51.102.0/24",
+								"originAS": "AS 65530",
+								"expectedOriginAS": "AS 64500",
+								"asPath": "AS 64510 AS 65530",
+								"visibility": "Visto por 789 de 1.200 coletores RIS (65.8%)"
+							}
+						],
+						"observation": "Três /24 mais específicos do bloco /16 legítimo sendo anunciados por AS desconhecido via transit AS 64510"
+					}
+				},
+				{
+					"title": "Tabela BGP Local (border-gw-01)",
+					"type": "routing-analysis",
+					"data": {
+						"command": "show ip bgp 198.51.100.0/16 longer-prefixes",
+						"entries": [
+							{
+								"prefix": "198.51.100.0/16",
+								"nextHop": "self",
+								"origin": "IGP",
+								"asPath": "Local",
+								"status": "best, originated"
+							}
+						],
+						"observation": "Roteador local anuncia corretamente o /16 mas NÃO anuncia sub-redes /24 mais específicas"
+					}
+				},
+				{
+					"title": "Traceroute Externo (via looking glass)",
+					"type": "network-analysis",
+					"data": {
+						"source": "Looking glass New York (AS 64520)",
+						"destination": "198.51.100.10 (servidor web da organização)",
+						"hops": [
+							{"hop": 1, "ip": "10.64520.1.1", "asn": "AS 64520", "description": "IX local"},
+							{"hop": 2, "ip": "10.64510.2.1", "asn": "AS 64510", "description": "Transit provider do hijacker"},
+							{"hop": 3, "ip": "10.65530.1.1", "asn": "AS 65530", "description": "AS HIJACKER - tráfego desviado"},
+							{"hop": 4, "ip": "*", "asn": "???", "description": "Timeout - tráfego não chega ao destino legítimo"}
+						],
+						"observation": "Tráfego sendo encaminhado para AS 65530 (hijacker) ao invés de AS 64500 (legítimo)"
+					}
+				},
+				{
+					"title": "Status RPKI dos Prefixos",
+					"type": "security-analysis",
+					"data": {
+						"rpkiStatus": [
+							{"prefix": "198.51.100.0/16", "originAS": "AS 64500", "rpkiState": "Valid", "roa": "ROA exists (maxLength: /16)"},
+							{"prefix": "198.51.100.0/24", "originAS": "AS 65530", "rpkiState": "Invalid", "roa": "ROA for /16 with maxLength /16 - /24 from AS 65530 is INVALID"},
+							{"prefix": "198.51.101.0/24", "originAS": "AS 65530", "rpkiState": "Invalid", "roa": "Same ROA violation"},
+							{"prefix": "198.51.102.0/24", "originAS": "AS 65530", "rpkiState": "Invalid", "roa": "Same ROA violation"}
+						],
+						"observation": "RPKI marca anúncios do hijacker como INVALID, mas nem todos os ASes na Internet validam RPKI"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"text": "O AS 65530 anuncia /24 mais específicos que o /16 da organização. Por que a maioria do tráfego da Internet é desviada para o hijacker?",
+					"options": [
+						"Porque o AS 65530 tem mais largura de banda disponível",
+						"Porque o BGP prefere rotas com AS path mais curto, sempre",
+						"Porque o BGP sempre prefere a rota mais específica (longest prefix match) na decisão de encaminhamento",
+						"Porque o AS 65530 enviou comunidades BGP de maior prioridade"
+					],
+					"correctAnswer": 2,
+					"points": 5,
+					"justification": "O princípio fundamental é o longest prefix match: no encaminhamento IP, uma rota /24 é SEMPRE preferida sobre /16 para IPs dentro daquela sub-rede, independentemente de AS path, MED, local preference ou qualquer atributo BGP. O BGP decision process opera DENTRO de prefixos de mesmo comprimento. Anunciar /24 mais específicos é a técnica clássica de hijacking porque explora este comportamento fundamental do IP routing, não do BGP em si."
+				},
+				{
+					"id": "q2",
+					"text": "Os anúncios do AS 65530 estão marcados como RPKI Invalid. Por que o hijacking ainda funciona para ~60% do tráfego global?",
+					"options": [
+						"Porque RPKI está com bug e não funciona corretamente",
+						"Porque a maioria dos ASes na Internet ainda não implementa validação RPKI (Route Origin Validation)",
+						"Porque RPKI Invalid não impede propagação, apenas sinaliza",
+						"Porque o hijacker também possui ROAs válidos para esses prefixos"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Apesar de os ROAs marcarem os anúncios como Invalid, a adoção global de RPKI ROV (Route Origin Validation) ainda é parcial (~40% dos ASes em 2024). ASes que NÃO validam RPKI tratam rotas Invalid como Not Found e aceitam normalmente. Opção C é parcialmente correta (RPKI é advisory por padrão), mas a causa raiz é a baixa adoção. Opção D é falsa - hijacker não tem ROAs. A adoção RPKI é um dos pilares do MANRS."
+				},
+				{
+					"id": "q3",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Se a organização anunciar seus próprios /24 (198.51.100.0/24, 198.51.101.0/24, 198.51.102.0/24) como contramedida imediata, isso resolverá o hijacking para todo o tráfego global.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. Anunciar /24 legítimos faz com que BGP tenha dois anúncios concorrentes para o mesmo prefixo (/24 de AS 64500 vs /24 de AS 65530). Neste caso, o BGP decision process é acionado (AS path length, MED, etc.), mas o resultado depende da perspectiva de cada AS na Internet. Alguns ASes preferirão o legítimo, outros o hijacker, dependendo da topologia. Não resolve 100% do problema, mas REDUZ significativamente o impacto."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Conecte cada ferramenta/recurso ao seu papel principal na detecção e resposta a hijacking BGP:",
+					"leftColumn": [
+						{"id": "tool1", "label": "RIPE RIS / BGPStream"},
+						{"id": "tool2", "label": "RPKI ROA"},
+						{"id": "tool3", "label": "IRR (Internet Routing Registry)"}
+					],
+					"rightColumn": [
+						{"id": "role1", "label": "Registro de políticas de roteamento autorizadas para filtragem por operadores"},
+						{"id": "role2", "label": "Monitoramento em tempo real de anúncios BGP e detecção de anomalias"},
+						{"id": "role3", "label": "Validação criptográfica da autorização de origem de prefixos"}
+					],
+					"correctMatches": [
+						{"left": "tool1", "right": "role2"},
+						{"left": "tool2", "right": "role3"},
+						{"left": "tool3", "right": "role1"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 6,
+					"justification": "RIPE RIS/BGPStream (↔ monitoramento em tempo real): coletam e analisam updates BGP globalmente para detecção de anomalias. RPKI ROA (↔ validação criptográfica): utiliza certificados X.509 e assinaturas para validar que um AS está autorizado a originar determinado prefixo. IRR (↔ registro de políticas): base de dados de objetos route/route6 que operadores consultam para construir prefix filters, sem validação criptográfica."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Contenção Imediata",
+			"phase": "Fase 2 - Contenção",
+			"description": "A equipe decide anunciar sub-redes /24 mais específicas do bloco legítimo como contramedida imediata, competindo com os anúncios do hijacker no mesmo nível de especificidade.",
+			"timeElapsed": "T+12 minutos",
+			"currentSituation": {
+				"action": "Anúncio de /24 legítimos adicionado nos roteadores de borda",
+				"legitimateAnnouncements": "198.51.100.0/16 + 198.51.100.0/24, 198.51.101.0/24, 198.51.102.0/24 via AS 64500",
+				"hijackerAnnouncements": "198.51.100.0/24, 198.51.101.0/24, 198.51.102.0/24 via AS 65530 (continua)",
+				"trafficRecovery": "~55% do tráfego recuperado (ASes mais próximos topologicamente preferem o legítimo)",
+				"impact": "Serviços parcialmente restaurados, ainda com impacto em regiões distantes"
+			},
+			"metrics": [
+				{
+					"title": "Propagação dos Anúncios Legítimos /24",
+					"type": "routing-analysis",
+					"data": {
+						"legitimateVisibility": {
+							"198.51.100.0/24 via AS 64500": "632/1200 coletores (52.7%)",
+							"198.51.101.0/24 via AS 64500": "618/1200 coletores (51.5%)",
+							"198.51.102.0/24 via AS 64500": "605/1200 coletores (50.4%)"
+						},
+						"hijackerVisibility": {
+							"198.51.100.0/24 via AS 65530": "568/1200 coletores (47.3%)",
+							"198.51.101.0/24 via AS 65530": "582/1200 coletores (48.5%)",
+							"198.51.102.0/24 via AS 65530": "595/1200 coletores (49.6%)"
+						},
+						"observation": "Competição direta: ~50/50 de visibilidade. ASes decidem entre os dois anúncios com base em AS path length e políticas locais"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q5",
+					"text": "Com ambos os ASes (legítimo e hijacker) anunciando os mesmos /24, qual atributo BGP determina a escolha na maioria dos ASes da Internet?",
+					"options": [
+						"MED (Multi-Exit Discriminator) - quanto menor, melhor",
+						"AS Path length - menor número de ASes no caminho é preferido",
+						"Origin type - IGP é preferido sobre EGP e Incomplete",
+						"Router ID - menor ID é preferido como desempate final"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Quando dois prefixos idênticos competem no BGP decision process, o AS path length é o critério mais determinante na prática (após local preference, que é configuração local do AS). MED (A) só é comparado entre rotas do mesmo AS vizinho. Origin type (C) raramente difere. Router ID (D) é desempate final dentro do mesmo AS. Na competição inter-AS com prefixos iguais, AS path length é o fator decisivo mais comum."
+				},
+				{
+					"id": "q6",
+					"text": "Além de anunciar /24 próprios, qual ação deve ser tomada SIMULTANEAMENTE para acelerar a mitigação?",
+					"options": [
+						"Reiniciar as sessões BGP com todos os peers para forçar refresh",
+						"Contatar os provedores upstream para que apliquem prefix filters bloqueando anúncios do AS 65530",
+						"Desconectar a organização da Internet até o hijacker parar",
+						"Enviar BGP community no-export em todos os anúncios"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Contatar upstreams (B) para filtragem é a ação mais eficaz: provedores de trânsito podem bloquear anúncios ilegítimos do AS 65530 baseado em IRR/RPKI. Reiniciar sessões (A) causa downtime desnecessário. Desconectar (C) é contraproducente. No-export (D) impediria propagação dos PRÓPRIOS anúncios, piorando a situação. A coordenação com a comunidade de operadores é fundamental em hijacking."
+				},
+				{
+					"id": "q7",
+					"type": "ordering",
+					"text": "Ordene corretamente as etapas do BGP decision process (do mais prioritário ao menos prioritário):",
+					"items": [
+						{"id": "step1", "label": "Maior Local Preference"},
+						{"id": "step2", "label": "Menor AS Path Length"},
+						{"id": "step3", "label": "Menor MED (Multi-Exit Discriminator)"},
+						{"id": "step4", "label": "Preferir eBGP sobre iBGP"},
+						{"id": "step5", "label": "Menor Router ID (desempate final)"}
+					],
+					"correctOrder": ["step1", "step2", "step3", "step4", "step5"],
+					"partialCredit": false,
+					"points": 5,
+					"justification": "O BGP decision process segue ordem estrita: (1) Local Preference mais alto (configuração local), (2) AS Path mais curto (critério mais relevante inter-AS), (3) MED mais baixo (apenas entre rotas do mesmo next-hop AS), (4) eBGP preferido sobre iBGP, (5) Router ID mais baixo como desempate final. Existem etapas intermediárias (origin type, IGP cost), mas esta sequência simplificada cobre os critérios mais impactantes."
+				},
+				{
+					"id": "q8",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Adicionar a comunidade BGP de Blackhole (RTBH - RFC 7999) nos anúncios legítimos /24 ajudaria a mitigar o hijacking.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. Blackhole (RTBH) faz com que o tráfego para o prefixo seja DESCARTADO (null-routed) nos roteadores do upstream. Usar blackhole nos anúncios LEGÍTIMOS causaria indisponibilidade total dos serviços, que é o OPOSTO do desejado. Blackhole é usado para mitigar DDoS (sacrificar o prefixo atacado), não para recuperar tráfego desviado. A ação correta é anunciar rotas legítimas com atributos normais para competir com o hijacker."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Mitigação Avançada e Coordenação",
+			"phase": "Fase 2 - Contenção (Avançada)",
+			"description": "Após anunciar /24 legítimos e contatar upstreams, a equipe coordena com a comunidade de operadores. O upstream A (AS 64501) aplicou filtro bloqueando AS 65530. Tráfego sendo recuperado progressivamente.",
+			"timeElapsed": "T+35 minutos",
+			"currentSituation": {
+				"trafficRecovery": "~80% recuperado (upstream A filtrando hijacker)",
+				"hijackerStatus": "AS 65530 ainda anunciando via AS 64510 (transit do hijacker)",
+				"upstreamAFilter": "Aplicado - bloqueando AS 65530 para prefixos 198.51.100.0/16 e sub-redes",
+				"upstreamBFilter": "Em processo - equipe de NOC do upstream B analisando solicitação",
+				"rpkiValidation": "ASes com RPKI ROV ativo já rejeitaram anúncios do hijacker"
+			},
+			"metrics": [
+				{
+					"title": "Análise do AS Path do Hijacker",
+					"type": "routing-analysis",
+					"data": {
+						"hijackerPaths": [
+							"AS 64510 → AS 65530 (transit direto)",
+							"AS 64515 → AS 64510 → AS 65530 (via peer do transit)"
+						],
+						"asInfo": {
+							"AS 65530": {"name": "Desconhecido", "country": "??", "rir": "Sem registro público", "peeringDB": "Ausente"},
+							"AS 64510": {"name": "Transit Provider X", "country": "BR", "status": "Provider legítimo sendo abusado"}
+						},
+						"observation": "AS 65530 parece ser AS registrado mas sem presença pública. AS 64510 é o transit provider que deveria ter filtrado os anúncios inválidos"
+					}
+				},
+				{
+					"title": "Impacto nos Serviços da Organização",
+					"type": "service-impact",
+					"data": {
+						"webServer": "Acessível para ~80% dos usuários (recuperando)",
+						"email": "SPF/DKIM falhando para destinatários que roteiam via hijacker (rejeição de e-mails)",
+						"vpn": "Reconectando para maioria dos usuários remotos",
+						"dnsAuthoritative": "Respostas DNS incorretas para quem roteia via hijacker",
+						"observation": "Hijacking afeta não apenas disponibilidade, mas integridade - tráfego desviado pode ser interceptado (man-in-the-middle)"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q9",
+					"text": "O tráfego desviado para o AS 65530 pode representar risco de segurança além da indisponibilidade. Qual é o risco MAIS crítico?",
+					"options": [
+						"O hijacker pode gerar logs falsos do tráfego desviado",
+						"O hijacker pode realizar interceptação de tráfego (man-in-the-middle) capturando dados sensíveis",
+						"O hijacker pode consumir largura de banda do backbone",
+						"O hijacker pode alterar registros DNS globais"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "O risco mais crítico é man-in-the-middle (B): o hijacker pode interceptar todo o tráfego destinado ao bloco sequestrado, capturando credenciais, dados pessoais, sessões não-criptografadas, e até tentando ataques contra TLS (stripping, certificate spoofing). Logs falsos (A) são preocupação menor. Bandwidth (C) é impacto colateral, não risco de segurança. DNS global (D) requer comprometimento de registrar/registries, não apenas BGP hijacking."
+				},
+				{
+					"id": "q10",
+					"text": "O AS 64510 (transit do hijacker) propagou os anúncios inválidos. Qual prática de segurança de roteamento ele DEVERIA ter implementado?",
+					"options": [
+						"MPLS Traffic Engineering para isolar tráfego",
+						"Prefix filtering baseado em IRR/RPKI nos clientes de trânsito (customer cone filtering)",
+						"Rate limiting de updates BGP em todas as sessões",
+						"BGP Graceful Restart para evitar propagação de flaps"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Prefix filtering nos clientes (B) é a prática fundamental: o transit provider DEVE validar que seus clientes de trânsito somente anunciam prefixos autorizados (via IRR, LOA, ou RPKI). Isso é uma das quatro ações do MANRS. MPLS TE (A) não se aplica a filtragem BGP. Rate limiting (C) limita volume, não valida autorização. Graceful Restart (D) é para estabilidade de sessão, não segurança."
+				},
+				{
+					"id": "q11",
+					"type": "numeric",
+					"text": "A organização anuncia um /16 (198.51.100.0/16). Quantas sub-redes /24 existem dentro deste bloco /16?",
+					"correctAnswer": 256,
+					"tolerance": 0,
+					"unit": "sub-redes /24",
+					"points": 5,
+					"justification": "Um /16 tem 16 bits de host (2^16 = 65.536 IPs). Um /24 tem 8 bits de host (2^8 = 256 IPs). Quantidade de /24 dentro de um /16 = 65.536 / 256 = 256 sub-redes. Também: diferença de prefixo = 24 - 16 = 8 bits, portanto 2^8 = 256. Isso demonstra por que o hijacker anunciou apenas 3 dos 256 possíveis /24 - foco cirúrgico nos /24 que hospedam serviços críticos."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Recuperação e Lições Aprendidas",
+			"phase": "Fase 3 e 4 - Recuperação e Pós-Incidente",
+			"description": "Após coordenação com ambos os upstreams e o transit provider do hijacker (AS 64510), os anúncios maliciosos foram removidos. O AS 64510 desconectou o AS 65530 por violação de contrato. Tempo total de impacto: 1h45min.",
+			"timeElapsed": "T+105 minutos (incidente encerrado)",
+			"currentSituation": {
+				"trafficRecovery": "100% - todo tráfego roteando corretamente via AS 64500",
+				"hijackerStatus": "AS 65530 desconectado pelo transit provider AS 64510",
+				"servicesStatus": "Todos os serviços completamente restaurados",
+				"impact": "Nenhum - operação normalizada"
+			},
+			"questions": [
+				{
+					"id": "q12",
+					"text": "Qual mudança de configuração BGP a organização deveria adotar PERMANENTEMENTE para dificultar futuros hijackings do /16?",
+					"options": [
+						"Desagregar completamente o /16 em 256 sub-redes /24 e anunciar todas",
+						"Anunciar o /16 mais um conjunto de /24 cobertores para os sub-blocos críticos",
+						"Migrar todos os serviços para blocos IP de provedores de nuvem",
+						"Adicionar BGP confederation para proteger os anúncios"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Anunciar /16 + /24 cobertores (B) é a melhor prática: o /16 agregado garante alcançabilidade global (filtros de prefixo mínimo aceitam /16), enquanto /24 mais específicos impedem hijacking por desagregação (hijacker não pode anunciar algo mais específico que /24, que é o mínimo geralmente aceito na DFZ). Desagregar tudo em /24 (A) polui a tabela BGP global e pode ser filtrado. Nuvem (C) não resolve o problema BGP. Confederation (D) é para iBGP, não proteção externa."
+				},
+				{
+					"id": "q13",
+					"text": "Qual iniciativa da comunidade de operadores visa reduzir hijacking BGP e deveria ser adotada pela organização?",
+					"options": [
+						"MANRS (Mutually Agreed Norms for Routing Security)",
+						"OWASP (Open Web Application Security Project)",
+						"PCI-DSS (Payment Card Industry Data Security Standard)",
+						"ISO 27001 (Information Security Management System)"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "MANRS (A) é a iniciativa específica para segurança de roteamento, com quatro ações: (1) Filtering - validar anúncios de clientes, (2) Anti-Spoofing - BCP38, (3) Coordination - manter contatos atualizados, (4) Global Validation - publicar ROAs RPKI e registrar em IRR. OWASP (B) é para segurança web. PCI-DSS (C) é para dados de cartão de pagamento. ISO 27001 (D) é gestão de segurança geral, não específica de roteamento."
+				},
+				{
+					"id": "q14",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Um ROA (Route Origin Authorization) com maxLength definido como /16 impede que a própria organização anuncie sub-redes mais específicas como /24, se necessário.",
+					"correctAnswer": true,
+					"points": 3,
+					"justification": "VERDADEIRO. Se o ROA especifica maxLength = /16, qualquer anúncio mais específico (como /24) do MESMO AS será marcado como RPKI Invalid por ASes que fazem ROV. Para poder anunciar /24 legitimamente, o ROA deve ser atualizado com maxLength = /24, ou ROAs adicionais devem ser criados para os /24 específicos. Este é um erro comum ao configurar RPKI: restrictar demais o maxLength impede flexibilidade operacional legítima."
+				},
+				{
+					"id": "q15",
+					"text": "No post-mortem, a equipe identifica que a detecção demorou ~15 minutos após o início do hijacking. Qual melhoria MAIS reduziria o tempo de detecção?",
+					"options": [
+						"Assinatura de serviço de monitoramento BGP com alertas em tempo real (BGPalerter, Cloudflare Radar)",
+						"Verificação manual diária da tabela BGP global via looking glass",
+						"Expansão da equipe de NOC para cobertura 24/7",
+						"Implementação de syslog centralizado para logs de roteadores"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "Monitoramento automatizado de BGP (A) com alertas em tempo real é a melhoria mais impactante: ferramentas como BGPalerter, RIPE RIS alertas via API, ou Cloudflare Radar detectam anomalias em segundos e notificam automaticamente. Verificação manual (B) é ineficiente e tardia. NOC 24/7 (C) melhora resposta mas não detecção. Syslog (D) é para logs internos, não monitoramento de roteamento global."
+				},
+				{
+					"id": "q16",
+					"text": "Qual ação COMBINADA de prevenção fornece a proteção mais abrangente contra prefix hijacking?",
+					"options": [
+						"RPKI ROA + IRR registration + prefix filters nos upstreams + monitoramento BGP ativo",
+						"Apenas RPKI ROA - criptograficamente seguro, suficiente sozinho",
+						"Apenas prefix filters nos upstreams - bloqueia tudo na origem",
+						"Apenas monitoramento BGP - detecção rápida é suficiente para responder"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "Defesa em profundidade (A) é a abordagem correta: RPKI ROA fornece validação criptográfica (mas adoção parcial). IRR registration permite que operadores construam filtros (mas sem criptografia). Prefix filters nos upstreams bloqueiam na origem (depende do upstream). Monitoramento detecta anomalias rapidamente. Nenhuma medida isolada (B, C, D) é suficiente - todas têm limitações que as outras compensam. Segurança de roteamento requer múltiplas camadas."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 95,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 90,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de detecção, análise e resposta a sequestro de prefixo BGP e segurança de roteamento"
+			},
+			{
+				"min": 75,
+				"max": 89,
+				"grade": "Bom",
+				"description": "Compreensão sólida de BGP, RPKI e práticas de mitigação com pequenas lacunas"
+			},
+			{
+				"min": 60,
+				"max": 74,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica suficiente, requer aprofundamento em segurança de roteamento e RPKI"
+			},
+			{
+				"min": 45,
+				"max": 59,
+				"grade": "Insatisfatório",
+				"description": "Lacunas significativas em conhecimento de BGP e mecanismos de proteção de roteamento"
+			},
+			{
+				"min": 0,
+				"max": 44,
+				"grade": "Inadequado",
+				"description": "Compreensão insuficiente, requer treinamento completo em protocolos de roteamento e segurança"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Apresentar informações progressivamente, simulando a descoberta natural em um cenário de hijack real",
+		"Permitir 3-4 minutos de discussão entre participantes antes de cada resposta",
+		"Destacar a urgência temporal: cada minuto de hijacking representa tráfego potencialmente interceptado",
+		"Fazer perguntas socráticas: 'Por que longest prefix match prevalece sobre AS path?', 'O que acontece com o tráfego desviado?'",
+		"Observar se a equipe considera os aspectos de segurança (interception) além de disponibilidade",
+		"Controlar tempo: Rodada 1 (5 min), Rodadas 2-4 (8-10 min cada), Rodada 5 (7 min)",
+		"Mediar debates sobre RPKI vs IRR construtivamente - ambos são complementares",
+		"Após exercício: revisar gabarito, discutir a importância do MANRS, coletar feedback",
+		"Documentar nível de familiaridade da equipe com ferramentas de monitoramento BGP"
+	],
+	"technicalReferences": [
+		{
+			"title": "RFC 4271 - A Border Gateway Protocol 4 (BGP-4)",
+			"url": "https://www.rfc-editor.org/rfc/rfc4271"
+		},
+		{
+			"title": "RFC 7115 - Origin Validation Operation Based on the RPKI",
+			"url": "https://www.rfc-editor.org/rfc/rfc7115"
+		},
+		{
+			"title": "RFC 6811 - BGP Prefix Origin Validation",
+			"url": "https://www.rfc-editor.org/rfc/rfc6811"
+		},
+		{
+			"title": "MANRS - Mutually Agreed Norms for Routing Security",
+			"url": "https://www.manrs.org/"
+		},
+		{
+			"title": "NIST SP 800-189 - Resilient Interdomain Traffic Exchange",
+			"url": "https://csrc.nist.gov/publications/detail/sp/800-189/final"
+		}
+	]
+}

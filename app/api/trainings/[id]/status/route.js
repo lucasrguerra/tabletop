@@ -4,6 +4,7 @@ import { withCsrf } from '@/utils/csrf';
 import { withTrainingRole } from '@/utils/trainingAuth';
 import Training from '@/database/schemas/Training';
 import Response from '@/database/schemas/Response';
+import Evaluation from '@/database/schemas/Evaluation';
 import connectDatabase from '@/database/database';
 
 /**
@@ -134,6 +135,8 @@ export const PATCH = withAuth(withCsrf(withTrainingRole(async (request, context,
 
 				// Clear all responses when resetting training
 				await Response.deleteMany({ training_id: training.id });
+				// Clear all evaluations when resetting training
+				await Evaluation.deleteMany({ training_id: training.id });
 			} else {
 				return NextResponse.json(
 					{

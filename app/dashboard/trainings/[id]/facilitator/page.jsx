@@ -18,7 +18,9 @@ import RoundInfo from '@/components/Trainings/RoundInfo';
 import MetricsDisplay from '@/components/Trainings/MetricsDisplay';
 import TrainingStatsDashboard from '@/components/Trainings/TrainingStatsDashboard';
 import FacilitatorQuestionsView from '@/components/Trainings/FacilitatorQuestionsView';
-import { FaPlay, FaPause, FaCheckCircle, FaUndoAlt, FaChevronDown, FaChevronUp, FaTrophy } from 'react-icons/fa';
+import EvaluationStats from '@/components/Trainings/EvaluationStats';
+import ExportPDFButton from '@/components/Trainings/ExportPDFButton';
+import { FaPlay, FaPause, FaCheckCircle, FaUndoAlt, FaChevronDown, FaChevronUp, FaTrophy, FaTrash } from 'react-icons/fa';
 
 export default function FacilitatorPage() {
 	const router = useRouter();
@@ -32,6 +34,26 @@ export default function FacilitatorPage() {
 	const [responses, setResponses] = useState([]);
 	const [responseSummary, setResponseSummary] = useState(null);
 	const [showTools, setShowTools] = useState(false);
+	const [evaluations, setEvaluations] = useState([]);
+	const [evaluationStats, setEvaluationStats] = useState(null);
+	const [csrfToken, setCsrfToken] = useState(null);
+	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+	// Fetch CSRF token
+	useEffect(() => {
+		const fetchCsrf = async () => {
+			try {
+				const res = await fetch('/api/csrf');
+				const data = await res.json();
+				if (data.success && data.csrf_token) {
+					setCsrfToken(data.csrf_token);
+				}
+			} catch (err) {
+				console.error('Error fetching CSRF token:', err);
+			}
+		};
+		fetchCsrf();
+	}, []);
 
 	// Fetch participant responses (for facilitator real-time view)
 	const fetchResponses = useCallback(async () => {
@@ -49,6 +71,25 @@ export default function FacilitatorPage() {
 			}
 		} catch (err) {
 			console.error('Error fetching responses:', err);
+		}
+	}, [params.id]);
+
+	// Fetch evaluation data (only when training is completed)
+	const fetchEvaluations = useCallback(async () => {
+		try {
+			const res = await fetch(`/api/trainings/${params.id}/evaluations`, {
+				method: 'GET',
+				credentials: 'include'
+			});
+			if (res.ok) {
+				const data = await res.json();
+				if (data.success) {
+					setEvaluations(data.evaluations || []);
+					setEvaluationStats(data.stats || null);
+				}
+			}
+		} catch (err) {
+			console.error('Error fetching evaluations:', err);
 		}
 	}, [params.id]);
 
@@ -142,6 +183,13 @@ export default function FacilitatorPage() {
 		return () => clearInterval(interval);
 	}, [training?.status, training?.current_round, params.id, fetchResponses]);
 
+	// Fetch evaluations when training is completed
+	useEffect(() => {
+		if (training?.status === 'completed') {
+			fetchEvaluations();
+		}
+	}, [training?.status, params.id, fetchEvaluations]);
+
 	// Handle invite sent
 	const handleInviteSent = () => {
 		fetchTraining();
@@ -154,7 +202,7 @@ export default function FacilitatorPage() {
 			
 			const response = await fetch(`/api/trainings/${params.id}/timer`, {
 				method: 'PATCH',
-				headers: { 'Content-Type': 'application/json' },
+				headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
 				body: JSON.stringify({ action }),
 				credentials: 'include'
 			});
@@ -180,7 +228,7 @@ export default function FacilitatorPage() {
 			
 			const response = await fetch(`/api/trainings/${params.id}/status`, {
 				method: 'PATCH',
-				headers: { 'Content-Type': 'application/json' },
+				headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
 				body: JSON.stringify({ status: newStatus }),
 				credentials: 'include'
 			});
@@ -209,7 +257,7 @@ export default function FacilitatorPage() {
 
 			const response = await fetch(`/api/trainings/${params.id}/round`, {
 				method: 'PATCH',
-				headers: { 'Content-Type': 'application/json' },
+				headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
 				body: JSON.stringify(body),
 				credentials: 'include'
 			});
@@ -224,6 +272,32 @@ export default function FacilitatorPage() {
 		} catch (err) {
 			console.error('Error changing round:', err);
 			throw err;
+		}
+	};
+
+	// Handle delete training
+	const handleDeleteTraining = async () => {
+		try {
+			setActionLoading(true);
+
+			const response = await fetch(`/api/trainings/${params.id}`, {
+				method: 'DELETE',
+				headers: { 'X-CSRF-Token': csrfToken },
+				credentials: 'include'
+			});
+
+			if (!response.ok) {
+				const data = await response.json();
+				throw new Error(data.message || 'Erro ao deletar treinamento');
+			}
+
+			router.push('/dashboard');
+		} catch (err) {
+			console.error('Error deleting training:', err);
+			alert(err.message || 'Erro ao deletar treinamento');
+		} finally {
+			setActionLoading(false);
+			setShowDeleteConfirm(false);
 		}
 	};
 
@@ -349,7 +423,20 @@ export default function FacilitatorPage() {
 								<FaTrophy className="text-xs" />
 								Ranking
 							</button>
-						</div>
+							<ExportPDFButton
+								training={training}
+								responses={responses}
+								summary={responseSummary}
+								scenarioData={scenarioData}
+								totalParticipants={acceptedParticipants}
+							/>						<button
+							onClick={() => setShowDeleteConfirm(true)}
+							disabled={actionLoading}
+							className="flex items-center gap-2 px-4 py-2 bg-white text-red-600 font-semibold rounded-xl hover:bg-red-50 border-2 border-red-200 hover:border-red-300 transition-all disabled:opacity-50 text-sm"
+						>
+							<FaTrash className="text-xs" />
+							Deletar
+						</button>						</div>
 					</div>
 
 					{/* Bottom row: timers side by side, compact */}
@@ -453,7 +540,44 @@ export default function FacilitatorPage() {
 						totalParticipants={acceptedParticipants}
 					/>
 				)}
+
+				{/* ── EVALUATION STATS (completed) ── */}
+				{training.status === 'completed' && evaluationStats && (
+					<EvaluationStats
+						evaluations={evaluations}
+						stats={evaluationStats}
+						totalParticipants={acceptedParticipants}
+					/>
+				)}
 			</div>
+
+		{/* Delete Confirmation Modal */}
+		{showDeleteConfirm && (
+			<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+				<div className="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full mx-4">
+					<h3 className="text-lg font-bold text-slate-800 mb-2">Deletar Treinamento</h3>
+					<p className="text-sm text-slate-600 mb-6">
+						Tem certeza que deseja deletar este treinamento? Todas as respostas e avaliações associadas serão removidas permanentemente. Esta ação não pode ser desfeita.
+					</p>
+					<div className="flex justify-end gap-3">
+						<button
+							onClick={() => setShowDeleteConfirm(false)}
+							disabled={actionLoading}
+							className="px-4 py-2 text-sm font-semibold text-slate-700 bg-white border-2 border-slate-200 rounded-xl hover:bg-slate-50 transition-all disabled:opacity-50"
+						>
+							Cancelar
+						</button>
+						<button
+							onClick={handleDeleteTraining}
+							disabled={actionLoading}
+							className="px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-xl hover:bg-red-700 transition-all disabled:opacity-50"
+						>
+							{actionLoading ? 'Deletando...' : 'Deletar'}
+						</button>
+					</div>
+				</div>
+			</div>
+		)}
 		</DashboardLayout>
 	);
 }

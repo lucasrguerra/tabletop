@@ -1,0 +1,476 @@
+{
+	"id": "outbound-botnet-ddos",
+	"title": "Resposta a Incidente de DDoS de Saída por Botnet Interna Comprometida",
+	"description": "Simulação tabletop de resposta a incidente onde dispositivos comprometidos na rede interna participam de ataque DDoS contra alvos externos",
+	"category": {
+		"id": "NET_VOL",
+		"type": "NET_VOL_OUTBOUND",
+		"title": "DDoS de Saída - Botnet Interna Comprometida"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2025-02-02",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "40-55 minutos",
+		"difficulty": "Avançado",
+		"targetAudience": "Equipe de Resposta a Incidentes, Analistas de Segurança, Administradores de Rede, Gestores de TI"
+	},
+	"objectives": [
+		"Validar capacidade de detecção de tráfego DDoS de SAÍDA originado de dispositivos internos comprometidos",
+		"Avaliar conhecimento de investigação de botnet interna, identificação de hosts comprometidos e contenção",
+		"Testar compreensão de responsabilidade legal por participação (involuntária) em ataques DDoS",
+		"Desenvolver habilidade de análise de IOCs (Indicators of Compromise) e comportamento de malware de botnet",
+		"Identificar riscos de blacklisting de IPs corporativos e impacto reputacional",
+		"Promover compreensão de coordenação com CERTs, upstream providers e possíveis vítimas"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá execução real de comandos em sistemas de produção",
+		"Não inclui análise real de malware ou remediação de hosts comprometidos",
+		"Foco na tomada de decisão, coordenação entre equipes e gestão de crise",
+		"Avaliação de conhecimento de botnets, investigação de incidentes e responsabilidade legal"
+	],
+	"baseScenario": {
+		"context": "Terça-feira, 14h10, horário comercial. Você faz parte da equipe de segurança da informação. A organização é uma universidade com ~5.000 usuários (professores, alunos, administrativos) e ~3.000 dispositivos na rede. A infraestrutura inclui rede cabeada e Wi-Fi, laboratórios de informática, servidores de pesquisa e rede residencial para estudantes. O link de Internet é de 20 Gbps (contrato com provedor acadêmico). A organização possui bloco público 203.0.113.0/22.",
+		"initialSituation": {
+			"alert": "Notificação do provedor upstream: tráfego de ataque DDoS originado de seus blocos IP",
+			"sourcePrefix": "203.0.113.0/22 (bloco IP da organização)",
+			"outboundTraffic": "18.2 Gbps (baseline outbound: 4.5 Gbps)",
+			"attackTarget": "IP externo 198.51.100.50 (servidor de empresa financeira)",
+			"timestamp": "14:07:33"
+		},
+		"initialComplaints": [
+			"Provedor upstream ameaça aplicar blackhole no bloco 203.0.113.0/22 se ataque não cessar em 30 minutos",
+			"Internet lenta para todos os usuários da organização (link de saída saturado)",
+			"Nenhum serviço interno foi atacado - problema é exclusivamente tráfego de SAÍDA",
+			"E-mail do CERT nacional informando que IPs da organização estão em lista de fontes de ataque"
+		],
+		"availableResources": [
+			"Sistema de monitoramento de rede com NetFlow/sFlow (visibilidade de fluxos por IP)",
+			"Acesso administrativo a roteadores de borda e switches de acesso",
+			"Firewall de borda com capacidade de filtro de pacotes (iptables/pf)",
+			"Sistema de gerenciamento de endpoints (inventário de dispositivos)",
+			"Ferramentas de análise: tcpdump, Wireshark, antivírus corporativo",
+			"Logs de DHCP/NAT (mapeamento IP interno ↔ IP público)",
+			"Contato com provedor upstream, CERT nacional e equipe jurídica institucional"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe deve entender que a organização é FONTE do ataque, não vítima, e avaliar a urgência da notificação do upstream.",
+			"inject": "Apresentação do cenário conforme descrito. A equipe tem 5 minutos para discutir a situação e planejar resposta à notificação do provedor.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Detecção e Análise Inicial",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe analisa os dados de NetFlow para identificar dispositivos internos gerando tráfego de ataque e entender o perfil do tráfego malicioso.",
+			"timeElapsed": "T+0 (recebimento da notificação)",
+			"currentSituation": {
+				"outboundTraffic": "18.2 Gbps (304% acima do baseline)",
+				"attackTraffic": "~13.7 Gbps de tráfego DDoS direcionado a 198.51.100.50",
+				"compromisedDevices": "Em investigação - múltiplos IPs internos envolvidos",
+				"upstreamDeadline": "30 minutos para cessação do ataque ou blackhole do bloco /22",
+				"impact": "Link saturado internamente + risco de blackhole total do bloco IP"
+			},
+			"metrics": [
+				{
+					"title": "Análise de Tráfego de Saída por IP Interno (NetFlow - Top Sources)",
+					"type": "network-analysis",
+					"data": {
+						"totalInternalIPsAttacking": 247,
+						"topInternalSources": [
+							{"internalIP": "10.0.50.12", "publicIP": "203.0.113.12", "trafficOut": "180 Mbps", "deviceType": "Câmera IP - Laboratório A"},
+							{"internalIP": "10.0.50.34", "publicIP": "203.0.113.34", "trafficOut": "165 Mbps", "deviceType": "Câmera IP - Estacionamento"},
+							{"internalIP": "10.0.51.8", "publicIP": "203.0.113.108", "trafficOut": "142 Mbps", "deviceType": "DVR - CFTV Central"},
+							{"internalIP": "10.0.60.101", "publicIP": "203.0.113.201", "trafficOut": "95 Mbps", "deviceType": "Roteador Wi-Fi - Residência Estudantil"},
+							{"internalIP": "10.0.60.115", "publicIP": "203.0.113.215", "trafficOut": "88 Mbps", "deviceType": "Roteador Wi-Fi - Residência Estudantil"}
+						],
+						"deviceCategories": {
+							"camerasIPDVR": {"count": 142, "percentage": 57.5, "avgTraffic": "72 Mbps/device"},
+							"routersWiFi": {"count": 68, "percentage": 27.5, "avgTraffic": "55 Mbps/device"},
+							"workstations": {"count": 25, "percentage": 10.1, "avgTraffic": "38 Mbps/device"},
+							"printers": {"count": 12, "percentage": 4.9, "avgTraffic": "22 Mbps/device"}
+						},
+						"observation": "85% dos dispositivos comprometidos são IoT (câmeras, DVRs, roteadores) - perfil de botnet Mirai ou variante"
+					}
+				},
+				{
+					"title": "Perfil do Tráfego de Ataque",
+					"type": "packet-analysis",
+					"data": {
+						"destination": "198.51.100.50:443 (servidor web de empresa financeira)",
+						"attackType": "HTTP Flood + SYN Flood combinado",
+						"protocols": {
+							"TCP_SYN_port443": {"percentage": 62.3},
+							"HTTP_GET_requests": {"percentage": 28.7},
+							"UDP_random": {"percentage": 9.0}
+						},
+						"avgPacketSize": "340 bytes",
+						"totalPacketsPerSecond": 6700000,
+						"observation": "Ataque multi-vetor (SYN + HTTP GET + UDP) típico de botnets IoT modernas"
+					}
+				},
+				{
+					"title": "Análise de Malware/Botnet (IOCs iniciais)",
+					"type": "security-analysis",
+					"data": {
+						"c2Servers": [
+							{"ip": "45.95.169.100", "port": 4444, "protocol": "TCP", "activity": "Heartbeat a cada 30s"},
+							{"ip": "91.234.99.55", "port": 8888, "protocol": "TCP", "activity": "Recebe comandos de ataque"}
+						],
+						"malwareFamily": "Variante Mirai (baseado em padrões de C2 e alvos IoT)",
+						"infectionVector": "Credenciais padrão de fábrica (admin/admin, root/root) em dispositivos IoT",
+						"lifespan": "Estimado ativo há ~2 semanas (baseado em primeiros C2 callbacks)",
+						"observation": "Botnet Mirai-like infectou dispositivos IoT com credenciais padrão - ativo há 2 semanas sem detecção"
+					}
+				},
+				{
+					"title": "Comunicação do Provedor Upstream",
+					"type": "notification",
+					"data": {
+						"sender": "NOC do provedor upstream acadêmico",
+						"message": "Detectamos tráfego de ataque DDoS significativo (>13 Gbps) originado do bloco 203.0.113.0/22. O alvo é servidor de instituição financeira que já solicitou providências. Se o tráfego não cessar em 30 minutos a partir desta notificação (prazo: 14:37), aplicaremos blackhole no bloco completo /22 para proteção da nossa rede e do alvo.",
+						"consequences": "Blackhole do /22 = indisponibilidade total de Internet para toda a organização",
+						"observation": "Prazo de 30 minutos é urgente - requer ação imediata"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"text": "Este cenário difere dos ataques DDoS tradicionais. Qual é a diferença FUNDAMENTAL?",
+					"options": [
+						"A organização está recebendo um ataque DDoS contra seus próprios servidores",
+						"A organização é FONTE do ataque DDoS - seus dispositivos comprometidos atacam um alvo externo",
+						"O ataque é interno (lateral) entre dispositivos da própria rede",
+						"Não há ataque real - é apenas tráfego legítimo de alta demanda"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "A diferença fundamental (B) é que a organização não é VÍTIMA, mas FONTE involuntária do ataque. Dispositivos internos comprometidos (botnet) estão atacando um alvo externo. Isso inverte a perspectiva habitual: em vez de se proteger, a organização precisa (1) cessar o ataque que origina, (2) limpar dispositivos comprometidos, e (3) lidar com consequências legais e reputacionais por ser fonte de ataque."
+				},
+				{
+					"id": "q2",
+					"text": "O provedor deu prazo de 30 minutos para cessação. Qual é a ação MAIS urgente antes de tudo?",
+					"options": [
+						"Investigar completamente cada dispositivo comprometido para entender a infecção",
+						"Implementar rate-limiting ou bloqueio de tráfego de saída para o IP alvo (198.51.100.50) no firewall de borda",
+						"Desconectar fisicamente todos os switches de acesso da rede",
+						"Contatar a empresa financeira vítima para pedir desculpas"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Rate-limiting ou bloqueio de saída para o alvo (B) é a ação MAIS urgente: interrompe o ataque em segundos, evita blackhole do /22 pelo upstream, e mantém conectividade para o resto da organização. Investigar cada dispositivo (A) é essencial mas leva horas - não cabe em 30 minutos. Desconectar switches (C) causa indisponibilidade total. Contatar vítima (D) é importante mas não cessará o ataque."
+				},
+				{
+					"id": "q3",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Bloquear tráfego de saída para o IP alvo (198.51.100.50) resolve permanentemente o incidente, pois os dispositivos comprometidos não poderão mais participar do ataque.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. Bloquear tráfego para o alvo atual é contenção TEMPORÁRIA, não solução. Os dispositivos continuam comprometidos e: (1) O operador da botnet pode mudar o alvo para outro IP a qualquer momento, (2) Os dispositivos manterão comunicação com servidores C2, (3) Podem ser usados para outros tipos de ataque (spam, cryptomining, etc.), (4) A infecção se espalhará para mais dispositivos. É necessário: isolar, limpar/reimagear dispositivos e corrigir vulnerabilidades."
+				},
+				{
+					"id": "q4",
+					"type": "numeric",
+					"text": "São 247 dispositivos comprometidos com tráfego agregado de 13.7 Gbps de ataque. Qual é o tráfego médio de ataque por dispositivo em Mbps?",
+					"correctAnswer": 55.5,
+					"tolerance": 2,
+					"unit": "Mbps",
+					"points": 5,
+					"justification": "Tráfego médio = 13.7 Gbps / 247 dispositivos = 13.700 Mbps / 247 = 55.5 Mbps por dispositivo. Este valor relativamente baixo por dispositivo torna a detecção individual difícil (parece tráfego de streaming ou download). O volume destrutivo é resultado de 247 dispositivos operando em conjunto - princípio fundamental de botnets: escala distribuída com contribuição individual moderada."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Contenção e Isolamento",
+			"phase": "Fase 2 - Contenção",
+			"description": "A equipe implementou bloqueio de saída para o IP alvo e rate-limiting na borda. Provedor upstream confirmou redução do tráfego e suspendeu a ameaça de blackhole. Agora a equipe precisa isolar dispositivos comprometidos.",
+			"timeElapsed": "T+15 minutos",
+			"currentSituation": {
+				"outboundTraffic": "5.8 Gbps (C2 traffic + tráfego legítimo)",
+				"attackBlocked": "Tráfego para alvo 198.51.100.50 bloqueado na borda",
+				"upstreamStatus": "Blackhole cancelado - provedor monitorando",
+				"compromisedDevices": "247 dispositivos identificados, isolamento em andamento",
+				"c2Communication": "Dispositivos ainda se comunicam com servidores C2 (45.95.169.100 e 91.234.99.55)",
+				"impact": "Ataque DDoS cessado, mas botnet ativa na rede interna"
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"text": "Os dispositivos comprometidos ainda se comunicam com servidores C2. Qual é a próxima ação prioritária?",
+					"options": [
+						"Monitorar a comunicação C2 por mais tempo para coletar inteligência sobre a botnet",
+						"Bloquear comunicação com IPs dos servidores C2 (45.95.169.100 e 91.234.99.55) no firewall",
+						"Formatar todos os 247 dispositivos imediatamente",
+						"Enviar e-mail alertando todos os usuários da organização sobre a botnet"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Bloquear comunicação C2 (B) é prioritário: sem C2, os dispositivos não recebem novos comandos de ataque (mesmo que mudem de alvo). Monitorar C2 (A) tem valor de inteligência mas permite que botnet receba novos comandos enquanto monitora. Formatar 247 dispositivos imediatamente (C) é impraticável (muitos são IoT sem reimagem tradicional). E-mail (D) é comunicação, não contenção técnica."
+				},
+				{
+					"id": "q6",
+					"type": "matching",
+					"text": "Correlacione cada tipo de dispositivo comprometido com a estratégia de remediação mais apropriada:",
+					"leftColumn": [
+						{"id": "dev1", "label": "Câmeras IP e DVRs (142 dispositivos)"},
+						{"id": "dev2", "label": "Roteadores Wi-Fi (68 dispositivos)"},
+						{"id": "dev3", "label": "Workstations/PCs (25 dispositivos)"}
+					],
+					"rightColumn": [
+						{"id": "rem1", "label": "Scan antivírus, reimagem se necessário, patching de SO, redefinição de credenciais"},
+						{"id": "rem2", "label": "Factory reset, atualização de firmware, troca de credenciais padrão, desabilitar serviços desnecessários (Telnet, UPnP)"},
+						{"id": "rem3", "label": "Factory reset, atualização de firmware, troca de senha padrão, isolamento em VLAN dedicada"}
+					],
+					"correctMatches": [
+						{"left": "dev1", "right": "rem3"},
+						{"left": "dev2", "right": "rem2"},
+						{"left": "dev3", "right": "rem1"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 6,
+					"justification": "Câmeras/DVRs (↔ rem3): dispositivos IoT requerem factory reset + firmware update + VLAN isolada (não precisam acesso geral à Internet). Roteadores Wi-Fi (↔ rem2): firmware reset + update + desabilitar serviços perigosos (Telnet é vetor principal do Mirai). Workstations (↔ rem1): PCs permitem scan antivírus, reimagem se comprometidos, e patching do SO. Cada tipo de dispositivo requer estratégia adequada à sua natureza."
+				},
+				{
+					"id": "q7",
+					"text": "A investigação revela que 85% dos dispositivos comprometidos são IoT com credenciais padrão de fábrica. Qual medida preventiva de REDE é mais eficaz?",
+					"options": [
+						"Instalar antivírus em todas as câmeras IP e DVRs",
+						"Segmentar dispositivos IoT em VLAN dedicada com acesso restrito (sem acesso geral à Internet, apenas NTP e atualizações)",
+						"Substituir todos os dispositivos IoT por modelos de fabricantes diferentes",
+						"Desconectar permanentemente todos os dispositivos IoT da rede"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Segmentação em VLAN dedicada com ACLs restritivas (B) é a medida mais eficaz: dispositivos IoT não precisam de acesso total à Internet para funcionar. Câmeras IP precisam de acesso ao NVR (rede interna), NTP e eventualmente updates - não precisam de acesso SSH/Telnet da Internet. Antivírus em IoT (A) geralmente não existe. Substituir fabricantes (C) não garante segurança. Desconectar (D) remove funcionalidade."
+				},
+				{
+					"id": "q8",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: A organização não possui responsabilidade legal pelo ataque DDoS contra a empresa financeira, pois seus dispositivos foram comprometidos sem consentimento.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. Embora a organização não tenha participado intencionalmente, pode haver responsabilidade civil por negligência. Argumentos jurídicos: (1) dever de diligência na manutenção de dispositivos (credenciais padrão = negligência), (2) falta de monitoramento que permitiu 2 semanas de infecção, (3) legislação de crimes cibernéticos pode imputar responsabilidade a quem não toma medidas razoáveis de segurança. A organização deve documentar ações tomadas para demonstrar due diligence."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Erradicação e Coordenação Externa",
+			"phase": "Fase 3 - Erradicação",
+			"description": "Comunicação C2 bloqueada, dispositivos sendo isolados em VLANs de quarentena. A equipe precisa coordenar com entidades externas e gerenciar o impacto reputacional.",
+			"timeElapsed": "T+45 minutos",
+			"currentSituation": {
+				"outboundTraffic": "4.8 Gbps (próximo do baseline)",
+				"c2Blocked": true,
+				"devicesQuarantined": "189/247 (76% isolados, remediação em andamento)",
+				"attackTraffic": "Zero (bloqueado na borda + C2 cortado)",
+				"certNotification": "Recebida - requer resposta em 48 horas"
+			},
+			"questions": [
+				{
+					"id": "q9",
+					"text": "O CERT nacional solicitou resposta em 48 horas. Quais informações DEVEM constar na resposta?",
+					"options": [
+						"Apenas confirmação de que o problema foi resolvido, sem detalhes técnicos",
+						"Timeline do incidente, ações de contenção tomadas, número de dispositivos comprometidos, IOCs identificados e medidas preventivas implementadas",
+						"Nome e dados pessoais de todos os usuários dos dispositivos comprometidos",
+						"Detalhes completos da infraestrutura de rede interna para análise do CERT"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "A resposta adequada ao CERT (B) inclui: (1) timeline com timestamps, (2) ações de contenção e erradicação, (3) escopo (247 dispositivos), (4) IOCs para compartilhamento (IPs C2, hashes de malware), (5) medidas preventivas. Não compartilhar detalhes completos de infraestrutura (D) por segurança. Não compartilhar dados pessoais de usuários (C) sem necessidade. Resposta genérica (A) não atende obrigação de cooperação."
+				},
+				{
+					"id": "q10",
+					"type": "ordering",
+					"text": "Ordene corretamente as prioridades de comunicação externa durante este tipo de incidente:",
+					"items": [
+						{"id": "step1", "label": "Provedor upstream - cessar ataque e evitar blackhole"},
+						{"id": "step2", "label": "Equipe jurídica institucional - avaliar responsabilidade legal"},
+						{"id": "step3", "label": "CERT nacional - responder notificação com IOCs e ações tomadas"},
+						{"id": "step4", "label": "Comunicação institucional - preparar comunicado caso incidente se torne público"},
+						{"id": "step5", "label": "Empresa financeira vítima - informar ações tomadas e oferecer cooperação"}
+					],
+					"correctOrder": ["step1", "step2", "step3", "step5", "step4"],
+					"partialCredit": false,
+					"points": 5,
+					"justification": "Prioridade de comunicação: (1) Upstream é URGENTE (30 min para blackhole), (2) Jurídico deve ser acionado imediatamente para orientar comunicações e avaliar responsabilidade, (3) CERT requer resposta formal com IOCs (48h - mas quanto antes melhor), (4) Cooperação com vítima demonstra boa-fé e pode mitigar litígio, (5) Comunicação institucional por último pois depende de orientação jurídica e é menos urgente operacionalmente."
+				},
+				{
+					"id": "q11",
+					"text": "IPs da organização (203.0.113.0/22) foram adicionados a blacklists de reputação (Spamhaus, AbuseIPDB). Qual é a consequência prática?",
+					"options": [
+						"Nenhuma consequência significativa - blacklists afetam apenas spam de e-mail",
+						"E-mails enviados pela organização serão rejeitados, serviços web podem ser bloqueados por WAFs, e parceiros podem restringir acesso",
+						"Apenas o IP específico que atacou será afetado, não todo o bloco /22",
+						"Blacklists expiram automaticamente em 24 horas após cessação do ataque"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Blacklisting tem consequências amplas (B): (1) E-mails rejeitados (Spamhaus é consultada por >80% dos servidores de e-mail), (2) WAFs e CDNs podem bloquear tráfego de IPs listados, (3) Parceiros acadêmicos/comerciais podem restringir peering, (4) VPNs e serviços externos podem negar acesso. Blacklists NÃO expiram automaticamente (D) - requerem solicitação ativa de remoção com evidência de correção. Afetam o bloco todo ou IPs individuais dependendo da lista (C parcialmente correto)."
+				},
+				{
+					"id": "q12",
+					"type": "numeric",
+					"text": "A botnet operou por 2 semanas sem detecção. Se cada dispositivo gerava 10 Mbps de tráfego C2 (heartbeat + dados), qual era o tráfego total diário de C2 em Gbps dos 247 dispositivos?",
+					"correctAnswer": 2.47,
+					"tolerance": 0.2,
+					"unit": "Gbps",
+					"points": 5,
+					"justification": "Tráfego C2 = 247 dispositivos × 10 Mbps = 2.470 Mbps = 2.47 Gbps. Este tráfego estava 'escondido' dentro dos 4.5 Gbps de baseline normal (representa ~55% do baseline). Sem análise de destinos (IPs C2 em países incomuns) ou perfil de tráfego (heartbeat periódico), este volume pode passar despercebido. Monitoramento baseado em anomalias de destino (não apenas volume) teria detectado a comunicação C2."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Recuperação e Lições Aprendidas",
+			"phase": "Fase 4 - Recuperação e Pós-Incidente",
+			"description": "Todos os 247 dispositivos foram remediados (factory reset, firmware atualizado, credenciais alteradas). VLANs de IoT segmentadas. IPs removidos de blacklists após 72 horas de solicitação. CERT respondido. Nenhuma ação legal movida pela empresa financeira.",
+			"timeElapsed": "T+7 dias (incidente completamente encerrado)",
+			"currentSituation": {
+				"outboundTraffic": "4.5 Gbps (baseline normal)",
+				"compromisedDevices": "0 (todos remediados)",
+				"blacklistStatus": "Removido de todas as listas após comprovação de correção",
+				"iotSegmentation": "Implementada - VLAN dedicada com ACLs restritivas",
+				"impact": "Nenhum residual - operação completamente normalizada"
+			},
+			"questions": [
+				{
+					"id": "q13",
+					"text": "A botnet operou 2 semanas sem detecção. Qual capacidade de monitoramento teria permitido detecção PRECOCE?",
+					"options": [
+						"Antivírus atualizado em todos os endpoints",
+						"Análise de destinos de tráfego anômalos (conexões para IPs em países incomuns, portas não-padrão, heartbeat periódico)",
+						"Monitoramento de largura de banda total do link de Internet",
+						"Varredura semanal de vulnerabilidades em servidores web"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Análise de destinos anômalos (B) detectaria: (1) conexões periódicas (heartbeat 30s) para IPs em data centers suspeitos, (2) tráfego TCP/4444 e TCP/8888 (portas não-padrão) para IPs sem relação com operação normal, (3) dispositivos IoT conectando a destinos fora do esperado. Antivírus (A) não existe para a maioria dos IoTs. Banda total (C) não detectaria C2 de 10 Mbps/dispositivo no baseline. Vulnerabilidades (D) foca em servidores, não IoT."
+				},
+				{
+					"id": "q14",
+					"text": "Para prevenir reinfecção de dispositivos IoT, qual política de segurança é MAIS eficaz?",
+					"options": [
+						"Proibir uso de dispositivos IoT na organização",
+						"Política de IoT obrigatória: troca de credenciais padrão, firmware atualizado, VLAN segregada, monitoramento de tráfego e desativação de protocolos inseguros (Telnet, UPnP)",
+						"Instalar agente de antivírus em todos os dispositivos IoT",
+						"Criar firewall dedicado para cada dispositivo IoT individualmente"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Política de IoT abrangente (B) é a mais eficaz: (1) Troca de credenciais padrão elimina vetor principal do Mirai (98% das infecções usam credenciais padrão), (2) Firmware atualizado corrige vulnerabilidades, (3) VLAN segregada limita blast radius, (4) Desabilitar Telnet/UPnP fecha vetores de infecção. Proibir IoT (A) é impraticável. Antivírus em IoT (C) geralmente não existe. Firewall por dispositivo (D) é operacionalmente inviável."
+				},
+				{
+					"id": "q15",
+					"text": "Qual implementação técnica de BCP 38 (ingress filtering) no roteador de borda da organização teria LIMITADO o impacto externo?",
+					"options": [
+						"BCP 38 bloqueia tráfego de entrada - não afeta DDoS de saída",
+						"Egress filtering: bloquear pacotes de SAÍDA com IP de origem que não pertence ao bloco 203.0.113.0/22 da organização",
+						"Bloquear todo tráfego UDP de saída",
+						"Implementar rate-limiting global de 1 Gbps no link de saída"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "BCP 38 aplicado como EGRESS filtering (B) bloqueia pacotes de saída com IP de origem forjado. Neste caso, os dispositivos comprometidos usam seus IPs reais (não spoofados), então BCP 38 não impediria ESTE ataque. Porém, BCP 38 é fundamental para prevenir: (1) que dispositivos internos participem de ataques com IP spoofed, (2) ataques de amplificação onde a vítima recebe respostas não solicitadas. A implementação é: no roteador de borda, dropar pacotes de saída com source IP fora de 203.0.113.0/22."
+				},
+				{
+					"id": "q16",
+					"text": "Em post-mortem, qual pergunta tem MAIOR valor para prevenir incidentes semelhantes no futuro?",
+					"options": [
+						"Quem comprou os dispositivos IoT com credenciais padrão?",
+						"Por que dispositivos IoT e dispositivos críticos compartilham a mesma rede plana sem segmentação, e como o processo de aquisição pode incluir requisitos de segurança?",
+						"Quanto custaria substituir todos os 247 dispositivos comprometidos por modelos mais seguros?",
+						"Quando o próximo exercício tabletop será agendado?"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "A pergunta de maior valor (B) identifica DUAS falhas sistêmicas: (1) rede plana sem segmentação permitiu que IoT comprometido afetasse toda a organização, (2) processo de aquisição não incluía requisitos de segurança (credenciais padrão, firmware atualizável, protocolo seguro). Buscar culpados (A) é contraproducente. Custo de substituição (C) é importante mas é consequência, não causa raiz. Exercícios (D) são válidos mas não abordam a causa raiz."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 96,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 90,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de detecção de botnet interna, resposta a DDoS de saída e coordenação de crise"
+			},
+			{
+				"min": 75,
+				"max": 89,
+				"grade": "Bom",
+				"description": "Compreensão sólida de botnets IoT e resposta a incidentes com pequenas lacunas em coordenação ou aspecto legal"
+			},
+			{
+				"min": 60,
+				"max": 74,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica suficiente, requer aprofundamento em segmentação IoT e gestão de crise"
+			},
+			{
+				"min": 45,
+				"max": 59,
+				"grade": "Insatisfatório",
+				"description": "Lacunas significativas em conhecimento de botnets, segurança IoT e coordenação de incidentes"
+			},
+			{
+				"min": 0,
+				"max": 44,
+				"grade": "Inadequado",
+				"description": "Compreensão insuficiente, requer treinamento completo em segurança de rede e resposta a incidentes"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Enfatizar IMEDIATAMENTE que a organização é FONTE do ataque, não vítima - isso muda completamente a perspectiva",
+		"O prazo de 30 minutos do upstream cria urgência real - cronometrar durante o exercício para simular pressão",
+		"Permitir 4-5 minutos de discussão por rodada - temas legais e de coordenação geram debate intenso",
+		"Fazer perguntas socráticas: 'Quem é responsável quando seus dispositivos atacam terceiros?', 'Como equilibrar urgência de contenção com necessidade de preservar evidências?'",
+		"Explorar o dilema: bloquear C2 (perde visibilidade) vs. monitorar C2 (mantém risco de novos ataques)",
+		"Se grupo incluir gestores, explorar aspecto reputacional e de comunicação de crise",
+		"Manter neutralidade - não fornecer respostas sobre responsabilidade legal (cada jurisdição é diferente)",
+		"Controlar tempo: Rodada 1 (5 min), Rodadas 2-4 (10-12 min cada), Rodada 5 (10 min)",
+		"Mediar debates sobre proporção de culpa: organização vs. fabricantes de IoT vs. atacante",
+		"Após exercício: revisar gabarito, discutir implementação de VLAN IoT e processo de aquisição segura",
+		"Documentar insights para melhorar política de segurança IoT e comunicação de crise"
+	],
+	"technicalReferences": [
+		{
+			"title": "US-CERT Alert (TA16-288A) - Heightened DDoS Threat Posed by Mirai and Other Botnets",
+			"url": "https://www.cisa.gov/news-events/alerts/2016/10/14/heightened-ddos-threat-posed-mirai-and-other-botnets"
+		},
+		{
+			"title": "RFC 2827 / BCP 38 - Network Ingress Filtering: Defeating Denial of Service Attacks",
+			"url": "https://www.rfc-editor.org/info/bcp38"
+		},
+		{
+			"title": "NIST SP 800-183 - Networks of Things (IoT Security)",
+			"url": "https://csrc.nist.gov/publications/detail/sp/800-183/final"
+		},
+		{
+			"title": "NIST SP 800-61r2 - Computer Security Incident Handling Guide",
+			"url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-61r2.pdf"
+		},
+		{
+			"title": "ENISA - Baseline Security Recommendations for IoT",
+			"url": "https://www.enisa.europa.eu/publications/baseline-security-recommendations-for-iot"
+		},
+		{
+			"title": "IoT Security Foundation - Best Practice Guidelines",
+			"url": "https://www.iotsecurityfoundation.org/best-practice-guidelines/"
+		}
+	]
+}

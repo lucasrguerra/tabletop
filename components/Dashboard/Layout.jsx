@@ -350,15 +350,6 @@ export default function DashboardLayout({ children }) {
 				<main className="flex-1 p-4 sm:p-6 lg:p-8 mx-auto w-full max-w-7xl">
 					{children}
 				</main>
-
-				{/* Footer */}
-				<footer className="py-4 px-4 sm:px-6 lg:px-8 border-t border-slate-200/60 bg-white/50">
-					<div className="mx-auto max-w-7xl">
-						<p className="text-center text-xs text-slate-500">
-							Tabletop App - Plataforma de Treinamentos em Resposta a Incidentes
-						</p>
-					</div>
-				</footer>
 			</div>
 		</div>
 	);

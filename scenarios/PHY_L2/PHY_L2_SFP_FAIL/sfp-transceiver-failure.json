@@ -1,0 +1,572 @@
+{
+	"id": "sfp-transceiver-failure",
+	"title": "Resposta a Falha de Módulo Transceiver Óptico (SFP+) em Enlace Crítico",
+	"description": "Simulação tabletop de resposta a falha de módulo SFP+ causando perda de conectividade em enlace de uplink crítico, com diagnóstico via DDM/DOM e procedimentos de substituição",
+	"category": {
+		"id": "PHY_L2",
+		"type": "PHY_L2_SFP_FAIL",
+		"title": "Falha de Módulo Transceiver Óptico (SFP)"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2025-02-17",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "30-45 minutos",
+		"difficulty": "Básico a Intermediário",
+		"targetAudience": "Equipe de NOC, Engenheiros de Rede, Técnicos de Infraestrutura, Administradores de Rede"
+	},
+	"objectives": [
+		"Validar capacidade de diagnóstico de falhas de módulos transceiver óptico (SFP/SFP+)",
+		"Avaliar conhecimento de métricas DDM/DOM (temperatura, voltagem, bias current, TX/RX Power)",
+		"Testar procedimentos de substituição de SFP em ambiente de produção (hot-swap)",
+		"Desenvolver compreensão de causas comuns de falha de SFP (térmica, fim de vida, incompatibilidade)",
+		"Identificar boas práticas de gestão de sobressalentes e compatibilidade de transceivers",
+		"Promover entendimento de impactos em redundância (failover) durante falha de link"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá execução real de comandos ou troca de módulos",
+		"Não inclui intervenção física real em equipamentos de produção",
+		"Foco na análise técnica, interpretação de DDM/DOM e tomada de decisão",
+		"Avaliação de conhecimento de transceivers ópticos e troubleshooting de camada física"
+	],
+	"baseScenario": {
+		"context": "Terça-feira, 9h20, horário comercial. Você faz parte da equipe de NOC. A organização possui dois switches de core (CORE-SW-01 e CORE-SW-02) interconectados por dois links de 10 Gbps cada (uplinks em port-channel/LACP), que carregam todo o tráfego entre os blocos de acesso e o datacenter. O port-channel opera com balanceamento de carga e está dimensionado para 80% de utilização máxima normal (~16 Gbps de 20 Gbps). O tráfego atual está em 12 Gbps (60% de utilização). Os SFPs instalados são 10GBASE-SR (850nm, multimodo, OM3, 300m) com 4.5 anos de uso.",
+		"initialSituation": {
+			"alert": "CORE-SW-01: Interface Te1/0/1 DOWN - Link member do Port-Channel 1",
+			"affectedLink": "Uplink #1 do port-channel entre CORE-SW-01 e CORE-SW-02",
+			"portChannelStatus": "Degradado - operando com 1 link de 10 Gbps (50% capacidade)",
+			"redundantLink": "Te1/0/2 UP - Assumiu 100% do tráfego (12 Gbps = 120% do planejado por link)",
+			"timestamp": "09:18:42"
+		},
+		"initialComplaints": [
+			"Monitoramento reporta interface Te1/0/1 Down em CORE-SW-01",
+			"Port-channel degradou de 20 Gbps para 10 Gbps",
+			"Tráfego de 12 Gbps agora concentrado em link único (120% da capacidade planejada por membro)",
+			"Latência aumentou ligeiramente mas serviços permanecem operacionais"
+		],
+		"availableResources": [
+			"Acesso SSH a CORE-SW-01 e CORE-SW-02",
+			"Sistema de monitoramento com histórico de métricas DDM dos SFPs",
+			"Acesso físico ao datacenter e aos switches de core",
+			"Estoque de SFPs sobressalentes: 2x 10GBASE-SR (850nm, multimodo)",
+			"Kit de limpeza de conectores ópticos",
+			"Medidor de potência óptica (OPM) portátil",
+			"Patch cords multimodo OM3 sobressalentes"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe deve se familiarizar com a topologia do port-channel, especificações dos SFPs e situação inicial.",
+			"inject": "Apresentação do cenário conforme descrito. A equipe tem 5 minutos para revisar topologia, especificações e discutir abordagem inicial.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Diagnóstico Inicial e Análise DDM",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe de NOC acessa CORE-SW-01 via SSH para coletar informações sobre a interface down e verificar métricas DDM do SFP suspeito.",
+			"timeElapsed": "T+0 (09:18 - início do incidente)",
+			"currentSituation": {
+				"interfaceStatus": "Te1/0/1: Down/Down (notconnect)",
+				"portChannelStatus": "Po1: Up - 1 membro ativo (Te1/0/2), 1 membro down (Te1/0/1)",
+				"trafficStatus": "12 Gbps concentrado em Te1/0/2 - links de acesso sem impacto",
+				"immediateRisk": "Perda de redundância - qualquer falha em Te1/0/2 causará outage total"
+			},
+			"metrics": [
+				{
+					"title": "DDM/DOM do SFP Falhado - CORE-SW-01 Te1/0/1",
+					"type": "optical-diagnostics",
+					"data": {
+						"sfpModel": "10GBASE-SR SFP+ (850nm, MM, 300m max)",
+						"serialNumber": "AGM-2020-0847",
+						"dateCode": "2020-06-15 (4.5 anos de uso)",
+						"temperature": "78°C (ALARM - threshold: 70°C max)",
+						"voltage": "3.18V (LOW WARNING - nominal: 3.13-3.50V)",
+						"biasCurrent": "9.8 mA (ALARM - nominal: 2-12 mA, mas tendência de queda)",
+						"txPower": "-8.2 dBm (ALARM - normal: -1 a -5 dBm para SR)",
+						"rxPower": "-30 dBm (sem sinal - interface down)",
+						"txPowerHistory": {
+							"30daysAgo": "-3.5 dBm",
+							"14daysAgo": "-4.8 dBm",
+							"7daysAgo": "-5.9 dBm",
+							"1dayAgo": "-7.1 dBm",
+							"now": "-8.2 dBm"
+						},
+						"temperatureHistory": {
+							"30daysAgo": "52°C",
+							"14daysAgo": "58°C",
+							"7daysAgo": "65°C",
+							"1dayAgo": "73°C",
+							"now": "78°C"
+						},
+						"observation": "SFP apresenta degradação progressiva: TX Power caindo e temperatura subindo consistentemente. Padrão típico de fim de vida útil do laser VCSEL."
+					}
+				},
+				{
+					"title": "DDM/DOM do SFP Parceiro - CORE-SW-02 Te1/0/1",
+					"type": "optical-diagnostics",
+					"data": {
+						"sfpModel": "10GBASE-SR SFP+ (850nm, MM, 300m max)",
+						"serialNumber": "AGM-2020-0848",
+						"dateCode": "2020-06-15 (4.5 anos de uso, mesmo lote)",
+						"temperature": "55°C (normal)",
+						"txPower": "-3.2 dBm (normal)",
+						"rxPower": "-30 dBm (sem sinal - parceiro down)",
+						"observation": "SFP do lado CORE-SW-02 está normal - problema é no SFP de CORE-SW-01"
+					}
+				},
+				{
+					"title": "Status do Port-Channel e Link Ativo",
+					"type": "port-channel-status",
+					"data": {
+						"portChannel": "Port-Channel 1 (LACP)",
+						"members": [
+							{"interface": "Te1/0/1", "status": "Down", "sfpStatus": "Failed", "trafficShare": "0%"},
+							{"interface": "Te1/0/2", "status": "Up", "sfpStatus": "Normal", "trafficShare": "100%"}
+						],
+						"aggregateBandwidth": "10 Gbps (de 20 Gbps nominal)",
+						"currentUtilization": "12 Gbps (120% de um membro)",
+						"sfpTe102DDM": {
+							"temperature": "54°C",
+							"txPower": "-3.0 dBm",
+							"rxPower": "-4.5 dBm"
+						},
+						"observation": "Te1/0/2 operando acima da capacidade nominal (12 Gbps > 10 Gbps) - pode causar packet drops em picos de tráfego"
+					}
+				},
+				{
+					"title": "Logs do Sistema - CORE-SW-01",
+					"type": "system-logs",
+					"data": {
+						"recentLogs": [
+							"*Feb 17 09:18:42: %LINK-3-UPDOWN: Interface TenGigabitEthernet1/0/1, changed state to down",
+							"*Feb 17 09:18:42: %TRANSCEIVER-3-ALARM: Te1/0/1: Tx Power low alarm (-8.2 dBm < -7.0 dBm threshold)",
+							"*Feb 17 09:18:40: %TRANSCEIVER-3-ALARM: Te1/0/1: Temperature high alarm (78°C > 70°C threshold)",
+							"*Feb 17 09:15:33: %TRANSCEIVER-4-WARNING: Te1/0/1: Tx Power low warning (-7.1 dBm < -6.0 dBm threshold)",
+							"*Feb 17 08:42:18: %TRANSCEIVER-4-WARNING: Te1/0/1: Temperature high warning (65°C > 60°C threshold)",
+							"*Feb 16 22:15:07: %TRANSCEIVER-4-WARNING: Te1/0/1: Tx Power low warning (-6.8 dBm < -6.0 dBm threshold)"
+						],
+						"observation": "Warnings começaram há >10 horas - degradação progressiva com alertas crescentes antes da falha"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Com base nas métricas DDM (temperatura 78°C, TX Power -8.2 dBm caindo progressivamente, bias current em queda), qual é o diagnóstico MAIS provável?",
+					"options": [
+						"Conector de fibra sujo ou danificado causando reflexão de volta para o SFP",
+						"Fim de vida útil do laser VCSEL do SFP (degradação do diodo emissor por envelhecimento)",
+						"Incompatibilidade do SFP com o switch - firmware precisa ser atualizado",
+						"Problema no slot/porta do switch causando alimentação insuficiente ao SFP"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Fim de vida do laser VCSEL (B) é o diagnóstico correto: (1) TX Power caindo progressivamente ao longo de 30 dias indica degradação do diodo emissor, (2) temperatura crescente é consequência - laser degradado consome mais energia para tentar manter potência, gerando mais calor, (3) bias current anormal indica circuito de controle tentando compensar laser degradado, (4) SFP tem 4.5 anos - VCSEL 850nm tem vida útil típica de 3-7 anos dependendo das condições. Conector sujo (A) não causa aumento de temperatura. Incompatibilidade (C) não é progressiva."
+				},
+				{
+					"id": "q2",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: O SFP parceiro em CORE-SW-02 (mesmo lote, mesma idade) tem alta probabilidade de falhar em breve e deveria ser substituído preventivamente.",
+					"correctAnswer": true,
+					"points": 3,
+					"justification": "VERDADEIRO. SFPs do mesmo lote de fabricação (AGM-2020-0847 e AGM-2020-0848, datados de 2020-06-15) frequentemente compartilham: (1) mesmos componentes de laser VCSEL com vida útil similar, (2) mesma qualidade de fabricação, (3) condições operacionais similares (mesmo rack, temperatura ambiente similar). Embora o SFP parceiro mostre DDM normal AGORA, a experiência de campo mostra que falhas em lote (batch failure) são comuns. Substituição preventiva é recomendada para evitar perda de AMBOS os links do port-channel."
+				},
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "O TX Power do SFP degradou de -3.5 dBm para -8.2 dBm em 30 dias. Qual é a taxa média de degradação em dB por semana?",
+					"correctAnswer": 1.175,
+					"tolerance": 0.1,
+					"unit": "dB/semana",
+					"points": 5,
+					"justification": "Cálculo: Degradação total = |-8.2 - (-3.5)| = 4.7 dB em 30 dias. 30 dias ≈ 4.29 semanas. Taxa = 4.7 / 4.29 ≈ 1.10 dB/semana, ou mais precisamente: 4.7 / (30/7) = 4.7 / 4.286 = 1.097 dB/semana ≈ 1.1 dB/semana. Nota: a degradação não é linear - é tipicamente exponencial nos estágios finais de vida do laser. Os últimos 7 dias mostraram degradação de 2.3 dB (0.33 dB/dia), muito mais rápida que os primeiros 7 dias."
+				},
+				{
+					"id": "q4",
+					"type": "multiple-choice",
+					"text": "O link ativo Te1/0/2 está carregando 12 Gbps em interface 10 Gbps. Qual é o risco imediato?",
+					"options": [
+						"Nenhum risco - interfaces 10 Gbps podem operar a 12 Gbps usando oversubscription",
+						"Risco alto - o link ativo pode falhar por sobrecarga térmica do SFP",
+						"Risco moderado - packet drops ocorrerão em picos de tráfego, degradando qualidade de serviço",
+						"O switch automaticamente limitará o tráfego a 10 Gbps sem impacto perceptível"
+					],
+					"correctAnswer": 2,
+					"points": 5,
+					"justification": "Risco moderado (C) é correto: (1) interface Ethernet de 10 Gbps NÃO opera físicamente acima de 10 Gbps - a utilização reportada de 12 Gbps representa picos que resultam em drops, (2) buffer do switch absorve bursts curtos, mas picos sustentados causam tail drop, (3) protocolos sensíveis a perda (VoIP, sessões interativas) são impactados primeiro. Sobrecarga térmica (B) é improvável no curto prazo em operação nominal. O switch não opera a 12 Gbps real em link 10G (A é incorreto)."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Verificação Física e Diagnóstico Diferencial",
+			"phase": "Fase 2 - Análise Avançada",
+			"description": "Técnico está no datacenter para inspeção física e testes antes de substituir o SFP. É necessário confirmar que o problema é realmente no SFP e não na fibra ou na porta do switch.",
+			"timeElapsed": "T+15 minutos (09:33)",
+			"currentSituation": {
+				"technicianStatus": "No datacenter, pronto para intervenção em CORE-SW-01",
+				"interfaceStatus": "Te1/0/1 permanece Down - SFP a 80°C (piorou)",
+				"serviceImpact": "Serviços operacionais mas sem redundância de core"
+			},
+			"metrics": [
+				{
+					"title": "Inspeção Física do SFP e Fibra",
+					"type": "physical-inspection",
+					"data": {
+						"sfpPhysical": "SFP quente ao toque (anormal - normalmente morno)",
+						"sfpLED": "LED TX piscando erraticamente (deveria ser constante quando operacional)",
+						"fiberPatchcord": "Patch cord OM3 em boas condições visuais, sem curvatura excessiva",
+						"connectorInspection": "Conectores LC limpos (inspecionados com microscópio - sem contaminação)",
+						"portInspection": "Porta do switch Te1/0/1 sem sinais de dano mecânico",
+						"observation": "Inspeção confirma: fibra OK, conectores limpos, porta OK. Problema isolado no módulo SFP."
+					}
+				},
+				{
+					"title": "Teste Cruzado - Diagnóstico Diferencial",
+					"type": "cross-test",
+					"data": {
+						"test1": {
+							"description": "SFP sobressalente inserido em Te1/0/1 (temporário para teste)",
+							"result": "Interface subiu imediatamente - RX Power -3.8 dBm (normal)",
+							"conclusion": "Porta do switch e fibra estão funcionais"
+						},
+						"test2": {
+							"description": "SFP falhado inserido em porta de teste Te1/0/48 (porta não usada)",
+							"result": "SFP reporta TX -8.5 dBm, temperatura 76°C - mesmos parâmetros anormais",
+							"conclusion": "Defeito confirmado no módulo SFP, independente da porta"
+						},
+						"observation": "Teste cruzado CONFIRMA: (1) SFP original está defeituoso, (2) porta do switch funciona normalmente, (3) fibra óptica está íntegra"
+					}
+				},
+				{
+					"title": "Verificação de Compatibilidade dos SFPs Sobressalentes",
+					"type": "spare-verification",
+					"data": {
+						"spare1": {
+							"model": "10GBASE-SR SFP+ (850nm)",
+							"vendor": "Mesmo fabricante original",
+							"compatibility": "Compatível - mesmo modelo e especificação",
+							"age": "Novo (estoque há 6 meses)"
+						},
+						"spare2": {
+							"model": "10GBASE-SR SFP+ (850nm)",
+							"vendor": "Fabricante genérico (third-party)",
+							"compatibility": "Pode requerer 'service unsupported-transceiver' em algumas plataformas",
+							"age": "Novo (estoque há 3 meses)"
+						},
+						"observation": "Sobressalente #1 (mesmo fabricante) é preferível para evitar problemas de compatibilidade"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene corretamente o procedimento de diagnóstico diferencial para falha de SFP:",
+					"items": [
+						{"id": "step1", "label": "Verificar métricas DDM/DOM do SFP (temperatura, TX/RX Power, bias current)"},
+						{"id": "step2", "label": "Inspecionar fisicamente conectores e patch cord com microscópio de fibra"},
+						{"id": "step3", "label": "Testar SFP sobressalente na mesma porta (valida porta e fibra)"},
+						{"id": "step4", "label": "Testar SFP suspeito em porta diferente (confirma defeito no SFP)"},
+						{"id": "step5", "label": "Substituir SFP defeituoso pelo sobressalente e validar operação"}
+					],
+					"correctOrder": ["step1", "step2", "step3", "step4", "step5"],
+					"partialCredit": false,
+					"points": 6,
+					"justification": "Sequência de troubleshooting isolando variáveis: (1) DDM primeiro - diagnóstico remoto sem intervenção física. (2) Inspeção física descarta problemas mecânicos simples. (3) SFP novo na mesma porta isola se problema é porta/fibra ou SFP. (4) SFP suspeito em outra porta confirma definitivamente o defeito. (5) Substituição final somente após confirmação. Pular testes 3-4 arrisca substituir componente errado (ex: trocar SFP quando problema é porta)."
+				},
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "O SFP está marcado como 'hot-swappable'. O que isso significa para o procedimento de substituição?",
+					"options": [
+						"O SFP pode ser removido e inserido com o switch ligado, sem risco para o equipamento",
+						"O SFP pode ser removido com o switch ligado, mas a interface deve ser desabilitada (shutdown) antes",
+						"O SFP só pode ser trocado com o switch desligado para evitar dano ao barramento",
+						"Hot-swap é possível mas requer proteção ESD (pulseira antiestática) obrigatória durante o procedimento"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "SFPs são projetados para hot-swap (A): podem ser inseridos e removidos com equipamento energizado sem risco elétrico. Os pinos são dimensionados para inserção sob tensão (hot-plug). Shutdown da interface (B) é boa prática mas não obrigatório para segurança do hardware - apenas evita logs transitórios. Desligar switch (C) é desnecessário e causaria indisponibilidade total. Proteção ESD (D) é sempre recomendada em datacenters mas não é específica de hot-swap."
+				},
+				{
+					"id": "q7",
+					"type": "matching",
+					"text": "Conecte cada tipo de SFP ao seu comprimento de onda e tipo de fibra correspondente:",
+					"leftColumn": [
+						{"id": "sr", "label": "10GBASE-SR"},
+						{"id": "lr", "label": "10GBASE-LR"},
+						{"id": "er", "label": "10GBASE-ER"}
+					],
+					"rightColumn": [
+						{"id": "spec1", "label": "1550nm, fibra monomodo, até 40 km"},
+						{"id": "spec2", "label": "850nm, fibra multimodo, até 300m (OM3) / 400m (OM4)"},
+						{"id": "spec3", "label": "1310nm, fibra monomodo, até 10 km"}
+					],
+					"correctMatches": [
+						{"left": "sr", "right": "spec2"},
+						{"left": "lr", "right": "spec3"},
+						{"left": "er", "right": "spec1"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 6,
+					"justification": "10GBASE-SR (Short Range ↔ spec2): 850nm com laser VCSEL em fibra multimodo, alcance curto. 10GBASE-LR (Long Range ↔ spec3): 1310nm com laser DFB em fibra monomodo, 10 km. 10GBASE-ER (Extended Range ↔ spec1): 1550nm com laser DFB alta potência em monomodo, 40 km. Conhecer estas especificações é essencial para selecionar SFP correto e evitar incompatibilidades de tipo de fibra."
+				},
+				{
+					"id": "q8",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Inserir um SFP 10GBASE-LR (1310nm, monomodo) em uma porta conectada a fibra multimodo OM3 funcionará normalmente, pois o SFP apenas transmite luz.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. SFP 10GBASE-LR (monomodo) em fibra multimodo NÃO funciona corretamente: (1) laser DFB 1310nm do LR injetado em fibra MM excita múltiplos modos, causando dispersão modal excessiva, (2) o receptor do lado remoto (se for SR) opera em 850nm e não detectará 1310nm, (3) conectores podem ter ferrules de diâmetros diferentes (SM: 9μm core, MM: 50μm core). O resultado seria: link não estabelece ou opera com taxa de erros muito alta. SEMPRE usar SFP compatível com o tipo de fibra instalada."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Substituição e Validação",
+			"phase": "Fase 3 - Contenção e Erradicação",
+			"description": "O técnico substitui o SFP defeituoso pelo sobressalente compatível. A interface sobe e o port-channel é restaurado para operação com dois membros.",
+			"timeElapsed": "T+25 minutos (09:43)",
+			"currentSituation": {
+				"action": "SFP defeituoso removido e substituído pelo sobressalente #1 (mesmo fabricante)",
+				"interfaceStatus": "Te1/0/1: Up/Up - operacional",
+				"portChannelStatus": "Po1: 2 membros ativos - 20 Gbps restaurado",
+				"trafficDistribution": "Balanceamento LACP restabelecido: Te1/0/1 ~48%, Te1/0/2 ~52%"
+			},
+			"metrics": [
+				{
+					"title": "DDM/DOM do SFP Novo - CORE-SW-01 Te1/0/1",
+					"type": "optical-diagnostics-new",
+					"data": {
+						"txPower": "-2.5 dBm (excelente)",
+						"rxPower": "-3.8 dBm (excelente - enlace curto MM)",
+						"temperature": "38°C (normal)",
+						"voltage": "3.31V (normal)",
+						"biasCurrent": "6.2 mA (normal)",
+						"observation": "Todos os parâmetros DDM dentro da faixa normal. Link operacional com margem excelente."
+					}
+				},
+				{
+					"title": "Status do Port-Channel Restaurado",
+					"type": "port-channel-restored",
+					"data": {
+						"portChannel": "Port-Channel 1 (LACP)",
+						"status": "Up - all members active",
+						"aggregateBandwidth": "20 Gbps",
+						"currentUtilization": "12 Gbps (60%)",
+						"lacpState": "Active/Active em ambos os membros",
+						"hashDistribution": "Te1/0/1: 5.8 Gbps (48%), Te1/0/2: 6.2 Gbps (52%)",
+						"observation": "Port-channel completamente restaurado com balanceamento adequado"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q9",
+					"type": "multiple-choice",
+					"text": "Após substituir o SFP e a interface subir, qual validação é ESSENCIAL antes de considerar o incidente resolvido?",
+					"options": [
+						"Verificar apenas que o link está Up e o tráfego fluindo",
+						"Confirmar DDM do SFP novo, verificar port-channel com ambos os membros ativos, e monitorar por 15-30 minutos sem erros",
+						"Executar throughput test de 10 Gbps para validar capacidade total do link",
+						"Reiniciar ambos os switches para garantir estado limpo do port-channel"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Validação completa (B) é essencial: (1) DDM do SFP novo confirma saúde do transceiver (evita instalar módulo DOA), (2) port-channel summary confirma ambos os membros ativos e balanceando, (3) monitoramento de 15-30 min sem erros FCS/CRC garante estabilidade. Apenas link Up (A) é insuficiente. Throughput test (C) em produção pode causar impacto. Reiniciar switches (D) é desnecessário e destrutivo - causaria indisponibilidade real."
+				},
+				{
+					"id": "q10",
+					"type": "numeric",
+					"text": "O SFP novo tem TX Power de -2.5 dBm e o RX Power reportado no lado remoto é -3.8 dBm. Qual é a atenuação total do enlace de fibra multimodo?",
+					"correctAnswer": 1.3,
+					"tolerance": 0.1,
+					"unit": "dB",
+					"points": 5,
+					"justification": "Atenuação = TX Power - RX Power = -2.5 - (-3.8) = 1.3 dB. Para enlace multimodo curto (datacenter, tipicamente < 100m), atenuação de 1.3 dB é perfeitamente normal. Inclui: perda de inserção dos dois conectores LC (~0.25 dB × 2 = 0.5 dB) + atenuação da fibra OM3 (~3.5 dB/km × 0.05 km ≈ 0.18 dB) + margem. Indica fibra e conectores em excelente condição."
+				},
+				{
+					"id": "q11",
+					"type": "multiple-choice",
+					"text": "O SFP sobressalente #2 é de fabricante third-party e pode requerer o comando 'service unsupported-transceiver' em equipamentos Cisco. Qual é o risco de usar transceivers third-party?",
+					"options": [
+						"Nenhum risco - SFPs são padronizados e intercambiáveis entre todos os fabricantes",
+						"Risco de incompatibilidade de DDM, falta de suporte TAC, e possível recusa do switch em ativar a porta",
+						"Risco alto de dano físico ao switch por diferenças de voltagem nos pinos",
+						"O único risco é a garantia do switch ser invalidada"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Riscos reais de third-party (B): (1) switches de alguns fabricantes (Cisco, Juniper) verificam EEPROM do SFP e podem recusar ativar se não for 'aprovado', (2) DDM pode não reportar corretamente (dados EEPROM incompatíveis), (3) suporte técnico do fabricante (TAC) pode recusar troubleshoot com SFP não-original, (4) some features (UDLD, DOM alerts) podem não funcionar. NÃO há risco de dano físico (C) - padrão SFF-8431 é universal. A interface MSA (Multi-Source Agreement) garante compatibilidade elétrica, mas não de software/firmware."
+				},
+				{
+					"id": "q12",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Após o SFP defeituoso atingir temperatura de 78°C, ele pode ter causado dano térmico ao slot do switch, exigindo verificação adicional.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. 78°C, embora acima do especificado para o SFP (max 70°C), está dentro dos limites térmicos do slot do switch (tipicamente projetado para 85-100°C). O slot possui dissipação de calor projetada para cenários de overtemperature do SFP. O SFP tem proteção de thermal shutdown que desligou o laser antes de atingir temperaturas destrutivas. Se o slot tivesse problema, o SFP sobressalente não teria funcionado imediatamente no teste cruzado."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Pós-Incidente e Gestão de Sobressalentes",
+			"phase": "Fase 4 - Recuperação e Pós-Incidente",
+			"description": "Incidente resolvido. Port-channel operando normalmente com dois membros ativos. SFP defeituoso removido e descartado. Equipe discute ações preventivas e gestão de sobressalentes.",
+			"timeElapsed": "T+35 minutos (09:53 - incidente encerrado)",
+			"currentSituation": {
+				"portChannelStatus": "Po1: 20 Gbps - operação normal",
+				"sfpStatus": "Ambos SFPs com DDM normal",
+				"serviceStatus": "100% operacional - sem impacto residual",
+				"totalDowntime": "25 minutos com link degradado (port-channel half capacity)"
+			},
+			"questions": [
+				{
+					"id": "q13",
+					"type": "multiple-choice",
+					"text": "Considerando que os SFPs têm 4.5 anos e um falhou, qual política de ciclo de vida deveria ser adotada?",
+					"options": [
+						"Substituir SFPs apenas quando falharem - não há necessidade de troca preventiva",
+						"Implementar substituição preventiva de SFPs baseada em monitoramento DDM (trocar quando TX Power degradar > 2 dB do baseline)",
+						"Substituir TODOS os SFPs do datacenter a cada 3 anos, independente do estado",
+						"Aumentar a temperatura do datacenter para prolongar a vida útil dos SFPs"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Substituição baseada em DDM (B) é a política mais eficiente: (1) detecta degradação ANTES da falha usando trends de TX Power, temperatura e bias current, (2) permite planejar substituição em janela de manutenção (sem urgência), (3) custo-eficiente (troca somente os que degradam, não todos). Trocar apenas na falha (A) causa indisponibilidade não-planejada. Trocar todos a cada 3 anos (C) é desperdício - muitos SFPs duram 7+ anos. Aumentar temperatura (D) REDUZ vida útil."
+				},
+				{
+					"id": "q14",
+					"type": "multiple-choice",
+					"text": "Quantos SFPs sobressalentes a organização deveria manter em estoque para seu datacenter?",
+					"options": [
+						"Nenhum - pode-se comprar sob demanda quando necessário",
+						"Mínimo de 10% do total de SFPs em uso, com pelo menos 2 de cada tipo (SR, LR, etc.)",
+						"50% do total de SFPs em uso para garantir disponibilidade total",
+						"Um SFP sobressalente é suficiente - falhas são raras"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "10% com mínimo de 2 por tipo (B) é a prática recomendada: (1) cobre falhas simultâneas (como lote ruim visto neste cenário), (2) garante disponibilidade de cada tipo sem estoque excessivo, (3) balanceia custo de estoque vs. risco de indisponibilidade. Zero estoque (A) resulta em horas/dias de espera. 50% (C) é excesso financeiro. Um único (D) não cobre falhas de lote ou múltiplas falhas simultâneas."
+				},
+				{
+					"id": "q15",
+					"type": "matching",
+					"text": "Conecte cada parâmetro DDM ao que ele indica sobre a saúde do SFP:",
+					"leftColumn": [
+						{"id": "txpower", "label": "TX Power degradando"},
+						{"id": "temp", "label": "Temperatura crescente"},
+						{"id": "bias", "label": "Bias Current elevado"}
+					],
+					"rightColumn": [
+						{"id": "ind1", "label": "Circuito APC (Automatic Power Control) compensando perda de eficiência do laser"},
+						{"id": "ind2", "label": "Laser (VCSEL/DFB) perdendo eficiência quântica - menos luz por corrente aplicada"},
+						{"id": "ind3", "label": "Dissipação térmica excessiva por ineficiência do circuito eletrônico do transceiver"}
+					],
+					"correctMatches": [
+						{"left": "txpower", "right": "ind2"},
+						{"left": "temp", "right": "ind3"},
+						{"left": "bias", "right": "ind1"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 6,
+					"justification": "TX Power degradando (↔ ind2): laser envelhecido produz menos fótons por unidade de corrente elétrica. Temperatura crescente (↔ ind3): circuitos compensam ineficiência aplicando mais corrente, gerando mais calor. Bias Current elevado (↔ ind1): circuito APC tenta manter TX Power aumentando corrente no laser. Estes três parâmetros quase sempre degradam JUNTOS no fim de vida, formando um ciclo de feedback positivo que acelera a falha."
+				},
+				{
+					"id": "q16",
+					"type": "multiple-choice",
+					"text": "Qual configuração de alertas deveria ser implementada no sistema de monitoramento para detectar falhas de SFP antecipadamente?",
+					"options": [
+						"Alerta apenas quando interface ficar Down (monitoramento de status)",
+						"Alertas em três níveis: degradação de TX Power > 1 dB (info), > 2 dB (warning), atingir threshold do SFP (critical)",
+						"Alerta de temperatura do SFP apenas quando atingir o alarm threshold",
+						"Alerta semanal com relatório de todos os SFPs e seus parâmetros DDM"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Alertas em três níveis (B) é a abordagem mais eficaz: (1) degradação > 1 dB gera info para tracking de tendência (sem ação imediata), (2) > 2 dB gera warning para planejamento de substituição na próxima janela, (3) atingir threshold do SFP gera critical para ação imediata. Este cenário mostrou warnings 10+ horas antes da falha - alertas configurados corretamente teriam permitido troca planejada. Interface Down (A) é tardio demais. Alarm threshold (C) é quase tão tardio. Relatório semanal (D) pode perder degradação rápida."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 93,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 90,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de diagnóstico de transceivers ópticos, DDM/DOM e gestão de ciclo de vida de SFPs"
+			},
+			{
+				"min": 75,
+				"max": 89,
+				"grade": "Bom",
+				"description": "Compreensão sólida de troubleshooting de SFPs e procedimentos de substituição com pequenas lacunas"
+			},
+			{
+				"min": 60,
+				"max": 74,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica suficiente, requer aprofundamento em análise DDM e gestão de sobressalentes"
+			},
+			{
+				"min": 45,
+				"max": 59,
+				"grade": "Insatisfatório",
+				"description": "Lacunas significativas em conhecimento de transceivers ópticos e diagnóstico de camada física"
+			},
+			{
+				"min": 0,
+				"max": 44,
+				"grade": "Inadequado",
+				"description": "Compreensão insuficiente, requer treinamento completo em fundamentos de transceiver óptico e fibra"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Apresentar informações progressivamente, simulando diagnóstico real de falha de SFP",
+		"Permitir 3-5 minutos de discussão entre participantes antes de cada resposta",
+		"Fazer perguntas orientadoras: 'O que os valores DDM nos dizem?', 'Como diferenciamos falha de SFP vs fibra vs porta?'",
+		"Enfatizar importância de DIAGNÓSTICO DIFERENCIAL antes de substituir componentes",
+		"Se grupo não tem experiência com DDM/DOM, explicar conceitos antes da Rodada 2",
+		"Manter neutralidade técnica - não fornecer respostas diretas",
+		"Controlar tempo: Rodada 1 (5 min), Rodadas 2-4 (8-10 min cada), Rodada 5 (7 min)",
+		"Mediar debates sobre trade-offs (SFPs originais vs. third-party, custo vs. risco)",
+		"Após exercício: revisar gabarito e discutir implementação de monitoramento DDM preventivo",
+		"Coletar feedback sobre realismo do cenário e ajustes necessários",
+		"Documentar insights para melhorar política de gestão de sobressalentes de SFPs"
+	],
+	"technicalReferences": [
+		{
+			"title": "SFF-8431 - Enhanced Small Form Factor Pluggable Module (SFP+)",
+			"url": "https://members.snia.org/document/dl/25892"
+		},
+		{
+			"title": "SFF-8472 - Diagnostic Monitoring Interface for Optical Transceivers (DDM/DOM)",
+			"url": "https://members.snia.org/document/dl/25916"
+		},
+		{
+			"title": "IEEE 802.3ae - 10 Gigabit Ethernet (10GBASE-SR, LR, ER)",
+			"url": "https://standards.ieee.org/ieee/802.3ae/1025/"
+		},
+		{
+			"title": "Cisco - Troubleshooting SFP Module and SFP+ Module Issues",
+			"url": "https://www.cisco.com/c/en/us/support/docs/interfaces-modules/gbics/200296-Troubleshoot-SFP-SFP-Module-Issues.html"
+		},
+		{
+			"title": "TIA-568.3-D - Optical Fiber Cabling and Components Standard",
+			"url": "https://tiaonline.org/resources/tia-568-series/"
+		}
+	]
+}

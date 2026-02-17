@@ -1,0 +1,551 @@
+{
+	"id": "optical-signal-degradation",
+	"title": "Resposta a Degradação Progressiva de Sinal Óptico em Enlace Metropolitano",
+	"description": "Simulação tabletop de resposta a degradação gradual de sinal óptico em enlace de fibra metropolitano, com aumento de erros FCS e flapping de interface",
+	"category": {
+		"id": "PHY_L2",
+		"type": "PHY_L2_OPTICAL_DEGRADE",
+		"title": "Degradação Progressiva de Sinal Óptico"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2025-02-17",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "35-50 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Equipe de NOC, Engenheiros de Rede, Técnicos de Infraestrutura Óptica, Administradores de Rede"
+	},
+	"objectives": [
+		"Validar capacidade de detecção e diagnóstico de degradação progressiva de sinal óptico",
+		"Avaliar conhecimento de métricas ópticas (RX/TX Power, atenuação, margem óptica, BER)",
+		"Testar procedimentos de análise com ferramentas DDM/DOM e OTDR",
+		"Desenvolver compreensão de causas comuns de atenuação (conectores sujos, emendas, curvatura)",
+		"Identificar processos de manutenção preventiva e monitoramento proativo de enlaces ópticos",
+		"Promover entendimento de limiares e alarmes de potência óptica para diferentes tipos de SFP"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá execução real de comandos em equipamentos de produção",
+		"Não inclui deslocamento físico real de equipes ou inspeção de fibra",
+		"Foco na análise técnica, tomada de decisão e interpretação de métricas ópticas",
+		"Avaliação de conhecimento de camada física e troubleshooting de enlaces de fibra óptica"
+	],
+	"baseScenario": {
+		"context": "Quarta-feira, 10h15, horário comercial. Você faz parte da equipe de NOC. A organização opera um enlace metropolitano de fibra óptica monomodo (G.652.D) de 8 km conectando o Datacenter Principal (DC-A) a um site remoto (DC-B) com capacidade de 10 Gbps (SFP+ 10GBASE-LR). Nos últimos 3 dias, o sistema de monitoramento registrou alertas intermitentes de 'Input Power Low Warning' neste enlace. Hoje, a frequência dos alertas aumentou significativamente e usuários do site remoto começaram a reportar lentidão e desconexões intermitentes.",
+		"initialSituation": {
+			"alert": "LINK DC-A ↔ DC-B: Input Power Low Warning - RX Power degradando progressivamente",
+			"affectedLink": "Enlace metropolitano DC-A ↔ DC-B - Fibra monomodo G.652.D 8 km - 10 Gbps",
+			"linkStatus": "Up/Up porém com erros FCS crescentes e flapping intermitente",
+			"userImpact": "Lentidão e desconexões intermitentes para ~80 usuários no site remoto",
+			"timestamp": "10:12:45"
+		},
+		"initialComplaints": [
+			"Usuários do site remoto reportam desconexões intermitentes em sessões RDP e VoIP",
+			"Sistema de monitoramento mostra gráficos de 'input errors' crescentes nas últimas 72 horas",
+			"Dois eventos de flapping de interface registrados nas últimas 6 horas",
+			"Backup noturno entre datacenters falhou nas últimas 2 noites por timeout"
+		],
+		"availableResources": [
+			"Acesso SSH aos roteadores/switches de borda em DC-A e DC-B",
+			"Sistema de monitoramento (Zabbix/LibreNMS) com histórico de métricas ópticas DDM",
+			"Equipamento OTDR disponível com equipe de campo",
+			"Kit de limpeza de conectores ópticos (cassete de limpeza, álcool isopropílico, lenços)",
+			"Medidor de potência óptica (OPM) portátil",
+			"Documentação de topologia com mapa de emendas e conectorizações do enlace",
+			"SFPs sobressalentes compatíveis (10GBASE-LR) em estoque"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe deve se familiarizar com a topologia do enlace óptico, especificações dos SFPs e situação inicial.",
+			"inject": "Apresentação do cenário conforme descrito. A equipe tem 5 minutos para revisar topologia, especificações do enlace e discutir abordagem inicial.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Detecção e Análise de Métricas Ópticas",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe de NOC acessa os roteadores via SSH e coleta métricas DDM/DOM dos transceivers ópticos em ambos os lados do enlace.",
+			"timeElapsed": "T+0 (10:12 - início da investigação)",
+			"currentSituation": {
+				"linkStatus": "Up/Up com erros intermitentes",
+				"fcsErrors": "Crescendo ~200 erros/hora (baseline: 0)",
+				"interfaceFlapping": "2 eventos nas últimas 6 horas",
+				"userImpact": "~80 usuários com conectividade intermitente"
+			},
+			"metrics": [
+				{
+					"title": "DDM/DOM - Transceiver SFP+ Lado DC-A",
+					"type": "optical-diagnostics",
+					"data": {
+						"sfpModel": "10GBASE-LR SFP+ (1310nm, SM, 10km max)",
+						"txPower": "-2.8 dBm (normal: -1 a -5 dBm)",
+						"rxPower": "-22.4 dBm (WARNING - threshold: -20.0 dBm)",
+						"rxPowerBaseline": "-14.2 dBm (valor normal registrado há 30 dias)",
+						"rxPowerDegradation": "-8.2 dB de degradação em 30 dias",
+						"temperature": "42°C (normal: 0-70°C)",
+						"voltage": "3.30V (normal: 3.13-3.50V)",
+						"biasCurrent": "32 mA (normal: 5-70 mA)",
+						"thresholds": {
+							"rxPowerHighAlarm": "0.0 dBm",
+							"rxPowerHighWarning": "-1.0 dBm",
+							"rxPowerLowWarning": "-20.0 dBm",
+							"rxPowerLowAlarm": "-23.0 dBm",
+							"sensitivity": "-24.0 dBm (mínimo para operação sem erros)"
+						},
+						"observation": "RX Power em -22.4 dBm está ABAIXO do warning (-20 dBm) e próximo do alarm (-23 dBm). Degradação de 8.2 dB em 30 dias é anormal."
+					}
+				},
+				{
+					"title": "DDM/DOM - Transceiver SFP+ Lado DC-B",
+					"type": "optical-diagnostics",
+					"data": {
+						"sfpModel": "10GBASE-LR SFP+ (1310nm, SM, 10km max)",
+						"txPower": "-3.1 dBm (normal: -1 a -5 dBm)",
+						"rxPower": "-15.0 dBm (normal)",
+						"temperature": "38°C (normal: 0-70°C)",
+						"voltage": "3.28V (normal)",
+						"observation": "Lado DC-B apresenta RX Power normal (-15.0 dBm). Problema é UNIDIRECIONAL: afeta apenas direção DC-B → DC-A"
+					}
+				},
+				{
+					"title": "Histórico de Erros de Interface - DC-A",
+					"type": "interface-errors",
+					"data": {
+						"interface": "TenGigabitEthernet0/0/1",
+						"inputErrors": 4782,
+						"fcsErrors": 4650,
+						"crcErrors": 4650,
+						"inputDiscards": 132,
+						"outputErrors": 0,
+						"errorTrend": "72h atrás: 0 erros/h → 48h: 12 erros/h → 24h: 85 erros/h → agora: 210 erros/h",
+						"observation": "Erros apenas em INPUT (recepção) confirmam problema no sinal RECEBIDO, não no transmitido"
+					}
+				},
+				{
+					"title": "Cálculo de Link Budget",
+					"type": "link-budget-analysis",
+					"data": {
+						"txPowerDCB": "-3.1 dBm (transmissor DC-B)",
+						"rxPowerDCA": "-22.4 dBm (receptor DC-A)",
+						"totalAttenuation": "19.3 dB (DC-B TX → DC-A RX)",
+						"expectedAttenuation": "8 km × 0.4 dB/km = 3.2 dB (fibra) + 1.0 dB (4 conectores × 0.25 dB) + 0.2 dB (2 emendas × 0.1 dB) = 4.4 dB expected",
+						"excessAttenuation": "19.3 - 4.4 = 14.9 dB de atenuação EXCESSIVA",
+						"observation": "Atenuação total de 19.3 dB é ~4.4x maior que o esperado (4.4 dB). Há uma fonte significativa de perda adicional no caminho óptico."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Com base nas métricas DDM, o RX Power em DC-A está em -22.4 dBm. Considerando os thresholds do SFP+ 10GBASE-LR, qual é o status atual e o risco imediato?",
+					"options": [
+						"Status normal - -22.4 dBm está dentro da faixa operacional do SFP+",
+						"Warning ativo - está entre warning (-20 dBm) e alarm (-23 dBm), com risco de perda total iminente",
+						"Alarm ativo - já ultrapassou o threshold de alarm e o link deveria estar down",
+						"Está no limiar de sensibilidade - qualquer flutuação causará perda total de sinal"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "RX Power -22.4 dBm está ENTRE o threshold de Low Warning (-20.0 dBm) e Low Alarm (-23.0 dBm), confirmando status de WARNING ativo. A margem até o alarm é de apenas 0.6 dB, e até a sensibilidade do receptor (-24.0 dBm) é de 1.6 dB. Considerando a taxa de degradação observada (8.2 dB em 30 dias), o link pode atingir o alarm em poucos dias e falhar completamente em ~1 semana se a causa não for corrigida."
+				},
+				{
+					"id": "q2",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Como o problema de RX Power afeta apenas a direção DC-B → DC-A, a causa mais provável é falha no transmissor (TX) do lado DC-B.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. O TX Power do DC-B está em -3.1 dBm, que é perfeitamente normal (-1 a -5 dBm). A degradação UNIDIRECIONAL não indica necessariamente falha no TX. Em fibra monomodo, os dois sentidos podem usar fibras diferentes do mesmo cabo (uma fibra para cada direção). Se a degradação está no caminho DC-B → DC-A, a causa pode ser: (1) conector sujo/danificado em porta RX do DC-A, (2) emenda degradada na fibra específica do sentido B→A, (3) curvatura excessiva na fibra deste sentido. O TX do DC-B funcionando normalmente DESCARTA falha no transmissor."
+				},
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "A atenuação esperada para o enlace de 8 km é de 4.4 dB. A atenuação medida é de 19.3 dB. Quantos dB de atenuação EXCESSIVA existem no enlace?",
+					"correctAnswer": 14.9,
+					"tolerance": 0.2,
+					"unit": "dB",
+					"points": 5,
+					"justification": "Cálculo: Atenuação excessiva = Atenuação medida - Atenuação esperada = 19.3 dB - 4.4 dB = 14.9 dB. Esta atenuação excessiva de 14.9 dB indica problema grave no caminho óptico. Para contexto: 14.9 dB significa que apenas ~3.2% da luz transmitida está chegando ao receptor (10^(-14.9/10) ≈ 0.032). Fibra em boas condições teria perda de ~4.4 dB, significando ~36% da luz chegando ao receptor."
+				},
+				{
+					"id": "q4",
+					"type": "multiple-choice",
+					"text": "A degradação de RX Power é progressiva (piorando ao longo de 30 dias). Qual causa é MAIS consistente com este padrão temporal?",
+					"options": [
+						"Rompimento parcial de fibra causado por obra civil recente",
+						"Conector óptico com contaminação progressiva (acúmulo de poeira/sujeira)",
+						"Falha súbita do laser do transmissor SFP+",
+						"Interferência eletromagnética no percurso da fibra"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Contaminação progressiva de conector (B) é a causa MAIS consistente com degradação gradual ao longo de 30 dias: (1) poeira e sujeira acumulam-se lentamente na face do conector, (2) cada partícula adicional aumenta a atenuação, (3) padrão de piora gradual é típico. Rompimento parcial (A) causaria degradação abrupta, não gradual. Falha de laser (C) é geralmente súbita. Interferência EMI (D) não afeta fibra óptica (que transmite luz, não sinais elétricos)."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Diagnóstico Avançado e Localização",
+			"phase": "Fase 2 - Análise Avançada",
+			"description": "A equipe decide enviar técnicos de campo para inspeção física. O OTDR é utilizado para mapear o enlace e identificar o ponto de perda excessiva.",
+			"timeElapsed": "T+25 minutos (10:37)",
+			"currentSituation": {
+				"fieldTeamStatus": "Equipe de campo no DC-A preparando equipamentos (OTDR, kit de limpeza, OPM)",
+				"linkStatus": "Ainda Up/Up mas com 280 erros FCS/hora (crescendo)",
+				"rxPowerDCA": "-22.6 dBm (piorou 0.2 dB em 25 minutos)",
+				"userImpact": "Desconexões mais frequentes - 3 eventos de flapping na última hora"
+			},
+			"metrics": [
+				{
+					"title": "Resultado OTDR - Sentido DC-B → DC-A",
+					"type": "otdr-trace",
+					"data": {
+						"wavelength": "1310 nm",
+						"pulseWidth": "10 ns",
+						"tracePoints": [
+							{"distance": "0.0 km", "event": "Conector de saída DC-B", "loss": "0.35 dB", "type": "reflective", "status": "Normal"},
+							{"distance": "0.5 km", "event": "Emenda de fusão #1", "loss": "0.08 dB", "type": "non-reflective", "status": "Normal"},
+							{"distance": "3.2 km", "event": "Caixa de emenda subterrânea (CES-03)", "loss": "0.12 dB", "type": "non-reflective", "status": "Normal"},
+							{"distance": "5.8 km", "event": "Conector intermediário (DIO do poste #47)", "loss": "4.8 dB", "type": "reflective", "reflectance": "-28 dB", "status": "ANORMAL - Perda excessiva"},
+							{"distance": "7.5 km", "event": "Emenda de fusão #4", "loss": "0.10 dB", "type": "non-reflective", "status": "Normal"},
+							{"distance": "8.0 km", "event": "Conector de entrada DC-A", "loss": "0.30 dB", "type": "reflective", "status": "Normal"}
+						],
+						"totalFiberLoss": "5.75 dB (fibra pura, sem conectores)",
+						"observation": "Ponto de perda anormal identificado a 5.8 km: conector intermediário em DIO do poste #47 com perda de 4.8 dB (esperado: < 0.5 dB) e reflectância de -28 dB (esperado: < -45 dB)"
+					}
+				},
+				{
+					"title": "Detalhes do Ponto Problemático",
+					"type": "field-inspection",
+					"data": {
+						"location": "DIO (Distribuidor Interno Óptico) no poste #47 - Rua das Flores, km 5.8",
+						"connectorType": "SC/APC (verde) - par de conectores em adaptador",
+						"visualInspection": "Conector com sujeira visível na face (poeira e possível filme oleoso)",
+						"environmentConditions": "DIO em caixa de emenda aérea - exposto a poeira e umidade",
+						"lastMaintenance": "Última limpeza registrada: 14 meses atrás",
+						"observation": "Conector em DIO aéreo sem manutenção há 14 meses, acumulando contaminação progressiva"
+					}
+				},
+				{
+					"title": "Medição com Power Meter no Ponto Intermediário",
+					"type": "optical-power-measurement",
+					"data": {
+						"measurementPoint": "DIO Poste #47 (km 5.8)",
+						"rxFromDCB": "-6.2 dBm (sinal chegando do DC-B antes do conector problemático)",
+						"txTowardsDCA": "-11.0 dBm (sinal saindo após o conector problemático)",
+						"connectorLoss": "4.8 dB (confirmado pelo OPM, consistente com OTDR)",
+						"expectedConnectorLoss": "< 0.5 dB (conector SC/APC limpo)",
+						"observation": "Perda de 4.8 dB no conector confirma contaminação severa. Sinal de -6.2 dBm (bom) se reduz para -11.0 dBm após o conector sujo."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q5",
+					"type": "matching",
+					"text": "Conecte cada tipo de evento OTDR à sua característica de reflexão:",
+					"leftColumn": [
+						{"id": "splice", "label": "Emenda de fusão"},
+						{"id": "connector", "label": "Conector (SC, LC)"},
+						{"id": "bend", "label": "Curvatura de fibra (macrobend)"}
+					],
+					"rightColumn": [
+						{"id": "desc1", "label": "Evento não-reflexivo com perda típica < 0.1 dB"},
+						{"id": "desc2", "label": "Evento reflexivo com reflexão significativa e perda típica < 0.5 dB"},
+						{"id": "desc3", "label": "Evento não-reflexivo com perda dependente do raio de curvatura"}
+					],
+					"correctMatches": [
+						{"left": "splice", "right": "desc1"},
+						{"left": "connector", "right": "desc2"},
+						{"left": "bend", "right": "desc3"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 6,
+					"justification": "Emendas de fusão (↔ desc1) são não-reflexivas porque alinham as fibras sem interface ar-vidro, com perda ideal < 0.05 dB. Conectores (↔ desc2) são reflexivos porque possuem interface polida onde ocorre reflexão de Fresnel, com perda ideal < 0.5 dB. Curvatura/macrobend (↔ desc3) causa perda não-reflexiva onde a luz escapa do núcleo da fibra pelo manto quando o raio de curvatura é menor que o especificado."
+				},
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "O OTDR mostra reflectância de -28 dB no conector do DIO poste #47. Para um conector SC/APC, qual é a reflectância esperada e o que -28 dB indica?",
+					"options": [
+						"Esperado: < -60 dB; -28 dB indica conector completamente danificado que precisa ser substituído",
+						"Esperado: < -45 dB (APC), -28 dB indica contaminação severa ou dano na face do conector",
+						"Esperado: < -20 dB; -28 dB está dentro dos parâmetros normais para conectores em campo",
+						"Reflectância não é relevante para diagnóstico, apenas a perda de inserção importa"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Para conectores APC (Angled Physical Contact), a reflectância esperada é < -55 a -65 dB devido ao ângulo de 8° na face que redireciona reflexões. Valor de -28 dB indica contaminação severa ou dano na superfície do conector, causando reflexão muito acima do normal. Conectores UPC teriam reflectância < -40 dB. -28 dB está dramaticamente fora do especificado e é consistente com acúmulo de contaminantes na face polida."
+				},
+				{
+					"id": "q7",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Um conector com perda de 4.8 dB deve ser imediatamente substituído, pois a limpeza não é eficaz para recuperar conectores com perda tão elevada.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. Em muitos casos, contaminação é responsável por altas perdas e a limpeza adequada pode restaurar a perda para valores normais (< 0.5 dB). O procedimento correto é: (1) limpar com cassete de limpeza seca, (2) se necessário, usar álcool isopropílico + limpeza seca, (3) inspecionar com microscópio de fibra, (4) medir perda novamente. Somente se a limpeza NÃO reduzir a perda, indica-se dano físico na face (risco, trinca) que requer substituição do conector/pigtail."
+				},
+				{
+					"id": "q8",
+					"type": "numeric",
+					"text": "Se o conector contaminado for limpo e a perda reduzir de 4.8 dB para 0.3 dB (valor normal), qual será o novo RX Power esperado no lado DC-A?",
+					"correctAnswer": -17.9,
+					"tolerance": 0.3,
+					"unit": "dBm",
+					"points": 5,
+					"justification": "Cálculo em dB: RX Power atual = -22.4 dBm. Redução de perda = 4.8 dB - 0.3 dB = 4.5 dB de ganho. Novo RX Power = -22.4 + 4.5 = -17.9 dBm. Este valor estaria acima do threshold de warning (-20 dBm) e próximo do baseline original (-14.2 dBm). A diferença restante (-17.9 vs -14.2 = 2.7 dB) pode ser explicada por outros fatores de degradação menor no enlace (envelhecimento de conector, umidade em caixa de emenda, etc.)."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Correção e Validação",
+			"phase": "Fase 3 - Contenção e Erradicação",
+			"description": "A equipe de campo executa limpeza do conector contaminado no DIO do poste #47 e realiza medições de validação.",
+			"timeElapsed": "T+50 minutos (11:02)",
+			"currentSituation": {
+				"action": "Limpeza dos conectores no DIO poste #47 executada com cassete e álcool isopropílico",
+				"linkStatus": "Up/Up - erros cessaram completamente",
+				"rxPowerDCA": "-17.6 dBm (melhorou significativamente)",
+				"userImpact": "Usuários reportando que conectividade normalizou"
+			},
+			"metrics": [
+				{
+					"title": "DDM/DOM Pós-Limpeza - DC-A",
+					"type": "optical-diagnostics",
+					"data": {
+						"rxPowerBefore": "-22.4 dBm (antes da limpeza)",
+						"rxPowerAfter": "-17.6 dBm (após limpeza)",
+						"improvement": "+4.8 dB de ganho",
+						"fcsErrors": "0 erros/hora (normalizado)",
+						"txPowerDCB": "-3.1 dBm (inalterado - confirma TX OK)",
+						"newTotalAttenuation": "14.5 dB (DC-B TX → DC-A RX)",
+						"observation": "RX Power normalizado, acima do threshold de warning. Erros FCS cessaram completamente."
+					}
+				},
+				{
+					"title": "OTDR Pós-Limpeza - Conector DIO Poste #47",
+					"type": "otdr-trace-post",
+					"data": {
+						"connectorLossBefore": "4.8 dB",
+						"connectorLossAfter": "0.28 dB",
+						"reflectanceBefore": "-28 dB",
+						"reflectanceAfter": "-52 dB",
+						"observation": "Conector restaurado para parâmetros normais. Perda reduziu 94% e reflectância voltou ao especificado para SC/APC."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q9",
+					"type": "ordering",
+					"text": "Ordene corretamente o procedimento de limpeza de conectores ópticos:",
+					"items": [
+						{"id": "step1", "label": "Inspecionar conector com microscópio de fibra para identificar tipo de contaminação"},
+						{"id": "step2", "label": "Executar limpeza seca com cassete de limpeza (1-2 passadas)"},
+						{"id": "step3", "label": "Se contaminação persistir, aplicar álcool isopropílico e repetir limpeza seca"},
+						{"id": "step4", "label": "Inspecionar novamente com microscópio para confirmar limpeza"},
+						{"id": "step5", "label": "Reconectar e medir potência óptica para validar resultado"}
+					],
+					"correctOrder": ["step1", "step2", "step3", "step4", "step5"],
+					"partialCredit": false,
+					"points": 6,
+					"justification": "Sequência correta: (1) Inspeção identifica tipo de contaminação e se há dano físico antes de qualquer intervenção. (2) Limpeza seca primeiro - muitas contaminações resolvem apenas com cassete. (3) Limpeza úmida + seca SOMENTE se seca não foi suficiente. (4) Inspeção pós-limpeza confirma que conector está limpo antes de reconectar. (5) Medição valida resultado quantitativamente. JAMAIS reconectar sem inspeção visual - risco de prender partícula entre faces do conector."
+				},
+				{
+					"id": "q10",
+					"type": "multiple-choice",
+					"text": "O RX Power após a limpeza ficou em -17.6 dBm, mas o baseline original (30 dias atrás) era -14.2 dBm. A diferença de 3.4 dB indica que:",
+					"options": [
+						"A limpeza não foi eficaz - conector precisa ser substituído",
+						"Há outros pontos de degradação menor no enlace que contribuem para atenuação adicional",
+						"O SFP+ do lado DC-A está com defeito e precisa ser trocado",
+						"A fibra G.652.D tem perda maior que 0.4 dB/km no comprimento de onda 1310nm"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "A limpeza FOI eficaz (ganho de 4.8 dB, conector voltou para 0.28 dB). A diferença residual de 3.4 dB pode ser causada por: (1) outros conectores com leve contaminação, (2) envelhecimento normal de emendas, (3) acúmulo de micro-curvatura por fio de sustentação em poste, (4) umidade em caixa de emenda. O valor -17.6 dBm está BEM acima do warning (-20 dBm) e operacional. A SFP+ (C) é improvável pois TX está normal e o sinal melhorou com limpeza de conector no meio do caminho."
+				},
+				{
+					"id": "q11",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Em fibra monomodo G.652.D, o coeficiente de atenuação típico é 0.4 dB/km no comprimento de onda de 1310 nm e 0.25 dB/km em 1550 nm.",
+					"correctAnswer": true,
+					"points": 3,
+					"justification": "VERDADEIRO. Fibra monomodo G.652.D tem atenuação especificada como: ≤ 0.4 dB/km em 1310 nm e ≤ 0.25 dB/km em 1550 nm (janela de menor atenuação). A menor atenuação em 1550 nm ocorre porque neste comprimento de onda a absorção por radicais OH é mínima e o espalhamento Rayleigh é menor. Isso é relevante para dimensionamento de link budget e escolha de comprimento de onda para enlaces longos."
+				},
+				{
+					"id": "q12",
+					"type": "numeric",
+					"text": "Com TX Power de -3.1 dBm e sensibilidade do receptor de -24.0 dBm para 10GBASE-LR, qual é a margem óptica atual do enlace após a limpeza (RX Power = -17.6 dBm)?",
+					"correctAnswer": 6.4,
+					"tolerance": 0.2,
+					"unit": "dB",
+					"points": 5,
+					"justification": "Margem óptica = RX Power atual - Sensibilidade do receptor = -17.6 - (-24.0) = 6.4 dB. Isso significa que o enlace pode tolerar mais 6.4 dB de degradação antes de falhar completamente. Para 10GBASE-LR, uma margem de 6.4 dB é razoável mas inferior ao ideal (link budget teórico: TX - Sensibilidade = -3.1 - (-24.0) = 20.9 dB disponíveis, com enlace consumindo 14.5 dB). Monitoramento contínuo é recomendado."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Recuperação e Lições Aprendidas",
+			"phase": "Fase 4 - Recuperação e Pós-Incidente",
+			"description": "Enlace restaurado com parâmetros ópticos adequados. Equipe de campo aproveitou para inspecionar e limpar todos os pontos de conexão ao longo do percurso. RX Power melhorou para -15.8 dBm após limpeza geral.",
+			"timeElapsed": "T+90 minutos (11:42 - incidente encerrado)",
+			"currentSituation": {
+				"linkStatus": "Up/Up - operação normal",
+				"rxPowerDCA": "-15.8 dBm (próximo ao baseline de -14.2 dBm)",
+				"rxPowerDCB": "-14.5 dBm (normal)",
+				"fcsErrors": "0 erros nas últimas 30 minutos",
+				"userImpact": "Nenhum - operação completamente normalizada"
+			},
+			"questions": [
+				{
+					"id": "q13",
+					"type": "multiple-choice",
+					"text": "Para prevenir recorrência deste tipo de degradação progressiva, qual ação de manutenção preventiva é MAIS eficaz?",
+					"options": [
+						"Substituir todos os conectores SC/APC por conectores LC/UPC que são mais resistentes a sujeira",
+						"Implementar cronograma de inspeção e limpeza semestral de todos os pontos de conexão óptica",
+						"Instalar SFPs com maior sensibilidade (-28 dBm) para tolerar mais atenuação",
+						"Migrar para fibra armada (com proteção metálica) em todo o percurso"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Inspeção e limpeza semestral (B) é a prevenção mais eficaz: (1) identifica contaminação ANTES de causar degradação perceptível, (2) custo baixo comparado a qualquer outra opção, (3) cobre todos os pontos de vulnerabilidade. Trocar conectores (A) não previne contaminação futura. SFPs mais sensíveis (C) mascaram o problema sem resolver. Fibra armada (D) protege contra dano físico, não contaminação de conectores."
+				},
+				{
+					"id": "q14",
+					"type": "multiple-choice",
+					"text": "Qual configuração de monitoramento deveria ser implementada para detectar degradação óptica precocemente?",
+					"options": [
+						"Alerta quando RX Power cruzar o threshold de Low Alarm (-23 dBm)",
+						"Alerta quando RX Power degradar mais de 3 dB em relação ao baseline registrado",
+						"Alerta apenas quando erros FCS forem detectados na interface",
+						"Alerta diário comparando RX Power atual com o valor do dia anterior"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Alerta baseado em degradação relativa ao baseline (B) é o mais eficaz: (1) detecta degradação ANTES de atingir thresholds absolutos, (2) adapta-se ao valor normal de cada enlace específico, (3) margem de 3 dB permite identificar tendência antes de impacto operacional. Alerta no alarm (A) é muito tardio - já está em zona crítica. Erros FCS (C) só aparecem quando degradação é severa. Comparação diária (D) gera muitos falsos positivos por variações normais de temperatura."
+				},
+				{
+					"id": "q15",
+					"type": "matching",
+					"text": "Conecte cada causa de degradação óptica ao seu padrão típico de evolução temporal:",
+					"leftColumn": [
+						{"id": "dirt", "label": "Contaminação de conector"},
+						{"id": "bend", "label": "Macrobend (curvatura excessiva)"},
+						{"id": "water", "label": "Penetração de água em caixa de emenda"}
+					],
+					"rightColumn": [
+						{"id": "pattern1", "label": "Degradação gradual contínua ao longo de semanas/meses"},
+						{"id": "pattern2", "label": "Degradação súbita estável após evento de instalação/manutenção"},
+						{"id": "pattern3", "label": "Degradação variável correlacionada com ciclos de temperatura e umidade"}
+					],
+					"correctMatches": [
+						{"left": "dirt", "right": "pattern1"},
+						{"left": "bend", "right": "pattern2"},
+						{"left": "water", "right": "pattern3"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 6,
+					"justification": "Contaminação (↔ gradual) acumula-se progressivamente. Macrobend (↔ súbita) ocorre em evento único (instalação, movimentação) e permanece estável. Penetração de água (↔ variável) causa degradação que piora em períodos úmidos e pode melhorar quando seca, seguindo ciclo climático. Conhecer o padrão temporal ajuda a distinguir causas durante diagnóstico."
+				},
+				{
+					"id": "q16",
+					"type": "multiple-choice",
+					"text": "Qual documentação é ESSENCIAL para registro no relatório pós-incidente?",
+					"options": [
+						"Apenas o tempo total de degradação e a solução aplicada",
+						"Screenshots do sistema de monitoramento mostrando o histórico de RX Power",
+						"Registro completo incluindo: traço OTDR antes/depois, RX Power antes/depois, fotos do conector contaminado, e cronograma de manutenção atualizado",
+						"E-mail para a gerência informando que o problema foi resolvido"
+					],
+					"correctAnswer": 2,
+					"points": 5,
+					"justification": "Registro completo (C) é essencial porque: (1) traço OTDR documenta ponto exato e severidade do problema, (2) fotos do conector servem como evidência para justificar cronograma de manutenção preventiva, (3) comparação antes/depois valida eficácia da limpeza, (4) atualização do cronograma previne recorrência. Apenas tempo e solução (A) é insuficiente. Screenshots (B) são parte do registro mas não completos. E-mail (D) é comunicação, não documentação técnica."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 92,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 90,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de diagnóstico óptico, análise DDM/OTDR e manutenção de enlaces de fibra"
+			},
+			{
+				"min": 75,
+				"max": 89,
+				"grade": "Bom",
+				"description": "Compreensão sólida de métricas ópticas e procedimentos de troubleshooting com pequenas lacunas"
+			},
+			{
+				"min": 60,
+				"max": 74,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica suficiente, requer aprofundamento em análise OTDR e link budget"
+			},
+			{
+				"min": 45,
+				"max": 59,
+				"grade": "Insatisfatório",
+				"description": "Lacunas significativas em conhecimento de camada física e metrologia óptica"
+			},
+			{
+				"min": 0,
+				"max": 44,
+				"grade": "Inadequado",
+				"description": "Compreensão insuficiente, requer treinamento completo em fundamentos de fibra óptica e instrumentação"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Apresentar informações progressivamente, simulando a descoberta durante investigação de campo",
+		"Permitir 3-5 minutos de discussão entre participantes antes de cada resposta",
+		"Fazer perguntas orientadoras: 'O que significa RX Power de -22.4 dBm?', 'Como calculamos link budget?'",
+		"Enfatizar a importância de manutenção PREVENTIVA vs. reativa em infraestrutura óptica",
+		"Se grupo não tem experiência com OTDR ou DDM, explicar conceitos antes da Rodada 2",
+		"Manter neutralidade técnica - não fornecer respostas diretas",
+		"Controlar tempo: Rodada 1 (5 min), Rodadas 2-4 (10-12 min cada), Rodada 5 (7 min)",
+		"Mediar debates sobre custos de manutenção preventiva vs. risco de indisponibilidade",
+		"Após exercício: revisar gabarito e discutir implementação de monitoramento DDM com alertas por baseline",
+		"Coletar feedback sobre realismo do cenário e ajustes necessários",
+		"Documentar insights para melhorar cronograma de manutenção preventiva de enlaces ópticos"
+	],
+	"technicalReferences": [
+		{
+			"title": "ITU-T G.652 - Characteristics of single-mode optical fibre and cable",
+			"url": "https://www.itu.int/rec/T-REC-G.652"
+		},
+		{
+			"title": "IEC 61300-3-35 - Fibre optic connector endface visual inspection",
+			"url": "https://webstore.iec.ch/publication/5199"
+		},
+		{
+			"title": "IEEE 802.3 - 10GBASE-LR SFP+ Specifications",
+			"url": "https://standards.ieee.org/ieee/802.3/7071/"
+		},
+		{
+			"title": "SFF-8472 - Diagnostic Monitoring Interface for Optical Transceivers (DDM/DOM)",
+			"url": "https://members.snia.org/document/dl/25916"
+		},
+		{
+			"title": "OTDR Fundamentals and Best Practices for Fiber Testing",
+			"url": "https://www.fiberoptics4sale.com/blogs/archive-posts/95048006-otdr-testing"
+		},
+		{
+			"title": "EXFO - Fiber Optic Connector Cleaning Guide",
+			"url": "https://www.exfo.com/en/resources/blog/fiber-optic-connector-cleaning/"
+		}
+	]
+}

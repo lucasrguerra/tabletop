@@ -194,18 +194,6 @@ export default function ObserverPage() {
 							/>
 						)}
 
-						{/* Questions (read-only for observer) */}
-						{viewingRoundData?.questions?.length > 0 && (
-							<RoundQuestions
-								questions={viewingRoundData.questions}
-								roundIndex={viewingRound}
-								roundTitle={viewingRoundData.title}
-							/>
-						)}
-					</div>
-
-					{/* RIGHT: Metrics + Scenario + Guidelines (2/5 width) */}
-					<div className="lg:col-span-2 space-y-5">
 						{/* Metrics & Evidence */}
 						{metricsRounds.length > 0 && (
 							<MetricsDisplay
@@ -214,6 +202,19 @@ export default function ObserverPage() {
 							/>
 						)}
 
+						{/* Questions (read-only for observer) */}
+						{viewingRoundData?.questions?.length > 0 && (
+							<RoundQuestions
+								questions={viewingRoundData.questions}
+								roundIndex={viewingRound}
+								roundTitle={viewingRoundData.title}
+								readOnly={true}
+							/>
+						)}
+					</div>
+
+					{/* RIGHT: Metrics + Scenario + Guidelines (2/5 width) */}
+					<div className="lg:col-span-2 space-y-5">
 						{/* Scenario Context */}
 						{scenarioData && (
 							<BaseScenarioDisplay scenario={scenarioData} />

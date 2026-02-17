@@ -1,0 +1,569 @@
+{
+	"id": "throughput-degradation-research-network",
+	"title": "Resposta a Degradação de Throughput em Rede Científica",
+	"description": "Simulação tabletop de resposta a incidente de degradação de throughput em rede acadêmica, impactando transferências de dados entre instituições de pesquisa e centro de computação de alto desempenho",
+	"category": {
+		"id": "SCI_DATA",
+		"type": "SCI_DATA_THROUGHPUT_DEGRADATION",
+		"title": "Degradação de Throughput em Rede Científica"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-02-17",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "35-50 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Equipe de Operações de Rede Acadêmica, Engenheiros de Performance, Analistas de Infraestrutura"
+	},
+	"objectives": [
+		"Validar capacidade de diagnóstico de degradação de throughput em redes de alta capacidade",
+		"Avaliar conhecimento de fatores que afetam throughput TCP: MTU, RWIN, BDP, congestionamento",
+		"Testar compreensão de ferramentas de medição de throughput end-to-end (iperf3, perfSONAR)",
+		"Desenvolver habilidade de identificação de gargalos: host, rede, configuração ou equipamento",
+		"Identificar técnicas de TCP tuning para maximizar throughput em redes de longa distância",
+		"Promover compreensão da arquitetura de Data Transfer Nodes (DTN) e Science DMZ"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá execução real de comandos em sistemas de produção",
+		"Não inclui reconfiguração real de parâmetros de kernel ou equipamentos de rede",
+		"Foco na análise técnica, diagnóstico de performance e tomada de decisão",
+		"Avaliação de conhecimento de TCP tuning, gargalos de rede e otimização de transferências científicas"
+	],
+	"baseScenario": {
+		"context": "Quinta-feira, 11h00, horário de atividade acadêmica. Você faz parte da equipe de operações de uma rede acadêmica. Um consórcio de pesquisa em genômica distribuída utiliza a rede para transferir datasets de sequenciamento entre a Universidade de Bioinformática e o Centro de Computação HPC. O enlace de 100 Gbps entre ambas as instituições foi recentemente atualizado de 10 Gbps para 100 Gbps há 2 semanas. As transferências que antes alcançavam 8-9 Gbps no enlace de 10G agora não ultrapassam 12 Gbps no novo enlace de 100G.",
+		"initialSituation": {
+			"alert": "Throughput de transferência bem abaixo do esperado - 12 Gbps em enlace de 100 Gbps (12% de utilização)",
+			"affectedPath": "bioinfo-dtn.university.internal (10.30.10.50) ↔ hpc-storage.compute.internal (10.80.50.10)",
+			"expectedThroughput": "60-80 Gbps (meta pós-upgrade)",
+			"actualThroughput": "12 Gbps (17% da meta mínima)",
+			"timestamp": "10:45:33"
+		},
+		"initialComplaints": [
+			"Pesquisadores de genômica reportam que transferência de 50 TB leva 12 horas ao invés das 2 horas esperadas",
+			"Equipe de TI da universidade relata que upgrade do enlace não gerou ganho de performance proporcional",
+			"Testes com iperf3 mostram throughput máximo de 12 Gbps entre os servidores DTN",
+			"Utilização do enlace vista no monitoramento nunca ultrapassou 15% desde o upgrade"
+		],
+		"availableResources": [
+			"Nós perfSONAR em ambas as pontas com testes de throughput e latência",
+			"Acesso root/admin aos DTN (Data Transfer Nodes) em ambos os lados",
+			"Ferramentas: iperf3, nuttcp, tcpdump, ss, ethtool, sysctl, netstat",
+			"Dashboards Grafana com métricas de utilização de enlaces e hosts",
+			"Acesso administrativo a roteadores e switches (show interface, show counters)",
+			"Documentação da configuração do enlace (pré e pós-upgrade)",
+			"Contato com fabricante de equipamentos e equipe de rede"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe deve se familiarizar com a situação, entender o contexto pós-upgrade e planejar a abordagem de diagnóstico.",
+			"inject": "Apresentação do cenário conforme descrito. A equipe tem 5 minutos para discutir a situação inicial e formular hipóteses sobre a causa.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Detecção e Análise Inicial",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe executa testes de throughput e coleta evidências iniciais para identificar o gargalo.",
+			"timeElapsed": "T+0 (início do diagnóstico)",
+			"currentSituation": {
+				"throughput": "12 Gbps (meta: 60-80 Gbps)",
+				"linkCapacity": "100 Gbps",
+				"linkUtilization": "12% (durante transferência)",
+				"latencyRTT": "10ms",
+				"packetLoss": "<0.001%",
+				"impact": "Transferências de genômica levando 6x mais tempo que o planejado"
+			},
+			"metrics": [
+				{
+					"title": "Teste iperf3 Básico - Single Stream TCP",
+					"type": "throughput-test",
+					"data": {
+						"command": "iperf3 -c 10.80.50.10 -t 30 -P 1",
+						"result": {
+							"bandwidth": "1.2 Gbps",
+							"retransmits": 0,
+							"senderCWND": "390 KB",
+							"rtt": "10ms"
+						},
+						"observation": "Single stream TCP limitado a 1.2 Gbps - muito abaixo da capacidade do enlace"
+					}
+				},
+				{
+					"title": "Teste iperf3 - Multiple Streams TCP",
+					"type": "throughput-test",
+					"data": {
+						"command": "iperf3 -c 10.80.50.10 -t 30 -P 10",
+						"result": {
+							"totalBandwidth": "12 Gbps",
+							"perStreamBandwidth": "~1.2 Gbps",
+							"retransmits": 0,
+							"rtt": "10ms"
+						},
+						"observation": "10 streams = 12 Gbps. Cada stream limitada a ~1.2 Gbps. Sem retransmissões - não é perda de pacotes"
+					}
+				},
+				{
+					"title": "Parâmetros de Rede do DTN (bioinfo-dtn)",
+					"type": "host-config",
+					"data": {
+						"command": "sysctl -a | grep -E 'tcp_(rmem|wmem|mtu|timestamps|sack|window_scaling|congestion)'",
+						"parameters": {
+							"net.core.rmem_max": "212992 (208 KB)",
+							"net.core.wmem_max": "212992 (208 KB)",
+							"net.ipv4.tcp_rmem": "4096 131072 212992 (min 4KB, default 128KB, max 208KB)",
+							"net.ipv4.tcp_wmem": "4096 16384 212992 (min 4KB, default 16KB, max 208KB)",
+							"net.ipv4.tcp_window_scaling": 1,
+							"net.ipv4.tcp_timestamps": 1,
+							"net.ipv4.tcp_sack": 1,
+							"net.ipv4.tcp_congestion_control": "cubic",
+							"net.ipv4.tcp_mtu_probing": 0
+						},
+						"observation": "Buffer TCP máximo de 208 KB é PADRÃO DE DISTRIBUIÇÃO Linux. Nunca foi ajustado para rede de alta performance (deveria ser 64-256 MB)"
+					}
+				},
+				{
+					"title": "Configuração de Interface de Rede do DTN",
+					"type": "host-config",
+					"data": {
+						"command": "ethtool eth0 && ip link show eth0",
+						"interface": "eth0",
+						"speed": "100 Gbps",
+						"duplex": "Full",
+						"mtu": 1500,
+						"txQueueLen": 1000,
+						"ringBufferRx": 256,
+						"ringBufferTx": 256,
+						"ringBufferRxMax": 8192,
+						"ringBufferTxMax": 8192,
+						"offloads": {
+							"tso": "off",
+							"gro": "off",
+							"gso": "off",
+							"lro": "off"
+						},
+						"observation": "MTU padrão (1500), ring buffers mínimos (256 de 8192 possíveis), offloads desabilitados - host NÃO está configurado para alta performance"
+					}
+				},
+				{
+					"title": "Configuração do Enlace de Rede (switches/roteadores)",
+					"type": "network-config",
+					"data": {
+						"linkSpeed": "100 Gbps",
+						"mtuOnPath": "9216 (jumbo frames habilitados nos equipamentos de rede)",
+						"qosPolicy": "Nenhuma (best-effort)",
+						"freeCapacity": "88% (enlace quase vazio)",
+						"errors": 0,
+						"drops": 0,
+						"observation": "Equipamentos de rede estão corretos e com capacidade disponível. O gargalo NÃO é na rede."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"text": "Com base nos dados coletados, onde está o gargalo principal de throughput?",
+					"options": [
+						"No enlace de rede - capacidade insuficiente ou congestionamento",
+						"Na configuração do host DTN - buffers TCP, MTU e ring buffers inadequados para 100G",
+						"Perda de pacotes no caminho causando retransmissões TCP",
+						"Problema de roteamento - tráfego passando por caminho subótimo"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "O gargalo está NO HOST DTN (B): (1) Buffer TCP max 208 KB com RTT 10ms = throughput teórico máximo por stream ≈ 208 KB/10ms ≈ 166 Mbps (bem abaixo do observado 1.2 Gbps, pois autotuning parcial ajuda, mas fica limitado). (2) MTU 1500 em vez de 9000 (jumbo). (3) Ring buffers 256/8192 (3% do máximo). (4) Offloads desabilitados. (5) Rede tem 88% livre, zero erros, zero drops. O problema clássico pós-upgrade: enlace novo de 100G com hosts configurados para 1-10G."
+				},
+				{
+					"id": "q2",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Aumentar a capacidade do enlace de rede de 10 Gbps para 100 Gbps automaticamente resulta em aumento proporcional do throughput das transferências.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. O throughput end-to-end é limitado pelo componente MAIS LENTO do caminho (princípio do gargalo). Mesmo com enlace de 100 Gbps, se o host tem buffers TCP de 208 KB, MTU de 1500, ou NIC configurada subotimamente, o throughput será limitado pelo host. Analogia: alargar uma estrada de 2 para 10 faixas não ajuda se a rampa de acesso continua com 1 faixa. O upgrade de enlace deve SEMPRE ser acompanhado de tuning end-to-end."
+				},
+				{
+					"id": "q3",
+					"text": "Qual é o throughput teórico MÁXIMO de uma única conexão TCP com 208 KB de buffer e 10ms de RTT?",
+					"options": [
+						"~166 Mbps (208 KB / 10ms)",
+						"~1.66 Gbps (208 KB × 8 / 10ms × 1000)",
+						"~16.6 Gbps (208 KB × 80 / 10ms)",
+						"~100 Gbps (limitado apenas pelo enlace)"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "Throughput TCP máximo = Window Size / RTT. Com window max de 208 KB = 1.664 Mbps / 10ms... Corrigindo: 208 KB × 8 bits = 1.664 Mb (megabits). 1.664 Mb / 0.01s = 166.4 Mbps ≈ 166 Mbps. O TCP não pode enviar mais dados que o window permite antes de receber ACK. Com RTT de 10ms, precisa de window de ~125 MB para saturar 100 Gbps (BDP = 100 Gbps × 10ms = 1 Gbit = 125 MB). O buffer de 208 KB é 600x menor que o necessário."
+				},
+				{
+					"id": "q4",
+					"type": "numeric",
+					"text": "Qual é o BDP (Bandwidth-Delay Product) em MB para um enlace de 100 Gbps com RTT de 10ms? (Use 1 Gbps = 125 MB/s)",
+					"correctAnswer": 125,
+					"tolerance": 5,
+					"unit": "MB",
+					"points": 5,
+					"justification": "BDP = Bandwidth × RTT = 100 Gbps × 10ms = 100 × 10⁹ bits/s × 0.01s = 10⁹ bits = 1 Gbit. Convertendo para bytes: 1 Gbit / 8 = 125 MB. Para que UMA conexão TCP sature o enlace, precisa de buffer (RWIN) ≥ 125 MB. O buffer atual de 208 KB = 0.2 MB é ~625x menor que o necessário. Isso explica completamente o throughput de apenas 1.2 Gbps por stream."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Contenção e Tuning",
+			"phase": "Fase 2 - Contenção",
+			"description": "A equipe identificou que o gargalo são os parâmetros do host DTN. Decidem aplicar tuning de TCP e interface de rede para maximizar throughput.",
+			"timeElapsed": "T+20 minutos",
+			"currentSituation": {
+				"diagnosis": "Host DTN com configuração padrão de distribuição, não otimizado para 100G",
+				"currentThroughput": "12 Gbps (10 streams)",
+				"targetThroughput": "60-80 Gbps",
+				"impact": "Transferências lentas, pesquisadores aguardando dados para processamento"
+			},
+			"metrics": [
+				{
+					"title": "Tuning Aplicado no DTN (bioinfo-dtn)",
+					"type": "tuning-config",
+					"data": {
+						"changes": [
+							{"parameter": "net.core.rmem_max", "before": "212992", "after": "268435456 (256 MB)", "reason": "Permite autotuning TCP escalar buffer de recepção"},
+							{"parameter": "net.core.wmem_max", "before": "212992", "after": "268435456 (256 MB)", "reason": "Permite autotuning TCP escalar buffer de envio"},
+							{"parameter": "net.ipv4.tcp_rmem", "before": "4096 131072 212992", "after": "4096 87380 268435456", "reason": "Max de 256 MB para recepção TCP"},
+							{"parameter": "net.ipv4.tcp_wmem", "before": "4096 16384 212992", "after": "4096 65536 268435456", "reason": "Max de 256 MB para envio TCP"},
+							{"parameter": "MTU (ip link set mtu 9000)", "before": "1500", "after": "9000", "reason": "Jumbo frames reduzem overhead de cabeçalhos"},
+							{"parameter": "Ring Buffer (ethtool -G eth0 rx 8192 tx 8192)", "before": "256/256", "after": "8192/8192", "reason": "Maximizar ring buffer para evitar drops em bursts"},
+							{"parameter": "TSO/GRO (ethtool -K eth0 tso on gro on)", "before": "off", "after": "on", "reason": "Offload segmentação para hardware da NIC"}
+						],
+						"observation": "Tuning completo aplicado em ambos os DTN. Mesmo tuning aplicado no hpc-storage."
+					}
+				},
+				{
+					"title": "Resultado iperf3 Pós-Tuning",
+					"type": "throughput-test",
+					"data": {
+						"singleStream": {"command": "iperf3 -c 10.80.50.10 -t 30 -P 1", "bandwidth": "18 Gbps", "improvement": "15x (de 1.2 para 18 Gbps)"},
+						"multipleStreams4": {"command": "iperf3 -c 10.80.50.10 -t 30 -P 4", "bandwidth": "68 Gbps", "improvement": "5.7x (de 12 para 68 Gbps)"},
+						"multipleStreams8": {"command": "iperf3 -c 10.80.50.10 -t 30 -P 8", "bandwidth": "82 Gbps", "improvement": "6.8x (de 12 para 82 Gbps)"},
+						"observation": "Throughput aumentou dramaticamente: single stream 15x, multi-stream 6.8x. Meta de 60-80 Gbps alcançada com 4-8 streams."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q5",
+					"text": "Após o tuning, single stream saltou de 1.2 Gbps para 18 Gbps. Qual parâmetro teve MAIOR impacto nesta melhoria?",
+					"options": [
+						"MTU de 1500 para 9000 (jumbo frames)",
+						"Buffer TCP (rmem_max/wmem_max) de 208 KB para 256 MB",
+						"Ring buffers de 256 para 8192",
+						"TSO/GRO habilitados na NIC"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Buffer TCP (B) teve MAIOR impacto: com 208 KB de buffer e 10ms RTT, throughput máx ≈ 166 Mbps (teórico). Com 256 MB e autotuning, TCP pode escalar o window para acomodar o BDP de 125 MB. Isso remove a principal restrição. MTU (A) melhora ~5-10% (menos overhead de cabeçalhos). Ring buffers (C) previnem drops em bursts. TSO/GRO (D) reduzem carga de CPU. Todos contribuem, mas o buffer TCP era o gargalo dominante (625x subdimensionado)."
+				},
+				{
+					"id": "q6",
+					"type": "ordering",
+					"text": "Ordene os parâmetros de tuning de host do MAIS impactante ao MENOS impactante para throughput em redes de alta capacidade:",
+					"items": [
+						{"id": "p1", "label": "Buffer TCP (rmem_max/wmem_max) adequado ao BDP do enlace"},
+						{"id": "p2", "label": "MTU jumbo frames (9000 bytes)"},
+						{"id": "p3", "label": "Ring buffers da NIC maximizados"},
+						{"id": "p4", "label": "Offloads de hardware (TSO/GRO) habilitados"}
+					],
+					"correctOrder": ["p1", "p2", "p4", "p3"],
+					"partialCredit": false,
+					"points": 5,
+					"justification": "Ordem de impacto: (1) Buffer TCP é o mais crítico pois define o teto de throughput por stream (BDP). Sem buffer adequado, nenhuma outra otimização ajuda. (2) MTU jumbo reduz overhead de 2.8% (54B/1500B) para 0.6% (54B/9000B) e reduz pacotes/s em 6x, liberando CPU. (3) Offloads (TSO/GRO) delegam segmentação ao hardware, reduzindo carga de CPU em até 30-50%. (4) Ring buffers previnem drops em bursts mas raramente são o gargalo primário em transferências sustentadas."
+				},
+				{
+					"id": "q7",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: O algoritmo de controle de congestionamento CUBIC é a melhor escolha para transferências de dados científicos em redes de alta capacidade e longa distância (high BDP).",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO (parcialmente). CUBIC é adequado para muitos cenários, mas algoritmos como BBR (Bottleneck Bandwidth and RTT) do Google podem ser superiores em redes de alto BDP porque: (1) CUBIC usa loss-based congestion control (reduz window na perda). (2) BBR usa model-based (estima bandwidth e RTT). (3) Em redes com buffers grandes (bufferbloat), CUBIC pode subutilizar capacidade. (4) BBR v2 resolve problemas de fairness com CUBIC. Para redes científicas, BBR pode alcançar throughput mais alto e mais estável. Porém, a escolha depende do cenário de rede."
+				},
+				{
+					"id": "q8",
+					"text": "Mesmo após tuning, 4 streams são necessários para alcançar 68 Gbps. Por que uma single stream (18 Gbps) não satura o enlace de 100 Gbps?",
+					"options": [
+						"Limitação de CPU do host - processamento de um core não sustenta 100 Gbps",
+						"TCP congestion control é conservador - uma conexão não escala rápido o suficiente",
+						"Limitação do sistema operacional - kernel não processa mais de 20 Gbps por socket",
+						"Todas as alternativas contribuem para a limitação de throughput single-stream"
+					],
+					"correctAnswer": 3,
+					"points": 5,
+					"justification": "Todas contribuem (D): (A) Uma conexão TCP é tipicamente processada por um core. A 100G com pacotes de 9000B = ~1.4 Mpps, exigindo processamento extremamente eficiente. (B) CUBIC/BBR são conservadores no ramp-up e podem não escalar a window suficientemente rápido em conexões de curta duração. (C) Limitações de softirq, kernel lock contention e copy overhead limitam throughput por socket. Múltiplos streams distribuem carga entre cores, paralelizam I/O e agregam throughput."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Otimização Avançada e Arquitetura",
+			"phase": "Fase 2 - Contenção (Avançada)",
+			"description": "Com tuning aplicado, throughput alcançou 82 Gbps com 8 streams iperf3. Porém, a transferência real com Globus/GridFTP alcança apenas 55 Gbps. A equipe investiga os gargalos remanescentes.",
+			"timeElapsed": "T+45 minutos",
+			"currentSituation": {
+				"iperfThroughput": "82 Gbps (8 streams)",
+				"realTransferThroughput": "55 Gbps (Globus com 16 streams)",
+				"gap": "27 Gbps entre teste e transferência real",
+				"impact": "Reduzido - transferência de 50 TB em ~2 horas (aceitável, mas subótimo)"
+			},
+			"metrics": [
+				{
+					"title": "Análise de Gargalos Remanescentes",
+					"type": "bottleneck-analysis",
+					"data": {
+						"networkPath": {"throughput": "82 Gbps (iperf3)", "status": "Não é gargalo"},
+						"diskIO": {
+							"readSpeedSource": "4.2 GB/s (NVMe RAID, ~33.6 Gbps)",
+							"writeSpeedDest": "3.8 GB/s (SAS RAID, ~30.4 Gbps)",
+							"observation": "Disk I/O no destino é o novo gargalo: 30.4 Gbps < 82 Gbps de capacidade de rede"
+						},
+						"cpuUsage": {
+							"source": "45% (4 cores em uso)",
+							"dest": "62% (4 cores em uso)",
+							"observation": "CPU não é gargalo, mas contribui para overhead"
+						},
+						"memoryUsage": {
+							"source": "38% (buffers TCP usando ~2 GB)",
+							"dest": "52% (buffers TCP + filesystem cache)",
+							"observation": "Memória adequada"
+						},
+						"observation": "Gargalo principal é I/O de disco no destino. Throughput real limitado pela velocidade de escrita do storage."
+					}
+				},
+				{
+					"title": "Arquitetura DTN Atual vs Recomendada",
+					"type": "architecture-comparison",
+					"data": {
+						"current": {
+							"description": "DTN genérico (servidor compartilhado com outras funções)",
+							"nic": "1x 100G (sem NUMA awareness)",
+							"storage": "SAS RAID-6 (3.8 GB/s)",
+							"cpu": "Xeon 4215 (8 cores, 2.5 GHz)",
+							"ram": "64 GB DDR4",
+							"os": "Ubuntu 22.04 (configuração padrão)"
+						},
+						"recommended": {
+							"description": "DTN dedicado otimizado para transferência (Science DMZ pattern)",
+							"nic": "1x 100G com NUMA-aligned PCIe (mesmo NUMA node que storage)",
+							"storage": "NVMe RAID-0/10 (12+ GB/s, ~96 Gbps)",
+							"cpu": "Xeon de alta frequência (16+ cores)",
+							"ram": "128+ GB DDR4 (para buffers e cache)",
+							"os": "Tuned para network-throughput profile"
+						},
+						"observation": "DTN atual tem storage como gargalo (30 Gbps) e não segue best practices de Science DMZ"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q9",
+					"text": "A transferência real (55 Gbps) é menor que iperf3 (82 Gbps) porque iperf3 não escreve em disco. Qual é o gargalo PRINCIPAL na transferência real?",
+					"options": [
+						"CPU do servidor destino processando criptografia da transferência",
+						"Velocidade de escrita do storage no destino (30.4 Gbps)",
+						"Overhead do protocolo Globus/GridFTP comparado com TCP puro",
+						"Memória insuficiente para buffers de transferência"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Storage I/O (B) é o gargalo: disco SAS RAID escreve a 3.8 GB/s = 30.4 Gbps. A rede pode entregar 82 Gbps, mas o disco só absorve 30.4 Gbps. Os 55 Gbps observados são explicados por: 30.4 Gbps de escrita + bufferização em memória (filesystem cache) que eventualmente se esgota. CPU (A) está a 62%, não saturada. Overhead de protocolo (C) é ~5-10%, não 32%. Memória (D) está a 52%, adequada."
+				},
+				{
+					"id": "q10",
+					"type": "matching",
+					"text": "Conecte cada componente de um DTN otimizado ao benefício que ele proporciona:",
+					"leftColumn": [
+						{"id": "c1", "label": "NVMe RAID com throughput de 12+ GB/s"},
+						{"id": "c2", "label": "NIC 100G no mesmo NUMA node que storage"},
+						{"id": "c3", "label": "Tuning de kernel (buffers TCP, MTU, offloads)"}
+					],
+					"rightColumn": [
+						{"id": "b1", "label": "Elimina gargalo de I/O de disco na transferência de dados"},
+						{"id": "b2", "label": "Reduz latência de acesso à memória e melhora throughput PCIe entre NIC e storage"},
+						{"id": "b3", "label": "Permite que TCP escale window para acomodar BDP e maximize throughput por stream"}
+					],
+					"correctMatches": [
+						{"left": "c1", "right": "b1"},
+						{"left": "c2", "right": "b2"},
+						{"left": "c3", "right": "b3"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 6,
+					"justification": "NVMe RAID (↔ b1): 12 GB/s = 96 Gbps de I/O, eliminando disco como gargalo. NUMA awareness (↔ b2): NIC e storage no mesmo NUMA node evitam cross-NUMA memory access (penalidade de ~30% de throughput). Tuning TCP (↔ b3): buffers adequados ao BDP permitem janelas TCP grandes o suficiente para saturar o enlace."
+				},
+				{
+					"id": "q11",
+					"text": "O conceito de Science DMZ inclui colocar DTNs com bypass de firewall stateful. Por que o firewall é um gargalo para transferências de alta performance?",
+					"options": [
+						"Firewalls não suportam velocidades acima de 10 Gbps",
+						"Inspeção stateful de pacotes e connection tracking consomem CPU/memória e limitam throughput a ~40 Gbps na maioria dos firewalls",
+						"Firewalls bloqueiam protocolos de transferência científica como GridFTP",
+						"Firewalls adicionam latência de 100ms+ por pacote inspecionado"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Inspeção stateful (B) é o gargalo: (1) Connection tracking mantém estado de cada fluxo TCP, consumindo memória. (2) Deep packet inspection (DPI) requer CPU para cada pacote. (3) Firewalls enterprise tipicamente sustentam 20-40 Gbps de throughput stateful. (4) Elephant flows científicos com 32+ streams paralelos multiplicam o overhead de tracking. Firewalls modernos suportam >10G (A é incorreto). GridFTP não é bloqueado por padrão (C). Latência adicionada é microsegundos, não 100ms (D)."
+				},
+				{
+					"id": "q12",
+					"type": "numeric",
+					"text": "Se a meta é transferir 50 TB em 2 horas, qual deve ser o throughput sustentado mínimo em Gbps? (Use 1 TB = 8.000 Gbits)",
+					"correctAnswer": 55.6,
+					"tolerance": 2,
+					"unit": "Gbps",
+					"points": 5,
+					"justification": "Throughput = Volume / Tempo. 50 TB = 50 × 8.000 Gbits = 400.000 Gbits. 2 horas = 7.200 segundos. Throughput = 400.000 / 7.200 ≈ 55.6 Gbps. Isso confirma que o throughput atual de 55 Gbps está EXATAMENTE no limiar: qualquer degradação causará atraso. Para margem de segurança (overhead de protocolo, variações), ideal seria 65-70 Gbps sustentados."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Recuperação e Lições Aprendidas",
+			"phase": "Fase 3 e 4 - Recuperação e Pós-Incidente",
+			"description": "Com tuning de TCP aplicado e persistido, throughput de rede alcançou 82 Gbps. Transferência real em 55 Gbps (limitada por storage). Plano de upgrade de storage aprovado. Transferência de 50 TB completou em ~2h10min (dentro da janela aceitável).",
+			"timeElapsed": "T+3 horas (incidente operacional encerrado)",
+			"currentSituation": {
+				"networkThroughput": "82 Gbps (potencial)",
+				"realThroughput": "55 Gbps (limitado por storage)",
+				"transferCompleted": true,
+				"tuningPersisted": true,
+				"impact": "Resolvido - performance significativamente melhorada"
+			},
+			"questions": [
+				{
+					"id": "q13",
+					"text": "Para garantir que o tuning seja persistente e padronizado, qual abordagem é MAIS adequada?",
+					"options": [
+						"Documentar comandos em wiki interna e aplicar manualmente em cada servidor",
+						"Criar perfil de tuning automatizado (Ansible/Puppet) que seja aplicado em todos os DTNs via configuration management",
+						"Adicionar comandos no /etc/rc.local para execução no boot",
+						"Compilar kernel customizado com parâmetros otimizados"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Configuration management automatizado (B) é ideal porque: (1) Garante consistência entre todos os DTNs. (2) Versionamento dos perfis de tuning. (3) Aplicação automática em novos servidores. (4) Auditável e reproduzível. Wiki manual (A) é propenso a erros e esquecimento. rc.local (C) é legado e difícil de auditar. Kernel customizado (D) é excessivo e difícil de manter."
+				},
+				{
+					"id": "q14",
+					"text": "Qual é a PRINCIPAL lição aprendida sobre upgrades de enlace em redes científicas?",
+					"options": [
+						"Upgrades de enlace são desnecessários se os hosts não estão otimizados",
+						"Upgrades de enlace devem SEMPRE ser acompanhados de validação end-to-end (host + rede + storage) com testes de throughput",
+						"Hospedar todos os serviços no mesmo servidor simplifica a otimização",
+						"Firewalls devem ser removidos de toda a rede para máxima performance"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Validação end-to-end (B) é a lição principal: o upgrade de 10G para 100G falhou em entregar o throughput esperado porque apenas o enlace foi atualizado, mas hosts permaneceram com configuração de 1-10G. Um processo completo de upgrade deve incluir: (1) teste de line-rate no enlace, (2) tuning de hosts, (3) validação de storage I/O, (4) teste com iperf3 end-to-end, (5) teste com ferramenta de transferência real. Upgrades sem (A) não são desnecessários - são incompletos."
+				},
+				{
+					"id": "q15",
+					"text": "Para futuras instalações de DTN, qual checklist de validação deveria ser aplicado ANTES de colocar em produção?",
+					"options": [
+						"Apenas ping entre os endpoints para confirmar conectividade",
+						"iperf3 single-stream + multi-stream + transferência real de arquivo + DDM/DOM + perfSONAR baseline",
+						"Apenas iperf3 multi-stream para validar throughput máximo",
+						"Monitorar utilização do enlace por 24h e considerar validado se não houver erros"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Checklist completo (B) é necessário: (1) iperf3 single-stream valida tuning TCP. (2) Multi-stream valida escalabilidade. (3) Transferência real de arquivo valida disk I/O e overhead de protocolo. (4) DDM/DOM valida saúde óptica. (5) perfSONAR baseline estabelece referência para monitoramento contínuo. Ping (A) valida apenas conectividade L3. Multi-stream apenas (C) não testa I/O real. Monitorar 24h (D) é passivo e pode não detectar configurações subótimas."
+				},
+				{
+					"id": "q16",
+					"text": "Em post-mortem, qual pergunta tem MAIOR valor estratégico?",
+					"options": [
+						"Como padronizar um processo de commissioning end-to-end para activações de enlace de alta capacidade?",
+						"Quem deveria ter detectado que os DTNs não estavam otimizados?",
+						"Quanto custaria substituir todos os storages por NVMe RAID?",
+						"Quando a próxima atualização de enlace está planejada?"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "Padronizar commissioning (A) é a questão de maior valor porque resolve o problema SISTEMICAMENTE: cria um processo que garante que TODOS os upgrades futuros incluam validação end-to-end. Isso previne não apenas este incidente, mas toda a classe de problemas 'upgrade de enlace sem tuning de host'. Buscar culpados (B) é contraproducente. Custo de NVMe (C) é relevante mas pontual. Planejamento futuro (D) não resolve o processo."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 91,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 90,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de diagnóstico de throughput, TCP tuning e arquitetura de Data Transfer Nodes para redes científicas"
+			},
+			{
+				"min": 75,
+				"max": 89,
+				"grade": "Bom",
+				"description": "Compreensão sólida de fatores de performance TCP e otimização de hosts com pequenas lacunas"
+			},
+			{
+				"min": 60,
+				"max": 74,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica suficiente, requer aprofundamento em TCP tuning e arquitetura Science DMZ"
+			},
+			{
+				"min": 45,
+				"max": 59,
+				"grade": "Insatisfatório",
+				"description": "Lacunas significativas em conhecimento de performance TCP e otimização de transferências"
+			},
+			{
+				"min": 0,
+				"max": 44,
+				"grade": "Inadequado",
+				"description": "Compreensão insuficiente, requer treinamento completo em redes de alta performance e TCP tuning"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Enfatizar que throughput end-to-end é limitado pelo componente mais lento (host, rede ou storage)",
+		"Apresentar informações progressivamente, simulando a descoberta natural durante diagnóstico",
+		"Permitir 3-4 minutos de discussão entre participantes antes de cada resposta",
+		"Fazer perguntas socráticas: 'Por que o upgrade de enlace não resultou em mais throughput?', 'Onde está o gargalo agora?'",
+		"Observar se a equipe identifica que o problema é no host, não na rede - erro comum em operações",
+		"Manter neutralidade técnica - não fornecer respostas diretas, apenas orientar pensamento crítico",
+		"Controlar tempo: Rodada 1 (5 min), Rodadas 2-4 (8-10 min cada), Rodada 5 (7 min)",
+		"Discutir conceito de BDP (Bandwidth-Delay Product) e por que é fundamental para redes de alta capacidade",
+		"Após exercício: revisar gabarito, discutir importância de validação end-to-end em upgrades, coletar feedback"
+	],
+	"technicalReferences": [
+		{
+			"title": "ESnet - Science DMZ Architecture",
+			"url": "https://fasterdata.es.net/science-dmz/"
+		},
+		{
+			"title": "ESnet - Linux Tuning for High Performance Networks",
+			"url": "https://fasterdata.es.net/host-tuning/linux/"
+		},
+		{
+			"title": "ESnet - Data Transfer Nodes (DTN)",
+			"url": "https://fasterdata.es.net/science-dmz/DTN/"
+		},
+		{
+			"title": "RFC 6349 - Framework for TCP Throughput Testing",
+			"url": "https://www.rfc-editor.org/rfc/rfc6349"
+		},
+		{
+			"title": "RFC 7323 - TCP Extensions for High Performance",
+			"url": "https://www.rfc-editor.org/rfc/rfc7323"
+		},
+		{
+			"title": "Google BBR Congestion Control",
+			"url": "https://research.google/pubs/bbr-congestion-based-congestion-control/"
+		}
+	]
+}
