@@ -32,6 +32,23 @@ export default function ParticipantPage() {
 	const [submitting, setSubmitting] = useState(false);
 	const [resultsData, setResultsData] = useState(null);
 	const [evaluationData, setEvaluationData] = useState(undefined);
+	const [csrfToken, setCsrfToken] = useState(null);
+
+	// Fetch CSRF token
+	useEffect(() => {
+		const fetchCsrf = async () => {
+			try {
+				const res = await fetch('/api/csrf');
+				const data = await res.json();
+				if (data.success && data.csrf_token) {
+					setCsrfToken(data.csrf_token);
+				}
+			} catch (err) {
+				console.error('Error fetching CSRF token:', err);
+			}
+		};
+		fetchCsrf();
+	}, []);
 
 	// Keep viewingRound in sync when facilitator advances
 	const syncViewingRound = useCallback((currentRound, prevCurrentRound) => {
@@ -154,7 +171,7 @@ export default function ParticipantPage() {
 			const response = await fetch(`/api/trainings/${params.id}/responses`, {
 				method: 'POST',
 				credentials: 'include',
-				headers: { 'Content-Type': 'application/json' },
+				headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
 				body: JSON.stringify({
 					round_id: roundIndex,
 					question_id: questionId,

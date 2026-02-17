@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FaUserPlus, FaSpinner } from 'react-icons/fa';
 
 export default function InviteParticipantCard({ trainingId, onInviteSent }) {
@@ -7,6 +7,22 @@ export default function InviteParticipantCard({ trainingId, onInviteSent }) {
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState(null);
 	const [success, setSuccess] = useState(null);
+	const [csrfToken, setCsrfToken] = useState(null);
+
+	useEffect(() => {
+		const fetchCsrf = async () => {
+			try {
+				const res = await fetch('/api/csrf');
+				const data = await res.json();
+				if (data.success && data.csrf_token) {
+					setCsrfToken(data.csrf_token);
+				}
+			} catch (err) {
+				console.error('Error fetching CSRF token:', err);
+			}
+		};
+		fetchCsrf();
+	}, []);
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
@@ -23,7 +39,7 @@ export default function InviteParticipantCard({ trainingId, onInviteSent }) {
 
 			const response = await fetch(`/api/trainings/${trainingId}/participants`, {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
 				credentials: 'include',
 				body: JSON.stringify({ nickname: nickname.trim(), role })
 			});
