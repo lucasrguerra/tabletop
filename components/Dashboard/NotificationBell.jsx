@@ -36,9 +36,26 @@ export default function NotificationBell() {
 	const [unreadCount, setUnreadCount] = useState(0);
 	const [loading, setLoading] = useState(false);
 	const [filter, setFilter] = useState('all');
+	const [csrfToken, setCsrfToken] = useState(null);
 	const dropdownRef = useRef(null);
 	const bellRef = useRef(null);
 	const router = useRouter();
+
+	// Fetch CSRF token
+	useEffect(() => {
+		const fetchCsrf = async () => {
+			try {
+				const res = await fetch('/api/csrf');
+				const data = await res.json();
+				if (data.success && data.csrf_token) {
+					setCsrfToken(data.csrf_token);
+				}
+			} catch (err) {
+				console.error('Error fetching CSRF token:', err);
+			}
+		};
+		fetchCsrf();
+	}, []);
 
 	const fetchNotifications = useCallback(async () => {
 		try {
@@ -90,7 +107,7 @@ export default function NotificationBell() {
 		try {
 			const res = await fetch('/api/notifications', {
 				method: 'PATCH',
-				headers: { 'Content-Type': 'application/json' },
+				headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
 				body: JSON.stringify({ notification_id }),
 			});
 			const data = await res.json();
@@ -109,7 +126,7 @@ export default function NotificationBell() {
 		try {
 			const res = await fetch('/api/notifications', {
 				method: 'PATCH',
-				headers: { 'Content-Type': 'application/json' },
+				headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
 				body: JSON.stringify({}),
 			});
 			const data = await res.json();
