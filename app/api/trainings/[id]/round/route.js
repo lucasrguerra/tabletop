@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/utils/auth';
+import { withCsrf } from '@/utils/csrf';
 import { withTrainingRole } from '@/utils/trainingAuth';
 import Training from '@/database/schemas/Training';
 import connectDatabase from '@/database/database';
@@ -11,7 +12,7 @@ import readScenario from '@/models/Trainings/readScenario';
  * Only facilitators can change rounds
  * Supports actions: 'next', 'previous', 'set' (with round number)
  */
-export const PATCH = withAuth(withTrainingRole(async (request, context, session, training, userRole) => {
+export const PATCH = withAuth(withCsrf(withTrainingRole(async (request, context, session, training, userRole) => {
 	try {
 		// Only facilitators can change rounds
 		if (userRole !== 'facilitator') {
@@ -107,16 +108,16 @@ export const PATCH = withAuth(withTrainingRole(async (request, context, session,
 			);
 		}
 
-		// Update training and reset round timer when round changes
+		// Update training: reset round timer and auto-start it when round changes
 		const updatedTraining = await Training.findByIdAndUpdate(
 			training.id,
 			{ 
 				$set: { 
 					current_round: newRound,
-					// Reset round timer when changing rounds
-					'round_timer.started_at': null,
+					// Reset round timer and auto-start
+					'round_timer.started_at': new Date(),
 					'round_timer.elapsed_time': 0,
-					'round_timer.is_paused': true
+					'round_timer.is_paused': false
 				} 
 			},
 			{ new: true, runValidators: true }
@@ -143,4 +144,4 @@ export const PATCH = withAuth(withTrainingRole(async (request, context, session,
 			{ status: 500 }
 		);
 	}
-}, ['facilitator']));
+}, ['facilitator'])));

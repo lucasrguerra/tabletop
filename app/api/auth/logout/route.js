@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { revokeToken } from '@/models/Token/revoke';
 import connectDB from '@/database/database';
 import { withAuth } from '@/utils/auth';
+import { withCsrf } from '@/utils/csrf';
 
 /**
  * POST endpoint to logout user and revoke token
@@ -52,4 +53,4 @@ async function logoutHandler(request, context, session) {
 	}
 }
 
-export const POST = withAuth(logoutHandler);
+export const POST = withAuth(withCsrf(logoutHandler));

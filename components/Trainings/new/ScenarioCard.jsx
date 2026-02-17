@@ -1,6 +1,6 @@
 "use client";
 
-import { FaFileAlt, FaClock, FaUser, FaCalendar, FaStar } from 'react-icons/fa';
+import { FaFileAlt, FaClock, FaUser, FaCalendar } from 'react-icons/fa';
 
 /**
  * Get difficulty color scheme

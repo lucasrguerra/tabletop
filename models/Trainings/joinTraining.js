@@ -2,6 +2,7 @@ import Training from '@/database/schemas/Training';
 import connectDatabase from '@/database/database';
 import accessCode from '@/models/Trainings/accessCode';
 import mongoose from 'mongoose';
+import { constantTimeCompare } from '@/utils/timingSafe';
 
 /**
  * Adds a user as a participant to a training
@@ -127,8 +128,8 @@ export default async function joinTraining(training_id, user_id, options = {}) {
 				};
 			}
 
-			// Check if the access code matches the training's code
-			if (training.access_code !== options.access_code) {
+			// Check if the access code matches the training's code (timing-safe)
+			if (!constantTimeCompare(training.access_code, options.access_code)) {
 				return {
 					success: false,
 					message: 'Código de acesso incorreto para este treinamento'

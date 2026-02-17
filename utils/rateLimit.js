@@ -43,7 +43,7 @@ const rate_limit_map = new Map();
 function cleanupOldEntries() {
 	const now = Date.now();
 	for (const [key, data] of rate_limit_map.entries()) {
-		if (now > data.resetTime) {
+		if (now > data.reset_time) {
 			rate_limit_map.delete(key);
 		}
 	}

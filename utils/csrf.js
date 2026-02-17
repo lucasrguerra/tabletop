@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { NextResponse } from 'next/server';
+import { constantTimeCompare } from '@/utils/timingSafe';
 
 /**
  * CSRF (Cross-Site Request Forgery) Protection
@@ -7,7 +8,11 @@ import { NextResponse } from 'next/server';
  * This approach works across serverless instances without shared state
  */
 
-const CSRF_SECRET = process.env.CSRF_SECRET || crypto.randomBytes(32).toString('hex');
+const CSRF_SECRET = process.env.CSRF_SECRET;
+if (!CSRF_SECRET) {
+	console.warn('[SECURITY] CSRF_SECRET is not set. CSRF tokens will not persist across server restarts. Set CSRF_SECRET in environment variables for production.');
+}
+const _csrf_secret = CSRF_SECRET || crypto.randomBytes(32).toString('hex');
 const TOKEN_VALIDITY_MS = 60 * 60 * 1000;
 
 /**
@@ -24,7 +29,7 @@ export function generateCsrfToken(session_id) {
 	const timestamp = Date.now().toString();
 	const message = `${timestamp}.${session_id}`;
 	
-	const hmac = crypto.createHmac('sha256', CSRF_SECRET);
+	const hmac = crypto.createHmac('sha256', _csrf_secret);
 	hmac.update(message);
 	const signature = hmac.digest('hex');
 	const token = `${timestamp}.${session_id}.${signature}`;
@@ -67,11 +72,12 @@ export function validateCsrfToken(token, session_id) {
 		}
 
 		const message = `${timestamp}.${token_session_id}`;
-		const hmac = crypto.createHmac('sha256', CSRF_SECRET);
+		const hmac = crypto.createHmac('sha256', _csrf_secret);
 		hmac.update(message);
 		const expected_signature = hmac.digest('hex');
 
-		if (signature !== expected_signature) {
+		// Use constant-time comparison to prevent timing attacks
+		if (!constantTimeCompare(signature, expected_signature)) {
 			return false;
 		}
 
