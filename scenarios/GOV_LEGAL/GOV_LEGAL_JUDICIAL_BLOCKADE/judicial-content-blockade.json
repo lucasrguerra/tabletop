@@ -1,0 +1,544 @@
+{
+	"id": "judicial-content-blockade",
+	"title": "Resposta a Ordem Judicial de Bloqueio de Conteúdo Online",
+	"description": "Simulação tabletop de resposta a ordem judicial determinando bloqueio de acesso a conteúdo online hospedado em infraestrutura de terceiros, com implementação técnica e compliance legal",
+	"category": {
+		"id": "GOV_LEGAL",
+		"type": "GOV_LEGAL_JUDICIAL_BLOCKADE",
+		"title": "Bloqueio Judicial de Conteúdo"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2025-02-02",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "35-50 minutos",
+		"difficulty": "Intermediário a Avançado",
+		"targetAudience": "Equipe Jurídica, NOC (Network Operations Center), Gestores de TI, Compliance, Administradores de Rede"
+	},
+	"objectives": [
+		"Validar capacidade de resposta a ordens judiciais de bloqueio de conteúdo em conformidade com o Marco Civil da Internet",
+		"Avaliar conhecimento sobre métodos técnicos de bloqueio (DNS, IP, URL) e suas implicações",
+		"Testar procedimentos de verificação de validade formal de ordens judiciais",
+		"Desenvolver compreensão do princípio da proporcionalidade aplicado a bloqueios técnicos",
+		"Identificar processos de documentação, auditoria e compliance para ordens judiciais",
+		"Promover conhecimento sobre prazos legais, recursos e responsabilidades do provedor"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá execução real de bloqueios em sistemas de produção",
+		"Não inclui consultoria jurídica formal ou petições reais a tribunais",
+		"Foco na tomada de decisão técnica-jurídica, implementação de bloqueio e compliance",
+		"Avaliação de conhecimento do Marco Civil da Internet (Lei 12.965/2014) e legislação aplicável"
+	],
+	"baseScenario": {
+		"context": "Quinta-feira, 14h20, horário comercial. Você faz parte da equipe de operações de rede (NOC) de um provedor de serviços de internet. A organização opera infraestrutura de backbone e provê conectividade para ~50.000 assinantes residenciais e corporativos. A equipe jurídica acaba de encaminhar uma ordem judicial recebida por e-mail oficial do Tribunal de Justiça, determinando o bloqueio de acesso a uma plataforma de jogos de azar online operando ilegalmente no Brasil. A ordem especifica domínios e URLs que devem ser tornados inacessíveis aos clientes do provedor.",
+		"initialSituation": {
+			"alert": "Ordem judicial recebida via e-mail oficial do TJ determinando bloqueio de conteúdo",
+			"court": "2ª Vara Cível da Comarca da Capital - Processo nº 0012345-67.2025.8.00.0001",
+			"targetContent": "Domínios: jogosonline.example.com, apostas.example.net, casino-br.example.org",
+			"deadline": "48 horas para cumprimento integral (prazo expira sábado, 14h20)",
+			"penalty": "Multa diária de R$ 50.000,00 por descumprimento (astreintes)",
+			"timestamp": "14:20:00"
+		},
+		"initialComplaints": [
+			"Ordem judicial assinada digitalmente por magistrado com certificado ICP-Brasil",
+			"Plataforma opera sem autorização da Secretaria de Prêmios e Apostas do Ministério da Fazenda",
+			"Ministério Público solicitou o bloqueio após denúncias de lavagem de dinheiro",
+			"Ordem menciona precedentes de bloqueios similares contra outras plataformas de apostas"
+		],
+		"availableResources": [
+			"Infraestrutura DNS recursiva própria (servidores DNS para assinantes)",
+			"Firewalls de borda e roteadores de núcleo com capacidade de filtragem",
+			"Sistema de gerenciamento de rede (NMS) com logs centralizados",
+			"Equipe jurídica interna com experiência em Marco Civil da Internet",
+			"Acesso a ferramentas de análise: dig, nslookup, whois, traceroute",
+			"Documentação de processos internos para cumprimento de ordens judiciais (parcialmente atualizada)",
+			"Contato com equipe de abuse e compliance"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe deve se familiarizar com a ordem judicial recebida, os domínios a serem bloqueados e os recursos disponíveis para implementação.",
+			"inject": "Apresentação do cenário conforme descrito. A equipe tem 5 minutos para ler a ordem judicial, discutir a situação inicial e planejar abordagem de resposta.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Análise da Ordem Judicial",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe analisa a ordem judicial recebida para verificar sua validade formal, compreender o escopo exato do bloqueio e identificar as obrigações legais do provedor.",
+			"timeElapsed": "T+0 (14:20 - recebimento da ordem)",
+			"currentSituation": {
+				"orderStatus": "Recebida - em análise pela equipe jurídica e NOC",
+				"contentStatus": "Ainda acessível aos assinantes do provedor",
+				"deadline": "48 horas (expira sábado 14:20)",
+				"legalRisk": "Alto - multa de R$ 50.000/dia por descumprimento"
+			},
+			"metrics": [
+				{
+					"type": "judicial-order-analysis",
+					"title": "Análise da Ordem Judicial Recebida",
+					"data": {
+						"court": "2ª Vara Cível da Comarca da Capital",
+						"processNumber": "0012345-67.2025.8.00.0001",
+						"judge": "Dr(a). [Nome Redacted] - Juiz(a) de Direito",
+						"digitalSignature": "✅ Assinatura digital ICP-Brasil válida (certificado A3)",
+						"legalBasis": "Art. 19, §1º, Marco Civil da Internet (Lei 12.965/2014); Lei 13.756/2018 (Apostas)",
+						"targetDomains": ["jogosonline.example.com", "apostas.example.net", "casino-br.example.org"],
+						"targetIPs": "Não especificados na ordem",
+						"blockScope": "Bloqueio de acesso aos domínios listados para todos os assinantes",
+						"deadline": "48 horas a partir da intimação",
+						"penalty": "Astreintes de R$ 50.000,00/dia em caso de descumprimento",
+						"observation": "Ordem formalmente válida: assinada digitalmente, com fundamentação legal, identificação clara dos domínios, prazo definido e penalidade por descumprimento. Não especifica método técnico de bloqueio (DNS, IP, DPI) - decisão técnica cabe ao provedor."
+					}
+				},
+				{
+					"type": "dns-analysis",
+					"title": "Análise DNS dos Domínios Alvo",
+					"data": {
+						"jogosonline.example.com": {
+							"ipv4": "104.21.45.123 (Cloudflare CDN)",
+							"ipv6": "2606:4700:3030::6815:2d7b",
+							"nameservers": "ns1.cloudflare.com, ns2.cloudflare.com",
+							"sharedHosting": "Sim - CDN compartilhada com ~200 outros domínios legítimos"
+						},
+						"apostas.example.net": {
+							"ipv4": "185.230.63.89 (Hosting offshore)",
+							"ipv6": "N/A",
+							"nameservers": "ns1.offshore-dns.example",
+							"sharedHosting": "Não - IP dedicado"
+						},
+						"casino-br.example.org": {
+							"ipv4": "104.21.45.123 (mesmo IP do jogosonline - Cloudflare CDN)",
+							"ipv6": "2606:4700:3030::6815:2d7b",
+							"nameservers": "ns1.cloudflare.com, ns2.cloudflare.com",
+							"sharedHosting": "Sim - mesmo cluster CDN compartilhado"
+						},
+						"observation": "ATENÇÃO: 2 dos 3 domínios (jogosonline e casino-br) estão hospedados em Cloudflare CDN e compartilham o mesmo IP com ~200 outros domínios legítimos. Bloqueio por IP causaria dano colateral massivo. Bloqueio por DNS é mais cirúrgico e apropriado."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"question": "Ao receber uma ordem judicial de bloqueio de conteúdo, qual deve ser a PRIMEIRA ação da equipe?",
+					"points": 5,
+					"options": [
+						"Implementar o bloqueio imediatamente nos servidores DNS para cumprir o prazo",
+						"Verificar a autenticidade e validade formal da ordem judicial antes de qualquer ação técnica",
+						"Encaminhar a ordem ao departamento jurídico e aguardar parecer completo sem tomar ação",
+						"Contactar o titular do conteúdo bloqueado para negociar remoção voluntária"
+					],
+					"correctAnswer": 1,
+					"justification": "A primeira ação é verificar autenticidade e validade formal (B). Verificar: (1) assinatura digital válida (ICP-Brasil), (2) competência do juízo, (3) fundamentação legal, (4) especificidade do conteúdo alvo, (5) prazo e penalidades. Opção (A) é precipitada - bloqueio sem verificação pode executar ordem fraudulenta. (C) é passiva demais - equipe técnica deve iniciar análise em paralelo ao jurídico. (D) não é obrigação do provedor e não substitui cumprimento da ordem."
+				},
+				{
+					"id": "q2",
+					"type": "true-false",
+					"question": "Segundo o Art. 19 do Marco Civil da Internet (Lei 12.965/2014), provedores de aplicações de internet somente podem ser responsabilizados civilmente por danos decorrentes de conteúdo gerado por terceiros se, após ordem judicial específica, não tomarem as providências para tornar indisponível o conteúdo apontado como infringente.",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. Art. 19 do Marco Civil estabelece o regime de responsabilidade do provedor: 'Com o intuito de assegurar a liberdade de expressão e impedir a censura, o provedor de aplicações de internet somente poderá ser responsabilizado civilmente por danos decorrentes de conteúdo gerado por terceiros se, após ordem judicial específica, não tomar as providências para [...] tornar indisponível o conteúdo apontado como infringente'. Este é o sistema de 'notice-and-takedown judicial' brasileiro, diferente do modelo americano (DMCA) que aceita notificação extrajudicial."
+				},
+				{
+					"id": "q3",
+					"type": "multiple-choice",
+					"question": "Qual elemento NÃO é requisito essencial para validade de uma ordem judicial de bloqueio de conteúdo segundo o Marco Civil?",
+					"points": 6,
+					"options": [
+						"Identificação clara e específica do conteúdo a ser bloqueado (URLs, domínios)",
+						"Especificação do método técnico de bloqueio a ser utilizado pelo provedor (DNS, IP, DPI)",
+						"Fundamentação legal com indicação dos dispositivos de lei aplicáveis",
+						"Designação de prazo razoável para cumprimento e indicação de penalidade por descumprimento"
+					],
+					"correctAnswer": 1,
+					"justification": "A ordem judicial NÃO precisa especificar o método técnico (B). O Art. 19, §1º do Marco Civil exige que a ordem contenha 'identificação clara e específica do conteúdo' (A), mas a escolha do método técnico é decisão operacional do provedor. O juiz determina O QUE bloquear, não COMO bloquear. Fundamentação legal (C) e prazo com penalidade (D) são requisitos processuais obrigatórios. A liberdade de escolha técnica permite ao provedor adotar o método mais proporcional e menos danoso a terceiros."
+				},
+				{
+					"id": "q4",
+					"type": "multiple-choice",
+					"question": "A análise DNS revela que 2 dos 3 domínios compartilham IP com ~200 sites legítimos em CDN. Se a ordem judicial especifica apenas domínios (não IPs), qual é a abordagem mais apropriada?",
+					"points": 6,
+					"options": [
+						"Bloquear por IP mesmo assim, pois a ordem judicial deve ser cumprida integralmente",
+						"Informar ao juízo que é tecnicamente impossível cumprir a ordem e solicitar revogação",
+						"Implementar bloqueio por DNS (sinkhole) nos domínios especificados, preservando acesso aos demais sites",
+						"Aguardar que a plataforma migre para outro IP antes de implementar qualquer bloqueio"
+					],
+					"correctAnswer": 2,
+					"justification": "Bloqueio por DNS sinkhole (C) é a abordagem mais proporcional e tecnicamente correta. A ordem especifica DOMÍNIOS, não IPs - bloqueio DNS atende exatamente ao escopo determinado sem dano colateral a ~200 sites legítimos. (A) viola o princípio da proporcionalidade - bloquearia sites legítimos, podendo gerar responsabilidade civil por dano a terceiros. (B) é falso - o bloqueio É tecnicamente possível via DNS. (D) é omissão que resultaria em multa por descumprimento."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Implementação Técnica do Bloqueio",
+			"phase": "Fase 2 - Contenção",
+			"description": "Após validar a ordem judicial e definir a estratégia de bloqueio por DNS, a equipe inicia a implementação técnica nos servidores DNS recursivos do provedor.",
+			"timeElapsed": "T+2 horas (16:20)",
+			"currentSituation": {
+				"orderValidated": "✅ Ordem validada pela equipe jurídica como formalmente válida",
+				"blockingMethod": "DNS sinkhole (redirecionamento para página de notificação)",
+				"implementation": "Em andamento nos servidores DNS recursivos",
+				"deadline": "Restam 46 horas (expira sábado 14:20)"
+			},
+			"metrics": [
+				{
+					"type": "dns-infrastructure",
+					"title": "Infraestrutura DNS do Provedor",
+					"data": {
+						"recursiveServers": "4 servidores DNS recursivos (dns1 a dns4.internal.isp)",
+						"totalQueries": "~2.5 milhões queries/dia",
+						"subscribersUsingISPDNS": "~38.000 de 50.000 (76%)",
+						"subscribersUsingExternalDNS": "~12.000 (24%) usando Google DNS 8.8.8.8 ou Cloudflare 1.1.1.1",
+						"blockingPage": "Página HTML informando: 'Conteúdo indisponível por determinação judicial - Processo nº [...]'",
+						"observation": "Bloqueio DNS será efetivo para 76% dos assinantes que utilizam DNS do provedor. Os 24% que usam DNS externo (Google, Cloudflare) não serão afetados pelo bloqueio local. Isso é uma limitação conhecida do bloqueio por DNS - não é 100% eficaz."
+					}
+				},
+				{
+					"type": "blocking-implementation",
+					"title": "Configuração de DNS Sinkhole",
+					"data": {
+						"method": "RPZ (Response Policy Zone) nos servidores BIND",
+						"rpzConfig": "zone \"rpz.judicial\" { type master; file \"/etc/bind/zones/rpz.judicial.db\"; };",
+						"rpzEntries": "jogosonline.example.com CNAME blocked.internal.isp.\napostas.example.net CNAME blocked.internal.isp.\ncasino-br.example.org CNAME blocked.internal.isp.",
+						"blockedPage": "HTTP 451 (Unavailable For Legal Reasons) + informações do processo judicial",
+						"logging": "query-logging habilitado para registrar tentativas de acesso aos domínios bloqueados",
+						"observation": "RPZ (Response Policy Zone) é o método mais flexível para bloqueio DNS: permite redirecionamento granular por domínio sem afetar outros registros. Cada query aos domínios bloqueados retorna CNAME para servidor interno que exibe página de notificação judicial."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q5",
+					"type": "multiple-choice",
+					"question": "Qual método de bloqueio oferece o MELHOR equilíbrio entre eficácia, granularidade e minimização de danos colaterais para bloqueio de domínios específicos?",
+					"points": 6,
+					"options": [
+						"Bloqueio por IP no firewall de borda (iptables/ACL)",
+						"DNS sinkhole via RPZ (Response Policy Zone) nos servidores DNS recursivos",
+						"Deep Packet Inspection (DPI) com inspeção de conteúdo HTTP/HTTPS",
+						"BGP blackhole routing (null route) para os IPs dos domínios"
+					],
+					"correctAnswer": 1,
+					"justification": "DNS sinkhole via RPZ (B) é o método mais granular e proporcional: bloqueia APENAS os domínios especificados, sem afetar outros sites no mesmo IP. (A) bloqueio por IP causaria dano colateral severo em hospedagem compartilhada/CDN. (C) DPI é invasivo, custoso e ineficaz contra HTTPS (tráfego criptografado). (D) BGP blackhole afeta TODO o tráfego para o IP, incluindo serviços legítimos. RPZ também permite fácil reversão e logging granular."
+				},
+				{
+					"id": "q6",
+					"type": "ordering",
+					"question": "Ordene os passos corretos para implementar um bloqueio judicial de conteúdo via DNS de forma segura e auditável:",
+					"points": 6,
+					"partialCredit": false,
+					"items": [
+						{"id": "step1", "text": "Validar autenticidade e escopo da ordem judicial com equipe jurídica"},
+						{"id": "step2", "text": "Documentar estado atual (snapshots DNS, resolução dos domínios alvo)"},
+						{"id": "step3", "text": "Configurar regras RPZ/sinkhole nos servidores DNS recursivos"},
+						{"id": "step4", "text": "Testar bloqueio em ambiente de homologação antes de aplicar em produção"},
+						{"id": "step5", "text": "Aplicar bloqueio em produção e verificar eficácia com testes de resolução"},
+						{"id": "step6", "text": "Gerar relatório de compliance com evidências técnicas e notificar o juízo"}
+					],
+					"correctOrder": ["step1", "step2", "step3", "step4", "step5", "step6"],
+					"justification": "Sequência correta: (1) Validação jurídica primeiro - nunca executar sem confirmação de autenticidade. (2) Documentar estado anterior para auditoria e reversibilidade. (3) Configurar regras tecnicamente. (4) Testar em homologação - evita erros em produção que poderiam causar indisponibilidade acidental. (5) Aplicar em produção e verificar. (6) Documentar e notificar juízo do cumprimento. Pular etapas de teste (step4) ou documentação (step2, step6) compromete auditabilidade e pode causar erros."
+				},
+				{
+					"id": "q7",
+					"type": "true-false",
+					"question": "O bloqueio DNS implementado pelo provedor será eficaz contra 100% dos assinantes, incluindo aqueles que configuram servidores DNS externos como Google (8.8.8.8) ou Cloudflare (1.1.1.1) em seus dispositivos.",
+					"points": 3,
+					"correctAnswer": false,
+					"justification": "FALSO. Bloqueio DNS no servidor recursivo do provedor só afeta assinantes que utilizam o DNS do provedor (~76% neste cenário). Assinantes que configuram DNS externo (Google 8.8.8.8, Cloudflare 1.1.1.1, Quad9 9.9.9.9) resolvem os domínios diretamente nos servidores externos, contornando o bloqueio local. Para bloquear DNS externo, seria necessário interceptar tráfego na porta 53 (DNS hijacking) ou bloquear DoH/DoT, medidas mais intrusivas e controversas. Esta limitação é inerente ao bloqueio por DNS e deve ser documentada no relatório ao juízo."
+				},
+				{
+					"id": "q8",
+					"type": "matching",
+					"question": "Associe cada método de bloqueio à sua principal limitação técnica:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "dns", "text": "Bloqueio por DNS (sinkhole/RPZ)"},
+						{"id": "ip", "text": "Bloqueio por IP (firewall/ACL)"},
+						{"id": "dpi", "text": "Deep Packet Inspection (DPI)"}
+					],
+					"rightColumn": [
+						{"id": "lim1", "text": "Ineficaz contra tráfego HTTPS criptografado (TLS) - não consegue inspecionar conteúdo"},
+						{"id": "lim2", "text": "Contornável por usuários que utilizam servidores DNS externos ou VPN"},
+						{"id": "lim3", "text": "Causa dano colateral em hospedagem compartilhada/CDN, bloqueando sites legítimos no mesmo IP"}
+					],
+					"correctMatches": [
+						{"left": "dns", "right": "lim2"},
+						{"left": "ip", "right": "lim3"},
+						{"left": "dpi", "right": "lim1"}
+					],
+					"justification": "DNS sinkhole (↔ lim2): principal limitação é que usuários com DNS externo contornam o bloqueio. Bloqueio IP (↔ lim3): em CDN/hosting compartilhado, bloquear um IP afeta todos os sites hospedados nele. DPI (↔ lim1): com HTTPS/TLS, o conteúdo é criptografado e DPI não consegue inspecionar a URL ou payload sem interceptação TLS (MitM), que é ilegal sem autorização judicial específica."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Validação, Notificação e Monitoramento",
+			"phase": "Fase 3 - Erradicação e Recuperação",
+			"description": "Bloqueio DNS implementado com sucesso nos 4 servidores recursivos. A equipe agora precisa validar a eficácia, preparar documentação de compliance e monitorar tentativas de evasão.",
+			"timeElapsed": "T+4 horas (18:20)",
+			"currentSituation": {
+				"blockingStatus": "✅ Ativo em todos os 4 servidores DNS recursivos",
+				"effectiveFor": "~38.000 assinantes (76%) usando DNS do provedor",
+				"notAffected": "~12.000 assinantes (24%) com DNS externo",
+				"blockedPage": "✅ Página HTTP 451 exibida com informações do processo judicial"
+			},
+			"metrics": [
+				{
+					"type": "blocking-validation",
+					"title": "Testes de Validação do Bloqueio",
+					"data": {
+						"dnsTest_jogosonline": "dig @dns1.internal.isp jogosonline.example.com → CNAME blocked.internal.isp ✅",
+						"dnsTest_apostas": "dig @dns2.internal.isp apostas.example.net → CNAME blocked.internal.isp ✅",
+						"dnsTest_casino": "dig @dns3.internal.isp casino-br.example.org → CNAME blocked.internal.isp ✅",
+						"httpTest": "curl -I https://jogosonline.example.com → HTTP/1.1 451 Unavailable For Legal Reasons ✅",
+						"externalDnsTest": "dig @8.8.8.8 jogosonline.example.com → 104.21.45.123 (NÃO bloqueado via DNS externo) ⚠️",
+						"subdomainTest": "dig @dns1.internal.isp www.jogosonline.example.com → 104.21.45.123 (subdomínio NÃO bloqueado) ⚠️",
+						"observation": "Bloqueio funcional para domínios exatos listados na ordem. Subdomínios (www.jogosonline.example.com) e DNS externo não são bloqueados. Verificar se a ordem judicial cobre subdomínios ou apenas domínios raiz."
+					}
+				},
+				{
+					"type": "access-logs",
+					"title": "Logs de Tentativas de Acesso Pós-Bloqueio (primeiras 2 horas)",
+					"data": {
+						"totalBlockedQueries": 4287,
+						"jogosonline.example.com": "2.341 queries bloqueadas",
+						"apostas.example.net": "1.102 queries bloqueadas",
+						"casino-br.example.org": "844 queries bloqueadas",
+						"uniqueSubscribers": "~1.850 assinantes distintos tentaram acessar",
+						"peakTime": "18:00-18:30 (horário de pico - 1.200 queries em 30 min)",
+						"observation": "Volume significativo de tentativas de acesso indica que os sites eram populares entre assinantes. Logs preservados para eventual prestação de informações ao juízo."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q9",
+					"type": "multiple-choice",
+					"question": "A validação identificou que subdomínios (www.jogosonline.example.com) não estão sendo bloqueados pela regra RPZ atual. Qual é a ação mais apropriada?",
+					"points": 6,
+					"options": [
+						"Adicionar wildcard (*.jogosonline.example.com) na RPZ para cobrir todos os subdomínios automaticamente",
+						"Ignorar - a ordem judicial especifica apenas os domínios raiz, não subdomínios",
+						"Consultar equipe jurídica sobre o escopo da ordem antes de expandir o bloqueio",
+						"Bloquear o IP do servidor para garantir que nenhum subdomínio seja acessível"
+					],
+					"correctAnswer": 2,
+					"justification": "Consultar equipe jurídica (C) é a ação correta. O escopo do bloqueio deve refletir EXATAMENTE o que a ordem judicial determina - nem mais, nem menos. Se a ordem lista 'jogosonline.example.com' sem mencionar subdomínios, expandir para *.jogosonline.example.com pode ser interpretado como over-blocking (excesso). (A) pode bloquear além do escopo judicial. (B) pode ser correto, mas precisa de confirmação jurídica. (D) é desproporcional e afetaria sites legítimos. Na dúvida, consultar e documentar."
+				},
+				{
+					"id": "q10",
+					"type": "numeric",
+					"question": "Segundo o Art. 13 do Marco Civil da Internet, por quanto tempo (em meses) o provedor de conexão é obrigado a guardar os registros de conexão dos assinantes?",
+					"points": 5,
+					"correctAnswer": 12,
+					"tolerance": 0,
+					"unit": "meses",
+					"justification": "12 meses (1 ano). Art. 13 do Marco Civil: 'Na provisão de conexão à internet, cabe ao administrador de sistema autônomo respectivo o dever de manter os registros de conexão, sob sigilo, em ambiente controlado e de segurança, pelo prazo de 1 (um) ano'. Registros de conexão incluem: data/hora de início e término da conexão, duração e endereço IP. Este prazo pode ser estendido por ordem judicial (Art. 13, §2º). Provedores de aplicação têm prazo diferente: 6 meses (Art. 15)."
+				},
+				{
+					"id": "q11",
+					"type": "multiple-choice",
+					"question": "Dois dias após o bloqueio, o site jogosonline.example.com migrou para um novo domínio (jogosonline2.example.com) não listado na ordem judicial original. Qual ação é correta?",
+					"points": 6,
+					"options": [
+						"Bloquear automaticamente o novo domínio por analogia à ordem original",
+						"Notificar o juízo sobre a migração e aguardar nova determinação para bloquear o novo domínio",
+						"Bloquear o novo domínio imediatamente e informar o juízo posteriormente",
+						"Ignorar - responsabilidade do Ministério Público identificar novos domínios"
+					],
+					"correctAnswer": 1,
+					"justification": "Notificar o juízo e aguardar nova determinação (B). O provedor NÃO tem autoridade para estender unilateralmente o escopo do bloqueio para domínios não listados na ordem. Mesmo que seja o mesmo conteúdo, cada domínio é uma entidade jurídica distinta que requer determinação judicial específica. (A) e (C) excedem o mandado judicial - podem gerar responsabilidade por censura. (D) é omissa mas tecnicamente correta - proativamente notificar o juízo (B) demonstra boa-fé e cooperação."
+				},
+				{
+					"id": "q12",
+					"type": "true-false",
+					"question": "O provedor pode ser responsabilizado civilmente por danos causados a terceiros legítimos se implementar bloqueio por IP que afete sites não listados na ordem judicial (over-blocking).",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. O princípio da proporcionalidade exige que o bloqueio seja o mais restrito possível ao conteúdo determinado. Bloqueio por IP que afete sites legítimos (dano colateral) pode gerar responsabilidade civil do provedor perante terceiros prejudicados (Art. 927, CC). Caso emblemático: bloqueio do WhatsApp em 2015/2016 no Brasil causou danos a milhões de usuários por medida desproporcional. STF já se manifestou contra bloqueios genéricos que afetam direitos fundamentais (ADPF 403)."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Pós-Incidente, Compliance e Melhoria de Processos",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Bloqueio implementado com sucesso dentro do prazo de 48 horas. Relatório de compliance enviado ao juízo. A equipe agora analisa lições aprendidas e melhora processos internos para futuras ordens judiciais.",
+			"timeElapsed": "T+24 horas (sexta-feira, 14:20 - bloqueio ativo há 24h)",
+			"currentSituation": {
+				"blockingActive": "✅ Ativo para os 3 domínios em todos os servidores DNS",
+				"complianceReport": "✅ Enviado ao juízo com evidências técnicas de implementação",
+				"blockedQueries24h": "18.450 queries bloqueadas nas primeiras 24 horas",
+				"newDomains": "⚠️ jogosonline2.example.com identificado - notificação enviada ao juízo"
+			},
+			"metrics": [
+				{
+					"type": "compliance-report",
+					"title": "Conteúdo do Relatório de Compliance Enviado ao Juízo",
+					"data": {
+						"documentItems": [
+							"Cópia da ordem judicial recebida com timestamp de recebimento",
+							"Descrição do método técnico utilizado (DNS RPZ sinkhole)",
+							"Capturas de tela dos testes de validação (dig, curl)",
+							"Logs de queries bloqueadas (quantidade, sem dados pessoais de assinantes)",
+							"Informação sobre limitação técnica (24% dos assinantes com DNS externo)",
+							"Notificação sobre migração para novo domínio (jogosonline2.example.com)"
+						],
+						"deliveryMethod": "Petição eletrônica via sistema PJe do Tribunal",
+						"observation": "Relatório demonstra cumprimento integral da ordem dentro do prazo. Transparência sobre limitações técnicas (DNS externo) protege o provedor de alegações de descumprimento parcial."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q13",
+					"type": "multiple-choice",
+					"question": "Sob quais circunstâncias o bloqueio judicial pode ser legitimamente revertido pelo provedor?",
+					"points": 6,
+					"options": [
+						"Quando o provedor considerar que o bloqueio não é mais necessário tecnicamente",
+						"Após 1 ano do bloqueio, automaticamente por expiração do prazo legal",
+						"Apenas mediante nova decisão judicial determinando o levantamento do bloqueio",
+						"Quando o titular do conteúdo bloqueado solicitar formalmente a reversão"
+					],
+					"correctAnswer": 2,
+					"justification": "Apenas por nova decisão judicial (C). Ordem judicial vigente deve ser cumprida até que seja revogada, suspensa ou reformada por decisão do mesmo juízo ou instância superior (recurso). O provedor NÃO tem autoridade para reverter unilateralmente um bloqueio judicial. (A) é arbitrário - provedor não julga mérito. (B) não existe prazo automático de expiração. (D) solicitação do titular deve ser feita ao juízo (contra-notificação/recurso), não ao provedor."
+				},
+				{
+					"id": "q14",
+					"type": "multiple-choice",
+					"question": "Qual prática é mais recomendada para manter compliance contínuo durante bloqueios judiciais de longa duração?",
+					"points": 5,
+					"options": [
+						"Verificar mensalmente se os domínios bloqueados ainda existem e remover bloqueios de domínios inativos",
+						"Manter registro centralizado de todas as ordens judiciais ativas, com revisão periódica de eficácia e notificação ao juízo sobre alterações",
+						"Delegar toda a gestão de bloqueios ao departamento jurídico sem envolvimento técnico",
+						"Implementar o bloqueio uma vez e não monitorar mais, até receber nova ordem judicial"
+					],
+					"correctAnswer": 1,
+					"justification": "Registro centralizado com revisão periódica (B) é best practice: (1) inventário atualizado de ordens ativas (número, prazo, escopo), (2) revisão técnica periódica (domínios, IPs, eficácia), (3) comunicação proativa com juízo sobre mudanças, (4) auditoria interna de compliance. (A) remove bloqueios sem autorização judicial. (C) exclui equipe técnica necessária para monitoramento. (D) é negligente - sites mudam, ordens podem ser revogadas."
+				},
+				{
+					"id": "q15",
+					"type": "matching",
+					"question": "Associe cada conceito jurídico do Marco Civil da Internet à sua definição correta:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "astreintes", "text": "Astreintes"},
+						{"id": "safeharbor", "text": "Safe Harbor do provedor (Art. 19)"},
+						{"id": "proporcionalidade", "text": "Princípio da proporcionalidade"}
+					],
+					"rightColumn": [
+						{"id": "def1", "text": "Imunidade condicional do provedor contra responsabilidade por conteúdo de terceiros, desde que cumpra ordens judiciais"},
+						{"id": "def2", "text": "Medida judicial restritiva deve ser adequada, necessária e causar o menor dano possível a direitos fundamentais"},
+						{"id": "def3", "text": "Multa diária fixada pelo juízo para coagir o cumprimento de obrigação judicial dentro do prazo"}
+					],
+					"correctMatches": [
+						{"left": "astreintes", "right": "def3"},
+						{"left": "safeharbor", "right": "def1"},
+						{"left": "proporcionalidade", "right": "def2"}
+					],
+					"justification": "Astreintes (↔ def3): multa cominatória diária para forçar cumprimento - neste cenário, R$ 50.000/dia. Safe Harbor (↔ def1): Art. 19 protege provedor de responsabilidade por conteúdo de terceiros, DESDE QUE cumpra ordem judicial. Se descumprir, perde proteção. Proporcionalidade (↔ def2): princípio constitucional que exige que restrições judiciais sejam adequadas, necessárias e proporcionais - fundamenta a escolha de DNS sinkhole ao invés de bloqueio por IP."
+				},
+				{
+					"id": "q16",
+					"type": "numeric",
+					"question": "Segundo o Art. 15 do Marco Civil da Internet, por quanto tempo (em meses) o provedor de aplicações de internet é obrigado a guardar os registros de acesso a aplicações?",
+					"points": 5,
+					"correctAnswer": 6,
+					"tolerance": 0,
+					"unit": "meses",
+					"justification": "6 meses. Art. 15 do Marco Civil: 'O provedor de aplicações de internet [...] deverá manter os respectivos registros de acesso a aplicações de internet, sob sigilo, em ambiente controlado e de segurança, pelo prazo de 6 (seis) meses'. Diferente dos registros de CONEXÃO (Art. 13 = 1 ano), registros de APLICAÇÃO têm prazo menor. Registros de acesso incluem: data/hora de acesso e endereço IP de origem. Este prazo também pode ser estendido por ordem judicial."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 88,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 85,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de bloqueio judicial de conteúdo, Marco Civil da Internet e implementação técnica proporcional"
+			},
+			{
+				"min": 70,
+				"max": 84,
+				"grade": "Bom",
+				"description": "Compreensão sólida de ordens judiciais e métodos de bloqueio com pequenas lacunas em aspectos legais ou técnicos"
+			},
+			{
+				"min": 60,
+				"max": 69,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica suficiente, requer aprofundamento em proporcionalidade e métodos técnicos de bloqueio"
+			},
+			{
+				"min": 40,
+				"max": 59,
+				"grade": "Insuficiente",
+				"description": "Lacunas significativas em conhecimento do Marco Civil e procedimentos de compliance judicial"
+			},
+			{
+				"min": 0,
+				"max": 39,
+				"grade": "Inadequado",
+				"description": "Conhecimento mínimo sobre bloqueios judiciais - recomenda-se treinamento formal em Marco Civil e operações de rede"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Apresentar informações progressivamente, simulando recebimento e análise de ordem judicial em tempo real",
+		"Permitir 4-5 minutos de discussão entre participantes antes de cada resposta",
+		"Fazer perguntas orientadoras: 'O que é o princípio da proporcionalidade?', 'Por que não bloquear por IP?', 'Qual a diferença entre DNS e IP blocking?'",
+		"Enfatizar importância de EQUILÍBRIO: cumprimento da ordem judicial vs. minimização de danos colaterais",
+		"Se grupo não tem experiência jurídica, explicar conceitos de Marco Civil e astreintes antes da Rodada 2",
+		"Manter neutralidade - não expressar opinião sobre legitimidade do bloqueio",
+		"Controlar tempo: Rodada 1 (5 min), Rodadas 2-4 (10 min cada), Rodada 5 (8 min)",
+		"Mediar debates sobre proporcionalidade vs. eficácia do bloqueio",
+		"Após exercício: revisar gabarito, discutir processos internos de resposta a ordens judiciais",
+		"Coletar feedback sobre realismo do cenário e ajustar para contexto operacional específico",
+		"Documentar insights para melhorar processos de compliance e resposta a ordens judiciais"
+	],
+	"technicalReferences": [
+		{
+			"title": "Marco Civil da Internet - Lei 12.965/2014",
+			"url": "https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2014/lei/l12965.htm"
+		},
+		{
+			"title": "RFC 8914 - Extended DNS Errors (EDE)",
+			"url": "https://www.rfc-editor.org/rfc/rfc8914"
+		},
+		{
+			"title": "RFC 7725 - HTTP Status Code 451 (Unavailable For Legal Reasons)",
+			"url": "https://www.rfc-editor.org/rfc/rfc7725"
+		},
+		{
+			"title": "ISC BIND Response Policy Zones (RPZ) Documentation",
+			"url": "https://kb.isc.org/docs/aa-00525"
+		},
+		{
+			"title": "STF - ADPF 403 (Bloqueio do WhatsApp - Proporcionalidade)",
+			"url": "https://portal.stf.jus.br/processos/detalhe.asp?incidente=4975500"
+		},
+		{
+			"title": "NIC.br - Boas Práticas para Provedores de Internet",
+			"url": "https://bcp.nic.br/"
+		},
+		{
+			"title": "IETF - DNS-based Service Discovery and Censorship Circumvention",
+			"url": "https://datatracker.ietf.org/doc/html/rfc7858"
+		}
+	]
+}

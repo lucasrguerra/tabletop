@@ -1,0 +1,484 @@
+{
+	"id": "carpet-bombing-isp-network",
+	"title": "Resposta a Ataque DDoS Carpet Bombing contra Rede de Provedor",
+	"description": "Simulação tabletop de resposta a ataque DDoS carpet bombing distribuído contra múltiplas sub-redes /24 de clientes de um provedor de Internet",
+	"category": {
+		"id": "NET_VOL",
+		"type": "NET_VOL_CARPET_BOMBING",
+		"title": "Carpet Bombing - Ataque Difuso Multi-Alvo"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2025-02-02",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "40-55 minutos",
+		"difficulty": "Avançado",
+		"targetAudience": "Equipe de Resposta a Incidentes, Engenheiros de Rede, Analistas de NOC, Administradores de Backbone"
+	},
+	"objectives": [
+		"Validar capacidade de detecção de ataques DDoS carpet bombing com tráfego distribuído abaixo de thresholds individuais",
+		"Avaliar conhecimento de técnicas avançadas de mitigação (FlowSpec, RTBH seletivo, scrubbing centers)",
+		"Testar compreensão das limitações de mitigação tradicional baseada em IP específico contra ataques difusos",
+		"Desenvolver habilidade de análise de padrões agregados de tráfego em redes de backbone/ISP",
+		"Identificar estratégias de coordenação com provedores upstream e centros de mitigação",
+		"Promover compreensão de trade-offs entre mitigação granular e impacto colateral em clientes legítimos"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá execução real de comandos em sistemas de produção",
+		"Não inclui ativação real de serviços de scrubbing ou comunicação com provedores upstream",
+		"Foco na análise de padrões de tráfego, tomada de decisão e estratégias de mitigação em escala",
+		"Avaliação de conhecimento de roteamento BGP, FlowSpec e técnicas avançadas de mitigação DDoS"
+	],
+	"baseScenario": {
+		"context": "Sexta-feira, 16h45, final do expediente. Você faz parte da equipe de operações de rede (NOC) de um provedor de Internet regional. A rede atende aproximadamente 15.000 clientes corporativos e acadêmicos distribuídos em 12 PoPs (Pontos de Presença). O backbone opera com links de 100 Gbps entre PoPs e trânsito total de 400 Gbps com 4 provedores upstream. O tráfego normal agregado é de ~180 Gbps em horário de pico.",
+		"initialSituation": {
+			"alert": "Múltiplos alarmes de utilização de enlace >95% em 3 PoPs simultaneamente",
+			"affectedPrefixes": "198.51.100.0/22 (4 sub-redes /24 de clientes distintos)",
+			"linkUtilization": "PoP-Norte: 97%, PoP-Leste: 94%, PoP-Central: 91%",
+			"aggregateTraffic": "312 Gbps (baseline: 180 Gbps)",
+			"timestamp": "16:42:18"
+		},
+		"initialComplaints": [
+			"Clientes de 3 PoPs reportam lentidão generalizada e perda de pacotes",
+			"Sistema de monitoramento (Zabbix/LibreNMS) reporta interfaces de uplink em estado crítico",
+			"Nenhum IP individual concentra mais que 0.5% do tráfego total de ataque",
+			"Helpdesk recebe ~40 chamados simultâneos de diferentes clientes e segmentos"
+		],
+		"availableResources": [
+			"Sistema de monitoramento de rede com NetFlow/sFlow (análise de fluxos)",
+			"Acesso administrativo a roteadores de borda (Juniper/Cisco) via SSH",
+			"Plataforma de análise de tráfego DDoS (Kentik, FastNetMon ou similar)",
+			"Capacidade de FlowSpec BGP nos roteadores de borda",
+			"Contrato com serviço de scrubbing center (ativação sob demanda)",
+			"Comunidades BGP para blackhole seletivo (RTBH) com upstreams",
+			"Documentação de procedimentos de resposta a DDoS"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe deve se familiarizar com a topologia da rede, clientes afetados e recursos disponíveis.",
+			"inject": "Apresentação do cenário conforme descrito. A equipe tem 5 minutos para discutir a situação inicial e planejar abordagem de investigação.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Detecção e Análise Inicial",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe analisa o padrão de tráfego e identifica que o ataque não segue perfil DDoS convencional - tráfego está distribuído entre milhares de IPs destino.",
+			"timeElapsed": "T+0 (início do incidente)",
+			"currentSituation": {
+				"aggregateTraffic": "312 Gbps (73% acima do baseline)",
+				"attackTraffic": "~132 Gbps estimados de tráfego malicioso",
+				"affectedDestinations": "~3.800 IPs destino únicos em 4 sub-redes /24",
+				"perIpTraffic": "~35 Mbps por IP destino (abaixo de thresholds individuais)",
+				"impact": "Degradação severa em 3 PoPs, perda de pacotes de 12-25%"
+			},
+			"metrics": [
+				{
+					"title": "Análise de Tráfego Agregado por PoP",
+					"type": "network-analysis",
+					"data": {
+						"popNorte": {
+							"utilization": "97%",
+							"inboundTraffic": "96.5 Gbps",
+							"baselineTraffic": "52 Gbps",
+							"excessTraffic": "44.5 Gbps"
+						},
+						"popLeste": {
+							"utilization": "94%",
+							"inboundTraffic": "93.8 Gbps",
+							"baselineTraffic": "48 Gbps",
+							"excessTraffic": "45.8 Gbps"
+						},
+						"popCentral": {
+							"utilization": "91%",
+							"inboundTraffic": "91.2 Gbps",
+							"baselineTraffic": "50 Gbps",
+							"excessTraffic": "41.2 Gbps"
+						},
+						"observation": "Tráfego excedente distribuído uniformemente entre 3 PoPs - ataque coordenado multi-vetor"
+					}
+				},
+				{
+					"title": "Análise de Distribuição de Tráfego por IP Destino",
+					"type": "ip-analysis",
+					"data": {
+						"totalDestinationIPs": 3847,
+						"affectedSubnets": [
+							{"prefix": "198.51.100.0/24", "ipsHit": 1024, "avgTrafficPerIP": "34.2 Mbps"},
+							{"prefix": "198.51.101.0/24", "ipsHit": 987, "avgTrafficPerIP": "35.8 Mbps"},
+							{"prefix": "198.51.102.0/24", "ipsHit": 1012, "avgTrafficPerIP": "33.5 Mbps"},
+							{"prefix": "198.51.103.0/24", "ipsHit": 824, "avgTrafficPerIP": "36.1 Mbps"}
+						],
+						"maxTrafficSingleIP": "52 Mbps",
+						"perIpThreshold": "500 Mbps (configurado para alertas DDoS por IP)",
+						"observation": "Nenhum IP individual ultrapassa threshold de detecção - tráfego está 10x ABAIXO do limiar por IP"
+					}
+				},
+				{
+					"title": "Análise de Perfil de Tráfego de Ataque",
+					"type": "packet-analysis",
+					"data": {
+						"protocolDistribution": {
+							"UDP": {"percentage": 78.3, "ports": "random high ports (>1024)"},
+							"TCP_SYN": {"percentage": 12.1, "ports": "80, 443, 8080"},
+							"ICMP": {"percentage": 5.8, "type": "echo-request"},
+							"GRE": {"percentage": 3.8, "note": "fragmentos encapsulados"}
+						},
+						"avgPacketSize": "512 bytes",
+						"sourceIPs": "~125.000 IPs únicos (distribuição global)",
+						"observation": "Ataque multi-protocolo com pacotes de tamanho médio - perfil de carpet bombing clássico"
+					}
+				},
+				{
+					"title": "Comparação com DDoS Tradicional (Alvo Único)",
+					"type": "attack-analysis",
+					"data": {
+						"traditionalDDoS": {
+							"targets": "1-5 IPs específicos",
+							"trafficPerTarget": ">1 Gbps por alvo",
+							"detection": "Fácil (threshold por IP)",
+							"mitigation": "RTBH do IP alvo, scrubbing por IP"
+						},
+						"carpetBombing": {
+							"targets": "~3.800 IPs em 4 sub-redes /24",
+							"trafficPerTarget": "~35 Mbps por alvo",
+							"detection": "Difícil (abaixo de thresholds individuais)",
+							"mitigation": "Requer análise agregada por prefixo, não por IP"
+						},
+						"observation": "Carpet bombing evade detecção per-IP por design - requer mudança de paradigma de monitoramento"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"text": "O tráfego malicioso está distribuído em ~3.800 IPs destino com ~35 Mbps cada, mas o threshold de detecção DDoS é 500 Mbps por IP. Por que o sistema de detecção NÃO disparou alertas de DDoS?",
+					"options": [
+						"O sistema de detecção estava desligado ou mal configurado",
+						"O ataque usa protocolo desconhecido que o detector não reconhece",
+						"Carpet bombing distribui tráfego abaixo dos thresholds individuais por design, evadindo detecção per-IP",
+						"O tráfego é legítimo e não há ataque real em andamento"
+					],
+					"correctAnswer": 2,
+					"points": 5,
+					"justification": "Carpet bombing (C) é projetado especificamente para evadir detecção baseada em thresholds per-IP. Com ~35 Mbps/IP (7% do threshold de 500 Mbps), nenhum IP individual dispara alerta. O impacto é causado pelo volume AGREGADO de 132 Gbps distribuído entre milhares de alvos. Isso requer monitoramento de tráfego AGREGADO por prefixo/sub-rede, não por IP individual."
+				},
+				{
+					"id": "q2",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: A técnica de blackhole (RTBH) por IP individual é eficaz contra ataques carpet bombing, pois basta bloquear os IPs que recebem tráfego malicioso.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. RTBH por IP individual é INEFICAZ contra carpet bombing porque: (1) Seriam necessárias ~3.800 rotas de blackhole individuais, (2) Isso bloquearia tráfego legítimo de TODOS esses IPs, (3) Atacante pode mudar alvos para outros IPs do prefixo, (4) Gerenciamento operacional de milhares de blackholes é impraticável. A mitigação requer abordagem por prefixo/sub-rede usando FlowSpec ou scrubbing center com análise volumétrica."
+				},
+				{
+					"id": "q3",
+					"text": "Qual abordagem de mitigação é MAIS adequada para este tipo específico de ataque?",
+					"options": [
+						"RTBH (Remote Triggered Black Hole) de cada IP destino individualmente",
+						"Desvio do tráfego dos prefixos /24 afetados para scrubbing center com análise volumétrica",
+						"Bloqueio de todos os IPs de origem no firewall de borda",
+						"Desconectar os PoPs afetados da Internet para proteger o resto da rede"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Scrubbing center com análise volumétrica (B) é a abordagem correta: desvia tráfego dos prefixos /24 afetados para limpeza, separando tráfego legítimo do malicioso antes de devolver à rede. RTBH per-IP (A) é impraticável com 3.800 alvos. Bloqueio de IPs de origem (C) é ineficaz com 125k IPs spoofed. Desconectar PoPs (D) causa indisponibilidade total para clientes legítimos."
+				},
+				{
+					"id": "q4",
+					"type": "numeric",
+					"text": "O tráfego agregado é 312 Gbps com baseline de 180 Gbps. Qual é o volume estimado de tráfego de ataque em Gbps?",
+					"correctAnswer": 132,
+					"tolerance": 5,
+					"unit": "Gbps",
+					"points": 5,
+					"justification": "Tráfego de ataque = Tráfego total - Baseline = 312 - 180 = 132 Gbps. Este volume (73% acima do normal) distribuído entre ~3.800 IPs resulta em ~35 Mbps por IP destino, abaixo dos thresholds individuais de detecção. É a principal característica do carpet bombing: volume total destrutivo mas volume per-IP indetectável."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Contenção e Mitigação Inicial",
+			"phase": "Fase 2 - Contenção",
+			"description": "A equipe decidiu ativar desvio de tráfego via BGP para scrubbing center nos prefixos 198.51.100.0/22. O scrubbing center absorve o tráfego e filtra pacotes maliciosos baseado em heurísticas volumétricas.",
+			"timeElapsed": "T+18 minutos",
+			"currentSituation": {
+				"scrubbingActive": true,
+				"aggregateTraffic": "315 Gbps (ataque intensificou levemente)",
+				"cleanTraffic": "~175 Gbps (tráfego limpo retornado pelo scrubbing center)",
+				"scrubbedTraffic": "~140 Gbps (tráfego malicioso descartado)",
+				"popUtilization": "PoP-Norte: 62%, PoP-Leste: 58%, PoP-Central: 55%",
+				"impact": "Latência aumentada (~15ms adicional via scrubbing), mas serviço restaurado"
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "matching",
+					"text": "Correlacione cada técnica de mitigação DDoS com sua descrição correta:",
+					"leftColumn": [
+						{"id": "tech1", "label": "RTBH (Remote Triggered Black Hole)"},
+						{"id": "tech2", "label": "FlowSpec (BGP Flow Specification)"},
+						{"id": "tech3", "label": "Scrubbing Center"}
+					],
+					"rightColumn": [
+						{"id": "desc1", "label": "Distribui regras granulares de filtragem via BGP para roteadores de borda (protocolo, porta, rate-limit)"},
+						{"id": "desc2", "label": "Desvia tráfego para centro de limpeza que separa pacotes legítimos de maliciosos antes de devolver à rede"},
+						{"id": "desc3", "label": "Descarta TODO o tráfego destinado a um IP/prefixo específico no roteador de borda"}
+					],
+					"correctMatches": [
+						{"left": "tech1", "right": "desc3"},
+						{"left": "tech2", "right": "desc1"},
+						{"left": "tech3", "right": "desc2"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 6,
+					"justification": "RTBH (↔ desc3): descarta todo tráfego para destino - simples mas causa indisponibilidade do alvo. FlowSpec (↔ desc1): distribui regras granulares via BGP (pode filtrar por protocolo, porta, limitar taxa) - mais preciso que RTBH. Scrubbing Center (↔ desc2): desvia e limpa tráfego - mais eficaz mas adiciona latência e custo. Para carpet bombing, scrubbing é preferível pois preserva tráfego legítimo."
+				},
+				{
+					"id": "q6",
+					"text": "Após ativar scrubbing, observou-se latência adicional de ~15ms. Qual é a causa principal desta latência?",
+					"options": [
+						"O scrubbing center está sobrecarregado e não consegue processar o tráfego",
+						"O desvio de tráfego via BGP adiciona hops de rede até o scrubbing center e retorno (efeito tromboning)",
+						"Os roteadores de borda estão com CPU alta processando regras FlowSpec",
+						"A latência é causada por retransmissões TCP dos pacotes descartados"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "O efeito 'tromboning' ou 'traffic hairpinning' (B) ocorre porque o tráfego é desviado para o scrubbing center (que pode estar geograficamente distante), limpo, e então devolvido à rede original. Este caminho adicional (ida ao scrubbing + volta à rede original) adiciona latência proporcional à distância. É trade-off aceito: ~15ms de latência adicional é preferível à indisponibilidade causada pelo ataque."
+				},
+				{
+					"id": "q7",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Em um ataque carpet bombing, bloquear tráfego UDP de portas altas (>1024) no firewall é uma mitigação eficaz, pois 78.3% do tráfego de ataque usa UDP.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. Bloquear todo UDP de portas altas causaria enorme dano colateral: (1) DNS (porta 53) usa UDP, (2) VoIP/RTP usa portas altas UDP, (3) QUIC/HTTP3 usa UDP, (4) Streaming de vídeo, (5) VPNs (WireGuard, OpenVPN UDP). Além disso, 21.7% do ataque usa outros protocolos (TCP SYN, ICMP, GRE), que continuariam. Mitigação deve ser baseada em perfil de tráfego anômalo, não em bloqueio genérico de protocolo."
+				},
+				{
+					"id": "q8",
+					"text": "O atacante mudou de estratégia e começou a atingir IPs em sub-redes DIFERENTES (198.51.104.0/24 e 198.51.105.0/24), que não estão sendo desviadas para scrubbing. Qual é a melhor resposta?",
+					"options": [
+						"Adicionar os novos prefixos ao desvio de scrubbing e monitorar por mais mudanças de alvo",
+						"Implementar RTBH para os novos prefixos afetados",
+						"Aguardar para ver se o novo tráfego estabiliza antes de agir",
+						"Contatar autoridades policiais para rastrear o atacante"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "Adicionar novos prefixos ao scrubbing (A) é a resposta correta. Carpet bombing frequentemente alterna entre alvos para evadir mitigação estática. A equipe deve: (1) expandir desvio para novos prefixos, (2) monitorar continuamente por mudanças de alvo, (3) considerar desvio de prefixos maiores (/22 ou /20) preventivamente. RTBH (B) causaria indisponibilidade. Aguardar (C) permite impacto contínuo. Policiais (D) são para longo prazo."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Análise Avançada e Coordenação",
+			"phase": "Fase 2 - Contenção (Avançada)",
+			"description": "Com scrubbing ativo e novos prefixos incluídos, a equipe investiga a origem do ataque e implementa mitigações adicionais. Análise revela que ataque utiliza botnet de dispositivos IoT comprometidos.",
+			"timeElapsed": "T+40 minutos",
+			"currentSituation": {
+				"aggregateTraffic": "280 Gbps (leve redução)",
+				"scrubbingEfficiency": "94% (6% de falsos positivos/negativos)",
+				"cleanTraffic": "~172 Gbps",
+				"popUtilization": "Todos PoPs < 70% (normalizado)",
+				"impact": "Serviço restaurado com latência adicional aceitável"
+			},
+			"questions": [
+				{
+					"id": "q9",
+					"text": "A análise de NetFlow revela que os 125.000 IPs de origem estão concentrados em ASNs de provedores residenciais com alta presença de dispositivos IoT. O que isso indica sobre a infraestrutura do atacante?",
+					"options": [
+						"O atacante é um provedor de Internet que está gerando tráfego malicioso",
+						"O atacante utiliza botnet de dispositivos IoT comprometidos (câmeras, roteadores, DVRs)",
+						"Os IPs de origem são todos forjados (spoofed) e a distribuição é aleatória",
+						"O tráfego é legítimo de milhares de usuários acessando simultaneamente"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "A concentração em ASNs residenciais com IoT (B) indica botnet de dispositivos comprometidos (tipo Mirai ou variantes). Dispositivos IoT (câmeras IP, roteadores domésticos, DVRs) são alvos comuns por: firmware desatualizado, credenciais padrão, falta de atualizações automáticas. Spoofing (C) é parcialmente possível mas o perfil de ASN residencial é forte indicador de botnet real."
+				},
+				{
+					"id": "q10",
+					"type": "ordering",
+					"text": "Ordene corretamente as etapas de implementação de FlowSpec BGP para mitigação de carpet bombing:",
+					"items": [
+						{"id": "step1", "label": "Identificar padrão de tráfego malicioso (protocolo, portas, flags, tamanho de pacote)"},
+						{"id": "step2", "label": "Criar regra FlowSpec no controlador ou roteador route-reflector"},
+						{"id": "step3", "label": "Distribuir regra via BGP para roteadores de borda que suportam FlowSpec"},
+						{"id": "step4", "label": "Validar que regra está ativa nos roteadores de borda (show flowspec)"},
+						{"id": "step5", "label": "Monitorar impacto: tráfego filtrado vs. falsos positivos em tráfego legítimo"}
+					],
+					"correctOrder": ["step1", "step2", "step3", "step4", "step5"],
+					"partialCredit": false,
+					"points": 5,
+					"justification": "Sequência FlowSpec: (1) Identificar padrão distinguível do ataque (sem isso, regra será genérica demais ou específica demais), (2) Criar regra com ações (rate-limit, discard, redirect) no controlador, (3) Distribuir via BGP - FlowSpec propaga regras automaticamente como rotas BGP, (4) Validar que regras foram aceitas e aplicadas nos roteadores de borda, (5) Monitorar continuamente para ajustar regras e reduzir falsos positivos."
+				},
+				{
+					"id": "q11",
+					"text": "Para melhorar a detecção futura de carpet bombing, qual abordagem de monitoramento deve ser implementada?",
+					"options": [
+						"Aumentar o threshold de detecção per-IP de 500 Mbps para 1 Gbps",
+						"Implementar detecção baseada em desvio estatístico do tráfego AGREGADO por prefixo/sub-rede",
+						"Adicionar mais firewalls com maior capacidade de processamento",
+						"Monitorar apenas tráfego de provedores upstream considerados suspeitos"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Detecção baseada em desvio estatístico agregado por prefixo (B) é a abordagem correta. Em vez de monitorar cada IP individualmente, monitora-se tráfego total por /24, /22, etc. Se um /24 normalmente recebe 5 Gbps e subitamente recebe 40 Gbps, alerta é disparado - mesmo que nenhum IP individual ultrapasse threshold. Aumentar threshold per-IP (A) piora a detecção. Firewalls (C) não resolvem detecção. Filtro por upstream (D) é limitado."
+				},
+				{
+					"id": "q12",
+					"type": "numeric",
+					"text": "O scrubbing center tem eficiência de 94%. Se 140 Gbps de tráfego malicioso entram no scrubber, quantos Gbps de tráfego malicioso AINDA passam para a rede (falsos negativos)?",
+					"correctAnswer": 8.4,
+					"tolerance": 0.5,
+					"unit": "Gbps",
+					"points": 5,
+					"justification": "Tráfego malicioso que passa = 140 Gbps × (100% - 94%) = 140 × 0.06 = 8.4 Gbps. Este volume residual (6% de falsos negativos) é significativo em termos absolutos mas representa redução de 93.6% do ataque original. Scrubbing centers nunca alcançam 100% de eficácia, especialmente em carpet bombing onde distinguir tráfego legítimo de malicioso é mais complexo."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Recuperação e Lições Aprendidas",
+			"phase": "Fase 3 e 4 - Recuperação e Pós-Incidente",
+			"description": "Após 4 horas, o ataque cessou gradualmente. O scrubbing center foi desativado e o tráfego voltou ao roteamento normal. Tempo total de impacto severo: 18 minutos (antes do scrubbing). Impacto residual com scrubbing: latência adicional de 15ms por 4 horas.",
+			"timeElapsed": "T+258 minutos (incidente encerrado)",
+			"currentSituation": {
+				"aggregateTraffic": "178 Gbps (baseline normal)",
+				"scrubbingActive": false,
+				"popUtilization": "Todos PoPs < 55% (normal)",
+				"impact": "Nenhum - operação completamente normalizada"
+			},
+			"questions": [
+				{
+					"id": "q13",
+					"text": "Qual falha de monitoramento permitiu que o ataque carpet bombing não fosse detectado automaticamente?",
+					"options": [
+						"O sistema de monitoramento não tinha acesso aos dados de NetFlow",
+						"A detecção de DDoS era configurada apenas com thresholds per-IP, sem análise agregada por prefixo",
+						"Os roteadores de borda não exportavam estatísticas de tráfego",
+						"O ataque utilizou protocolo desconhecido que o monitor não reconhecia"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "A falha principal (B) foi depender exclusivamente de detecção per-IP (threshold 500 Mbps). Carpet bombing é projetado para ficar abaixo destes thresholds. A solução é implementar detecção por prefixo: monitorar tráfego agregado por /24, /22, /20 e alertar quando desviar significativamente do baseline histórico (ex: >3 desvios-padrão)."
+				},
+				{
+					"id": "q14",
+					"text": "Qual melhoria de infraestrutura teria o MAIOR impacto na resiliência contra futuros ataques carpet bombing?",
+					"options": [
+						"Aumentar a capacidade dos enlaces de backbone de 100 Gbps para 400 Gbps",
+						"Implementar detecção automática de carpet bombing com ativação automática de scrubbing/FlowSpec",
+						"Contratar mais provedores upstream para aumentar capacidade de trânsito",
+						"Implementar firewall de próxima geração (NGFW) em todos os PoPs"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Automação de detecção e resposta (B) tem maior impacto: reduz o tempo entre detecção e mitigação de minutos para segundos. No incidente atual, 18 minutos de impacto severo ocorreram antes da ativação manual do scrubbing. Detecção automática por análise de desvio estatístico + ativação automática de scrubbing/FlowSpec poderia reduzir impacto para < 2 minutos. Mais capacidade (A, C) apenas adia o problema. NGFW (D) não escala para ataques volumétricos."
+				},
+				{
+					"id": "q15",
+					"text": "Em post-mortem, a equipe discute se deveria ter implementado RTBH do prefixo /22 completo em vez de ativar scrubbing. Qual é o principal argumento CONTRA RTBH neste caso?",
+					"options": [
+						"RTBH é tecnicamente impossível para prefixos /22",
+						"RTBH do /22 bloquearia TODO tráfego (incluindo legítimo) para ~1.000 IPs de clientes, causando indisponibilidade total",
+						"RTBH é mais caro que scrubbing center",
+						"RTBH não funciona com BGP - requer protocolo proprietário"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "RTBH do /22 (B) descartaria TODO tráfego para aquele prefixo - 100% de indisponibilidade para todos os clientes nessas sub-redes. Em ISP/backbone, isso afeta centenas de clientes legítimos, causando mais dano que o próprio ataque. Scrubbing preserva tráfego legítimo (~94% de eficácia) com trade-off de latência adicional. RTBH é tecnicamente possível para /22 (A é incorreto), funciona via BGP (D é incorreto), e é mais barato que scrubbing (C é incorreto)."
+				},
+				{
+					"id": "q16",
+					"text": "Qual processo deve ser implementado para garantir resposta rápida em futuros incidentes de carpet bombing?",
+					"options": [
+						"Runbook específico para carpet bombing com: critérios de detecção agregada, procedimento de ativação de scrubbing, checklist de FlowSpec, e critérios de escalonamento",
+						"Treinamento anual genérico em segurança de rede para toda a equipe",
+						"Aquisição de ferramenta proprietária de IA para detecção automática de todos os tipos de ataque",
+						"Contratação de equipe dedicada 24/7 exclusivamente para monitoramento de DDoS"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "Runbook específico (A) é a resposta mais eficaz pois documenta: (1) como detectar carpet bombing (análise agregada por prefixo), (2) passos exatos de ativação de scrubbing, (3) regras FlowSpec pré-definidas, (4) critérios de escalonamento. Treinamento genérico (B) é insuficiente para resposta específica. Ferramenta proprietária (C) é solução pontual sem processo. Equipe 24/7 dedicada (D) é custo desproporcional sem garantia de eficácia."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 92,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 90,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de detecção e mitigação de ataques DDoS carpet bombing e técnicas avançadas de roteamento"
+			},
+			{
+				"min": 75,
+				"max": 89,
+				"grade": "Bom",
+				"description": "Compreensão sólida de mitigação DDoS distribuída com pequenas lacunas em FlowSpec ou scrubbing"
+			},
+			{
+				"min": 60,
+				"max": 74,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica suficiente, requer aprofundamento em técnicas de mitigação em escala de ISP"
+			},
+			{
+				"min": 45,
+				"max": 59,
+				"grade": "Insatisfatório",
+				"description": "Lacunas significativas em conhecimento de mitigação DDoS avançada e operação de backbone"
+			},
+			{
+				"min": 0,
+				"max": 44,
+				"grade": "Inadequado",
+				"description": "Compreensão insuficiente, requer treinamento completo em operações de rede e mitigação DDoS"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Apresentar informações progressivamente - especialmente a descoberta de que tráfego está ABAIXO dos thresholds per-IP",
+		"Enfatizar que carpet bombing é técnica MODERNA que evade detecção tradicional por design",
+		"Permitir 4-5 minutos de discussão por rodada - o tema é complexo e requer análise de trade-offs",
+		"Fazer perguntas socráticas: 'Por que threshold per-IP não funciona aqui?', 'Qual é o trade-off de blackhole vs. scrubbing?'",
+		"Se grupo não tem experiência com ISP/backbone, explicar conceitos de RTBH, FlowSpec e scrubbing antes da Rodada 2",
+		"Manter neutralidade técnica - não fornecer respostas diretas, orientar raciocínio sobre trade-offs",
+		"Controlar tempo: Rodada 1 (5 min), Rodadas 2-4 (10-12 min cada), Rodada 5 (8 min)",
+		"Mediar debates sobre RTBH vs. scrubbing - ambos têm mérito dependendo do contexto",
+		"Após exercício: revisar gabarito, discutir implementação de detecção agregada por prefixo",
+		"Documentar insights para melhorar capacidade de resposta a ataques distribuídos"
+	],
+	"technicalReferences": [
+		{
+			"title": "RFC 8955 - Dissemination of Flow Specification Rules (FlowSpec)",
+			"url": "https://www.rfc-editor.org/rfc/rfc8955"
+		},
+		{
+			"title": "RFC 5635 - Remote Triggered Black Hole Filtering with Unicast RPF",
+			"url": "https://www.rfc-editor.org/rfc/rfc5635"
+		},
+		{
+			"title": "RFC 7999 - BLACKHOLE Community",
+			"url": "https://www.rfc-editor.org/rfc/rfc7999"
+		},
+		{
+			"title": "NANOG - Carpet Bombing DDoS Attacks: Trends and Mitigations",
+			"url": "https://www.nanog.org/news-stories/nanog-tv/nanog-87/carpet-bombing-ddos/"
+		},
+		{
+			"title": "NIST SP 800-61r2 - Computer Security Incident Handling Guide",
+			"url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-61r2.pdf"
+		}
+	]
+}

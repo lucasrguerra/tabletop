@@ -1,0 +1,598 @@
+{
+	"id": "c2-beacon-detection",
+	"title": "Resposta a Detecção de Comunicação Beacon com Servidor C2",
+	"description": "Simulação tabletop de resposta a detecção de comunicação periódica (beaconing) entre host interno comprometido e servidor de comando e controle externo",
+	"category": {
+		"id": "SEC_SYS",
+		"type": "SEC_SYS_C2_BEACON",
+		"title": "Comunicação de Beacon com Servidor C2"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2025-02-17",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "40-55 minutos",
+		"difficulty": "Avançado",
+		"targetAudience": "Equipe de Resposta a Incidentes, Analistas de SOC, Analistas de Threat Intelligence, Administradores de Rede"
+	},
+	"objectives": [
+		"Validar capacidade de identificação de padrões de comunicação beacon (C2) em tráfego de rede",
+		"Avaliar conhecimento de técnicas de investigação de hosts comprometidos e análise de malware",
+		"Testar compreensão de indicadores de comprometimento (IoCs) e táticas de persistência",
+		"Desenvolver habilidade de contenção sem alertar o adversário (containment without tipping off)",
+		"Identificar técnicas de evasão utilizadas por malware moderno em comunicação C2",
+		"Promover compreensão do framework MITRE ATT&CK aplicado a incidentes reais"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá execução real de comandos em sistemas de produção",
+		"Não inclui análise forense real de malware ou engenharia reversa de binários",
+		"Foco na análise de tráfego de rede, tomada de decisão e resposta coordenada",
+		"Avaliação de conhecimento de TTPs (Tactics, Techniques and Procedures) de adversários"
+	],
+	"baseScenario": {
+		"context": "Terça-feira, 14h15, horário comercial. Você faz parte da equipe de resposta a incidentes de segurança (CSIRT). A organização opera uma rede corporativa com aproximadamente 800 estações de trabalho e 120 servidores. O SOC utiliza SIEM (Elastic SIEM/Splunk) com feeds de threat intelligence integrados. Um analista de nível 1 escalou um alerta de tráfego suspeito para investigação aprofundada.",
+		"initialSituation": {
+			"alert": "SIEM Alert: Beaconing Pattern Detected - Periodic HTTPS connections to suspicious external IP",
+			"affectedHost": "workstation-PC147.internal.corp (10.10.25.147)",
+			"suspiciousDestination": "185.234.72.19:443 (IP não categorizado, hospedado em VPS)",
+			"beaconInterval": "Conexões HTTPS a cada ~60 segundos (±5s jitter)",
+			"timestamp": "14:12:03"
+		},
+		"initialComplaints": [
+			"Alerta do SIEM identificou padrão de beaconing via análise estatística de frequência",
+			"IP de destino 185.234.72.19 não consta em listas de domínios corporativos aprovados",
+			"Consulta a feeds de threat intelligence retorna score de risco 72/100 para o IP",
+			"Nenhuma reclamação do usuário da estação - comportamento aparentemente normal"
+		],
+		"availableResources": [
+			"Console do SIEM (Elastic SIEM) com logs de firewall, proxy e DNS dos últimos 90 dias",
+			"Firewall de borda com capacidade de inspeção SSL/TLS e bloqueio granular",
+			"Sistema de EDR (Endpoint Detection and Response) instalado nas estações",
+			"Proxy web corporativo com logs de acesso HTTP/HTTPS",
+			"Ferramentas de análise: Wireshark, tcpdump, Zeek (Bro), RITA",
+			"Acesso administrativo ao Active Directory e GPOs",
+			"Sandbox de análise de malware (isolada da rede de produção)",
+			"Feeds de threat intelligence (VirusTotal, AbuseIPDB, AlienVault OTX)"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe deve se familiarizar com o alerta escalado, os recursos disponíveis e planejar a abordagem de investigação.",
+			"inject": "O analista SOC L1 escalou o alerta após observar conexões periódicas de 10.10.25.147 para 185.234.72.19:443. O padrão foi detectado pela regra de beaconing do SIEM. A equipe tem 5 minutos para discutir a situação e definir prioridades de investigação.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Detecção e Análise Inicial",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe inicia investigação aprofundada do alerta, coletando evidências de rede e do endpoint para confirmar ou descartar o comprometimento.",
+			"timeElapsed": "T+0 (início da investigação)",
+			"currentSituation": {
+				"beaconStatus": "Ativo - conexões continuam a cada ~60s",
+				"userActivity": "Usuário trabalhando normalmente (não reportou anomalias)",
+				"networkImpact": "Mínimo - tráfego de beacon representa < 0.01% do tráfego total",
+				"impact": "Potencial exfiltração de dados e acesso persistente do adversário"
+			},
+			"metrics": [
+				{
+					"title": "Análise de Padrão de Beaconing (RITA/Zeek)",
+					"type": "network-analysis",
+					"data": {
+						"source": "10.10.25.147",
+						"destination": "185.234.72.19:443",
+						"protocol": "TLS 1.2",
+						"averageInterval": "60.3 segundos",
+						"jitter": "±4.7 segundos",
+						"connectionCount24h": 1412,
+						"averagePayloadSize": "847 bytes (request), 2.1 KB (response)",
+						"firstSeen": "2025-02-10T08:14:22Z",
+						"lastSeen": "2025-02-17T14:12:03Z",
+						"observation": "Padrão de beaconing clássico: intervalo regular com jitter mínimo, payload consistente, ativo há 7 dias"
+					}
+				},
+				{
+					"title": "Análise do Certificado TLS do Destino",
+					"type": "security-analysis",
+					"data": {
+						"certificateSubject": "CN=cdn-static-content.cloud-services.net",
+						"issuer": "Let's Encrypt Authority X3",
+						"validFrom": "2025-01-28",
+						"validTo": "2025-04-28",
+						"selfSigned": false,
+						"age": "20 dias",
+						"observation": "Certificado válido mas recente, domínio genérico tentando simular CDN legítimo - técnica comum de evasão"
+					}
+				},
+				{
+					"title": "Consulta a Feeds de Threat Intelligence",
+					"type": "threat-intel",
+					"data": {
+						"ip": "185.234.72.19",
+						"virusTotal": "3/87 vendors flagged (baixa detecção)",
+						"abuseIPDB": "Score 72/100 - reportado 14 vezes",
+						"hosting": "VPS provider - Hosting Solutions Ltd (AS48721)",
+						"geolocation": "Países Baixos (Amsterdam)",
+						"reverseDNS": "vps-48721-node3.hosting-solutions.net",
+						"firstReported": "2025-02-05",
+						"tags": ["C2", "cobalt-strike", "suspicious-tls"],
+						"observation": "IP associado a infraestrutura de C2 em múltiplos feeds, baixa detecção em AV indica malware recente/customizado"
+					}
+				},
+				{
+					"title": "Dados do EDR - Processos no Host Comprometido",
+					"type": "endpoint-analysis",
+					"data": {
+						"hostname": "workstation-PC147",
+						"loggedUser": "joao.silva",
+						"os": "Windows 10 Enterprise 22H2",
+						"suspiciousProcess": {
+							"name": "svchost-update.exe",
+							"pid": 4872,
+							"parentProcess": "explorer.exe (PID 2104)",
+							"path": "C:\\Users\\joao.silva\\AppData\\Local\\Temp\\svchost-update.exe",
+							"hash_sha256": "a3f2b8c1d4e5f6789012345678abcdef0123456789abcdef01234567890abcde",
+							"digitalSignature": "Not signed",
+							"networkConnections": "185.234.72.19:443 (ESTABLISHED)",
+							"startTime": "2025-02-10T08:12:45Z"
+						},
+						"observation": "Processo suspeito imitando nome de sistema (svchost), executando do diretório Temp do usuário, sem assinatura digital"
+					}
+				},
+				{
+					"title": "Análise DNS - Resolução do Domínio C2",
+					"type": "dns-analysis",
+					"data": {
+						"queriedDomain": "cdn-static-content.cloud-services.net",
+						"resolvedIP": "185.234.72.19",
+						"querySource": "10.10.25.147",
+						"dnsServer": "10.10.1.53 (DNS interno)",
+						"queryCount7days": 1489,
+						"uniqueClientsQuerying": 1,
+						"domainAge": "25 dias (registrado em 2025-01-23)",
+						"registrar": "Namecheap Inc.",
+						"observation": "Domínio recém-registrado, consultado exclusivamente por um host - indicador forte de C2 dedicado"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Com base nas evidências coletadas (beaconing a cada ~60s, processo svchost-update.exe em diretório Temp, IP flagged em threat intel, domínio recém-registrado), qual classificação INICIAL é mais apropriada para este incidente?",
+					"options": [
+						"Falso positivo - tráfego de atualização de software legítimo",
+						"Comprometimento confirmado - host com implante C2 ativo (backdoor/RAT)",
+						"Atividade suspeita - possível adware ou PUP (Potentially Unwanted Program)",
+						"Scan de reconhecimento externo - tentativa de exploração em andamento"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Classificação B - Comprometimento confirmado. Evidências convergentes: (1) beaconing regular com jitter (comportamento de C2, não de software legítimo), (2) processo executando do Temp sem assinatura (técnica de evasão), (3) IP em feeds de C2 com tags de Cobalt Strike, (4) domínio recém-registrado consultado por único host, (5) certificado TLS imitando CDN. Software legítimo (A) teria assinatura digital, domínio estabelecido e múltiplos clientes. Adware (C) não usa beaconing preciso nem imita nomes de sistema. Scan externo (D) seria tráfego inbound, não outbound."
+				},
+				{
+					"id": "q2",
+					"type": "multiple-choice",
+					"text": "O processo malicioso executa como 'svchost-update.exe' do diretório AppData\\Local\\Temp. Esta técnica é conhecida no MITRE ATT&CK como:",
+					"options": [
+						"T1036 - Masquerading (disfarçar nome/localização do processo)",
+						"T1055 - Process Injection (injeção de código em processo legítimo)",
+						"T1053 - Scheduled Task/Job (persistência via tarefa agendada)",
+						"T1574 - Hijack Execution Flow (sequestro de fluxo de DLL)"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "T1036 - Masquerading (A) é a técnica correta. O malware imita o nome 'svchost' (processo legítimo do Windows) adicionando '-update' para parecer legítimo. Executar do Temp é sub-técnica T1036.005 (Match Legitimate Name or Location). Process Injection (B) envolveria injetar código em outro processo. Scheduled Task (C) é mecanismo de persistência, não disfarce. DLL Hijacking (D) explora ordem de carregamento de DLLs."
+				},
+				{
+					"id": "q3",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: O fato do malware utilizar TLS 1.2 com certificado válido do Let's Encrypt torna a inspeção do tráfego C2 impossível para a equipe de segurança.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. Embora TLS criptografe o payload, a equipe AINDA pode: (1) analisar metadados (frequência, tamanho, destino) sem descriptografar, (2) utilizar proxy com inspeção SSL/TLS (SSL interception) se configurado na rede, (3) analisar JA3/JA3S fingerprints do handshake TLS, (4) bloquear por IP/domínio independente da criptografia. Além disso, o EDR no endpoint pode capturar dados antes da criptografia. TLS dificulta mas não impossibilita a análise."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Correlacione cada indicador de comprometimento (IoC) ao tipo apropriado de IoC:",
+					"leftColumn": [
+						{"id": "ioc1", "label": "185.234.72.19"},
+						{"id": "ioc2", "label": "a3f2b8c1d4e5f6...890abcde (SHA-256)"},
+						{"id": "ioc3", "label": "cdn-static-content.cloud-services.net"},
+						{"id": "ioc4", "label": "Conexão HTTPS a cada ~60 segundos"}
+					],
+					"rightColumn": [
+						{"id": "type1", "label": "IoC de Rede - Endereço IP"},
+						{"id": "type2", "label": "IoC de Host - Hash de Arquivo"},
+						{"id": "type3", "label": "IoC de Rede - Domínio"},
+						{"id": "type4", "label": "IoC Comportamental - Padrão de Tráfego"}
+					],
+					"correctMatches": [
+						{"left": "ioc1", "right": "type1"},
+						{"left": "ioc2", "right": "type2"},
+						{"left": "ioc3", "right": "type3"},
+						{"left": "ioc4", "right": "type4"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 8,
+					"justification": "IP (ioc1) é indicador de rede direto. Hash SHA-256 (ioc2) identifica o binário malicioso no host. Domínio (ioc3) é indicador de rede usado para resolução DNS. Padrão de beaconing (ioc4) é indicador comportamental - não identifica artefato específico, mas padrão de atividade maliciosa. A distinção entre tipos de IoC é fundamental para estratégias de detecção: IoCs de host são verificados pelo EDR, IoCs de rede pelo firewall/IDS, e comportamentais pelo SIEM."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Contenção e Isolamento",
+			"phase": "Fase 2 - Contenção",
+			"description": "Após confirmação do comprometimento, a equipe decide conter o incidente isolando o host e bloqueando a comunicação C2, sem alertar o adversário prematuramente.",
+			"timeElapsed": "T+20 minutos",
+			"currentSituation": {
+				"beaconStatus": "Bloqueado no firewall - host isolado em VLAN de quarentena",
+				"affectedSystems": "1 estação confirmada, investigação de movimentação lateral em andamento",
+				"c2Communication": "Cortada - firewall bloqueando 185.234.72.19 e domínio C2",
+				"impact": "Host isolado, usuário notificado, investigação expandida"
+			},
+			"metrics": [
+				{
+					"title": "Ações de Contenção Executadas",
+					"type": "response-actions",
+					"data": {
+						"firewallRule": "BLOCK 185.234.72.19 (inbound/outbound) + BLOCK cdn-static-content.cloud-services.net via DNS sinkhole",
+						"networkIsolation": "10.10.25.147 movido para VLAN de quarentena (acesso apenas para equipe forense)",
+						"edrAction": "Processo svchost-update.exe (PID 4872) isolado pelo EDR - não terminado ainda (preservar evidências)",
+						"adAction": "Conta joao.silva desabilitada temporariamente no AD, sessões forçadas a fazer logoff em outros sistemas",
+						"observation": "Contenção executada em 3 minutos - C2 cortado, host isolado, credenciais revogadas"
+					}
+				},
+				{
+					"title": "Busca por Movimentação Lateral (Threat Hunting)",
+					"type": "lateral-movement-analysis",
+					"data": {
+						"searchCriteria": "Conexões de 10.10.25.147 para outros hosts internos (últimos 7 dias)",
+						"smbConnections": [
+							{"destination": "10.10.25.10 (file-server.internal.corp)", "port": 445, "count": 234, "status": "Normal - acesso usual a compartilhamentos"},
+							{"destination": "10.10.25.50 (db-reports.internal.corp)", "port": 445, "count": 47, "status": "SUSPEITO - host não acessado anteriormente pelo usuário"},
+							{"destination": "10.10.1.10 (dc01.internal.corp)", "port": 389, "count": 12, "status": "SUSPEITO - queries LDAP incomuns"}
+						],
+						"rdpConnections": "Nenhuma conexão RDP originada do host",
+						"psexecActivity": "Nenhuma atividade PsExec detectada",
+						"observation": "Possível reconhecimento via SMB/LDAP - adversário pode ter enumerado recursos de rede"
+					}
+				},
+				{
+					"title": "Análise de Persistência no Host",
+					"type": "persistence-analysis",
+					"data": {
+						"registryRunKeys": {
+							"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run": {
+								"WindowsUpdateSvc": "C:\\Users\\joao.silva\\AppData\\Local\\Temp\\svchost-update.exe",
+								"status": "MALICIOSO - persistência via chave Run do registro"
+							}
+						},
+						"scheduledTasks": "Nenhuma tarefa agendada suspeita encontrada",
+						"services": "Nenhum serviço malicioso instalado",
+						"startupFolder": "Limpo",
+						"wmiSubscription": "Nenhuma subscription WMI suspeita",
+						"observation": "Mecanismo de persistência único via chave de registro Run - nível de sofisticação moderado"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q5",
+					"type": "multiple-choice",
+					"text": "Ao conter o host comprometido, a equipe optou por NÃO terminar o processo malicioso imediatamente, apenas isolá-lo na VLAN de quarentena. Qual é a principal razão técnica para essa decisão?",
+					"options": [
+						"Terminar o processo pode corromper o sistema operacional do host",
+						"O processo pode estar criptografando dados e terminá-lo causaria perda de dados",
+						"Preservar o processo em memória permite análise forense (dump de memória, strings, conexões) antes da evidência volátil ser perdida",
+						"O adversário pode ter configurado um 'dead man's switch' que se ativa se o processo for terminado"
+					],
+					"correctAnswer": 2,
+					"points": 5,
+					"justification": "A opção C é a principal razão. Evidências voláteis em memória (chaves de criptografia, strings de configuração do C2, comandos recebidos, credenciais em cache) são perdidas permanentemente quando o processo é terminado. O dump de memória do processo pode revelar a infraestrutura completa do C2, outros alvos, e ferramentas do adversário. A opção A é incorreta (terminar processo não corrompe o OS). B é cenário de ransomware, não C2. D, embora possível em casos sofisticados, não é a razão primária."
+				},
+				{
+					"id": "q6",
+					"type": "ordering",
+					"text": "Ordene corretamente a sequência de ações de contenção para um host com implante C2 ativo:",
+					"items": [
+						{"id": "step1", "label": "Bloquear comunicação C2 no firewall (IP + domínio)"},
+						{"id": "step2", "label": "Isolar o host em VLAN de quarentena"},
+						{"id": "step3", "label": "Revogar credenciais do usuário no Active Directory"},
+						{"id": "step4", "label": "Coletar dump de memória e imagem forense do disco"}
+					],
+					"correctOrder": ["step1", "step2", "step3", "step4"],
+					"partialCredit": false,
+					"points": 5,
+					"justification": "Sequência correta de contenção: (1) Bloquear C2 no firewall PRIMEIRO - corta comunicação imediatamente sem alterar o host, impedindo que o adversário receba a contenção e reaja. (2) Isolar o host - previne movimentação lateral. (3) Revogar credenciais - impede que credenciais potencialmente comprometidas sejam usadas em outros sistemas. (4) Coleta forense - somente após contenção completa, preservando evidências com a certeza de que o adversário não pode mais exfiltrar dados ou destruir evidências."
+				},
+				{
+					"id": "q7",
+					"type": "multiple-choice",
+					"text": "A análise de movimentação lateral revelou conexões SMB suspeitas para db-reports.internal.corp e queries LDAP incomuns para o DC. No framework MITRE ATT&CK, qual tática isso representa?",
+					"options": [
+						"TA0007 - Discovery (reconhecimento do ambiente interno)",
+						"TA0008 - Lateral Movement (movimentação para outros sistemas)",
+						"TA0010 - Exfiltration (exfiltração de dados)",
+						"TA0040 - Impact (destruição ou manipulação de dados)"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "TA0007 - Discovery (A) é a classificação correta. As conexões SMB para enumerar compartilhamentos e queries LDAP para mapear o AD são técnicas de reconhecimento interno (T1135 - Network Share Discovery, T1087 - Account Discovery). Não há evidência de que o adversário EXECUTOU código nos outros hosts (Lateral Movement - B), apenas os enumerou. Exfiltration (C) envolveria transferência de dados para fora da rede. Impact (D) envolveria destruição."
+				},
+				{
+					"id": "q8",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: A técnica de DNS sinkhole (redirecionar resolução do domínio C2 para IP interno controlado) é mais eficaz que apenas bloquear o IP no firewall, pois impede que o malware resolva novos IPs caso o adversário altere a infraestrutura.",
+					"correctAnswer": true,
+					"points": 3,
+					"justification": "VERDADEIRO. DNS sinkhole redireciona TODAS as resoluções do domínio C2 para um IP controlado (ex: servidor de honeypot interno), independente de qual IP o domínio resolva. Se o adversário alterar o IP do servidor C2 (rotação de infraestrutura), o bloqueio por IP no firewall seria burlado, mas o sinkhole DNS continuaria eficaz. A combinação de ambos (sinkhole + bloqueio de IP) é a melhor prática. Adicionalmente, o sinkhole permite detectar outros hosts que tentem resolver o mesmo domínio C2."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Investigação Aprofundada e Erradicação",
+			"phase": "Fase 3 - Erradicação e Análise Avançada",
+			"description": "Com o host contido, a equipe conduz análise forense aprofundada para determinar vetor de entrada inicial, escopo do comprometimento e garantir erradicação completa.",
+			"timeElapsed": "T+45 minutos",
+			"currentSituation": {
+				"containedHosts": 1,
+				"investigationScope": "Expandida para incluir file-server e DC",
+				"c2Infrastructure": "Mapeada - 3 domínios e 2 IPs identificados",
+				"impact": "Sem evidência de exfiltração de dados confirmada, movimentação lateral limitada a reconhecimento"
+			},
+			"metrics": [
+				{
+					"title": "Análise Forense do Malware (Sandbox)",
+					"type": "malware-analysis",
+					"data": {
+						"fileName": "svchost-update.exe",
+						"fileSize": "284 KB",
+						"type": "PE32 executable (GUI) Intel 80386",
+						"compiler": "MinGW GCC",
+						"packer": "UPX (detectado)",
+						"behavior": {
+							"networkActivity": ["DNS query: cdn-static-content.cloud-services.net", "HTTPS POST /api/check-update every 60s", "HTTPS GET /api/tasks (poll for commands)"],
+							"fileActivity": ["Creates: %TEMP%\\svchost-update.exe", "Modifies: HKCU\\...\\Run (persistence)", "Reads: browser credential stores (Chrome, Firefox)"],
+							"processActivity": ["Injects into explorer.exe on first execution", "Spawns cmd.exe for command execution"]
+						},
+						"c2Protocol": "HTTPS com JSON payload - simula tráfego de API REST legítimo",
+						"additionalC2Domains": ["api-gateway-services.cloud-delivery.net", "update-check.global-cdn-services.com"],
+						"observation": "RAT customizado com funcionalidades de stealer (roubo de credenciais de browsers) e execução remota de comandos"
+					}
+				},
+				{
+					"title": "Vetor de Entrada Identificado",
+					"type": "initial-access-analysis",
+					"data": {
+						"method": "Spearphishing Attachment (T1566.001)",
+						"emailSubject": "Atualização urgente - Portal de Benefícios",
+						"sender": "rh-beneficios@company-portal.net (domínio typosquatting)",
+						"attachment": "Atualizacao_Beneficios_2025.pdf.exe (dupla extensão)",
+						"receivedDate": "2025-02-10T07:58:31Z",
+						"openedDate": "2025-02-10T08:12:45Z",
+						"otherRecipients": ["maria.santos@internal.corp", "pedro.costa@internal.corp"],
+						"observation": "Phishing direcionado com arquivo de dupla extensão. Email recebido por 3 usuários, executado apenas por joao.silva"
+					}
+				},
+				{
+					"title": "Varredura de IoCs na Rede Completa",
+					"type": "ioc-sweep",
+					"data": {
+						"ipsSearched": ["185.234.72.19", "185.234.72.22"],
+						"domainsSearched": ["cdn-static-content.cloud-services.net", "api-gateway-services.cloud-delivery.net", "update-check.global-cdn-services.com"],
+						"hashSearched": "a3f2b8c1d4e5f6...890abcde",
+						"matchingHosts": {
+							"networkIoCs": "Apenas 10.10.25.147 comunicou com os IPs/domínios C2",
+							"fileIoCs": "Hash não encontrado em nenhum outro endpoint"
+						},
+						"emailIoCs": {
+							"recipientsMariaSantos": "Email recebido, anexo NÃO aberto (email marcado como spam)",
+							"recipientsPedroCosta": "Email recebido, anexo baixado mas NÃO executado"
+						},
+						"observation": "Comprometimento limitado a um host. Outros destinatários do phishing não foram comprometidos."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q9",
+					"type": "multiple-choice",
+					"text": "A análise revelou que o malware rouba credenciais de browsers (Chrome, Firefox). Qual é a ação de remediação MAIS CRÍTICA em relação a credenciais?",
+					"options": [
+						"Resetar apenas a senha do Active Directory do usuário comprometido",
+						"Forçar reset de todas as senhas armazenadas nos browsers do host comprometido (webmail, SaaS, portais internos) ALÉM da senha do AD",
+						"Apenas revogar tokens de sessão ativos e aguardar expiração natural das senhas",
+						"Notificar o usuário para que ele altere suas senhas quando conveniente"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "A opção B é a mais completa e crítica. O stealer coletou credenciais armazenadas em TODOS os browsers, que podem incluir: senhas de webmail pessoal, portais SaaS corporativos, bancos, redes sociais, entre outros. Resetar apenas AD (A) ignora todas as demais credenciais comprometidas. Revogar tokens (C) não protege contra credenciais já exfiltradas. Aguardar conveniência (D) dá tempo ao adversário para usar as credenciais roubadas."
+				},
+				{
+					"id": "q10",
+					"type": "multiple-choice",
+					"text": "O email de phishing usou o domínio 'company-portal.net' (similar ao legítimo 'company-portal.com'). Esta técnica é conhecida como:",
+					"options": [
+						"DNS Spoofing - falsificação de respostas DNS",
+						"Typosquatting - registro de domínio similar para enganar usuários",
+						"BGP Hijacking - sequestro de rotas para interceptar tráfego",
+						"ARP Poisoning - envenenamento de tabela ARP para man-in-the-middle"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Typosquatting (B) é a técnica de registrar domínios que imitam domínios legítimos com pequenas variações (.net vs .com, letras trocadas, caracteres adicionais). É técnica de engenharia social na fase de Initial Access. DNS Spoofing (A) manipula respostas DNS, não registra domínios. BGP Hijacking (C) é ataque de roteamento. ARP Poisoning (D) é ataque de rede local."
+				},
+				{
+					"id": "q11",
+					"type": "numeric",
+					"text": "O beacon opera a cada 60 segundos e está ativo há 7 dias. Considerando operação 24h/dia, quantas conexões C2 aproximadamente foram realizadas nesse período?",
+					"correctAnswer": 10080,
+					"tolerance": 200,
+					"unit": "conexões",
+					"points": 5,
+					"justification": "Cálculo: 7 dias × 24 horas × 60 minutos = 10.080 conexões. Cada minuto gera uma conexão (intervalo de 60s). O valor observado de 1.412 conexões nas últimas 24h é consistente (24 × 60 = 1.440, descontando períodos de suspensão/hibernação da estação). Este volume de comunicação C2 representa uma janela significativa de exposição ao adversário."
+				},
+				{
+					"id": "q12",
+					"type": "multiple-choice",
+					"text": "O malware foi empacotado com UPX. Para análise estática mais eficaz, qual é o primeiro passo?",
+					"options": [
+						"Executar o malware em sandbox para observar comportamento dinâmico",
+						"Desempacotar (unpack) o binário com 'upx -d' para recuperar o executável original",
+						"Submeter o hash ao VirusTotal para obter classificação de vendors AV",
+						"Analisar strings no binário empacotado diretamente"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "UPX é um packer reversível - o comando 'upx -d' descomprime o executável, revelando o código original. Isso é prerrequisito para análise estática eficaz (strings, imports, disassembly). Sandbox (A) é análise DINÂMICA, não estática. VirusTotal (C) fornece detecção de vendors mas não análise aprofundada. Analisar strings no binário empacotado (D) retornaria dados majoritariamente ilegíveis (comprimidos)."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Recuperação e Lições Aprendidas",
+			"phase": "Fase 4 - Recuperação e Pós-Incidente",
+			"description": "Após erradicação completa do malware, restauração do host e remediação de credenciais, a equipe conduz atividades de recuperação e documenta lições aprendidas.",
+			"timeElapsed": "T+4 horas (incidente encerrado)",
+			"currentSituation": {
+				"compromisedHosts": "1 (reimaged e restaurado do backup)",
+				"c2Blocked": "Todos os IoCs bloqueados no firewall e DNS sinkhole",
+				"credentialsReset": "Todas as credenciais do usuário comprometido resetadas",
+				"impact": "Comprometimento limitado - sem evidência de exfiltração confirmada de dados sensíveis"
+			},
+			"questions": [
+				{
+					"id": "q13",
+					"type": "multiple-choice",
+					"text": "Para prevenir incidentes similares, qual controle técnico teria o MAIOR impacto contra phishing com anexos maliciosos?",
+					"options": [
+						"Treinamento de conscientização de segurança para todos os funcionários",
+						"Implementação de sandbox de email (detonação de anexos) + desabilitar execução de .exe de diretórios temporários via AppLocker/GPO",
+						"Bloqueio de todos os emails externos da organização",
+						"Instalação de antivírus atualizado em todas as estações"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "A combinação de sandbox de email + AppLocker (B) é a defesa em profundidade mais eficaz: sandbox detonaria o anexo malicioso antes de chegar ao usuário, e AppLocker impediria execução de .exe do diretório Temp mesmo se o anexo chegasse. Treinamento (A) é complementar mas não técnico - não impede 100% dos cliques. Bloquear emails externos (C) é impraticável. Antivírus (D) falhou neste caso (baixa detecção: 3/87 no VT)."
+				},
+				{
+					"id": "q14",
+					"type": "multiple-choice",
+					"text": "O malware esteve ativo por 7 dias antes da detecção. Qual métrica de segurança mede esse intervalo?",
+					"options": [
+						"MTTR (Mean Time To Respond) - tempo médio de resposta",
+						"MTTD (Mean Time To Detect) - tempo médio de detecção (dwell time)",
+						"MTTC (Mean Time To Contain) - tempo médio de contenção",
+						"RPO (Recovery Point Objective) - ponto de recuperação aceitável"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "MTTD (B) - Mean Time To Detect, também chamado de 'dwell time', mede o tempo entre o comprometimento inicial e a detecção. Neste caso, 7 dias (10/02 a 17/02). O relatório M-Trends da Mandiant reporta mediana global de ~16 dias em 2024. MTTR (A) mede tempo de resposta após detecção. MTTC (C) mede tempo de contenção. RPO (D) é métrica de backup/DR."
+				},
+				{
+					"id": "q15",
+					"type": "multiple-choice",
+					"text": "Na documentação pós-incidente, qual artefato é MAIS valioso para compartilhar com a comunidade de segurança e outras organizações?",
+					"options": [
+						"Relatório completo do incidente com nomes de funcionários e sistemas internos",
+						"IoCs (hashes, IPs, domínios) em formato STIX/TAXII para feeds de threat intelligence",
+						"Logs brutos do SIEM sem tratamento ou contexto",
+						"Capturas de tela das interfaces do SIEM e EDR"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "IoCs em formato STIX/TAXII (B) são o artefato mais valioso para compartilhamento. STIX (Structured Threat Information eXpression) é formato padronizado para IoCs que pode ser consumido automaticamente por SIEMs, firewalls e feeds de TI de outras organizações. Relatório completo (A) contém informações sensíveis internas. Logs brutos (C) são muito volumosos e sem contexto. Capturas de tela (D) não são processáveis automaticamente por sistemas de segurança."
+				},
+				{
+					"id": "q16",
+					"type": "multiple-choice",
+					"text": "Considerando defesa em profundidade, qual camada de segurança foi MAIS crítica na detecção deste incidente?",
+					"options": [
+						"Antivírus/EPP - proteção de endpoint baseada em assinaturas",
+						"Análise comportamental do SIEM - detecção de padrão de beaconing via análise estatística",
+						"Firewall de borda - bloqueio de tráfego para IPs maliciosos conhecidos",
+						"Filtro de email - bloqueio de phishing na entrada"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "A análise comportamental do SIEM (B) foi a camada que efetivamente DETECTOU o incidente. O antivírus (A) FALHOU (3/87 detecções - malware evasivo). O firewall (C) não bloqueou porque o IP não estava em blacklists quando o ataque começou. O filtro de email (D) também falhou (email chegou ao usuário). A detecção de beaconing por análise estatística de frequência é uma capacidade avançada que identifica COMPORTAMENTO anômalo, não assinaturas conhecidas - essencial contra ameaças avançadas (APTs)."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 89,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 90,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de detecção e resposta a comunicações C2, análise de malware e threat hunting"
+			},
+			{
+				"min": 75,
+				"max": 89,
+				"grade": "Bom",
+				"description": "Compreensão sólida de TTPs de adversários e procedimentos de resposta com pequenas lacunas"
+			},
+			{
+				"min": 60,
+				"max": 74,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica suficiente, requer aprofundamento em análise forense e threat intelligence"
+			},
+			{
+				"min": 45,
+				"max": 59,
+				"grade": "Insatisfatório",
+				"description": "Lacunas significativas em identificação de IoCs e procedimentos de contenção"
+			},
+			{
+				"min": 0,
+				"max": 44,
+				"grade": "Inadequado",
+				"description": "Compreensão insuficiente, requer treinamento completo em resposta a incidentes de segurança"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Apresentar evidências progressivamente, simulando a descoberta natural durante investigação de SOC",
+		"Enfatizar a importância de NÃO alertar o adversário durante a contenção (não terminar processos imediatamente)",
+		"Permitir 3-4 minutos de discussão entre participantes antes de cada resposta",
+		"Fazer perguntas socráticas: 'Como distinguir beaconing de tráfego legítimo?', 'Qual o risco de conter rápido demais?'",
+		"Observar se a equipe correlaciona múltiplos IoCs antes de classificar o incidente",
+		"Manter neutralidade técnica - não fornecer respostas diretas, apenas orientar pensamento crítico",
+		"Controlar tempo: Rodada 1 (5 min), Rodadas 2-4 (10-12 min cada), Rodada 5 (7 min)",
+		"Discutir o conceito de 'dwell time' e sua importância para maturidade de SOC",
+		"Após exercício: revisar MITRE ATT&CK kill chain completa do cenário, discutir pontos de detecção e prevenção"
+	],
+	"technicalReferences": [
+		{
+			"title": "MITRE ATT&CK Framework - Enterprise",
+			"url": "https://attack.mitre.org/matrices/enterprise/"
+		},
+		{
+			"title": "NIST SP 800-61r2 - Computer Security Incident Handling Guide",
+			"url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-61r2.pdf"
+		},
+		{
+			"title": "RITA - Real Intelligence Threat Analytics (Beaconing Detection)",
+			"url": "https://github.com/activecm/rita"
+		},
+		{
+			"title": "STIX/TAXII - Structured Threat Information Standards",
+			"url": "https://oasis-open.github.io/cti-documentation/"
+		},
+		{
+			"title": "Mandiant M-Trends Report - Dwell Time Statistics",
+			"url": "https://www.mandiant.com/m-trends"
+		}
+	]
+}

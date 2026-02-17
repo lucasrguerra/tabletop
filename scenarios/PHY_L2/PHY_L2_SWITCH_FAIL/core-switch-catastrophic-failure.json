@@ -1,0 +1,612 @@
+{
+	"id": "core-switch-catastrophic-failure",
+	"title": "Resposta a Falha Catastrófica de Switch de Núcleo",
+	"description": "Simulação tabletop de resposta a falha total de switch de núcleo por defeito de hardware crítico, resultando em perda de conectividade e ativação de failover HSRP/VRRP",
+	"category": {
+		"id": "PHY_L2",
+		"type": "PHY_L2_SWITCH_FAIL",
+		"title": "Falha Catastrófica de Switch de Núcleo"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2025-02-17",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "40-55 minutos",
+		"difficulty": "Intermediário a Avançado",
+		"targetAudience": "Equipe de NOC, Engenheiros de Rede, Arquitetos de Rede, Administradores de Infraestrutura"
+	},
+	"objectives": [
+		"Validar capacidade de resposta a falha total de equipamento crítico de rede (switch de núcleo)",
+		"Avaliar conhecimento de protocolos de redundância de gateway (HSRP/VRRP) e failover automático",
+		"Testar procedimentos de diagnóstico de hardware e decisão sobre substituição de equipamento",
+		"Desenvolver compreensão de impactos em topologias de campus com switch de núcleo redundante",
+		"Identificar processos de migração de configuração e validação pós-substituição de equipamento",
+		"Promover entendimento de arquitetura de alta disponibilidade e eliminação de pontos únicos de falha"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá execução real de comandos ou substituição de equipamentos",
+		"Não inclui intervenção física real em equipamentos de produção",
+		"Foco na análise técnica, tomada de decisão e procedimentos de recuperação",
+		"Avaliação de conhecimento de redundância de rede, protocolos de failover e troubleshooting de hardware"
+	],
+	"baseScenario": {
+		"context": "Segunda-feira, 11h15, horário comercial. Você faz parte da equipe de NOC. A organização possui uma rede campus com topologia de núcleo colapsado (collapsed core): dois switches de núcleo/distribuição (CORE-01 e CORE-02) em stack virtual (VSS/VPC) ou operando com HSRP para redundância de gateway. Cada switch de núcleo conecta 6 switches de acesso (total: 12 switches de acesso, ~500 usuários). Os switches de núcleo são interconectados por link de 40 Gbps e compartilham o gateway HSRP para todas as VLANs. CORE-01 é o HSRP Active para VLANs 10-50 e CORE-02 é Active para VLANs 60-100.",
+		"initialSituation": {
+			"alert": "CORE-01: Múltiplos alarmes - ALL INTERFACES DOWN - DEVICE UNREACHABLE",
+			"affectedSwitch": "CORE-01 (switch de núcleo primário) - completamente inacessível",
+			"hsrpStatus": "CORE-02 assumindo como Active para VLANs 10-50 (failover HSRP)",
+			"userImpact": "Interrupção de ~30 segundos durante failover HSRP, serviços restaurados parcialmente",
+			"timestamp": "11:12:38"
+		},
+		"initialComplaints": [
+			"Monitoramento reporta CORE-01 completamente inalcançável (ICMP, SSH, SNMP timeout)",
+			"Usuários reportaram desconexão momentânea (~30 segundos) seguida de reconexão",
+			"Switches de acesso conectados a CORE-01 perderam uplink primário",
+			"Sessões TCP longas (downloads, VoIP) foram interrompidas durante o failover"
+		],
+		"availableResources": [
+			"Acesso SSH ao CORE-02 (operacional como HSRP Active para todas as VLANs)",
+			"Acesso console ao CORE-01 (para tentativa de diagnóstico local)",
+			"Sistema de monitoramento com histórico de health checks do CORE-01",
+			"Acesso físico ao datacenter onde estão os switches de núcleo",
+			"Equipamento sobressalente: 1 switch de mesmo modelo (em estoque para DR)",
+			"Backup de configuração do CORE-01 (atualizado há 24 horas)",
+			"Documentação de topologia e plano de endereçamento IP/VLAN"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe deve se familiarizar com a topologia de núcleo redundante, configuração HSRP e situação inicial.",
+			"inject": "Apresentação do cenário conforme descrito. A equipe tem 5 minutos para revisar topologia, configurações de redundância e discutir abordagem inicial.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Avaliação de Impacto e Diagnóstico Inicial",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe de NOC avalia o impacto do failover e tenta diagnosticar remotamente e localmente a causa da falha do CORE-01.",
+			"timeElapsed": "T+0 (11:12 - início do incidente)",
+			"currentSituation": {
+				"core01Status": "Completamente inacessível - sem resposta a console, SSH, SNMP",
+				"core02Status": "Operacional - HSRP Active para TODAS as VLANs (10-100)",
+				"networkStatus": "Operacional com degradação - todos os switches de acesso usando CORE-02",
+				"userImpact": "6 switches de acesso em CORE-01 sem uplink primário, usando link backup para CORE-02"
+			},
+			"metrics": [
+				{
+					"title": "Status HSRP - CORE-02 (após failover)",
+					"type": "hsrp-status",
+					"data": {
+						"vlans10_50": {
+							"previousActive": "CORE-01 (10.0.x.2)",
+							"currentActive": "CORE-02 (10.0.x.3)",
+							"failoverTime": "28 segundos (HSRP hold timer: 30 sec)",
+							"state": "Active"
+						},
+						"vlans60_100": {
+							"previousActive": "CORE-02 (10.0.x.3)",
+							"currentActive": "CORE-02 (10.0.x.3)",
+							"state": "Active (sem mudança)"
+						},
+						"observation": "Failover HSRP funcionou conforme esperado. CORE-02 agora é Active para TODAS as VLANs. Tempo de failover de 28s é consistente com hold timer padrão de 30s."
+					}
+				},
+				{
+					"title": "Utilização de Links - CORE-02 Pós-Failover",
+					"type": "link-utilization",
+					"data": {
+						"uplinkToWAN": "85% (era 42% antes - dobrou com CORE-01 offline)",
+						"accessSwitchLinks": {
+							"directlyConnected": "6 switches de acesso - normal",
+							"viaBackupLinks": "6 switches de acesso (antes em CORE-01) agora via links backup para CORE-02",
+							"backupLinkUtilization": "Variando 60-90% (links backup são 1 Gbps vs 10 Gbps dos primários)"
+						},
+						"interSwitchLink": "Link 40 Gbps para CORE-01: DOWN",
+						"observation": "CORE-02 absorveu toda a carga. Links backup de 1 Gbps para switches antes em CORE-01 são gargalo significativo."
+					}
+				},
+				{
+					"title": "Diagnóstico Local - CORE-01 (acesso por console)",
+					"type": "console-diagnosis",
+					"data": {
+						"consoleOutput": "Nenhuma saída no console serial - tela preta",
+						"frontPanelLEDs": {
+							"powerLED": "Âmbar piscando (indica falha de sistema)",
+							"statusLED": "Vermelho fixo (falha crítica)",
+							"fanLEDs": "Verde (ventiladores funcionando)",
+							"portLEDs": "Todos apagados"
+						},
+						"physicalInspection": {
+							"powerSupply1": "LED verde (operacional)",
+							"powerSupply2": "LED verde (operacional)",
+							"fans": "Girando normalmente - sem ruídos anormais",
+							"temperature": "Saída de ar quente mas não excessiva"
+						},
+						"observation": "Switch alimentado e ventilado, mas sem atividade de processamento. LED de status vermelho + âmbar piscante indica falha de hardware crítica (possível falha de supervisor/CPU ou backplane)."
+					}
+				},
+				{
+					"title": "Histórico de Health Monitoring - CORE-01 (últimas 24h)",
+					"type": "health-history",
+					"data": {
+						"cpuHistory": [
+							{"timestamp": "T-24h", "value": "15%"},
+							{"timestamp": "T-12h", "value": "18%"},
+							{"timestamp": "T-6h", "value": "22%"},
+							{"timestamp": "T-2h", "value": "35%"},
+							{"timestamp": "T-30min", "value": "58%"},
+							{"timestamp": "T-5min", "value": "89%"}
+						],
+						"memoryHistory": [
+							{"timestamp": "T-24h", "value": "45%"},
+							{"timestamp": "T-12h", "value": "48%"},
+							{"timestamp": "T-6h", "value": "52%"},
+							{"timestamp": "T-2h", "value": "65%"},
+							{"timestamp": "T-30min", "value": "78%"},
+							{"timestamp": "T-5min", "value": "92%"}
+						],
+						"environmentLogs": [
+							"*Feb 17 11:10:22: %PLATFORM-2-PF_THERMAL: Thermal threshold exceeded on supervisor module - 85°C",
+							"*Feb 17 11:08:15: %PLATFORM-4-PF_INSUFFICIENT_POWER: Power supply redundancy lost",
+							"*Feb 17 10:45:33: %PLATFORM-4-PF_ENV_ALERT: Fan tray 2 operating at reduced speed",
+							"*Feb 17 09:20:18: %PLATFORM-4-PF_ENV_ALERT: Supervisor internal temperature rising - 72°C"
+						],
+						"observation": "Logs mostram escalada térmica nas últimas 2 horas: fan tray degradada → temperatura subindo → CPU/memória escalando → thermal threshold → falha. Provável falha de ventilação levando a shutdown térmico."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Com base nos logs ambientais e histórico de recursos do CORE-01, qual é a sequência de eventos mais provável que levou à falha?",
+					"options": [
+						"Ataque DDoS causou sobrecarga de CPU → superaquecimento → shutdown de proteção",
+						"Falha de fan tray → aquecimento progressivo do supervisor → thermal shutdown automático",
+						"Falha de fonte de alimentação → subtensão → instabilidade de circuitos → crash",
+						"Bug de firmware causou memory leak → crash do sistema operacional"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "A sequência de logs confirma cascata térmica (B): (1) 09:20 - temperatura do supervisor subindo (72°C), (2) 10:45 - fan tray 2 com velocidade reduzida (falha parcial de ventilação), (3) 11:08 - perda de redundância de power supply (possível thermal protection de uma PSU), (4) 11:10 - threshold térmico excedido a 85°C no supervisor, (5) 11:12 - shutdown total. CPU e memória subiram como CONSEQUÊNCIA do aquecimento (throttling), não como causa. DDoS (A) não causa logs de fan e thermal. Subtensão (C) PSUs estavam com LED verde."
+				},
+				{
+					"id": "q2",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: O failover HSRP de 28 segundos é considerado rápido e otimizado para ambiente de produção.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. 28 segundos é o comportamento padrão do HSRP (hello: 3s, hold: 10s × 3 = 30s timeout) mas NÃO é otimizado para produção. Em ambientes críticos, HSRP deve ser configurado com timers sub-segundo (hello: 200ms, hold: 750ms), resultando em failover < 1 segundo. 28 segundos causou interrupção perceptível para usuários, queda de sessões TCP e impacto em VoIP. Alternativas mais rápidas incluem: (1) HSRP com BFD (Bidirectional Forwarding Detection) para failover < 50ms, (2) VSS/VPC eliminando necessidade de failover."
+				},
+				{
+					"id": "q3",
+					"type": "multiple-choice",
+					"text": "Os 6 switches de acesso que estavam em CORE-01 agora usam links backup de 1 Gbps para CORE-02 (ao invés de 10 Gbps). Qual é o impacto principal?",
+					"options": [
+						"Nenhum impacto - 1 Gbps é suficiente para switches de acesso com ~40 usuários",
+						"Gargalo de banda - 40 usuários compartilhando 1 Gbps terão degradação significativa em aplicações intensivas",
+						"Apenas impacto em latência - a banda é suficiente mas o caminho é mais longo",
+						"Impossibilidade total de comunicação - 1 Gbps não suporta VLANs trunked"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Gargalo de banda (B) é o impacto principal: (1) 40 usuários com uso médio de 25 Mbps cada = ~1 Gbps de demanda agregada, (2) bursts de tráfego (downloads, videoconferência) excederão 1 Gbps facilmente, (3) tráfego combinado de dados + VoIP + impressão na mesma VLAN compete por banda limitada. O impacto não é total (D) - funciona, mas com degradação. Latência (C) não é o principal fator. A redução de 10x na capacidade (10G → 1G) é significativa para ~250 usuários nos 6 switches afetados."
+				},
+				{
+					"id": "q4",
+					"type": "numeric",
+					"text": "Se cada switch de acesso tem ~40 usuários e há 6 switches de acesso afetados, quantos usuários estão operando com banda degradada (links backup 1 Gbps)?",
+					"correctAnswer": 240,
+					"tolerance": 10,
+					"unit": "usuários",
+					"points": 4,
+					"justification": "Cálculo direto: 6 switches de acesso × 40 usuários por switch = 240 usuários. Estes 240 usuários (de ~500 total) representam 48% da base de usuários operando com capacidade reduzida. Os outros 260 usuários (6 switches diretamente em CORE-02) não são afetados. Identificar corretamente o escopo do impacto é crucial para comunicação com stakeholders e priorização de ações."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Diagnóstico de Hardware e Decisão",
+			"phase": "Fase 2 - Análise Avançada",
+			"description": "O técnico no datacenter realiza diagnóstico mais detalhado do CORE-01. A equipe precisa decidir entre tentar recuperar o switch ou iniciar substituição.",
+			"timeElapsed": "T+20 minutos (11:32)",
+			"currentSituation": {
+				"core01Status": "Sem atividade após resfriamento de 20 min - tentativa de power cycle falhará?",
+				"core02Status": "Estável - operando como núcleo único para toda a rede",
+				"serviceImpact": "240 usuários com banda degradada, restante normal",
+				"ticketsOpen": "12 chamados de usuários reportando lentidão"
+			},
+			"metrics": [
+				{
+					"title": "Diagnóstico Aprofundado - CORE-01",
+					"type": "hardware-diagnosis",
+					"data": {
+						"powerCycleAttempt": {
+							"action": "Desligamento completo por 5 minutos + religamento",
+							"result": "Switch iniciou POST (Power-On Self Test) e parou com erro no supervisor",
+							"consoleOutput": [
+								"System Bootstrap, Version 16.12.1",
+								"...",
+								"POST: CPU test... PASSED",
+								"POST: Memory test... WARNING - 2 DIMM errors detected",
+								"POST: Supervisor ASIC test... FAILED",
+								"POST: System halted due to critical hardware failure",
+								"ROMMON> "
+							],
+							"diagnosis": "ASIC do supervisor falhou no POST - falha de hardware irrecuperável em campo"
+						},
+						"possibleCauses": [
+							"Dano térmico ao ASIC do supervisor por superaquecimento prolongado",
+							"Falha de DIMM de memória (2 DIMMs com erros) - possivelmente por calor",
+							"Fan tray deficiente não removeu calor adequadamente"
+						],
+						"observation": "Switch IRRECUPERÁVEL sem substituição de módulo supervisor ou equipamento completo"
+					}
+				},
+				{
+					"title": "Equipamento Sobressalente Disponível",
+					"type": "spare-equipment",
+					"data": {
+						"spareSwitch": {
+							"model": "Mesmo modelo do CORE-01",
+							"location": "Almoxarifado do datacenter (mesmo prédio)",
+							"status": "Novo - nunca configurado",
+							"configurationNeeded": "Carregar backup de configuração do CORE-01 + ajustes"
+						},
+						"backupConfiguration": {
+							"source": "Backup automático diário (servidor TFTP)",
+							"lastBackup": "Hoje às 02:00 (9 horas atrás)",
+							"format": "running-config completo",
+							"firmwareVersion": "Compatível com switch sobressalente"
+						},
+						"estimatedReplacementTime": "2-3 horas (rack/cabear + configurar + validar)"
+					}
+				},
+				{
+					"title": "Análise de Opções de Recuperação",
+					"type": "recovery-options",
+					"data": {
+						"option1": {
+							"description": "Substituir CORE-01 pelo equipamento sobressalente",
+							"time": "2-3 horas",
+							"risk": "Baixo - equipamento testado, backup recente",
+							"impact": "240 usuários degradados durante substituição"
+						},
+						"option2": {
+							"description": "Solicitar RMA (Return Material Authorization) ao fabricante",
+							"time": "24-72 horas (depende do nível de contrato de suporte)",
+							"risk": "Alto - 240 usuários degradados por longo período",
+							"impact": "Sem redundância de core por 1-3 dias"
+						},
+						"option3": {
+							"description": "Tentar reparar - substituir apenas módulo supervisor",
+							"time": "4-8 horas (se módulo disponível)",
+							"risk": "Médio - pode não resolver se dano for mais extenso",
+							"impact": "Pode não funcionar e perder mais tempo"
+						},
+						"observation": "Opção 1 (substituição completa) é recomendada: menor tempo, menor risco."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q5",
+					"type": "multiple-choice",
+					"text": "O POST mostra 'Supervisor ASIC test... FAILED'. O que isso indica e qual ação deve ser tomada?",
+					"options": [
+						"Falha de software no ASIC - pode ser resolvida com reinicialização de firmware ROMMON",
+						"Falha de hardware irrecuperável em campo - requer substituição do módulo supervisor ou equipamento",
+						"Falha temporária por superaquecimento - após resfriamento, tentar POST novamente",
+						"Erro de POST pode ser falso positivo - ignorar e forçar boot com 'boot' no ROMMON"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Falha de ASIC no POST (B) é irrecuperável em campo: (1) ASIC (Application Specific Integrated Circuit) é chip customizado soldado na placa - não pode ser substituído como componente individual, (2) combinado com erros de DIMM, indica dano térmico ao hardware, (3) 'System halted' é comportamento de segurança para evitar operação com hardware comprometido. Reiniciar ROMMON (A) não repara ASIC físico. Resfriamento (C) não reverte dano térmico permanente. Forçar boot (D) não é possível com ASIC falhado."
+				},
+				{
+					"id": "q6",
+					"type": "ordering",
+					"text": "Ordene corretamente as etapas de substituição de um switch de núcleo por equipamento sobressalente:",
+					"items": [
+						{"id": "step1", "label": "Instalar fisicamente o switch sobressalente no rack e cabear todas as conexões"},
+						{"id": "step2", "label": "Carregar firmware correto e restaurar backup de configuração no switch novo"},
+						{"id": "step3", "label": "Verificar e ajustar configuração (hostname, certificados, chaves SSH únicas)"},
+						{"id": "step4", "label": "Conectar uplinks e verificar convergência HSRP e protocolos de roteamento"},
+						{"id": "step5", "label": "Migrar switches de acesso gradualmente de volta para o switch novo (um por vez)"}
+					],
+					"correctOrder": ["step1", "step2", "step3", "step4", "step5"],
+					"partialCredit": false,
+					"points": 6,
+					"justification": "Sequência progressiva de menor para maior risco: (1) Instalação física é pré-requisito para tudo. (2) Firmware e config são necessários antes de qualquer ativação. (3) Ajustes garantem que o switch opera com identidade correta (evitar conflitos de hostname, chaves). (4) Uplinks primeiro para verificar protocolos L3 e HSRP antes de receber tráfego de acesso. (5) Migração gradual de switches de acesso permite detectar problemas um por um, sem impacto massivo se configuração estiver incorreta."
+				},
+				{
+					"id": "q7",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Ao restaurar o backup de configuração no switch sobressalente, ele assumirá automaticamente o papel de HSRP Active para as VLANs 10-50, provocando nova interrupção.",
+					"correctAnswer": true,
+					"points": 3,
+					"justification": "VERDADEIRO. Se o backup contém a mesma prioridade HSRP que o CORE-01 original (que era Active para VLANs 10-50) e a opção 'preempt' está configurada, o switch novo assumirá Active quando subir, causando failover reverso. Para evitar isso: (1) REMOVER 'preempt' temporariamente antes de ativar interfaces, (2) ou reduzir prioridade HSRP temporariamente, (3) ou usar 'standby delay minimum' para atrasar ativação. A migração deve ser feita de forma controlada durante janela planejada, não automaticamente."
+				},
+				{
+					"id": "q8",
+					"type": "matching",
+					"text": "Conecte cada protocolo de redundância de gateway ao seu comportamento de failover:",
+					"leftColumn": [
+						{"id": "hsrp", "label": "HSRP (Hot Standby Router Protocol)"},
+						{"id": "vrrp", "label": "VRRP (Virtual Router Redundancy Protocol)"},
+						{"id": "vss", "label": "VSS/VPC (Virtual Switching System)"}
+					],
+					"rightColumn": [
+						{"id": "behavior1", "label": "Failover em segundos (3-30s default), IP virtual compartilhado, active-standby por grupo"},
+						{"id": "behavior2", "label": "Sem failover necessário - ambos os switches operam como entidade lógica única com todos os links ativos"},
+						{"id": "behavior3", "label": "Protocolo padrão IETF (RFC 5798), master-backup, IP do master pode ser compartilhado"}
+					],
+					"correctMatches": [
+						{"left": "hsrp", "right": "behavior1"},
+						{"left": "vrrp", "right": "behavior3"},
+						{"left": "vss", "right": "behavior2"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 6,
+					"justification": "HSRP (↔ behavior1): proprietário Cisco, active-standby com IP virtual. VRRP (↔ behavior3): padrão IETF, similar ao HSRP mas interoperável entre fabricantes. VSS/VPC (↔ behavior2): virtualização onde dois switches físicos operam como um lógico - todos os links ativos, sem failover L3 necessário (é a arquitetura preferida para alta disponibilidade). Neste cenário, VSS/VPC teria eliminado o downtime de 28 segundos."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Substituição e Restauração",
+			"phase": "Fase 3 - Contenção e Recuperação",
+			"description": "A equipe executa a substituição do CORE-01 pelo equipamento sobressalente. Switch novo é instalado, configurado e gradualmente trazido online.",
+			"timeElapsed": "T+150 minutos (13:42)",
+			"currentSituation": {
+				"replacementStatus": "Switch novo instalado, configurado e testado - pronto para ativação",
+				"core02Status": "Operacional - ainda Active para todas as VLANs",
+				"migrationPhase": "Iniciando ativação de uplinks e convergência HSRP"
+			},
+			"metrics": [
+				{
+					"title": "Validação Pré-Ativação - Switch Novo (CORE-01-NEW)",
+					"type": "pre-activation-validation",
+					"data": {
+						"hardwarePost": "Todos os testes de hardware PASSED",
+						"firmwareVersion": "Compatível com CORE-02",
+						"configurationLoaded": "Backup restaurado com ajustes (preempt removido, prioridade HSRP reduzida temporariamente)",
+						"cableConnections": "Todos os 6 uplinks para switches de acesso + inter-switch link 40G + uplink WAN cabeados",
+						"interfacesStatus": "Todas as interfaces shutdown (serão habilitadas gradualmente)",
+						"observation": "Switch pronto para ativação - todas as verificações passaram"
+					}
+				},
+				{
+					"title": "Sequência de Ativação Controlada",
+					"type": "activation-sequence",
+					"data": {
+						"phase1": {
+							"action": "Habilitar inter-switch link 40G para CORE-02",
+							"result": "Link up - OSPF/EIGRP adjacency formed em 15 segundos",
+							"hsrpState": "CORE-01-NEW: Standby para todas as VLANs (prioridade reduzida temporariamente)"
+						},
+						"phase2": {
+							"action": "Habilitar uplinks para switches de acesso (um por vez)",
+							"result": "Switches de acesso detectando novo uplink - STP converging",
+							"stpConvergence": "RSTP convergiu em 2-6 segundos por switch"
+						},
+						"phase3": {
+							"action": "Migrar HSRP: restaurar prioridade original + habilitar preempt",
+							"result": "CORE-01-NEW assumiu Active para VLANs 10-50 - failover controlado < 1 segundo",
+							"finalState": "CORE-01-NEW: Active VLANs 10-50 | CORE-02: Active VLANs 60-100"
+						},
+						"observation": "Restauração completa - topologia original restabelecida com switch novo"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q9",
+					"type": "multiple-choice",
+					"text": "Por que a prioridade HSRP do switch novo foi reduzida ANTES de ativar as interfaces?",
+					"options": [
+						"Para evitar que o switch novo consuma muita CPU durante a convergência inicial",
+						"Para evitar que o switch novo assuma Active imediatamente e cause preemption não planejada de CORE-02",
+						"Porque switches novos sempre devem ter menor prioridade até serem validados em produção",
+						"Para forçar o switch novo a operar em modo Standby permanente como medida de segurança"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Evitar preemption não planejada (B) é a razão: se o switch novo subir com a mesma prioridade alta do CORE-01 original + preempt configurado, ele imediatamente forçará failover de CORE-02. Isso causaria: (1) mais uma interrupção para os usuários, (2) antes de o técnico validar que tudo está funcionando corretamente. A abordagem correta é: subir como Standby, validar operação, e DEPOIS restaurar prioridade em janela controlada."
+				},
+				{
+					"id": "q10",
+					"type": "multiple-choice",
+					"text": "Durante a ativação, RSTP convergiu em 2-6 segundos por switch de acesso ao detectar o novo uplink para CORE-01-NEW. Se STP clássico (802.1D) estivesse em uso, quanto tempo levaria?",
+					"options": [
+						"O mesmo tempo - STP e RSTP têm convergência idêntica para uplinks",
+						"30-50 segundos por switch (STP 802.1D: listening 15s + learning 15s + forwarding wait)",
+						"5-10 minutos pois STP clássico precisa recalcular toda a árvore",
+						"Menos de 1 segundo pois STP detecta links novos mais rápido que RSTP"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "STP clássico 802.1D (B) requer: Blocking → Listening (15s Forward Delay) → Learning (15s Forward Delay) → Forwarding = mínimo 30 segundos para transição completa. RSTP (802.1w) elimina essas esperas com mecanismo de proposal-agreement, convergindo em <6 segundos na maioria dos cenários. Esta é a razão pela qual RSTP é OBRIGATÓRIO em redes de produção modernas. 30s de convergência STP × 6 switches = possíveis 3 minutos de instabilidade adicional."
+				},
+				{
+					"id": "q11",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: A configuração backup de 9 horas atrás pode ter divergências significativas em relação à configuração que estava rodando no momento da falha, causando potenciais problemas.",
+					"correctAnswer": true,
+					"points": 3,
+					"justification": "VERDADEIRO. Em 9 horas, alterações podem ter sido feitas: (1) novas ACLs ou regras de QoS, (2) ajustes de VLAN, (3) mudanças de STP priority, (4) configurações de interface. Se alguma alteração foi feita entre 02:00 e 11:12 e o administrador executou apenas 'configure terminal' sem 'write memory' correspondendo ao backup TFTP, a configuração restaurada estará desatualizada. Melhor prática: backup de configuração MAIS frequente (horário) e/ou automático após cada sessão de configuração (archive/configuration change notification)."
+				},
+				{
+					"id": "q12",
+					"type": "numeric",
+					"text": "A rede ficou com capacidade degradada (links backup de 1 Gbps) por 150 minutos para 240 usuários. Se cada usuário tem SLA de 100 Mbps garantidos e os links backup oferecem 1 Gbps compartilhado entre ~40 usuários por switch, qual é a banda disponível por usuário durante a degradação?",
+					"correctAnswer": 25,
+					"tolerance": 2,
+					"unit": "Mbps",
+					"points": 5,
+					"justification": "Cálculo: 1 Gbps (1000 Mbps) / 40 usuários = 25 Mbps por usuário. Isso é 75% abaixo do SLA de 100 Mbps, representando degradação significativa. Na prática, a distribuição não é igualitária (alguns usam mais que outros), então usuários com tráfego intenso (videoconferência, downloads) experimentariam degradação ainda pior. Isso justifica a urgência na substituição do switch e reforça a necessidade de links backup com capacidade adequada (10G ao invés de 1G)."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Pós-Incidente e Lições Aprendidas",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Substituição concluída com sucesso. Rede completamente restaurada com redundância de núcleo. Tempo total de degradação: 150 minutos. O switch falhado será enviado ao fabricante para análise de causa raiz (RCA).",
+			"timeElapsed": "T+165 minutos (13:57 - incidente encerrado)",
+			"currentSituation": {
+				"core01NewStatus": "Operacional - HSRP Active VLANs 10-50",
+				"core02Status": "Operacional - HSRP Active VLANs 60-100",
+				"networkStatus": "100% operacional - redundância total restabelecida",
+				"totalDegradationTime": "150 minutos com capacidade reduzida para 240 usuários"
+			},
+			"questions": [
+				{
+					"id": "q13",
+					"type": "multiple-choice",
+					"text": "A falha foi causada por degradação de fan tray levando a superaquecimento. Qual medida preventiva teria EVITADO a falha catastrófica?",
+					"options": [
+						"Instalar ar-condicionado mais potente no datacenter para compensar falha de ventilação interna",
+						"Monitoramento ambiental com alertas de temperatura e velocidade de fan com threshold de ação ANTES de dano",
+						"Substituir switches de núcleo a cada 3 anos preventivamente",
+						"Configurar o switch para desabilitar metade das portas quando detectar aquecimento"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Monitoramento com alertas antecipados (B) teria permitido: (1) alerta de fan speed reduzida às 10:45 seria detectado ANTES de causar dano, (2) substituição de fan tray com switch operacional (hot-swap em modelos modulares), (3) se não hot-swap, migração planejada de tráfego para CORE-02 e manutenção em janela controlada. O log mostra 2 horas entre primeiro alerta de temperatura e falha total - tempo suficiente para agir se os alertas fossem monitorados. AC mais potente (A) não compensa ventilação interna quebrada."
+				},
+				{
+					"id": "q14",
+					"type": "multiple-choice",
+					"text": "A rede recuperou em 150 minutos mas com degradação significativa. Qual melhoria de ARQUITETURA reduziria mais o impacto de falhas similares?",
+					"options": [
+						"Migrar de HSRP para VSS/VPC (switches virtualizados como entidade única) com dual-homing de acesso",
+						"Adicionar um terceiro switch de núcleo (N+2 redundância)",
+						"Implementar SD-WAN para redundância de caminho",
+						"Aumentar throughput dos links de backup de 1G para 10G"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "VSS/VPC com dual-homing (A) é a melhoria de MAIOR impacto: (1) elimina failover HSRP (ambos switches operam como um - 0ms de failover), (2) dual-homing = cada switch de acesso conectado a AMBOS os switches de núcleo com links ativos, (3) perda de um switch de núcleo não causa degradação de banda (links para o outro switch já estavam ativos). Links backup 10G (D) melhoram a situação atual mas não eliminam o problema fundamental de único caminho ativo."
+				},
+				{
+					"id": "q15",
+					"type": "matching",
+					"text": "Conecte cada componente de hardware do switch à consequência de sua falha:",
+					"leftColumn": [
+						{"id": "supervisor", "label": "Módulo Supervisor (CPU/ASIC)"},
+						{"id": "psu", "label": "Fonte de Alimentação (PSU)"},
+						{"id": "fan", "label": "Fan Tray (Ventilação)"}
+					],
+					"rightColumn": [
+						{"id": "consequence1", "label": "Falha total imediata do switch - sem processamento, todas as portas down"},
+						{"id": "consequence2", "label": "Degradação térmica progressiva - se não tratada, leva a falha de outros componentes"},
+						{"id": "consequence3", "label": "Se fonte redundante disponível, sem impacto imediato - se não, shutdown por subtensão"}
+					],
+					"correctMatches": [
+						{"left": "supervisor", "right": "consequence1"},
+						{"left": "psu", "right": "consequence3"},
+						{"left": "fan", "right": "consequence2"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 6,
+					"justification": "Supervisor (↔ falha total): é o 'cérebro' do switch - sem ele, nada funciona. PSU (↔ depende de redundância): com PSU redundante (padrão em core), failover é transparente. Sem redundância, shutdown. Fan tray (↔ degradação progressiva): efeito é gradual - temperatura sobe até componentes falharem. ESTE cenário mostrou como falha de fan levou à cascata que destruiu supervisor - a falha 'menor' (fan) causou a falha 'maior' (supervisor/ASIC)."
+				},
+				{
+					"id": "q16",
+					"type": "multiple-choice",
+					"text": "Para o relatório pós-incidente, qual informação é MAIS relevante para o fabricante no processo de RMA?",
+					"options": [
+						"Número de usuários afetados e o tempo total de indisponibilidade",
+						"Logs ambientais completos (temperatura, fan speed, CPU/memória) das últimas 24 horas + resultado do POST com código de erro do ASIC",
+						"A topologia da rede e como o failover HSRP funcionou",
+						"O valor do equipamento e a data de compra para verificação de garantia"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Logs ambientais + POST (B) são essenciais para RMA: (1) fabricante precisa dos códigos de erro exatos do POST para diagnóstico do ASIC, (2) histórico de temperatura demonstra as condições que levaram à falha, (3) log de fan speed pode indicar defeito de fabricação no fan tray, (4) essas informações permitem ao fabricante determinar se a falha é coberta por garantia (defeito) ou causada por ambiente inadequado. Impacto em usuários (A) é relevante para gestão interna, não para RMA técnico."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 95,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 90,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de redundância de rede, failover, diagnóstico de hardware e procedimentos de substituição"
+			},
+			{
+				"min": 75,
+				"max": 89,
+				"grade": "Bom",
+				"description": "Compreensão sólida de arquitetura de alta disponibilidade e resposta a falhas de hardware com pequenas lacunas"
+			},
+			{
+				"min": 60,
+				"max": 74,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica suficiente, requer aprofundamento em HSRP/VRRP e substituição de equipamentos"
+			},
+			{
+				"min": 45,
+				"max": 59,
+				"grade": "Insatisfatório",
+				"description": "Lacunas significativas em conhecimento de redundância e procedimentos de recuperação de hardware"
+			},
+			{
+				"min": 0,
+				"max": 44,
+				"grade": "Inadequado",
+				"description": "Compreensão insuficiente, requer treinamento completo em arquitetura de rede e alta disponibilidade"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Apresentar informações progressivamente, simulando a pressão de falha de equipamento crítico em horário comercial",
+		"Permitir 3-5 minutos de discussão entre participantes antes de cada resposta",
+		"Fazer perguntas orientadoras: 'Quantos usuários estão impactados?', 'Quanto tempo temos antes de precisar substituir?'",
+		"Enfatizar a importância de DIAGNÓSTICO antes de ação - confirmar que switch não recupera antes de iniciar substituição",
+		"Se grupo não tem experiência com HSRP/VRRP, explicar conceitos antes da Rodada 2",
+		"Manter neutralidade técnica - não fornecer respostas diretas",
+		"Controlar tempo: Rodada 1 (5 min), Rodadas 2-4 (10-12 min cada), Rodada 5 (8 min)",
+		"Mediar debates sobre trade-offs (tentar reparar vs. substituir imediatamente)",
+		"Após exercício: revisar gabarito e discutir implementação de VSS/VPC como melhoria arquitetural",
+		"Coletar feedback sobre realismo do cenário e ajustes necessários",
+		"Documentar insights para melhorar programa de monitoramento ambiental e manutenção preventiva"
+	],
+	"technicalReferences": [
+		{
+			"title": "RFC 2281 - Cisco Hot Standby Router Protocol (HSRP)",
+			"url": "https://www.rfc-editor.org/rfc/rfc2281"
+		},
+		{
+			"title": "RFC 5798 - Virtual Router Redundancy Protocol (VRRP) Version 3",
+			"url": "https://www.rfc-editor.org/rfc/rfc5798"
+		},
+		{
+			"title": "IEEE 802.1w - Rapid Spanning Tree Protocol (RSTP)",
+			"url": "https://standards.ieee.org/ieee/802.1Q/6844/"
+		},
+		{
+			"title": "Cisco - Virtual Switching System (VSS) Design and Configuration Guide",
+			"url": "https://www.cisco.com/c/en/us/products/switches/virtual-switching-system-vss/index.html"
+		},
+		{
+			"title": "Cisco - Catalyst Switch Hardware Troubleshooting Guide",
+			"url": "https://www.cisco.com/c/en/us/support/docs/switches/catalyst-6500-series-switches/12012-pwr-6500-ts.html"
+		},
+		{
+			"title": "ASHRAE TC 9.9 - Thermal Guidelines for Data Processing Environments",
+			"url": "https://www.ashrae.org/technical-resources/bookstore/datacom-series"
+		}
+	]
+}

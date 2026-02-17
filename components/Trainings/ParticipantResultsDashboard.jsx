@@ -73,8 +73,8 @@ function PositionBadge({ position, total }) {
 				<div className={`inline-flex items-center justify-center w-20 h-20 rounded-full bg-linear-to-br ${medal.bg} shadow-lg mb-2`} aria-hidden="true">
 					<span className="text-4xl" role="img" aria-label={`Medalha de ${medal.label}`}>{medal.emoji}</span>
 				</div>
-				<p className={`text-lg font-bold text-slate-900`}>{medal.label}</p>
-				<p className="text-sm text-slate-500">de {total} participantes</p>
+				<p className={`text-lg font-bold text-white`}>{medal.label}</p>
+				<p className="text-sm text-white/70">de {total} participantes</p>
 			</div>
 		);
 	}
@@ -84,8 +84,8 @@ function PositionBadge({ position, total }) {
 			<div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-linear-to-br from-slate-100 to-slate-200 shadow-md mb-2" aria-hidden="true">
 				<span className="text-2xl font-bold text-slate-700">{position}º</span>
 			</div>
-			<p className="text-lg font-bold text-slate-900">{position}º Lugar</p>
-			<p className="text-sm text-slate-500">de {total} participantes</p>
+			<p className="text-lg font-bold text-white">{position}º Lugar</p>
+			<p className="text-sm text-white/70">de {total} participantes</p>
 		</div>
 	);
 }
@@ -223,7 +223,7 @@ export default function ParticipantResultsDashboard({ results, rounds = [] }) {
 							<div>
 								<dd className="text-3xl lg:text-4xl font-bold">
 									{personal.total_points_earned}
-									<span className="text-lg text-white/60" aria-label={`de ${personal.total_points_possible}`}>/{personal.total_points_possible}</span>
+									<span className="text-lg text-white/70" aria-label={`de ${personal.total_points_possible}`}>/{personal.total_points_possible}</span>
 								</dd>
 								<dt className="text-sm text-white/70">Pontos</dt>
 							</div>

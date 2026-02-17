@@ -1,0 +1,481 @@
+{
+	"id": "ntp-amplification-monlist",
+	"title": "Resposta a Ataque DDoS de Amplificação NTP via MONLIST",
+	"description": "Simulação tabletop de resposta a ataque de amplificação NTP explorando comando MONLIST (CVE-2013-5211) em servidor NTP interno",
+	"category": {
+		"id": "NET_VOL",
+		"type": "NET_VOL_NTP_MONLIST",
+		"title": "Ataque de Amplificação NTP via MONLIST"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2025-02-02",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "35-50 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Equipe de Resposta a Incidentes, Analistas de Segurança, Administradores de Sistemas e Rede"
+	},
+	"objectives": [
+		"Validar capacidade de detecção e análise de ataques de amplificação NTP via MONLIST",
+		"Avaliar conhecimento sobre o protocolo NTP, CVE-2013-5211 e fatores de amplificação",
+		"Testar compreensão de técnicas de contenção e hardening de servidores NTP",
+		"Desenvolver habilidade de análise de tráfego UDP e diferenciação entre NTP legítimo e malicioso",
+		"Identificar configurações de segurança para servidores NTP (restrict, noquery, disable monitor)",
+		"Promover compreensão do papel de BCP 38 na prevenção de ataques de amplificação"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá execução real de comandos em sistemas de produção",
+		"Não inclui ativação real de serviços de mitigação DDoS ou contato com provedores",
+		"Foco na análise técnica, tomada de decisão e hardening de infraestrutura NTP",
+		"Avaliação de conhecimento de NTP, amplificação e resposta a incidentes volumétricos"
+	],
+	"baseScenario": {
+		"context": "Quarta-feira, 11h20, horário comercial. Você faz parte da equipe de resposta a incidentes. A organização opera dois servidores NTP internos (ntp-primary.internal - 10.0.2.10, ntp-secondary.internal - 10.0.2.11) que fornecem sincronização de relógio para toda a infraestrutura interna (~800 hosts). Os servidores NTP sincronizam com stratum 1 externo (pool.ntp.org) e servem como stratum 2 para a rede interna. O link de Internet é de 10 Gbps.",
+		"initialSituation": {
+			"alert": "Link de Internet saturado - utilização de saída (outbound) atingiu 98%",
+			"affectedHost": "ntp-primary.internal (10.0.2.10)",
+			"outboundTraffic": "9.8 Gbps (baseline outbound: 1.2 Gbps)",
+			"protocol": "UDP/123 (NTP) responde por 97% do tráfego de saída",
+			"timestamp": "11:18:42"
+		},
+		"initialComplaints": [
+			"Navegação web extremamente lenta para todos os usuários",
+			"Serviços de videoconferência com cortes e qualidade degradada",
+			"Downloads e uploads praticamente impossíveis",
+			"Sistema de monitoramento reporta perda de pacotes de 45% no link de saída"
+		],
+		"availableResources": [
+			"Acesso administrativo ao servidor NTP (SSH, console)",
+			"Logs do servidor NTP (ntpd/chronyd)",
+			"Sistema de monitoramento de rede (NetFlow/sFlow)",
+			"Ferramentas de análise: tcpdump, Wireshark, ntpq, ntpdc, ntpdate",
+			"Acesso administrativo a firewall de borda (iptables/nftables)",
+			"Documentação de configuração NTP (/etc/ntp.conf ou /etc/chrony.conf)",
+			"Contato com provedor upstream/trânsito"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe deve se familiarizar com a infraestrutura NTP e o problema de saturação de enlace.",
+			"inject": "Apresentação do cenário conforme descrito. A equipe tem 5 minutos para discutir a situação inicial e planejar investigação.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Detecção e Análise Inicial",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe investiga a causa da saturação do link e identifica tráfego NTP anômalo oriundo do servidor primário.",
+			"timeElapsed": "T+0 (início do incidente)",
+			"currentSituation": {
+				"outboundTraffic": "9.8 Gbps (817% acima do baseline)",
+				"ntpTrafficOutbound": "9.5 Gbps (97% do tráfego de saída)",
+				"cpuUsage": "88% (processo ntpd)",
+				"impact": "Saturação de link de saída - todos os serviços externos degradados"
+			},
+			"metrics": [
+				{
+					"title": "Status do Servidor NTP Primário",
+					"type": "server-status",
+					"data": {
+						"hostname": "ntp-primary.internal",
+						"ip": "10.0.2.10",
+						"os": "CentOS 7",
+						"software": "ntpd 4.2.6p5 (versão vulnerável)",
+						"cpu": "88% (processo ntpd)",
+						"memory": "42%",
+						"loadAverage": "12.4",
+						"ntpVersion": "4.2.6p5",
+						"monlistEnabled": true,
+						"restrictConfig": "restrict default (sem restrições)",
+						"clientsServed": "~800 hosts internos",
+						"observation": "Servidor NTP com MONLIST habilitado e sem restrições de acesso - vulnerável a CVE-2013-5211"
+					}
+				},
+				{
+					"title": "Análise de Tráfego NTP (tcpdump)",
+					"type": "network-analysis",
+					"data": {
+						"inboundNTP": {
+							"packetsPerSecond": 185000,
+							"avgPacketSize": "72 bytes",
+							"totalBandwidth": "106 Mbps",
+							"sourcePort": "random (spoofed)",
+							"destPort": 123
+						},
+						"outboundNTP": {
+							"packetsPerSecond": 185000,
+							"avgPacketSize": "482 bytes (média - respostas MONLIST)",
+							"totalBandwidth": "9.5 Gbps",
+							"sourcePort": 123,
+							"destPort": "random"
+						},
+						"amplificationFactor": "~89.6x (observado neste ataque)",
+						"observation": "Requests de 72 bytes gerando respostas de ~482 bytes por pacote, com múltiplos pacotes por resposta MONLIST"
+					}
+				},
+				{
+					"title": "Análise de Requisições NTP",
+					"type": "query-analysis",
+					"data": {
+						"requestTypes": {
+							"monlist_mode7": {"count": 178000, "percentage": 96.2},
+							"time_sync_mode3": {"count": 4200, "percentage": 2.3},
+							"peer_query_mode6": {"count": 2800, "percentage": 1.5}
+						},
+						"topSourceIPs": [
+							{"ip": "45.33.100.12", "rps": 12400, "asn": "AS16276", "country": "FR"},
+							{"ip": "103.21.87.45", "rps": 11800, "asn": "AS13335", "country": "US"},
+							{"ip": "91.219.56.78", "rps": 10900, "asn": "AS47541", "country": "RU"},
+							{"ip": "185.107.12.34", "rps": 10200, "asn": "AS203020", "country": "NL"},
+							{"ip": "200.157.89.23", "rps": 9800, "asn": "AS28573", "country": "BR"}
+						],
+						"uniqueSourceIPs": 8420,
+						"observation": "96.2% das requisições são modo 7 (MONLIST) - assinatura inequívoca de ataque de amplificação NTP"
+					}
+				},
+				{
+					"title": "Análise de Resposta MONLIST",
+					"type": "attack-analysis",
+					"data": {
+						"monlistCommand": "ntpdc -n -c monlist <server_ip>",
+						"monlistBehavior": "Retorna lista dos últimos 600 clientes que consultaram o servidor",
+						"avgResponseSize": "~40 KB (600 entradas × ~72 bytes cada, divididos em múltiplos pacotes UDP)",
+						"requestSize": "72 bytes (modo 7, opcode 42)",
+						"theoreticalAmplification": "556x (máximo teórico)",
+						"observedAmplification": "89.6x (baseado em tráfego real - servidor com menos clientes no cache)",
+						"cve": "CVE-2013-5211",
+						"observation": "MONLIST retorna dados de clientes recentes - quanto mais clientes, maior a amplificação"
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"text": "Com base nas evidências (96.2% requisições modo 7, amplificação 89.6x, CVE-2013-5211), qual é o tipo de ataque?",
+					"options": [
+						"Ataque de negação de serviço contra o servidor NTP para impedir sincronização",
+						"Ataque de amplificação NTP usando o servidor como refletor via comando MONLIST",
+						"Ataque de manipulação de tempo (time-shifting) para corromper logs e certificados",
+						"Worm de rede se propagando via protocolo NTP entre servidores"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "As evidências indicam ataque de amplificação NTP via MONLIST (B): 96.2% das requisições usam modo 7 (MONLIST), amplificação de 89.6x observada, servidor vulnerável a CVE-2013-5211. O servidor NTP está sendo abusado como refletor/amplificador - recebe requests pequenas (72 bytes) e envia respostas grandes (~482 bytes por pacote) para a vítima real (IPs de destino das respostas). DoS contra o NTP (A) teria outro perfil. Time-shifting (C) e worm (D) são cenários completamente diferentes."
+				},
+				{
+					"id": "q2",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: O comando MONLIST (modo 7, opcode 42) é uma funcionalidade necessária para o funcionamento correto da sincronização de tempo NTP.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. MONLIST é uma funcionalidade de DIAGNÓSTICO/DEBUG, não necessária para sincronização de tempo. Ela retorna a lista dos últimos 600 clientes que consultaram o servidor - útil para monitoramento mas perigosa quando acessível externamente. A sincronização de tempo usa modo 3 (client) e modo 4 (server). MONLIST (modo 7) pode e DEVE ser desabilitada em servidores de produção sem impacto na funcionalidade NTP."
+				},
+				{
+					"id": "q3",
+					"text": "Qual é a primeira ação de contenção que deve ser tomada IMEDIATAMENTE?",
+					"options": [
+						"Atualizar o ntpd para versão que não suporta MONLIST",
+						"Bloquear requisições NTP modo 7 (MONLIST) de IPs externos no firewall",
+						"Desligar o servidor NTP completamente para interromper o ataque",
+						"Aumentar a capacidade do link de Internet para absorver o tráfego"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Bloquear modo 7 de IPs externos no firewall (B) é a contenção IMEDIATA: interrompe o ataque em segundos sem afetar sincronização NTP interna. Atualizar ntpd (A) é solução permanente mas leva tempo (download, teste, reinicalização). Desligar o NTP (C) causa perda de sincronização para 800 hosts internos. Aumentar link (D) é impraticável e não resolve a causa raiz."
+				},
+				{
+					"id": "q4",
+					"type": "numeric",
+					"text": "O tráfego de saída NTP é 9.5 Gbps e o tráfego de entrada NTP é 106 Mbps. Qual é o fator de amplificação observado neste ataque?",
+					"correctAnswer": 89.6,
+					"tolerance": 2,
+					"unit": "x",
+					"points": 5,
+					"justification": "Fator de amplificação = Saída / Entrada = 9.5 Gbps / 0.106 Gbps = 89.6x. O atacante envia 106 Mbps de requisições MONLIST e o servidor gera 9.5 Gbps de respostas. O amplificação teórica máxima do NTP MONLIST é 556x (quando o servidor tem 600 clientes no cache retornando resposta máxima). O observado (89.6x) indica que o servidor tem menos clientes no cache MONLIST."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Contenção e Mitigação",
+			"phase": "Fase 2 - Contenção",
+			"description": "A equipe implementou bloqueio de NTP modo 7 no firewall para tráfego externo. Adicionalmente, desabilitou MONLIST diretamente no ntpd. Tráfego de saída normalizou rapidamente.",
+			"timeElapsed": "T+12 minutos",
+			"currentSituation": {
+				"outboundTraffic": "1.4 Gbps (próximo do baseline)",
+				"ntpTrafficOutbound": "45 Mbps (apenas sincronização legítima)",
+				"cpuUsage": "8% (normalizado)",
+				"monlistDisabled": true,
+				"firewallRuleActive": true,
+				"impact": "Link de internet restaurado - serviços normalizando"
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"text": "Qual diretiva deve ser adicionada ao /etc/ntp.conf para desabilitar MONLIST permanentemente?",
+					"options": [
+						"disable monitor",
+						"restrict default noquery",
+						"disable monlist",
+						"server 127.0.0.1 nomonlist"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "A diretiva correta é 'disable monitor' (A), que desabilita a funcionalidade de monitoramento modo 7 (inclui MONLIST) no ntpd. 'restrict default noquery' (B) bloqueia queries de status mas não desabilita a funcionalidade internamente. 'disable monlist' (C) não é diretiva válida do ntpd. 'server 127.0.0.1 nomonlist' (D) não existe. Em versões ntpd >= 4.2.7p26, MONLIST foi removida por padrão."
+				},
+				{
+					"id": "q6",
+					"type": "ordering",
+					"text": "Ordene corretamente as etapas de hardening completo de um servidor NTP:",
+					"items": [
+						{"id": "step1", "label": "Atualizar ntpd para versão mais recente (>= 4.2.8 ou migrar para chrony)"},
+						{"id": "step2", "label": "Adicionar 'disable monitor' no ntp.conf para desabilitar MONLIST"},
+						{"id": "step3", "label": "Configurar restrict para permitir apenas rede interna (restrict default noquery nopeer)"},
+						{"id": "step4", "label": "Bloquear NTP (UDP/123) de IPs externos no firewall de borda"},
+						{"id": "step5", "label": "Validar configuração com ntpdc -c monlist e teste externo"}
+					],
+					"correctOrder": ["step1", "step2", "step3", "step4", "step5"],
+					"partialCredit": false,
+					"points": 5,
+					"justification": "Sequência de hardening NTP: (1) Atualizar software (elimina vulnerabilidades conhecidas, incluindo CVE-2013-5211), (2) Desabilitar funcionalidades desnecessárias (MONLIST), (3) Restringir acesso no daemon (defense in depth), (4) Bloquear no firewall (camada adicional), (5) Validar que todas as medidas funcionam. Cada camada complementa as anteriores - não depender de uma única medida."
+				},
+				{
+					"id": "q7",
+					"text": "O servidor NTP secundário (10.0.2.11) também está vulnerável a MONLIST. Qual ação deve ser tomada?",
+					"options": [
+						"Aguardar para ver se também será atacado antes de tomar ação",
+						"Aplicar imediatamente as mesmas medidas de hardening do servidor primário",
+						"Desligar o servidor secundário pois apenas o primário é necessário",
+						"Mover o servidor secundário para uma sub-rede diferente"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Aplicar hardening imediato no secundário (B) é a ação correta. Se o servidor primário foi descoberto e abusado, é questão de tempo até o secundário também ser. Aguardar (A) é reativo e irresponsável. Desligar (C) remove redundância NTP. Mover sub-rede (D) não resolve a vulnerabilidade - MONLIST continuará acessível. A lição é: corrigir TODAS as instâncias vulneráveis simultaneamente, não apenas as que foram atacadas."
+				},
+				{
+					"id": "q8",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: Migrar de ntpd para chrony elimina automaticamente a vulnerabilidade MONLIST, pois chrony não implementa o comando MONLIST (modo 7).",
+					"correctAnswer": true,
+					"points": 3,
+					"justification": "VERDADEIRO. Chrony é uma implementação moderna do protocolo NTP que NÃO implementa modo 7 (private mode) que inclui MONLIST. Chrony suporta apenas modo 3 (client/server) e modo 6 (control) com restrições adequadas. Migrar para chrony elimina esta classe de vulnerabilidade por design. Chrony também é mais eficiente em termos de CPU e precisão de sincronização, sendo recomendado como substituto moderno do ntpd."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Análise Avançada e Investigação",
+			"phase": "Fase 2 - Contenção (Avançada)",
+			"description": "Com contenção aplicada, a equipe investiga como o servidor NTP ficou exposto e se há outros serviços vulneráveis a ataques de amplificação na rede.",
+			"timeElapsed": "T+25 minutos",
+			"currentSituation": {
+				"outboundTraffic": "1.2 Gbps (baseline normal)",
+				"ntpServersHardened": "2/2 (primário e secundário)",
+				"firewallRulesActive": true,
+				"impact": "Serviço completamente restaurado"
+			},
+			"questions": [
+				{
+					"id": "q9",
+					"text": "A equipe decide varrer a rede interna em busca de outros serviços vulneráveis a amplificação. Além de NTP, quais serviços UDP são comumente abusados em ataques de amplificação?",
+					"options": [
+						"HTTP (80), HTTPS (443), FTP (21)",
+						"DNS (53), Memcached (11211), SSDP (1900), SNMP (161), CHARGEN (19)",
+						"SSH (22), Telnet (23), SMTP (25)",
+						"LDAP (389), Kerberos (88), RADIUS (1812)"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Serviços UDP vulneráveis a amplificação (B): DNS (53) - fator 28-54x, Memcached (11211) - fator até 51.000x, SSDP (1900) - fator 30x, SNMP (161) - fator 6x, CHARGEN (19) - fator 358x. Estes serviços respondem com pacotes maiores que as requisições. HTTP/HTTPS (A) usam TCP. SSH/Telnet/SMTP (C) usam TCP. LDAP/Kerberos/RADIUS (D) usam TCP ou UDP com fatores de amplificação menores."
+				},
+				{
+					"id": "q10",
+					"type": "matching",
+					"text": "Correlacione cada serviço UDP com seu fator de amplificação aproximado:",
+					"leftColumn": [
+						{"id": "svc1", "label": "NTP MONLIST"},
+						{"id": "svc2", "label": "DNS (ANY query)"},
+						{"id": "svc3", "label": "Memcached UDP"}
+					],
+					"rightColumn": [
+						{"id": "amp1", "label": "28-54x"},
+						{"id": "amp2", "label": "Até 556x"},
+						{"id": "amp3", "label": "Até 51.000x"}
+					],
+					"correctMatches": [
+						{"left": "svc1", "right": "amp2"},
+						{"left": "svc2", "right": "amp1"},
+						{"left": "svc3", "right": "amp3"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 6,
+					"justification": "NTP MONLIST (↔ até 556x): retorna lista de 600 clientes em múltiplos pacotes para uma requisição de 72 bytes. DNS ANY (↔ 28-54x): resposta ANY contém todos os registros de um domínio, ampliando 28-54x. Memcached UDP (↔ até 51.000x): retorna valores cached de até megabytes para comandos de poucos bytes - o maior fator de amplificação já registrado em ataques DDoS."
+				},
+				{
+					"id": "q11",
+					"text": "A investigação revela que o firewall de borda permitia UDP/123 de entrada da Internet para o servidor NTP interno. Por que esta regra existia?",
+					"options": [
+						"É necessário para que o servidor NTP sincronize com servidores stratum 1 externos (pool.ntp.org)",
+						"A regra foi criada por engano e nunca deveria ter existido",
+						"É necessário para que clientes externos sincronizem relógio com o servidor",
+						"O servidor NTP é autoritário para um domínio público e precisa responder queries externas"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "A sincronização com servidores upstream (pool.ntp.org) requer que RESPOSTAS UDP/123 voltem ao servidor (A). Porém, a regra CORRETA deveria permitir apenas tráfego de RETORNO (stateful) ou restringir IPs de origem aos servidores upstream conhecidos, não tráfego de qualquer IP externo. A vulnerabilidade foi uma regra de firewall genérica demais (allow UDP/123 from any) quando deveria ser restritiva (allow UDP/123 from pool.ntp.org IPs only)."
+				},
+				{
+					"id": "q12",
+					"type": "numeric",
+					"text": "Se o atacante envia 106 Mbps de requisições MONLIST e o fator de amplificação teórico máximo é 556x, qual seria o tráfego máximo teórico de ataque em Gbps?",
+					"correctAnswer": 58.9,
+					"tolerance": 1,
+					"unit": "Gbps",
+					"points": 5,
+					"justification": "Tráfego máximo = 106 Mbps × 556 = 58.936 Mbps ≈ 58.9 Gbps. O ataque observado gerou apenas 9.5 Gbps (amplificação de 89.6x) porque o servidor tinha menos de 600 clientes no cache MONLIST. Se o cache estivesse cheio (600 clientes), cada resposta seria máxima e o ataque poderia gerar até 58.9 Gbps - muito além da capacidade do link de 10 Gbps."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Recuperação e Lições Aprendidas",
+			"phase": "Fase 3 e 4 - Recuperação e Pós-Incidente",
+			"description": "Incidente resolvido após hardening dos servidores NTP e ajuste de regras de firewall. Tempo total de impacto: 12 minutos. Nenhum dado foi comprometido.",
+			"timeElapsed": "T+60 minutos (incidente encerrado)",
+			"currentSituation": {
+				"outboundTraffic": "1.2 Gbps (baseline normal)",
+				"ntpServers": "Ambos com hardening completo (disable monitor, restrict, firewall)",
+				"cpuUsage": "4% (normal)",
+				"impact": "Nenhum - operação completamente normalizada"
+			},
+			"questions": [
+				{
+					"id": "q13",
+					"text": "Qual medida preventiva teria EVITADO completamente este incidente?",
+					"options": [
+						"Uso de servidor NTP com chrony (sem suporte a MONLIST) desde a implantação",
+						"Link de Internet com capacidade maior que 10 Gbps",
+						"Sistema de detecção de intrusão (IDS) monitorando tráfego NTP",
+						"Treinamento da equipe em protocolo NTP e suas vulnerabilidades"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "Chrony (A) elimina MONLIST por design - é a prevenção mais eficaz. Link maior (B) adia o problema sem resolver a vulnerabilidade. IDS (C) detecta mas não previne o ataque. Treinamento (D) é importante mas depende de ação humana posterior. A escolha de implementação segura por design (chrony) é mais eficaz que controles compensatórios."
+				},
+				{
+					"id": "q14",
+					"text": "Durante o post-mortem, identifica-se que o servidor NTP roda CentOS 7 com ntpd 4.2.6p5. Qual é o principal risco de manter este sistema operacional?",
+					"options": [
+						"CentOS 7 é mais lento que distribuições mais novas",
+						"CentOS 7 atingiu fim de vida (EOL) em junho de 2024, sem mais patches de segurança",
+						"CentOS 7 não suporta chrony como alternativa ao ntpd",
+						"CentOS 7 não permite configuração de firewall com iptables"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "CentOS 7 encerrou suporte em 30/06/2024 (B) - não receberá mais patches de segurança, incluindo para novas vulnerabilidades em ntpd ou kernel. Isso expõe o servidor a vulnerabilidades futuras não corrigidas. CentOS 7 SUPORTA chrony (C é incorreto) e iptables (D é incorreto). A recomendação é migrar para distribuição suportada (Rocky Linux 9, AlmaLinux 9, Ubuntu 24.04 LTS)."
+				},
+				{
+					"id": "q15",
+					"text": "Qual melhoria de monitoramento deve ser implementada para detectar ataques de amplificação NTP precocemente?",
+					"options": [
+						"Monitorar apenas tráfego de entrada (inbound) no link de Internet",
+						"Alerta quando tráfego UDP/123 de saída (outbound) exceder baseline normal em mais de 5x",
+						"Monitorar apenas logs de autenticação dos servidores NTP",
+						"Verificar versão do ntpd uma vez por ano durante auditoria"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Monitorar tráfego NTP outbound (B) é a métrica chave: em ataques de amplificação, o servidor NTP é REFLETOR, então o tráfego anômalo é de SAÍDA (respostas amplificadas). Monitorar apenas inbound (A) perderia o indicador principal. Logs de autenticação (C) são irrelevantes para NTP. Verificação anual (D) é insuficiente para detecção em tempo real."
+				},
+				{
+					"id": "q16",
+					"text": "Qual processo organizacional reduziria o risco de servidores vulneráveis ficarem expostos à Internet?",
+					"options": [
+						"Varredura periódica de serviços UDP expostos à Internet com ferramentas como nmap e Shodan",
+						"Política de apenas permitir tráfego TCP no firewall de borda",
+						"Revisão trimestral de regras de firewall pelo departamento financeiro",
+						"Documentação de toda a infraestrutura em planilha Excel compartilhada"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "Varredura periódica de serviços expostos (A) detecta proativamente serviços vulneráveis antes que atacantes os encontrem. Ferramentas como nmap (scan interno→externo) e Shodan (perspectiva externa) complementam-se. Bloquear todo UDP (B) quebraria DNS, VoIP, NTP legítimo. Revisão financeira (C) não tem expertise técnica. Excel (D) não substitui varredura automatizada."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 92,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 90,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de detecção, análise e resposta a ataques de amplificação NTP e hardening de infraestrutura"
+			},
+			{
+				"min": 75,
+				"max": 89,
+				"grade": "Bom",
+				"description": "Compreensão sólida do protocolo NTP e técnicas de mitigação com pequenas lacunas em configuração avançada"
+			},
+			{
+				"min": 60,
+				"max": 74,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica suficiente, requer aprofundamento em hardening NTP e fatores de amplificação"
+			},
+			{
+				"min": 45,
+				"max": 59,
+				"grade": "Insatisfatório",
+				"description": "Lacunas significativas em conhecimento de NTP e resposta a incidentes de amplificação"
+			},
+			{
+				"min": 0,
+				"max": 44,
+				"grade": "Inadequado",
+				"description": "Compreensão insuficiente, requer treinamento completo em protocolos de rede e segurança"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Apresentar informações progressivamente, simulando investigação natural do link saturado até descoberta do NTP",
+		"Permitir 3-4 minutos de discussão entre participantes antes de cada resposta",
+		"Fazer perguntas socráticas: 'O que é MONLIST e por que existe?', 'Qual a diferença entre refletor e vítima?', 'Por que UDP facilita amplificação?'",
+		"Enfatizar que NTP MONLIST é um problema LEGADO - versões modernas e chrony não têm esta vulnerabilidade",
+		"Se grupo não tem experiência com NTP, explicar conceitos de stratum, modo 3 vs modo 7, e sincronização de tempo",
+		"Manter neutralidade técnica - não fornecer respostas diretas, orientar raciocínio",
+		"Controlar tempo: Rodada 1 (5 min), Rodadas 2-4 (8-10 min cada), Rodada 5 (7 min)",
+		"Mediar debates sobre ntpd vs. chrony - ambos são válidos quando configurados corretamente",
+		"Após exercício: revisar gabarito, demonstrar 'ntpdc -c monlist' em lab se possível",
+		"Documentar insights para melhorar política de hardening de serviços de infraestrutura"
+	],
+	"technicalReferences": [
+		{
+			"title": "CVE-2013-5211 - NTP MONLIST Amplification Vulnerability",
+			"url": "https://nvd.nist.gov/vuln/detail/CVE-2013-5211"
+		},
+		{
+			"title": "US-CERT Alert (TA14-013A) - NTP Amplification Attacks Using CVE-2013-5211",
+			"url": "https://www.cisa.gov/news-events/alerts/2014/01/13/ntp-amplification-attacks-using-cve-2013-5211"
+		},
+		{
+			"title": "RFC 5905 - Network Time Protocol Version 4",
+			"url": "https://www.rfc-editor.org/rfc/rfc5905"
+		},
+		{
+			"title": "BCP 38 - Network Ingress Filtering",
+			"url": "https://www.rfc-editor.org/info/bcp38"
+		},
+		{
+			"title": "Chrony - Modern NTP Implementation",
+			"url": "https://chrony-project.org/"
+		}
+	]
+}

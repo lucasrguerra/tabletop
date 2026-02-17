@@ -1,0 +1,525 @@
+{
+	"id": "bgp-route-leak",
+	"title": "Resposta a Vazamento de Rotas BGP (Route Leak)",
+	"description": "Simulação tabletop de resposta a um incidente de vazamento de rotas BGP onde um AS de trânsito propaga indevidamente rotas de um peer para outro peer, desviando tráfego e violando políticas de roteamento",
+	"category": {
+		"id": "NET_ROUT",
+		"type": "NET_ROUT_ROUTE_LEAK",
+		"title": "Vazamento de Rotas BGP (Route Leak)"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2025-02-17",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "35-50 minutos",
+		"difficulty": "Avançado",
+		"targetAudience": "Engenheiros de Rede, Equipe de NOC, Operadores de Backbone, Analistas de Peering"
+	},
+	"objectives": [
+		"Validar capacidade de detecção e análise de route leaks BGP e seu impacto no tráfego",
+		"Avaliar conhecimento das relações BGP (customer, provider, peer) e políticas de exportação/importação",
+		"Testar compreensão do modelo Gao-Rexford e violações de vale-free routing",
+		"Desenvolver habilidade de identificação de AS path anômalo e roteamento subótimo",
+		"Promover entendimento de mecanismos preventivos: BGP communities, prefix filtering, ASPA, RFC 7908",
+		"Exercitar comunicação inter-organizacional durante incidentes de roteamento BGP"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá alteração real em políticas BGP ou sessões de peering",
+		"Não inclui modificações reais em route-maps, prefix-lists ou comunidades BGP",
+		"Foco na análise de AS path, detecção de roteamento anômalo e coordenação de resposta",
+		"Avaliação de conhecimento de políticas BGP, relações inter-AS e mecanismos de prevenção"
+	],
+	"baseScenario": {
+		"context": "Terça-feira, 10h15. Você opera o AS 64500, uma rede acadêmica/pesquisa regional conectada a dois provedores de trânsito (AS 64510 e AS 64520) e com peering direto com uma rede de conteúdo (AS 64530) em um IXP. O AS 64510 (provedor de trânsito) acaba de sofrer um route leak: está propagando rotas aprendidas do peering com AS 64530 para seus outros peers e clientes como se fossem suas próprias rotas, desviando tráfego destinado ao AS 64530 através de caminhos subótimos.",
+		"initialSituation": {
+			"alert": "Aumento súbito de latência e roteamento anômalo para prefixos do AS 64530",
+			"affectedPrefixes": "198.51.100.0/22, 203.0.113.0/24 (prefixos do AS 64530 - rede de conteúdo)",
+			"normalPath": "AS 64500 → AS 64530 (via IXP, peering direto, 1 hop)",
+			"anomalousPath": "AS 64500 → AS 64510 → AS 64530 (via provider, 2 hops, menor local-pref mas com route leak para upstream)",
+			"globalEffect": "Múltiplos ASes globalmente recebem rotas do AS 64530 via AS 64510, desviando tráfego por caminhos subótimos",
+			"timestamp": "10:07:22"
+		},
+		"initialComplaints": [
+			"Latência para CDN de conteúdo aumentou de 2ms (IXP direto) para 45ms (via transit)",
+			"Tráfego para 198.51.100.0/22 saindo pelo link de trânsito em vez do peering IXP",
+			"Alertas de utilização anômala no link com AS 64510 (transit) - 78% vs baseline de 35%",
+			"Parceiros no IXP reportando que recebem rotas do AS 64530 via AS 64510 (não deveria acontecer)"
+		],
+		"availableResources": [
+			"Acesso CLI ao border router (border-gw-01 e border-gw-02)",
+			"Looking glass de múltiplos ASes via RIPE RIS e RouteViews",
+			"BGP monitoring (BGPStream, RIPE Stat) para análise de AS path global",
+			"Contato direto com NOC do AS 64510 (provider) e AS 64530 (peer no IXP)",
+			"Ferramentas: show ip bgp, show ip bgp neighbors, show ip bgp community, traceroute",
+			"Histórico de anúncios BGP (BGPPlay/RIPEstat) para comparação temporal",
+			"Route-maps e prefix-lists em uso no peering"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe deve compreender a topologia inter-AS, as relações de peering/transit e o fluxo normal de tráfego.",
+			"inject": "Apresentação do cenário conforme descrito. Topologia: AS 64500 (vocês) com peering direto com AS 64530 no IXP + dois provedores de trânsito (AS 64510 e AS 64520). A equipe tem 5 minutos para analisar as relações BGP.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Detecção e Análise do Route Leak",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe investiga os alertas de latência e roteamento anômalo. Ao analisar BGP, descobre que o AS 64510 está anunciando rotas do AS 64530 para seus peers e upstream, violando política de peering.",
+			"timeElapsed": "T+0 (início da investigação)",
+			"currentSituation": {
+				"localImpact": "Tráfego para AS 64530 usando caminho subótimo via transit em vez de peering IXP direto",
+				"globalImpact": "Múltiplos ASes globalmente roteando para AS 64530 via AS 64510 (caminho mais longo)",
+				"bandwidthImpact": "Link transit AS 64510: 78% utilização (baseline 35%). Link peering IXP com AS 64530: 12% (baseline 55%)",
+				"latencyImpact": "Latência para 198.51.100.0/22: 45ms (normal: 2ms via IXP)"
+			},
+			"metrics": [
+				{
+					"title": "BGP Table - Prefixo 198.51.100.0/22 (border-gw-01)",
+					"type": "routing-analysis",
+					"data": {
+						"command": "show ip bgp 198.51.100.0/22",
+						"paths": [
+							{
+								"path": "64530",
+								"nexthop": "192.0.2.30 (peer IXP - AS 64530 direto)",
+								"localpref": 150,
+								"origin": "IGP",
+								"communities": "64530:100 (customer route)",
+								"valid": true,
+								"best": true,
+								"installed": true,
+								"note": "Rota CORRETA: peering direto via IXP"
+							},
+							{
+								"path": "64510 64530",
+								"nexthop": "192.0.2.10 (transit - AS 64510)",
+								"localpref": 100,
+								"origin": "IGP",
+								"communities": "64510:200 (learned from peer)",
+								"valid": true,
+								"best": false,
+								"installed": false,
+								"note": "Rota ANÔMALA: AS 64530 via transit AS 64510 (route leak)"
+							},
+							{
+								"path": "64520 64510 64530",
+								"nexthop": "192.0.2.20 (transit - AS 64520)",
+								"localpref": 100,
+								"origin": "IGP",
+								"communities": "",
+								"valid": true,
+								"best": false,
+								"installed": false,
+								"note": "Rota ANÔMALA propagada: AS 64520 também recebeu o leak"
+							}
+						],
+						"observation": "Localmente, AS 64500 usa caminho correto (peering direto, local-pref 150). MAS outros ASes sem peering direto estão usando AS 64510 como trânsito para alcançar AS 64530, sobrecarregando AS 64510."
+					}
+				},
+				{
+					"title": "Visão Global - RIPE RIS / RouteViews",
+					"type": "routing-analysis",
+					"data": {
+						"query": "AS path analysis for 198.51.100.0/22",
+						"globalPaths": [
+							{
+								"collector": "rrc00 (RIPE Amsterdam)",
+								"asPath": "3356 64510 64530",
+								"note": "Rota via AS 64510 (leak) vista globalmente"
+							},
+							{
+								"collector": "rrc01 (RIPE London)",
+								"asPath": "174 64510 64530",
+								"note": "Tier-1 propagou o leak"
+							},
+							{
+								"collector": "route-views2 (Oregon)",
+								"asPath": "6939 64530",
+								"note": "Caminho correto (direto)"
+							},
+							{
+								"collector": "rrc15 (RIPE São Paulo)",
+								"asPath": "64510 64530",
+								"note": "AS 64510 anunciando como se fosse provider de 64530"
+							}
+						],
+						"observation": "AS 64510 está propagando rotas aprendidas de peering com AS 64530 para seus providers upstream (Tier-1). Isso viola a política peer-to-peer: rotas de peer não devem ser re-anunciadas para outros peers ou providers. Apenas para customers."
+					}
+				},
+				{
+					"title": "Utilização de Links (border-gw-01)",
+					"type": "network-analysis",
+					"data": {
+						"links": [
+							{
+								"interface": "GigabitEthernet0/0 (AS 64510 - transit)",
+								"inbound": "7.8 Gbps (78% de 10G)",
+								"outbound": "2.1 Gbps",
+								"baseline_in": "3.5 Gbps (35%)",
+								"status": "Acima do normal - tráfego desviado do IXP"
+							},
+							{
+								"interface": "GigabitEthernet0/1 (AS 64520 - transit)",
+								"inbound": "2.2 Gbps (22% de 10G)",
+								"outbound": "1.8 Gbps",
+								"baseline_in": "2.0 Gbps (20%)",
+								"status": "Normal"
+							},
+							{
+								"interface": "GigabitEthernet0/2 (IXP - peering AS 64530)",
+								"inbound": "1.2 Gbps (12% de 10G)",
+								"outbound": "3.1 Gbps",
+								"baseline_in": "5.5 Gbps (55%)",
+								"status": "Abaixo do normal - tráfego desviado para transit"
+							}
+						],
+						"observation": "Tráfego de retorno do AS 64530→AS 64500 sendo desviado via transit (AS 64510) em vez de IXP direto. Causa: ASes remotos que antes roteavam diretamente via AS 64530 agora enviam tráfego via AS 64510."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"text": "Analisando a tabela BGP, o AS 64500 NÃO é diretamente afetado (usa peering direto com local-pref 150). Quem é o principal impactado pelo route leak?",
+					"options": [
+						"Apenas o AS 64500, pois é o destino final do tráfego",
+						"O AS 64510 (transit) e ASes remotos sem peering direto com AS 64530 - tráfego é desviado por caminhos subótimos, sobrecarregando AS 64510",
+						"Apenas o AS 64530 (rede de conteúdo), por ter suas rotas vazadas",
+						"Os Tier-1 providers que propagaram o leak"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "O principal impactado (B) é: (1) AS 64510, que recebe tráfego não solicitado para AS 64530, sobrecarregando seus links, (2) ASes remotos sem peering direto com AS 64530, que agora usam caminho subótimo via AS 64510 (mais hops, mais latência, menos eficiente). O AS 64500 (A) tem local-pref mais alto para peering direto, então localmente não é afetado no path selection. AS 64530 (C) é vítima mas não o principal impactado em bandwidth. Tier-1 (D) propagam mas o volume relativo é pequeno para eles."
+				},
+				{
+					"id": "q2",
+					"text": "O que é um route leak conforme definido na RFC 7908?",
+					"options": [
+						"Um ataque onde um AS anuncia prefixos que não lhe pertencem (prefix hijacking)",
+						"A propagação de anúncios de roteamento além de seu escopo pretendido, violando as políticas de roteamento do emissor, receptor ou de um dos ASes afetados",
+						"A perda de rotas BGP por falha de sessão entre peers",
+						"A configuração incorreta de comunidades BGP que altera o local-preference"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "RFC 7908 define route leak (B) como 'propagation of routing announcement(s) beyond their intended scope'. No caso, AS 64510 recebeu rotas de AS 64530 via peering mas as propagou para seus providers/peers como se fosse provider de AS 64530. Isso viola a política implícita de peering (peer routes only to customers). Hijacking (A) envolve anunciar prefixos alheios — route leak propaga rotas legítimas por caminhos incorretos. Perda de rotas (C) e communities (D) são problemas diferentes."
+				},
+				{
+					"id": "q3",
+					"type": "matching",
+					"text": "Conecte cada relação BGP à política de exportação correta segundo o modelo Gao-Rexford:",
+					"leftColumn": [
+						{"id": "rel1", "label": "Customer → Provider"},
+						{"id": "rel2", "label": "Provider → Customer"},
+						{"id": "rel3", "label": "Peer → Peer"}
+					],
+					"rightColumn": [
+						{"id": "pol1", "label": "Exporta apenas rotas próprias e de seus customers"},
+						{"id": "pol2", "label": "Exporta todas as rotas (full table)"},
+						{"id": "pol3", "label": "Exporta rotas próprias e de customers para o provider upstream"}
+					],
+					"correctMatches": [
+						{"left": "rel1", "right": "pol3"},
+						{"left": "rel2", "right": "pol2"},
+						{"left": "rel3", "right": "pol1"}
+					],
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"points": 6,
+					"justification": "Modelo Gao-Rexford (valley-free routing): Customer→Provider: anuncia suas rotas e de seus customers para o provider (pol3). Provider→Customer: exporta a full table (pol2) — customer paga para acessar a Internet. Peer→Peer: exporta APENAS rotas próprias e de customers (pol1) — nunca rotas de outros peers ou providers (isso seria route leak). O route leak deste cenário ocorreu porque AS 64510 exportou rota de peer (AS 64530) para seus providers, violando Peer→Peer policy."
+				},
+				{
+					"id": "q4",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: O AS 64500 deve bloquear imediatamente a sessão BGP com o AS 64510 para mitigar o impacto do route leak.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. Bloquear a sessão BGP com AS 64510 removeria o trânsito completo via esse provider — afetando TODOS os prefixos acessíveis via AS 64510, não apenas os do route leak. O AS 64500 localmente NÃO é afetado (usa peering direto). A ação correta é: (1) contatar NOC do AS 64510 para que corrijam a política de exportação, (2) se necessário, filtrar prefixos específicos vindos de AS 64510 que deveriam vir apenas do peering, (3) reportar para comunidades operacionais (NANOG, MANRS)."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Contenção e Coordenação",
+			"phase": "Fase 2 - Contenção",
+			"description": "A equipe confirma o route leak e inicia coordenação. O NOC do AS 64510 foi contatado e está investigando. Enquanto isso, ASes globais continuam recebendo rotas vazadas.",
+			"timeElapsed": "T+20 minutos",
+			"currentSituation": {
+				"as64510Response": "NOC AS 64510 reconheceu o problema - route-map de exportação para upstream foi alterado incorretamente durante manutenção",
+				"rootCause": "Route-map de exportação peer→upstream no AS 64510 foi modificado: removeu filtro de community '64530:peer-only', permitindo vazamento",
+				"fixETA": "AS 64510 estimando 15-20 min para rollback do route-map",
+				"globalImpact": "~340 ASes globalmente recebendo rota vazada do AS 64530 via AS 64510"
+			},
+			"metrics": [
+				{
+					"title": "Timeline do Incidente",
+					"type": "network-analysis",
+					"data": {
+						"events": [
+							{"time": "09:55", "event": "AS 64510 inicia manutenção em route-maps"},
+							{"time": "09:58", "event": "Route-map de exportação peer→upstream modificado incorretamente"},
+							{"time": "10:02", "event": "Rotas de AS 64530 começam a ser propagadas para upstream do AS 64510"},
+							{"time": "10:05", "event": "Tier-1 providers (AS 3356, AS 174) propagam as rotas vazadas"},
+							{"time": "10:07", "event": "Alertas de latência no AS 64500 (este cenário)"},
+							{"time": "10:15", "event": "AS 64500 inicia investigação"},
+							{"time": "10:25", "event": "Route leak confirmado, AS 64510 NOC contatado"},
+							{"time": "10:35", "event": "AS 64510 inicia rollback do route-map (estimativa)"}
+						]
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q5",
+					"text": "Enquanto o AS 64510 corrige o route-map, o que o AS 64500 pode fazer localmente para proteger seu tráfego de retorno?",
+					"options": [
+						"Nada - o problema é no AS 64510 e só ele pode corrigir",
+						"Adicionar BGP community 'no-export' nas rotas anunciadas para AS 64510, impedindo que AS 64510 as propague",
+						"Aumentar o local-preference para todas as rotas vindas do IXP e reduzir para as vindas do transit",
+						"Desconectar do IXP para forçar tráfego pelo transit"
+					],
+					"correctAnswer": 2,
+					"points": 5,
+					"justification": "Ajustar local-preference (C) é a ação local mais eficaz: aumentar local-pref para rotas do IXP garante que o AS 64500 SEMPRE prefira peering direto, mesmo se o transit receber rotas vazadas com atributos mais atrativos. No-export (B) afetaria as rotas DO AS 64500 sendo enviadas para AS 64510, não as rotas vazadas DE AS 64530. 'Nada' (A) ignora que o tráfego de retorno pode ser afetado. Desconectar do IXP (D) pioraria o problema."
+				},
+				{
+					"id": "q6",
+					"text": "O route leak ocorreu por alteração incorreta de route-map. Qual mecanismo preventivo impediria este tipo de vazamento MESMO com erro de configuração?",
+					"options": [
+						"RPKI ROV - valida autorização de origin AS",
+						"ASPA (Autonomous System Provider Authorization) - valida que o AS path está correto conforme relações provider-customer registradas",
+						"BGP graceful restart - mantém rotas durante restart/reconfiguração",
+						"BFD (Bidirectional Forwarding Detection) - detecta falhas rápidas de link"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "ASPA (B), proposto na RFC 9234 e em deploy, permite que ASes registrem suas relações provider-customer no RPKI. Validadores podem então verificar se o AS path faz sentido (valley-free). Um route leak seria detectável: AS 64510 anunciando rota de peer para upstream viola valley-free routing. RPKI ROV (A) valida origin AS, não o path - route leak tem origin AS correto (64530). Graceful Restart (C) e BFD (D) são mecanismos de resiliência, não de política."
+				},
+				{
+					"id": "q7",
+					"type": "numeric",
+					"text": "O tráfego inbound no link transit (AS 64510) subiu de 3.5 Gbps (baseline) para 7.8 Gbps. Qual é o percentual de aumento sobre o baseline?",
+					"correctAnswer": 122.86,
+					"tolerance": 3,
+					"unit": "%",
+					"points": 5,
+					"justification": "Percentual de aumento = ((7.8 - 3.5) / 3.5) × 100 = (4.3 / 3.5) × 100 = 122.86%. O tráfego mais que dobrou no link transit devido ao desvio de tráfego causado pelo route leak. Esse aumento representaria risco de congestionamento se o link fosse menor ou se o aumento fosse maior."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Análise Avançada e Validação",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "O AS 64510 aplicou rollback do route-map. A equipe agora valida que o route leak cessou e analisa mecanismos de prevenção para evitar recorrência.",
+			"timeElapsed": "T+40 minutos",
+			"currentSituation": {
+				"leakStatus": "Cessado - AS 64510 aplicou rollback do route-map",
+				"convergence": "Rotas globais convergindo para paths corretos (5-15 min para convergência completa)",
+				"trafficNormalization": "Link transit voltando ao baseline gradualmente",
+				"peering": "Tráfego para AS 64530 via IXP voltando ao normal"
+			},
+			"metrics": [
+				{
+					"title": "BGP Table Pós-Correção",
+					"type": "routing-analysis",
+					"data": {
+						"prefix": "198.51.100.0/22",
+						"paths": [
+							{
+								"path": "64530",
+								"nexthop": "192.0.2.30 (IXP)",
+								"localpref": 150,
+								"best": true,
+								"note": "Caminho direto - CORRETO e único instalado"
+							}
+						],
+						"withdrawnPaths": [
+							"64510 64530 (withdrawn - route-map corrigido)",
+							"64520 64510 64530 (withdrawn - propagação cessada)"
+						],
+						"observation": "Rotas vazadas foram retiradas via BGP UPDATE/WITHDRAW. Convergência global leva 5-15 minutos."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q8",
+					"text": "Qual mecanismo de BGP communities o AS 64530 (rede de conteúdo) poderia usar para se proteger contra future route leaks por parte de seus peers?",
+					"options": [
+						"Marcar rotas com community 'no-export' ao anunciar para peers, impedindo re-exportação",
+						"Marcar rotas com community 'no-advertise' para impedir qualquer propagação",
+						"Usar community informativa para marcar rotas de peering (sem enforcement)",
+						"Communities são irrelevantes - apenas RPKI resolve este problema"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "BGP Community 'no-export' (RFC 1997) (A) instrui o receptor a NÃO exportar a rota para peers eBGP (apenas iBGP). Se AS 64530 enviar rotas para AS 64510 com no-export, AS 64510 não deveria propagá-las para seus peers/providers. Limitação: depende de AS 64510 honrar a community. 'no-advertise' (B) é mais restritivo - impede QUALQUER propagação, inclusive para customers. Community informativa (C) não tem enforcement. RPKI (D) atual não trata route leaks."
+				},
+				{
+					"id": "q9",
+					"text": "Além de communities, qual filtro o AS 64510 deveria ter implementado em seus route-maps de exportação para upstream?",
+					"options": [
+						"Permitir exportação apenas de prefixos com AS 64510 como origin AS",
+						"Permitir exportação apenas de rotas de customers (filtro baseado em community que identifica customer routes)",
+						"Bloquear exportação de todos os prefixos /22 ou menores",
+						"Permitir exportação apenas de rotas com local-preference > 200"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Filtro de customer routes (B) é a política correta: em exportação para upstream, AS 64510 deve enviar APENAS suas próprias rotas e rotas de seus customers (conforme Gao-Rexford). Route-maps devem filtrar por community que identifica a origem (customer, peer, transit). Filtrar por origin AS (A) bloquearia rotas de customers multi-homed. Filtrar por prefixo (C) é arbitrário. Local-pref (D) é atributo local sem relação com política de exportação."
+				},
+				{
+					"id": "q10",
+					"type": "true-false",
+					"text": "Verdadeiro ou Falso: O RPKI ROV (Route Origin Validation) atual poderia ter prevenido este route leak, pois o origin AS (64530) está registrado com ROAs válidos.",
+					"correctAnswer": false,
+					"points": 3,
+					"justification": "FALSO. RPKI ROV valida APENAS o origin AS (quem originou a rota) e o prefixo. No route leak, o origin AS é LEGÍTIMO (AS 64530 realmente origina 198.51.100.0/22). O problema é o AS PATH - a propagação indevida por AS 64510. RPKI ROV não analisa AS path intermediário. Para isso seria necessário ASPA (RFC 9234) ou BGPsec (RFC 8205), que validam o AS path completo. RPKI ROV previne hijacking (origin AS falso), não route leaks."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Recuperação e Lições Aprendidas",
+			"phase": "Fase 3 e 4 - Recuperação e Pós-Incidente",
+			"description": "Route leak cessado, rotas convergidas globalmente, tráfego normalizado. Tempo total de impacto: ~35 minutos. Discussão de lições aprendidas e mecanismos preventivos.",
+			"timeElapsed": "T+55 minutos (incidente encerrado)",
+			"currentSituation": {
+				"leakStatus": "Cessado há 15 minutos",
+				"convergenceComplete": true,
+				"trafficNormal": true,
+				"impact": "Nenhum - operação normalizada"
+			},
+			"questions": [
+				{
+					"id": "q11",
+					"text": "O incidente poderia ser resumido como um dos tipos de route leak definidos na RFC 7908. Qual tipo se aplica?",
+					"options": [
+						"Type 1: Hairpin Turn with Full Prefix - tráfego retorna pelo mesmo AS que recebeu",
+						"Type 2: Lateral ISP-ISP-ISP Leak - peer propaga rota de peer para outro peer",
+						"Type 3: Leak of Transit-Provider Prefixes to Peer - customer vaza rotas do provider para peer",
+						"Type 4: Leak to Transit Provider - peer propaga rota de peer para seu provider upstream"
+					],
+					"correctAnswer": 3,
+					"points": 5,
+					"justification": "RFC 7908 Type 4 'Leak to Transit Provider' (D): AS 64510 aprendeu rotas de AS 64530 via relação de peering e as propagou para seus transit providers (upstream). Isso causou propagação global indevida. Type 2 (B) seria se AS 64510 propagasse para outro peer lateral. Type 3 (C) seria o inverso - um customer vazando rotas do provider. A classificação correta é essencial para documentação e coordenação com a comunidade."
+				},
+				{
+					"id": "q12",
+					"text": "Qual iniciativa da comunidade promove as melhores práticas para prevenção de route leaks e hijacking?",
+					"options": [
+						"MANRS (Mutually Agreed Norms for Routing Security) - com ações como filtering, anti-spoofing, coordination, validation",
+						"CERT.br - focado exclusivamente em incidentes de segurança brasileiros",
+						"IETF - define apenas RFCs teóricos sem implementação prática",
+						"ICANN - responsável apenas por alocação de domínios"
+					],
+					"correctAnswer": 0,
+					"points": 5,
+					"justification": "MANRS (A) (https://www.manrs.org) define 4 ações para operadores: (1) Filtering: implementar filtros para evitar propagação de rotas incorretas, (2) Anti-Spoofing: validar source IP (BCP38), (3) Coordination: manter informações de contato atualizadas para resolução rápida de incidentes, (4) Global Validation: publicar dados de roteamento em repositórios públicos (IRR, RPKI). CERT.br (B) trata incidentes de segurança mas não foca em routing. IETF (C) define padrões implementados. ICANN (D) coordena DNS e números IP."
+				},
+				{
+					"id": "q13",
+					"text": "Para prevenir recorrência deste tipo de incidente no AS 64510, qual combinação de medidas é mais eficaz?",
+					"options": [
+						"Apenas RPKI ROV é suficiente para prevenir todos os tipos de incidentes BGP",
+						"Route-map com filtro de community para customer routes + no-export em rotas de peer + revisão de mudanças com 4-eyes principle + ASPA quando disponível",
+						"Bloquear todas as novas sessões de peering para reduzir a superfície de risco",
+						"Implementar BGPsec em todas as sessões (ainda não amplamente deployado)"
+					],
+					"correctAnswer": 1,
+					"points": 5,
+					"justification": "Combinação de medidas (B) é a abordagem correta: (1) Route-map robusto filtrando exportação por tipo de relação (customer/peer/transit), (2) no-export em rotas de peering para segurança adicional, (3) 4-eyes principle para revisão de mudanças em route-maps (evita erro humano como neste caso), (4) ASPA como camada adicional de validação quando amplamente deployado. RPKI ROV (A) não detecta route leaks. Bloquear peering (C) prejudica a rede. BGPsec (D) correto mas impraticável atualmente."
+				},
+				{
+					"id": "q14",
+					"type": "ordering",
+					"text": "Ordene as ações de resposta a um route leak detectado, da mais urgente à menos urgente:",
+					"items": [
+						{"id": "a1", "label": "Verificar impacto local: confirmar se o tráfego do próprio AS está usando caminho correto"},
+						{"id": "a2", "label": "Contatar NOC do AS que está causando o leak para solicitar correção"},
+						{"id": "a3", "label": "Aplicar filtros locais para priorizar caminhos corretos (local-pref, prefix-list)"},
+						{"id": "a4", "label": "Reportar para comunidades operacionais (MANRS, listas de NOC regionais)"},
+						{"id": "a5", "label": "Documentar o incidente e revisar mecanismos preventivos"}
+					],
+					"correctOrder": ["a1", "a3", "a2", "a4", "a5"],
+					"partialCredit": false,
+					"points": 5,
+					"justification": "Ordem de urgência: (1) Verificar impacto local primeiro - garantir que o próprio AS está protegido. (2) Aplicar filtros locais - ação imediata para proteger tráfego. (3) Contatar NOC do AS causador - solicitar correção na fonte. (4) Reportar para comunidades - alertar outros operadores. (5) Documentar - lições aprendidas e prevenção. A ordem prioriza: proteção local → correção na fonte → comunicação → documentação."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 92,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 90,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de políticas BGP, modelo Gao-Rexford e mecanismos de prevenção de route leaks"
+			},
+			{
+				"min": 75,
+				"max": 89,
+				"grade": "Bom",
+				"description": "Compreensão sólida de route leaks e relações BGP com pequenas lacunas em mecanismos avançados"
+			},
+			{
+				"min": 60,
+				"max": 74,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica de BGP suficiente, requer aprofundamento em políticas de exportação e prevenção"
+			},
+			{
+				"min": 45,
+				"max": 59,
+				"grade": "Insatisfatório",
+				"description": "Lacunas significativas em relacionamentos BGP e detecção de anomalias de roteamento"
+			},
+			{
+				"min": 0,
+				"max": 44,
+				"grade": "Inadequado",
+				"description": "Compreensão insuficiente, requer treinamento completo em políticas BGP e segurança de roteamento"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Apresentar informações progressivamente, focando na relação entre políticas BGP e impacto no tráfego",
+		"Permitir 3-4 minutos de discussão entre participantes antes de cada resposta",
+		"Usar diagrama de topologia AS com setas indicando relações customer/peer/provider",
+		"Destacar a diferença entre route leak (caminho errado) e hijacking (origin AS falso)",
+		"Fazer perguntas socráticas: 'Por que no-export não resolve 100%?', 'O que acontece se todos os ASes implementarem ASPA?'",
+		"Controlar tempo: Rodada 1 (5 min), Rodadas 2-4 (8-10 min cada), Rodada 5 (7 min)",
+		"Se possível, mostrar exemplos reais de route leaks (Google leak 2017, Verizon/Allegheny 2019)",
+		"Após exercício: revisar modelo Gao-Rexford, MANRS actions, RPKI vs ASPA, coletar feedback"
+	],
+	"technicalReferences": [
+		{
+			"title": "RFC 7908 - Problem Definition and Classification of BGP Route Leaks",
+			"url": "https://www.rfc-editor.org/rfc/rfc7908"
+		},
+		{
+			"title": "RFC 9234 - Route Leak Prevention and Detection Using Roles in UPDATE and OPEN Messages",
+			"url": "https://www.rfc-editor.org/rfc/rfc9234"
+		},
+		{
+			"title": "RFC 1997 - BGP Communities Attribute",
+			"url": "https://www.rfc-editor.org/rfc/rfc1997"
+		},
+		{
+			"title": "MANRS - Mutually Agreed Norms for Routing Security",
+			"url": "https://www.manrs.org"
+		},
+		{
+			"title": "Gao-Rexford Model - Stable Internet Routing Without Global Coordination",
+			"url": "https://www.cs.princeton.edu/~jrex/papers/sigcomm01.pdf"
+		}
+	]
+}

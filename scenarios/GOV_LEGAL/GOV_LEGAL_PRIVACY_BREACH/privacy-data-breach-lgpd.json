@@ -1,0 +1,560 @@
+{
+	"id": "privacy-data-breach-lgpd",
+	"title": "Resposta a Incidente de Violação de Privacidade de Dados Pessoais (LGPD)",
+	"description": "Simulação tabletop de resposta a incidente de vazamento de dados pessoais sensíveis com notificação obrigatória à ANPD e titulares afetados, conforme Lei Geral de Proteção de Dados",
+	"category": {
+		"id": "GOV_LEGAL",
+		"type": "GOV_LEGAL_PRIVACY_BREACH",
+		"title": "Violação de Privacidade de Dados"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2025-02-02",
+		"author": "Lucas Rayan Guerra",
+		"estimatedDuration": "40-55 minutos",
+		"difficulty": "Intermediário a Avançado",
+		"targetAudience": "DPO (Data Protection Officer), Equipe de Segurança da Informação, Equipe Jurídica, Gestores de TI, Compliance, Comunicação Institucional"
+	},
+	"objectives": [
+		"Validar capacidade de detecção, contenção e resposta a incidentes de violação de dados pessoais conforme a LGPD",
+		"Avaliar conhecimento sobre obrigações de notificação à ANPD e aos titulares de dados afetados",
+		"Testar procedimentos de investigação interna, preservação de evidências e análise de impacto",
+		"Desenvolver compreensão sobre classificação de dados pessoais e dados pessoais sensíveis (Art. 5º, LGPD)",
+		"Identificar processos de contenção técnica, comunicação de crise e mitigação de danos",
+		"Promover conhecimento sobre o papel do DPO/Encarregado e Relatório de Impacto à Proteção de Dados (RIPD)"
+	],
+	"scope": [
+		"Exercício de simulação tabletop - não haverá investigação real de sistemas ou comunicação com autoridades",
+		"Não inclui notificação real à ANPD ou a titulares de dados",
+		"Foco na tomada de decisão operacional, compliance com LGPD e gestão de crise reputacional",
+		"Avaliação de conhecimento da LGPD (Lei 13.709/2018), regulamentações da ANPD e boas práticas de privacidade"
+	],
+	"baseScenario": {
+		"context": "Quarta-feira, 7h30, antes do horário comercial. Você faz parte da equipe de segurança da informação e resposta a incidentes. A organização é uma instituição de ensino superior que mantém um portal acadêmico com dados de ~45.000 alunos, ~3.500 professores e ~2.000 funcionários. O sistema armazena dados pessoais (nome, CPF, endereço, telefone, e-mail) e dados pessoais sensíveis (informações de saúde para alunos com necessidades especiais, dados biométricos para controle de acesso, e boletins de desempenho acadêmico). A equipe de monitoramento detectou atividade anômala nas primeiras horas da manhã.",
+		"initialSituation": {
+			"alert": "Alerta de segurança: acesso não autorizado a banco de dados de alunos detectado via SIEM",
+			"detectionMethod": "Regra SIEM: volume anormal de SELECT em tabela 'alunos_dados_pessoais' fora do horário comercial",
+			"suspiciousActivity": "Consultas massivas (>50.000 registros) executadas entre 02:15 e 04:47 via conta de serviço comprometida",
+			"affectedDatabase": "PostgreSQL - database 'portal_academico' (servidor db-primary.internal.edu)",
+			"dataAtRisk": "Tabelas: alunos_dados_pessoais, alunos_saude, alunos_biometria",
+			"timestamp": "07:30:00"
+		},
+		"initialComplaints": [
+			"SIEM gerou 47 alertas entre 02:15 e 04:47 (sem resposta - equipe noturna não monitorava SIEM)",
+			"Conta de serviço 'svc_report_gen' utilizada para consultas massivas (normalmente executa apenas 3-5 relatórios/dia)",
+			"Dados potencialmente exfiltrados: nomes, CPFs, endereços, telefones, dados de saúde e biometria de até 45.000 alunos",
+			"Nenhuma evidência de alteração ou exclusão de dados - apenas leitura massiva (exfiltração)"
+		],
+		"availableResources": [
+			"SIEM (Security Information and Event Management) com logs de acesso ao banco de dados",
+			"Logs do PostgreSQL (pg_stat_statements, pg_audit) com registro de queries",
+			"Logs de autenticação (LDAP) e VPN da conta comprometida",
+			"DPO/Encarregado de Proteção de Dados designado conforme Art. 41, LGPD",
+			"Plano de Resposta a Incidentes de Segurança (parcialmente documentado)",
+			"Ferramentas de análise forense: Volatility, Autopsy, Wireshark",
+			"Contato com ANPD (Autoridade Nacional de Proteção de Dados) para notificações"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do cenário base. A equipe deve se familiarizar com o incidente detectado, os dados potencialmente comprometidos e os recursos disponíveis para resposta.",
+			"inject": "Apresentação do cenário conforme descrito. A equipe tem 5 minutos para analisar os alertas do SIEM, identificar o escopo potencial do vazamento e planejar a abordagem de resposta.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Detecção, Classificação e Análise Inicial",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "A equipe investiga o incidente para confirmar a violação de dados, classificar os dados comprometidos e avaliar o impacto potencial aos titulares.",
+			"timeElapsed": "T+0 (07:30 - detecção do incidente)",
+			"currentSituation": {
+				"incidentStatus": "Confirmado - acesso não autorizado a banco de dados com exfiltração de dados pessoais",
+				"affectedRecords": "Até 45.000 registros de alunos (análise de escopo em andamento)",
+				"dataClassification": "Dados pessoais + dados pessoais SENSÍVEIS (saúde, biometria)",
+				"attackVector": "Conta de serviço comprometida (svc_report_gen) - vetor de comprometimento sob investigação"
+			},
+			"metrics": [
+				{
+					"type": "siem-analysis",
+					"title": "Análise dos Alertas SIEM - Timeline do Incidente",
+					"data": {
+						"timeline": [
+							{"time": "02:15:33", "event": "Login da conta svc_report_gen via VPN (IP externo: 187.45.xxx.xxx - Brasil)"},
+							{"time": "02:17:01", "event": "Conexão ao PostgreSQL db-primary.internal.edu:5432"},
+							{"time": "02:18:15", "event": "SELECT * FROM alunos_dados_pessoais LIMIT 100 (teste inicial)"},
+							{"time": "02:19:42", "event": "SELECT * FROM alunos_dados_pessoais (sem LIMIT - dump completo: 45.231 registros)"},
+							{"time": "02:47:18", "event": "SELECT * FROM alunos_saude (8.342 registros - dados de saúde)"},
+							{"time": "03:12:55", "event": "SELECT * FROM alunos_biometria (12.891 registros - templates biométricos)"},
+							{"time": "03:45:00", "event": "Tentativa de acesso a tabela 'funcionarios_folha' - DENIED (permissão insuficiente)"},
+							{"time": "04:47:22", "event": "Desconexão da sessão VPN"}
+						],
+						"totalDataAccessed": "66.464 registros em 3 tabelas",
+						"dataVolume": "~340 MB de dados lidos",
+						"observation": "Atacante acessou 3 tabelas críticas em ~2.5 horas. Padrão indica exfiltração estruturada: primeiro teste com LIMIT 100, depois dump completo. Tentou acessar folha de pagamento mas permissão foi negada. Sessão VPN originou de IP brasileiro - pode ser proxy/VPN do atacante."
+					}
+				},
+				{
+					"type": "data-classification",
+					"title": "Classificação dos Dados Comprometidos (LGPD)",
+					"data": {
+						"personalData": {
+							"table": "alunos_dados_pessoais",
+							"records": 45231,
+							"fields": "nome_completo, cpf, rg, data_nascimento, endereco, telefone, email, foto_3x4",
+							"lgpdClassification": "Dados pessoais (Art. 5º, I, LGPD)",
+							"riskLevel": "ALTO - CPF + dados de contato permitem fraude de identidade"
+						},
+						"sensitiveData_health": {
+							"table": "alunos_saude",
+							"records": 8342,
+							"fields": "aluno_id, tipo_deficiencia, laudo_medico, medicamentos, alergias, plano_saude",
+							"lgpdClassification": "Dados pessoais SENSÍVEIS - saúde (Art. 5º, II, LGPD)",
+							"riskLevel": "CRÍTICO - dados de saúde são categoria especial com proteção reforçada"
+						},
+						"sensitiveData_biometric": {
+							"table": "alunos_biometria",
+							"records": 12891,
+							"fields": "aluno_id, template_digital, foto_facial_hd, iris_template",
+							"lgpdClassification": "Dados pessoais SENSÍVEIS - biométricos (Art. 5º, II, LGPD)",
+							"riskLevel": "CRÍTICO - dados biométricos são irrevogáveis (não podem ser 'trocados' como senha)"
+						},
+						"observation": "Incidente envolve TRÊS categorias de dados: pessoais (CPF, endereço), sensíveis de saúde (laudos, medicamentos) e sensíveis biométricos (digitais, facial). A presença de dados sensíveis ELEVA significativamente a gravidade do incidente e as obrigações de notificação sob LGPD Art. 48."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"question": "Com base na classificação dos dados comprometidos, qual é a ação IMEDIATA mais crítica que a organização deve tomar?",
+					"points": 6,
+					"options": [
+						"Notificar a ANPD imediatamente por telefone antes de qualquer investigação",
+						"Conter o incidente: revogar credenciais da conta comprometida, isolar o banco de dados e preservar evidências",
+						"Publicar comunicado na imprensa sobre o vazamento para demonstrar transparência",
+						"Contratar empresa de segurança externa para investigação forense antes de tomar qualquer ação"
+					],
+					"correctAnswer": 1,
+					"justification": "Contenção imediata (B) é a prioridade #1: (1) revogar credenciais impede acesso continuado, (2) isolar banco preserva integridade dos dados, (3) preservar logs/evidências é essencial para investigação. A LGPD Art. 48 exige notificação à ANPD em 'prazo razoável', mas PRIMEIRO é necessário conter o incidente para evitar dano adicional. (A) notificação prematura sem informações gera mais dúvidas que respostas. (C) comunicação precipitada sem fatos confirmados pode gerar pânico. (D) aguardar empresa externa atrasa contenção crítica."
+				},
+				{
+					"id": "q2",
+					"type": "true-false",
+					"question": "Segundo a LGPD (Art. 5º, II), dados biométricos (templates de digital, reconhecimento facial) são classificados como dados pessoais sensíveis, recebendo proteção jurídica reforçada.",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. Art. 5º, II da LGPD define dados pessoais sensíveis como: 'dado pessoal sobre origem racial ou étnica, convicção religiosa, opinião política, filiação a sindicato ou a organização de caráter religioso, filosófico ou político, dado referente à saúde ou à vida sexual, dado genético ou BIOMÉTRICO, quando vinculado a uma pessoa natural'. Dados biométricos são sensíveis porque: (1) são únicos e irrevogáveis (não se 'troca' uma digital como se troca uma senha), (2) permitem identificação inequívoca do titular, (3) seu comprometimento é permanente."
+				},
+				{
+					"id": "q3",
+					"type": "multiple-choice",
+					"question": "A análise do SIEM mostra que o atacante utilizou uma conta de serviço (svc_report_gen) com credenciais válidas. Qual é a causa raiz MAIS provável do comprometimento?",
+					"points": 5,
+					"options": [
+						"Exploração de vulnerabilidade zero-day no PostgreSQL que permitiu bypass de autenticação",
+						"Credenciais da conta de serviço estavam hardcoded em código-fonte de aplicação ou arquivo de configuração acessível",
+						"Ataque de força bruta contra a VPN que descobriu a senha da conta de serviço",
+						"Insider threat - funcionário interno com acesso legítimo à conta de serviço"
+					],
+					"correctAnswer": 1,
+					"justification": "Credenciais hardcoded (B) é a causa mais provável para contas de serviço comprometidas. Contas de serviço frequentemente têm credenciais: (1) em arquivos de configuração (.env, config.yaml), (2) hardcoded em código-fonte (commits no Git), (3) em scripts de automação (cron jobs), (4) com senhas antigas que nunca são rotacionadas. O atacante pode ter encontrado credenciais em repositório Git público, backup exposto ou arquivo de config acessível. (A) zero-day é raro e não justifica login VPN com credenciais válidas. (C) força bruta geraria milhares de tentativas nos logs. (D) possível, mas insider geralmente não usa VPN externa às 2h da manhã."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"question": "Associe cada categoria de dado comprometido ao seu nível de risco para os titulares:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "cpf", "text": "CPF + nome + endereço completo"},
+						{"id": "saude", "text": "Laudos médicos + tipo de deficiência + medicamentos"},
+						{"id": "biometria", "text": "Templates biométricos (digital, facial, íris)"}
+					],
+					"rightColumn": [
+						{"id": "r1", "text": "Risco PERMANENTE: dados irrevogáveis que não podem ser alterados ou substituídos pelo titular"},
+						{"id": "r2", "text": "Risco ALTO: permite fraude de identidade, abertura de contas falsas e golpes financeiros"},
+						{"id": "r3", "text": "Risco CRÍTICO: exposição pode gerar discriminação, estigma social e danos psicológicos ao titular"}
+					],
+					"correctMatches": [
+						{"left": "cpf", "right": "r2"},
+						{"left": "saude", "right": "r3"},
+						{"left": "biometria", "right": "r1"}
+					],
+					"justification": "CPF + dados pessoais (↔ r2): permitem fraude de identidade - abertura de contas, empréstimos, compras em nome da vítima. Dados de saúde (↔ r3): exposição de deficiências, doenças e medicamentos pode causar discriminação em emprego, seguros, relações sociais - dano psicológico severo. Dados biométricos (↔ r1): são IRREVERSÍVEIS - diferente de senha ou CPF que podem ser monitorados/substituídos, uma digital comprometida é comprometida PARA SEMPRE. Biometria não pode ser 'resetada'."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Contenção e Investigação Forense",
+			"phase": "Fase 2 - Contenção",
+			"description": "A equipe iniciou contenção imediata: credenciais revogadas, conta de serviço desabilitada, VPN bloqueada para o IP do atacante. Investigação forense em andamento para determinar alcance real da exfiltração.",
+			"timeElapsed": "T+3 horas (10:30)",
+			"currentSituation": {
+				"containmentStatus": "✅ Conta comprometida desabilitada, VPN bloqueada, sessões ativas encerradas",
+				"forensicInvestigation": "Em andamento - análise de logs de rede para confirmar exfiltração",
+				"dataExfiltrationConfirmed": "⚠️ Análise de tráfego revela ~340 MB de dados transferidos para IP externo",
+				"dpoNotified": "✅ DPO/Encarregado notificado e coordenando resposta"
+			},
+			"metrics": [
+				{
+					"type": "network-forensics",
+					"title": "Análise Forense de Rede - Confirmação de Exfiltração",
+					"data": {
+						"sourceIP": "db-primary.internal.edu (10.0.5.20)",
+						"destinationIP": "187.45.xxx.xxx → túnel VPN → IP externo (não identificado)",
+						"dataTransferred": "~340 MB (saída) entre 02:19 e 04:45",
+						"normalBaseline": "~15 MB/dia de tráfego de saída para esta conta de serviço",
+						"protocol": "PostgreSQL (porta 5432) + tunneled via VPN (porta 443)",
+						"encryptionUsed": "Sim - dados transferidos via túnel VPN criptografado (OpenVPN/TLS)",
+						"exfiltrationConfirmed": "SIM - volume de dados de saída (~340 MB) é compatível com dump das 3 tabelas acessadas",
+						"observation": "Exfiltração CONFIRMADA: 340 MB de dados transferidos via VPN criptografada. Dados incluem informações pessoais e sensíveis de até 45.231 alunos. Impossível recuperar dados já exfiltrados - foco deve ser em mitigação de danos e notificação."
+					}
+				},
+				{
+					"type": "credential-analysis",
+					"title": "Análise da Conta de Serviço Comprometida",
+					"data": {
+						"accountName": "svc_report_gen",
+						"accountType": "Conta de serviço (não-interativa)",
+						"createdDate": "2021-03-15",
+						"lastPasswordChange": "2021-03-15 (NUNCA rotacionada - 4 anos sem alteração)",
+						"mfaEnabled": "❌ NÃO - contas de serviço não tinham MFA configurado",
+						"passwordComplexity": "12 caracteres alfanuméricos (sem caracteres especiais)",
+						"accessLevel": "SELECT em tabelas de alunos + relatórios (sem INSERT/UPDATE/DELETE)",
+						"credentialLocation": "Encontrada em arquivo /opt/reports/config.ini (permissão 644 - world-readable)",
+						"observation": "CAUSA RAIZ IDENTIFICADA: senha da conta de serviço estava em arquivo config.ini com permissão 644 (qualquer usuário do sistema podia ler). Senha nunca foi rotacionada (4 anos). Sem MFA. Múltiplas falhas de segurança combinadas."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q5",
+					"type": "multiple-choice",
+					"question": "A investigação confirmou que dados de 45.231 alunos foram exfiltrados, incluindo dados sensíveis de saúde e biometria. Segundo o Art. 48 da LGPD, em qual prazo a organização deve comunicar o incidente à ANPD?",
+					"points": 6,
+					"options": [
+						"Imediatamente (dentro de 1 hora) após a confirmação da violação",
+						"Em prazo razoável, conforme regulamentação da ANPD - atualmente recomendado 2 dias úteis",
+						"Em até 30 dias corridos após a confirmação da violação",
+						"Apenas se a ANPD solicitar informações sobre o incidente específico"
+					],
+					"correctAnswer": 1,
+					"justification": "Prazo razoável - recomendação de 2 dias úteis (B). Art. 48 da LGPD: 'O controlador deverá comunicar à autoridade nacional e ao titular a ocorrência de incidente de segurança que possa acarretar risco ou dano relevante aos titulares, em prazo razoável'. A Resolução CD/ANPD nº 15/2024 regulamentou: comunicação deve ocorrer em até 3 dias úteis da ciência do incidente pelo controlador. Na prática, recomenda-se comunicação em 2 dias úteis para demonstrar diligência. (A) 1 hora é impraticável. (C) 30 dias é GDPR, não LGPD. (D) comunicação é OBRIGATÓRIA, não opcional."
+				},
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"question": "A causa raiz foi identificada: credenciais em arquivo config.ini com permissão 644. Qual medida de contenção adicional é mais urgente AGORA?",
+					"points": 5,
+					"options": [
+						"Formatar o servidor comprometido e reinstalar do zero",
+						"Rotacionar TODAS as credenciais de contas de serviço e auditar permissões de arquivos de configuração em todos os sistemas",
+						"Implementar solução de DLP (Data Loss Prevention) para monitorar futuras exfiltrações",
+						"Desativar o portal acadêmico completamente até conclusão da investigação"
+					],
+					"correctAnswer": 1,
+					"justification": "Rotacionar credenciais e auditar permissões (B) é a contenção mais urgente: se a causa raiz é credencial exposta, TODAS as contas de serviço similares podem estar comprometidas. (1) Rotacionar senhas impede reutilização, (2) auditar permissões de config files identifica outras exposições. (A) formatar destrói evidências forenses. (C) DLP é prevenção futura, não contenção imediata. (D) desativar o portal causa indisponibilidade para 45.000 alunos sem necessidade (dados já foram contidos)."
+				},
+				{
+					"id": "q7",
+					"type": "true-false",
+					"question": "Segundo a LGPD, a organização é obrigada a comunicar o incidente aos titulares (alunos) afetados APENAS se a ANPD determinar expressamente, após análise da notificação.",
+					"points": 3,
+					"correctAnswer": false,
+					"justification": "FALSO. Art. 48 da LGPD estabelece dupla obrigação: comunicar à ANPD E ao titular. O controlador deve comunicar AMBOS quando o incidente puder acarretar 'risco ou dano relevante aos titulares'. Com dados sensíveis (saúde, biometria) de 45.000 pessoas exfiltrados, o risco é claramente relevante - comunicação é obrigatória INDEPENDENTE de determinação da ANPD. A ANPD pode, adicionalmente, determinar divulgação ampla (Art. 48, §2º, I), mas isso não isenta o controlador da obrigação proativa de comunicar os titulares."
+				},
+				{
+					"id": "q8",
+					"type": "numeric",
+					"question": "A Resolução CD/ANPD nº 15/2024 estabelece que a comunicação de incidente de segurança à ANPD deve ser realizada em até quantos dias úteis a partir do conhecimento do incidente pelo controlador?",
+					"points": 5,
+					"correctAnswer": 3,
+					"tolerance": 0,
+					"unit": "dias úteis",
+					"justification": "3 dias úteis. A Resolução CD/ANPD nº 15/2024 (Regulamento de Comunicação de Incidente de Segurança) estabelece prazo de 3 dias úteis a partir do conhecimento pelo controlador de que o incidente afetou dados pessoais. Este prazo começa a contar da CIÊNCIA do incidente, não da sua ocorrência. No cenário: incidente ocorreu às 02:15, mas a organização tomou ciência às 07:30 - prazo começa às 07:30. Para dados sensíveis de alto risco como neste cenário, recomenda-se comunicação o mais rápido possível dentro desse prazo."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Notificação à ANPD e aos Titulares",
+			"phase": "Fase 3 - Erradicação e Comunicação",
+			"description": "Com a contenção completa e investigação avançada, a equipe prepara a comunicação obrigatória à ANPD e a notificação aos titulares afetados. O DPO coordena o processo.",
+			"timeElapsed": "T+24 horas (quinta-feira, 07:30)",
+			"currentSituation": {
+				"containment": "✅ Completa - todas as credenciais rotacionadas, permissões corrigidas",
+				"forensicReport": "✅ Relatório preliminar concluído - exfiltração confirmada",
+				"anpdNotification": "Em preparação pelo DPO",
+				"titleHolderNotification": "Em preparação pela equipe de comunicação",
+				"publicExposure": "⚠️ Nenhuma evidência de dados publicados na dark web (monitoramento ativo)"
+			},
+			"metrics": [
+				{
+					"type": "anpd-notification",
+					"title": "Formulário de Comunicação de Incidente à ANPD",
+					"data": {
+						"requiredFields": [
+							"Descrição da natureza dos dados pessoais afetados",
+							"Informações sobre os titulares envolvidos (quantidade, categorias)",
+							"Indicação das medidas técnicas e de segurança utilizadas para proteção dos dados",
+							"Riscos relacionados ao incidente com identificação de possíveis impactos aos titulares",
+							"Motivos da demora (caso comunicação não seja imediata)",
+							"Medidas adotadas para reverter ou mitigar os efeitos do incidente"
+						],
+						"dpoContact": "dpo@institution.edu - Encarregado designado conforme Art. 41, LGPD",
+						"submissionChannel": "Formulário eletrônico no portal da ANPD (peticionamento eletrônico)",
+						"observation": "Comunicação à ANPD deve ser COMPLETA e fundamentada. Informações incompletas podem resultar em solicitação de complementação pela ANPD e demonstram falta de preparo. Recomenda-se incluir timeline completa do incidente, medidas de contenção e plano de mitigação."
+					}
+				},
+				{
+					"type": "titleholder-notification",
+					"title": "Plano de Notificação aos Titulares Afetados",
+					"data": {
+						"totalAffected": 45231,
+						"channels": [
+							"E-mail individual para todos os 45.231 alunos (endereço cadastrado)",
+							"Notificação no portal acadêmico (banner de alerta ao fazer login)",
+							"Comunicado oficial no site institucional",
+							"Central de atendimento dedicada (0800) para dúvidas"
+						],
+						"contentRequired": [
+							"Descrição clara do incidente (o que aconteceu)",
+							"Tipos de dados comprometidos (pessoais e sensíveis)",
+							"Medidas já adotadas pela organização",
+							"Recomendações de autoproteção para os titulares",
+							"Canal de contato do DPO/Encarregado para dúvidas"
+						],
+						"observation": "Comunicação aos titulares deve ser CLARA, ACESSÍVEL e SEM JARGÃO TÉCNICO. Deve informar riscos concretos (ex: 'seus dados podem ser usados para fraude') e ações práticas de proteção (ex: 'monitore seu CPF no Registrato/Bacen'). Evitar linguagem minimizadora ('incidentezinho', 'possível vazamento') - transparência gera confiança."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q9",
+					"type": "multiple-choice",
+					"question": "Na comunicação aos titulares (alunos) afetados, qual informação é MAIS importante para permitir que os titulares se protejam?",
+					"points": 6,
+					"options": [
+						"Detalhes técnicos completos do ataque (IP do atacante, vulnerabilidade explorada, queries SQL)",
+						"Recomendações práticas de autoproteção: monitorar CPF (Registrato/Bacen), ativar alertas de crédito, trocar senhas de serviços que usam mesmo e-mail",
+						"Nome e dados de contato do atacante (se identificado) para que titulares possam tomar ações legais",
+						"Valor estimado dos danos financeiros que cada titular pode sofrer"
+					],
+					"correctAnswer": 1,
+					"justification": "Recomendações práticas de autoproteção (B) são as mais úteis para os titulares. Os alunos precisam saber O QUE FAZER para se proteger: (1) monitorar CPF no Registrato/Bacen gratuitamente, (2) ativar alertas de crédito no SPC/Serasa, (3) trocar senhas de serviços que usam mesmo e-mail cadastrado, (4) desconfiar de contatos que mencionem dados pessoais. (A) detalhes técnicos não ajudam titulares leigos. (C) expor dados do atacante pode ser ilegal e ineficaz. (D) valores especulativos geram pânico sem benefício."
+				},
+				{
+					"id": "q10",
+					"type": "multiple-choice",
+					"question": "O DPO da organização desempenha papel central na resposta ao incidente. Qual é a principal atribuição do DPO/Encarregado segundo a LGPD (Art. 41)?",
+					"points": 5,
+					"options": [
+						"Implementar medidas técnicas de segurança da informação e correção de vulnerabilidades",
+						"Atuar como canal de comunicação entre o controlador, os titulares e a ANPD",
+						"Decidir quais dados pessoais a organização pode coletar e processar",
+						"Autorizar ou negar o compartilhamento de dados com terceiros"
+					],
+					"correctAnswer": 1,
+					"justification": "Canal de comunicação (B) é a principal atribuição do DPO. Art. 41, §2º da LGPD define que o encarregado deve: (I) aceitar reclamações e comunicações dos titulares, prestar esclarecimentos e adotar providências; (II) receber comunicações da ANPD e adotar providências; (III) orientar os funcionários da organização sobre práticas de proteção de dados. O DPO é o PONTO FOCAL entre organização, titulares e ANPD. (A) é função da equipe de TI/segurança. (C) é decisão do controlador. (D) é decisão de governança/jurídico."
+				},
+				{
+					"id": "q11",
+					"type": "true-false",
+					"question": "A LGPD prevê que a ANPD pode aplicar multa de até 2% do faturamento da pessoa jurídica de direito privado, grupo ou conglomerado no Brasil no último exercício, limitada a R$ 50 milhões por infração.",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. Art. 52, II da LGPD: 'multa simples, de até 2% (dois por cento) do faturamento da pessoa jurídica de direito privado, grupo ou conglomerado no Brasil no seu último exercício, excluídos os tributos, limitada, no total, a R$ 50.000.000,00 (cinquenta milhões de reais) por infração'. Nota: para entidades sem fins lucrativos (como universidades públicas), sanções podem ser diferentes - Art. 52 lista também advertência, publicização, bloqueio/eliminação de dados, e suspensão de atividades de tratamento."
+				},
+				{
+					"id": "q12",
+					"type": "numeric",
+					"question": "No contexto deste incidente, quantos titulares de dados foram potencialmente afetados ao total, considerando apenas registros de alunos cujos dados pessoais foram confirmadamente acessados na tabela principal?",
+					"points": 4,
+					"correctAnswer": 45231,
+					"tolerance": 100,
+					"unit": "titulares",
+					"justification": "45.231 titulares. A tabela alunos_dados_pessoais continha 45.231 registros, todos acessados via SELECT sem LIMIT. Mesmo que tabelas de saúde (8.342) e biometria (12.891) tenham menos registros, o número total de TITULARES afetados é baseado na tabela principal de dados pessoais, que abrange todos os alunos. Os registros de saúde e biometria são subconjuntos do total de alunos. Importante: para fins de notificação à ANPD, deve-se reportar o número de titulares ÚNICOS, não o total de registros."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Pós-Incidente, Mitigação e Melhoria de Processos",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "ANPD notificada dentro do prazo, titulares comunicados por e-mail e portal. A organização agora implementa melhorias de segurança e processos para prevenir recorrência.",
+			"timeElapsed": "T+72 horas (sábado - ANPD notificada, titulares comunicados)",
+			"currentSituation": {
+				"anpdStatus": "✅ Comunicação enviada à ANPD dentro do prazo de 3 dias úteis",
+				"titularNotification": "✅ 45.231 e-mails enviados + banner no portal acadêmico",
+				"darkWebMonitoring": "✅ Ativo - nenhuma evidência de publicação dos dados até o momento",
+				"credentialRotation": "✅ Todas as 47 contas de serviço rotacionadas e auditadas",
+				"publicReaction": "⚠️ Imprensa local publicou matéria sobre o vazamento - equipe de comunicação gerenciando"
+			},
+			"metrics": [
+				{
+					"type": "incident-impact",
+					"title": "Resumo do Impacto do Incidente",
+					"data": {
+						"titularsAffected": 45231,
+						"sensitiveDataExposed": "8.342 registros de saúde + 12.891 templates biométricos",
+						"timeToDetection": "~5 horas (02:15 a 07:30) - SIEM gerou alertas, mas sem resposta noturna",
+						"timeToContainment": "~3 horas após detecção (07:30 a 10:30)",
+						"timeToANPDNotification": "~48 horas (dentro do prazo de 3 dias úteis)",
+						"estimatedFinancialImpact": "R$ 200.000 - R$ 500.000 (investigação forense, central de atendimento, consultoria jurídica, monitoramento de crédito para titulares)",
+						"reputationalImpact": "Alto - matéria em imprensa local, reclamações em redes sociais",
+						"observation": "Principal lacuna: detecção tardia (5 horas sem resposta a alertas SIEM). Se equipe noturna monitorasse SIEM, contenção poderia ter ocorrido em ~30 minutos (reduzindo janela de exfiltração). Investimento em SOC 24/7 é recomendado."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q13",
+					"type": "multiple-choice",
+					"question": "O incidente revelou que alertas SIEM ficaram 5 horas sem resposta por falta de monitoramento noturno. Qual medida preventiva teria MAIOR impacto na redução do tempo de detecção?",
+					"points": 6,
+					"options": [
+						"Implementar alertas SIEM que enviam SMS/ligação automática para equipe de plantão (on-call) 24/7",
+						"Contratar equipe dedicada de SOC (Security Operations Center) noturno",
+						"Configurar bloqueio automático de contas com comportamento anômalo (UEBA - User and Entity Behavior Analytics)",
+						"Aumentar a frequência de revisão manual dos logs de 24h para 12h"
+					],
+					"correctAnswer": 2,
+					"justification": "UEBA com bloqueio automático (C) teria maior impacto: detectaria automaticamente que a conta svc_report_gen executou 50.000+ queries (vs. baseline de 3-5/dia) e bloquearia a conta sem intervenção humana. Tempo de resposta: SEGUNDOS, não horas. (A) depende de humano atender ligação às 2h da manhã - tempo de resposta 15-30 min. (B) é eficaz mas custoso e ainda depende de velocidade humana. (D) é insuficiente - 12h de janela é inaceitável para dados sensíveis. UEBA + SOC é a combinação ideal."
+				},
+				{
+					"id": "q14",
+					"type": "ordering",
+					"question": "Ordene as medidas de segurança que a organização deve implementar APÓS o incidente, da mais urgente para a menos urgente:",
+					"points": 6,
+					"partialCredit": false,
+					"items": [
+						{"id": "vault", "text": "Migrar credenciais de contas de serviço para cofre de segredos (HashiCorp Vault, AWS Secrets Manager)"},
+						{"id": "mfa", "text": "Implementar MFA obrigatório para todas as contas com acesso a dados pessoais"},
+						{"id": "ripd", "text": "Elaborar Relatório de Impacto à Proteção de Dados Pessoais (RIPD) completo"},
+						{"id": "encrypt", "text": "Implementar criptografia at-rest no banco de dados para dados sensíveis"},
+						{"id": "awareness", "text": "Realizar treinamento de conscientização sobre LGPD para todos os funcionários"}
+					],
+					"correctOrder": ["vault", "mfa", "encrypt", "ripd", "awareness"],
+					"justification": "Ordem por urgência: (1) Cofre de segredos - CAUSA RAIZ direta, impede reuso de credenciais expostas imediatamente. (2) MFA - segunda camada de proteção que teria impedido o ataque mesmo com credenciais comprometidas. (3) Criptografia at-rest - mesmo que dados sejam exfiltrados novamente, estariam ilegíveis sem chave. (4) RIPD - obrigação legal que formaliza análise de impacto e medidas adotadas (LGPD Art. 38). (5) Treinamento - importante mas é medida de longo prazo, não urgente pós-incidente."
+				},
+				{
+					"id": "q15",
+					"type": "multiple-choice",
+					"question": "Os dados biométricos (templates de digital e reconhecimento facial) de 12.891 alunos foram exfiltrados. Qual é a implicação MAIS grave e duradoura desta exposição?",
+					"points": 6,
+					"options": [
+						"Os alunos precisarão trocar suas senhas no portal acadêmico",
+						"Os templates biométricos são IRREVOGÁVEIS - titulares ficam permanentemente expostos a fraudes de identidade biométrica",
+						"A organização precisará substituir os leitores biométricos por modelo mais seguro",
+						"Os dados biométricos perdem valor rapidamente e não representam risco de longo prazo"
+					],
+					"correctAnswer": 1,
+					"justification": "Dados biométricos são irrevogáveis (B) - esta é a consequência mais grave. Diferente de senhas (podem ser trocadas), CPFs (podem ser monitorados) ou cartões de crédito (podem ser cancelados), dados biométricos como impressões digitais e padrões faciais NÃO PODEM SER ALTERADOS. Uma vez comprometidos, permanecem comprometidos permanentemente. Atacantes podem usar templates biométricos para: (1) criar impressões digitais falsas (spoofing), (2) burlar sistemas de autenticação biométrica, (3) fraude de identidade sofisticada. (A) senhas são secundárias. (C) hardware não é o problema. (D) dados biométricos mantêm valor indefinidamente."
+				},
+				{
+					"id": "q16",
+					"type": "multiple-choice",
+					"question": "A ANPD, após analisar a comunicação do incidente, poderá determinar diversas medidas. Qual das seguintes NÃO é uma sanção prevista na LGPD (Art. 52)?",
+					"points": 5,
+					"options": [
+						"Multa de até 2% do faturamento, limitada a R$ 50 milhões por infração",
+						"Publicização da infração após devidamente apurada e confirmada (name and shame)",
+						"Prisão do DPO/Encarregado por negligência na proteção dos dados (responsabilidade penal pessoal)",
+						"Suspensão parcial do funcionamento do banco de dados por até 6 meses"
+					],
+					"correctAnswer": 2,
+					"justification": "Prisão do DPO (C) NÃO é sanção da LGPD. Art. 52 prevê sanções ADMINISTRATIVAS: (I) advertência, (II) multa simples de até 2% do faturamento/R$50M, (III) multa diária, (IV) publicização da infração, (V) bloqueio de dados pessoais, (VI) eliminação de dados, (X) suspensão parcial do banco de dados por até 6 meses, (XI) suspensão de atividade de tratamento, (XII) proibição parcial ou total de atividades de tratamento. A LGPD NÃO prevê sanções penais (prisão). Responsabilidade penal dependeria de outros diplomas legais (ex: Art. 154-A, CP - invasão de dispositivo)."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 90,
+		"passingScore": 60,
+		"gradingScale": [
+			{
+				"min": 85,
+				"max": 100,
+				"grade": "Excelente",
+				"description": "Domínio completo de resposta a incidentes de privacidade, LGPD, notificação à ANPD e proteção de dados pessoais sensíveis"
+			},
+			{
+				"min": 70,
+				"max": 84,
+				"grade": "Bom",
+				"description": "Compreensão sólida de violação de dados e LGPD com pequenas lacunas em procedimentos de notificação ou classificação de dados"
+			},
+			{
+				"min": 60,
+				"max": 69,
+				"grade": "Satisfatório",
+				"description": "Compreensão básica suficiente, requer aprofundamento em obrigações da LGPD e resposta a incidentes de privacidade"
+			},
+			{
+				"min": 40,
+				"max": 59,
+				"grade": "Insuficiente",
+				"description": "Lacunas significativas em conhecimento de LGPD, classificação de dados e procedimentos de notificação de incidentes"
+			},
+			{
+				"min": 0,
+				"max": 39,
+				"grade": "Inadequado",
+				"description": "Conhecimento mínimo sobre proteção de dados pessoais - recomenda-se treinamento formal em LGPD e segurança da informação"
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Apresentar informações progressivamente, simulando evolução natural de investigação de incidente de privacidade",
+		"Permitir 4-5 minutos de discussão entre participantes antes de cada resposta",
+		"Fazer perguntas orientadoras: 'O que são dados pessoais sensíveis?', 'Qual a diferença entre dado pessoal e sensível?', 'Por que biometria é irrevogável?'",
+		"Enfatizar importância de RAPIDEZ na contenção + PRECISÃO na comunicação (ANPD e titulares)",
+		"Se grupo não tem experiência com LGPD, explicar conceitos de controlador, operador, DPO e bases legais antes da Rodada 2",
+		"Destacar a gravidade especial de dados sensíveis (saúde, biometria) vs. dados pessoais comuns",
+		"Manter neutralidade técnica - não minimizar nem exagerar o impacto do incidente",
+		"Controlar tempo: Rodada 1 (5 min), Rodadas 2-4 (10-12 min cada), Rodada 5 (10 min)",
+		"Mediar debates sobre transparência vs. proteção reputacional (sempre priorizar transparência)",
+		"Após exercício: revisar gabarito, discutir implementação de Plano de Resposta a Incidentes de Dados Pessoais",
+		"Coletar feedback sobre realismo do cenário - ajustar para contexto organizacional específico",
+		"Documentar insights para melhorar políticas de segurança, RIPD e treinamento de equipe"
+	],
+	"technicalReferences": [
+		{
+			"title": "Lei Geral de Proteção de Dados (LGPD) - Lei 13.709/2018",
+			"url": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm"
+		},
+		{
+			"title": "Resolução CD/ANPD nº 15/2024 - Regulamento de Comunicação de Incidente de Segurança",
+			"url": "https://www.gov.br/anpd/pt-br/assuntos/noticias/anpd-publica-regulamento-de-comunicacao-de-incidente-de-seguranca"
+		},
+		{
+			"title": "ANPD - Guia Orientativo: Comunicação de Incidentes de Segurança",
+			"url": "https://www.gov.br/anpd/pt-br/assuntos/incidente-de-seguranca"
+		},
+		{
+			"title": "NIST SP 800-122 - Guide to Protecting the Confidentiality of PII",
+			"url": "https://csrc.nist.gov/pubs/sp/800/122/final"
+		},
+		{
+			"title": "NIST SP 800-61 Rev. 2 - Computer Security Incident Handling Guide",
+			"url": "https://csrc.nist.gov/pubs/sp/800/61/r2/final"
+		},
+		{
+			"title": "OWASP - Data Breach Response Guide",
+			"url": "https://owasp.org/www-project-data-security/"
+		},
+		{
+			"title": "Registrato - Banco Central do Brasil (Monitoramento de CPF)",
+			"url": "https://www.bcb.gov.br/cidadaniafinanceira/registrato"
+		},
+		{
+			"title": "ISO/IEC 27701 - Privacy Information Management System",
+			"url": "https://www.iso.org/standard/71670.html"
+		}
+	]
+}
