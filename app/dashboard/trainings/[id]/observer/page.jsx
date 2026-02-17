@@ -1,30 +1,43 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import DashboardLayout from '@/components/Dashboard/Layout';
 import TrainingHeader from '@/components/Trainings/TrainingHeader';
 import TrainingTimerDisplay from '@/components/Trainings/TrainingTimerDisplay';
 import RoundTimerDisplay from '@/components/Trainings/RoundTimerDisplay';
 import ParticipantsList from '@/components/Trainings/ParticipantsList';
-import ScenarioInfo from '@/components/Trainings/ScenarioInfo';
 import TrainingStatusBadge from '@/components/Trainings/TrainingStatusBadge';
 import LoadingSpinner from '@/components/Trainings/LoadingSpinner';
 import ErrorAlert from '@/components/Trainings/ErrorAlert';
-import { FaEye, FaInfoCircle, FaChartBar, FaClipboardList } from 'react-icons/fa';
+import BaseScenarioDisplay from '@/components/Trainings/BaseScenarioDisplay';
+import RoundInfo from '@/components/Trainings/RoundInfo';
+import RoundQuestions from '@/components/Trainings/RoundQuestions';
+import MetricsDisplay from '@/components/Trainings/MetricsDisplay';
+import RoundNavigator from '@/components/Trainings/RoundNavigator';
+import { FaEye, FaInfoCircle } from 'react-icons/fa';
 
 export default function ObserverPage() {
 	const router = useRouter();
 	const params = useParams();
 	const [training, setTraining] = useState(null);
+	const [scenarioData, setScenarioData] = useState(null);
 	const [userRole, setUserRole] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
+	const [viewingRound, setViewingRound] = useState(0);
+
+	// Keep viewingRound in sync when facilitator advances
+	const syncViewingRound = useCallback((currentRound, prevCurrentRound) => {
+		if (currentRound !== prevCurrentRound) {
+			setViewingRound(currentRound);
+		}
+	}, []);
 
 	// Fetch training data
-	const fetchTraining = async () => {
+	const fetchTraining = async (showLoading = false) => {
 		try {
-			setLoading(true);
+			if (showLoading) setLoading(true);
 			setError(null);
 
 			const response = await fetch(`/api/trainings/${params.id}`, {
@@ -39,27 +52,64 @@ export default function ObserverPage() {
 
 			const data = await response.json();
 
-			// Validate that user is actually an observer
 			if (data.userRole !== 'observer') {
 				router.replace(`/dashboard/trainings/${params.id}/${data.userRole}`);
 				return;
 			}
 
+			const prevRound = training?.current_round ?? 0;
 			setTraining(data.training);
 			setUserRole(data.userRole);
+			syncViewingRound(data.training.current_round ?? 0, prevRound);
 		} catch (err) {
 			console.error('Error fetching training:', err);
 			setError(err.message);
 		} finally {
-			setLoading(false);
+			if (showLoading) setLoading(false);
 		}
 	};
 
+	// Fetch scenario data (sanitized by backend)
+	const fetchScenario = async () => {
+		try {
+			const response = await fetch(`/api/trainings/${params.id}/scenario`, {
+				method: 'GET',
+				credentials: 'include'
+			});
+			if (response.ok) {
+				const data = await response.json();
+				if (data.success) {
+					setScenarioData(data.scenario);
+				}
+			}
+		} catch (err) {
+			console.error('Error fetching scenario:', err);
+		}
+	};
+
+	// Initial load
 	useEffect(() => {
-		fetchTraining();
+		fetchTraining(true);
 	}, [params.id]);
 
-	// Show loading state
+	// Fetch scenario after training loads, and refetch when current_round changes
+	useEffect(() => {
+		if (training) {
+			fetchScenario();
+		}
+	}, [training?.current_round, params.id]);
+
+	// Poll for updates every 10 seconds when training is active or paused
+	useEffect(() => {
+		if (!training || training.status === 'not_started' || training.status === 'completed') return;
+
+		const interval = setInterval(() => {
+			fetchTraining();
+		}, 10000);
+
+		return () => clearInterval(interval);
+	}, [training?.status, params.id]);
+
 	if (loading) {
 		return (
 			<DashboardLayout>
@@ -70,159 +120,112 @@ export default function ObserverPage() {
 		);
 	}
 
-	// Show error state
 	if (error) {
 		return (
 			<DashboardLayout>
-				<ErrorAlert message={error} onRetry={fetchTraining} />
+				<ErrorAlert message={error} onRetry={() => fetchTraining(true)} />
 			</DashboardLayout>
 		);
 	}
 
-	// Show content
+	const currentRound = training.current_round ?? 0;
+	const rounds = scenarioData?.rounds || [];
+	const viewingRoundData = rounds[viewingRound] || null;
+	const totalRounds = scenarioData ? rounds.length : 0;
+	const metricsRounds = rounds.slice(0, viewingRound + 1);
+
 	return (
 		<DashboardLayout>
-			<div className="space-y-6">
+			<div className="space-y-5">
 				{/* Header */}
 				<TrainingHeader training={training} userRole={userRole} />
 
-				{/* Observer Notice Banner */}
-			<div className="bg-linear-to-r from-slate-50 to-zinc-50 rounded-2xl border-2 border-slate-200 p-6 lg:p-8">
-					<div className="flex items-start gap-4">
-						<div className="shrink-0 p-3 bg-white rounded-xl shadow-sm border border-slate-200">
-							<FaEye className="text-2xl text-slate-600" />
-						</div>
-						<div className="flex-1">
-							<h3 className="text-lg font-bold text-slate-900 mb-2">
-								Modo Observador
-							</h3>
-							<p className="text-sm text-slate-600 mb-3">
-								Você está visualizando este treinamento como observador. 
-								Você pode acompanhar o progresso, mas não pode participar ativamente do exercício.
-							</p>
-							<div className="flex flex-wrap gap-2">
-								<span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg text-xs font-medium text-slate-700 border border-slate-200">
-									<FaEye className="text-slate-400" />
-									Visualização completa
-								</span>
-								<span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg text-xs font-medium text-slate-700 border border-slate-200">
-									<FaChartBar className="text-slate-400" />
-									Acompanhamento em tempo real
-								</span>
-								<span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg text-xs font-medium text-slate-700 border border-slate-200">
-									<FaClipboardList className="text-slate-400" />
-									Acesso a relatórios
-								</span>
-							</div>
-						</div>
-					</div>
-				</div>
-
-				{/* Status Card */}
-				<div className="bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 p-6 lg:p-8">
-					<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-						<div>
-							<h3 className="text-lg font-semibold text-slate-900 mb-2">
-								Status do Treinamento
-							</h3>
-							<TrainingStatusBadge status={training.status} size="lg" />
-						</div>
-						
+				{/* ── STATUS + TIMERS STRIP ── */}
+				<div className="bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 p-4 lg:p-5">
+					{/* Status row with observer indicator */}
+					<div className="flex flex-wrap items-center gap-3 mb-4">
+						<TrainingStatusBadge status={training.status} size="md" />
+						<span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-medium border border-slate-200">
+							<FaEye className="text-slate-400" />
+							Modo Observador
+						</span>
 						{training.status === 'not_started' && (
-							<div className="text-sm text-slate-600 bg-slate-50 px-4 py-3 rounded-xl border border-slate-100">
-								Aguardando início
-							</div>
+							<span className="text-sm text-slate-500">Aguardando início</span>
 						)}
-						
 						{training.status === 'active' && (
-							<div className="text-sm text-emerald-700 bg-emerald-50 px-4 py-3 rounded-xl border border-emerald-100 font-medium">
-								Em andamento
-							</div>
+							<span className="text-sm text-emerald-600 font-medium">Em andamento</span>
 						)}
-						
 						{training.status === 'paused' && (
-							<div className="text-sm text-amber-700 bg-amber-50 px-4 py-3 rounded-xl border border-amber-100 font-medium">
-								Pausado temporariamente
-							</div>
+							<span className="text-sm text-amber-600 font-medium">Pausado</span>
 						)}
-						
 						{training.status === 'completed' && (
-							<div className="text-sm text-blue-700 bg-blue-50 px-4 py-3 rounded-xl border border-blue-100 font-medium">
-								Concluído
-							</div>
+							<span className="text-sm text-blue-600 font-medium">Concluído</span>
 						)}
+					</div>
+
+					{/* Timers side by side */}
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+						<TrainingTimerDisplay training={training} />
+						<RoundTimerDisplay training={training} userRole={userRole} />
 					</div>
 				</div>
 
-				{/* Two Column Layout */}
-				<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-					{/* Left Column */}
-					<div className="space-y-6">
-						<TrainingTimerDisplay 
-							training={training}
-						/>
-						<RoundTimerDisplay 
-							training={training} 
-							userRole={userRole}
-						/>
-						<ScenarioInfo scenario={training.scenario} />
+				{/* ── ROUND NAVIGATION ── */}
+				{training.status !== 'not_started' && rounds.length > 0 && (
+					<RoundNavigator
+						rounds={rounds}
+						currentRound={currentRound}
+						viewingRound={viewingRound}
+						onRoundSelect={setViewingRound}
+					/>
+				)}
+
+				{/* ── MAIN CONTENT: 2-column on lg ── */}
+				<div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+
+					{/* LEFT: Round + Questions (3/5 width) */}
+					<div className="lg:col-span-3 space-y-5">
+						{/* Round Info */}
+						{viewingRoundData && totalRounds > 0 && (
+							<RoundInfo
+								round={viewingRoundData}
+								roundIndex={viewingRound}
+								totalRounds={totalRounds}
+							/>
+						)}
+
+						{/* Questions (read-only for observer) */}
+						{viewingRoundData?.questions?.length > 0 && (
+							<RoundQuestions
+								questions={viewingRoundData.questions}
+								roundIndex={viewingRound}
+								roundTitle={viewingRoundData.title}
+							/>
+						)}
 					</div>
 
-					{/* Right Column */}
-					<div className="space-y-6">
-						{/* Observation Notes Area */}
-						<div className="bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 p-6 lg:p-8">
-							<div className="flex items-center gap-3 mb-6">
-								<div className="p-2.5 bg-slate-100 rounded-xl">
-									<FaClipboardList className="text-xl text-slate-600" />
-								</div>
-								<div>
-									<h3 className="text-lg font-semibold text-slate-900">
-										Anotações de Observação
-									</h3>
-									<p className="text-xs text-slate-500">
-										Registre suas observações
-									</p>
-								</div>
-							</div>
+					{/* RIGHT: Metrics + Scenario + Guidelines (2/5 width) */}
+					<div className="lg:col-span-2 space-y-5">
+						{/* Metrics & Evidence */}
+						{metricsRounds.length > 0 && (
+							<MetricsDisplay
+								rounds={metricsRounds}
+								currentRound={viewingRound}
+							/>
+						)}
 
-							<div className="space-y-4">
-								{/* Placeholder for future notes/observation features */}
-							<div className="p-6 bg-linear-to-br from-slate-50 to-zinc-50 rounded-xl border-2 border-dashed border-slate-200 text-center">
-									<FaClipboardList className="text-3xl text-slate-400 mx-auto mb-3" />
-									<p className="text-sm text-slate-600 font-medium mb-2">
-										Área de Anotações
-									</p>
-									<p className="text-xs text-slate-500">
-										Esta área será implementada para permitir anotações durante a observação
-									</p>
-								</div>
+						{/* Scenario Context */}
+						{scenarioData && (
+							<BaseScenarioDisplay scenario={scenarioData} />
+						)}
 
-								{/* Quick Info Metrics */}
-								<div className="grid grid-cols-2 gap-3">
-									<div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-										<p className="text-xs text-slate-500 mb-1">Participantes Ativos</p>
-										<p className="text-2xl font-bold text-slate-900">
-											{training.participants_count}
-										</p>
-									</div>
-									<div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-										<p className="text-xs text-slate-500 mb-1">Máximo</p>
-										<p className="text-2xl font-bold text-slate-900">
-											{training.max_participants}
-										</p>
-									</div>
-								</div>
-							</div>
-						</div>
-
-						{/* Observer Guidelines */}
-					<div className="bg-linear-to-br from-slate-50 to-zinc-50 rounded-2xl border border-slate-200 p-6">
-							<h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-								<FaInfoCircle className="text-slate-600" />
+						{/* Observer Guidelines - compact */}
+						<div className="bg-slate-50 rounded-2xl border border-slate-200 p-5">
+							<h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2 text-sm">
+								<FaInfoCircle className="text-slate-500" />
 								Diretrizes para Observadores
 							</h4>
-							<ul className="space-y-2 text-sm text-slate-700">
+							<ul className="space-y-1.5 text-sm text-slate-600">
 								<li className="flex items-start gap-2">
 									<span className="text-slate-400 mt-0.5">•</span>
 									<span>Observe as interações e dinâmicas da equipe</span>
@@ -237,16 +240,16 @@ export default function ObserverPage() {
 								</li>
 								<li className="flex items-start gap-2">
 									<span className="text-slate-400 mt-0.5">•</span>
-									<span>Mantenha notas organizadas para relatório final</span>
+									<span>Use a navegação de rodadas para revisar métricas anteriores</span>
 								</li>
 							</ul>
 						</div>
 					</div>
 				</div>
 
-				{/* Participants Section */}
-				<ParticipantsList 
-					participants={training.participants} 
+				{/* ── PARTICIPANTS ── */}
+				<ParticipantsList
+					participants={training.participants}
 					userRole={userRole}
 				/>
 			</div>

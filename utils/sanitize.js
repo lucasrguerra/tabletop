@@ -39,24 +39,6 @@ export function sanitizeInput(input) {
 }
 
 /**
- * Sanitize an object's string fields to prevent NoSQL injection
- * @param {Object} obj - Object to sanitize
- * @param {Array<string>} fields - Field names to sanitize
- * @returns {Object} Object with sanitized fields
- */
-export function sanitizeObject(obj, fields) {
-	const sanitized = { ...obj };
-	
-	for (const field of fields) {
-		if (sanitized[field] !== undefined && sanitized[field] !== null) {
-			sanitized[field] = sanitizeInput(sanitized[field]);
-		}
-	}
-	
-	return sanitized;
-}
-
-/**
  * Validate and sanitize email input
  * @param {string} email - Email to validate and sanitize
  * @returns {string} Sanitized email

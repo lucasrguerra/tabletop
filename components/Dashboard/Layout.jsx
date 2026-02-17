@@ -20,6 +20,7 @@ import {
 	FaBell,
 	FaArrowRight
 } from 'react-icons/fa';
+import NotificationBell from '@/components/Dashboard/NotificationBell';
 
 export default function DashboardLayout({ children }) {
 	const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -315,13 +316,8 @@ export default function DashboardLayout({ children }) {
 
 							{/* Right Section */}
 							<div className="flex items-center gap-2 sm:gap-3">
-								{/* Notification Bell - Hidden for now but structured for future */}
-								<button 
-									className="relative p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all duration-200 hidden sm:flex"
-									aria-label="Notificações"
-								>
-									<FaBell className="text-base" />
-								</button>
+								{/* Notification Bell */}
+								<NotificationBell />
 
 								{/* User Avatar & Info */}
 								<div className="flex items-center gap-3">

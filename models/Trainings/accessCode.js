@@ -1,12 +1,13 @@
 import Training from '@/database/schemas/Training';
 import connectDatabase from '@/database/database';
+import crypto from 'crypto';
 
 /**
  * Generate an Access Code unique for training sessions.
  * @returns {Promise<string>} Generated access code
  */
 export async function generate() {
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-';
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_';
     const code_length = 8;
 
     let access_code = '';
@@ -14,7 +15,7 @@ export async function generate() {
     while (!is_valid) {
         access_code = '';
         for (let i = 0; i < code_length; i++) {
-            const random_index = Math.floor(Math.random() * characters.length);
+            const random_index = crypto.randomInt(characters.length);
             access_code += characters[random_index];
         }
 

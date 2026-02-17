@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import DashboardLayout from '@/components/Dashboard/Layout';
 import TrainingHeader from '@/components/Trainings/TrainingHeader';
@@ -14,7 +14,11 @@ import InviteParticipantCard from '@/components/Trainings/InviteParticipantCard'
 import LoadingSpinner from '@/components/Trainings/LoadingSpinner';
 import ErrorAlert from '@/components/Trainings/ErrorAlert';
 import RoundControl from '@/components/Trainings/RoundControl';
-import { FaPlay, FaPause, FaCheckCircle, FaUndoAlt } from 'react-icons/fa';
+import RoundInfo from '@/components/Trainings/RoundInfo';
+import MetricsDisplay from '@/components/Trainings/MetricsDisplay';
+import TrainingStatsDashboard from '@/components/Trainings/TrainingStatsDashboard';
+import FacilitatorQuestionsView from '@/components/Trainings/FacilitatorQuestionsView';
+import { FaPlay, FaPause, FaCheckCircle, FaUndoAlt, FaChevronDown, FaChevronUp, FaTrophy } from 'react-icons/fa';
 
 export default function FacilitatorPage() {
 	const router = useRouter();
@@ -25,11 +29,35 @@ export default function FacilitatorPage() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [actionLoading, setActionLoading] = useState(false);
+	const [responses, setResponses] = useState([]);
+	const [responseSummary, setResponseSummary] = useState(null);
+	const [showTools, setShowTools] = useState(false);
 
-	// Fetch training data
-	const fetchTraining = async () => {
+	// Fetch participant responses (for facilitator real-time view)
+	const fetchResponses = useCallback(async () => {
 		try {
-			setLoading(true);
+			const res = await fetch(`/api/trainings/${params.id}/responses`, {
+				method: 'GET',
+				credentials: 'include'
+			});
+			if (res.ok) {
+				const data = await res.json();
+				if (data.success) {
+					setResponses(data.responses || []);
+					setResponseSummary(data.summary || null);
+				}
+			}
+		} catch (err) {
+			console.error('Error fetching responses:', err);
+		}
+	}, [params.id]);
+
+	// Fetch training data (showLoading=true only for initial load)
+	const fetchTraining = async (showLoading = false) => {
+		try {
+			if (showLoading) {
+				setLoading(true);
+			}
 			setError(null);
 
 			const response = await fetch(`/api/trainings/${params.id}`, {
@@ -53,8 +81,8 @@ export default function FacilitatorPage() {
 			setTraining(data.training);
 			setUserRole(data.userRole);
 
-			// Fetch scenario data with rounds
-			if (data.training.scenario) {
+			// Fetch scenario data with rounds (only on initial load)
+			if (showLoading && data.training.scenario) {
 				try {
 					const scenarioResponse = await fetch(
 						`/api/trainings/scenarios?` +
@@ -79,17 +107,43 @@ export default function FacilitatorPage() {
 			console.error('Error fetching training:', err);
 			setError(err.message);
 		} finally {
-			setLoading(false);
+			if (showLoading) {
+				setLoading(false);
+			}
 		}
 	};
 
+	// Initial load
 	useEffect(() => {
-		fetchTraining();
+		fetchTraining(true);
 	}, [params.id]);
+
+	// Poll for updates every 10 seconds when training is active
+	useEffect(() => {
+		if (!training || training.status === 'not_started' || training.status === 'completed') return;
+
+		const interval = setInterval(() => {
+			fetchTraining();
+		}, 10000);
+
+		return () => clearInterval(interval);
+	}, [training?.status, params.id]);
+
+	// Fetch responses on initial load and poll every 5 seconds when active
+	useEffect(() => {
+		if (!training) return;
+
+		// Initial fetch
+		fetchResponses();
+
+		if (training.status === 'not_started') return;
+
+		const interval = setInterval(fetchResponses, 5000);
+		return () => clearInterval(interval);
+	}, [training?.status, training?.current_round, params.id, fetchResponses]);
 
 	// Handle invite sent
 	const handleInviteSent = () => {
-		// Refresh training data to show new pending participant
 		fetchTraining();
 	};
 
@@ -110,7 +164,6 @@ export default function FacilitatorPage() {
 				throw new Error(data.message || 'Erro ao controlar timer');
 			}
 			
-			// Refresh training data after action
 			await fetchTraining();
 		} catch (err) {
 			console.error('Error with timer action:', err);
@@ -137,7 +190,6 @@ export default function FacilitatorPage() {
 				throw new Error(data.message || 'Erro ao mudar status');
 			}
 			
-			// Refresh training data after action
 			await fetchTraining();
 		} catch (err) {
 			console.error('Error changing status:', err);
@@ -167,8 +219,8 @@ export default function FacilitatorPage() {
 				throw new Error(data.message || 'Erro ao mudar rodada');
 			}
 			
-			// Refresh training data after action
 			await fetchTraining();
+			await fetchResponses();
 		} catch (err) {
 			console.error('Error changing round:', err);
 			throw err;
@@ -179,19 +231,8 @@ export default function FacilitatorPage() {
 	const handleManageParticipant = async (participantId, action) => {
 		try {
 			setActionLoading(true);
-			
-			// TODO: Implement participant management API endpoint
-			// const response = await fetch(`/api/trainings/${params.id}/participants/${participantId}`, {
-			//   method: 'PATCH',
-			//   headers: { 'Content-Type': 'application/json' },
-			//   body: JSON.stringify({ action }),
-			//   credentials: 'include'
-			// });
-			
 			console.log('Manage participant:', participantId, action);
 			alert(`Participant action "${action}" will be implemented in the API`);
-			
-			// Refresh training data after action
 			await fetchTraining();
 		} catch (err) {
 			console.error('Error managing participant:', err);
@@ -201,7 +242,6 @@ export default function FacilitatorPage() {
 		}
 	};
 
-	// Show loading state
 	if (loading) {
 		return (
 			<DashboardLayout>
@@ -212,7 +252,6 @@ export default function FacilitatorPage() {
 		);
 	}
 
-	// Show error state
 	if (error) {
 		return (
 			<DashboardLayout>
@@ -221,111 +260,115 @@ export default function FacilitatorPage() {
 		);
 	}
 
-	// Show content
+	const acceptedParticipants = (training.participants || []).filter(
+		p => p.role === 'participant' && p.status === 'accepted'
+	).length;
+
 	return (
 		<DashboardLayout>
-			<div className="space-y-6">
+			<div className="space-y-5">
 				{/* Header */}
 				<TrainingHeader training={training} userRole={userRole} />
 
-				{/* Status Management Card */}
-				<div className="bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 p-6 lg:p-8">
-					<div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-						<div>
-							<h3 className="text-lg font-semibold text-slate-900 mb-2">
-								Status do Treinamento
-							</h3>
+				{/* ── COMMAND BAR: Status + Actions + Timers ── */}
+				<div className="bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 p-4 lg:p-5">
+					{/* Top row: status + action buttons */}
+					<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+						<div className="flex items-center gap-3">
 							<TrainingStatusBadge status={training.status} size="lg" />
+							<span className="text-sm text-slate-500 hidden sm:inline">
+								{training.participants?.length || 0} participantes
+							</span>
 						</div>
 
-						<div className="flex flex-wrap gap-3">
+						<div className="flex flex-wrap gap-2">
 							{training.status === 'not_started' && (
 								<button
 									onClick={() => handleStatusChange('active')}
 									disabled={actionLoading}
-									className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-emerald-500 to-teal-600 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/25 transition-all disabled:opacity-50"
+									className="flex items-center gap-2 px-4 py-2 bg-linear-to-r from-emerald-500 to-teal-600 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/25 transition-all disabled:opacity-50 text-sm"
 								>
-									<FaPlay className="text-sm" />
+									<FaPlay className="text-xs" />
 									Iniciar Treinamento
 								</button>
 							)}
-
 							{training.status === 'active' && (
 								<>
 									<button
 										onClick={() => handleStatusChange('paused')}
 										disabled={actionLoading}
-										className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-amber-500 to-orange-600 text-white font-semibold rounded-xl hover:from-amber-600 hover:to-orange-700 shadow-lg shadow-amber-500/25 transition-all disabled:opacity-50"
+										className="flex items-center gap-2 px-4 py-2 bg-linear-to-r from-amber-500 to-orange-600 text-white font-semibold rounded-xl hover:from-amber-600 hover:to-orange-700 shadow-lg shadow-amber-500/25 transition-all disabled:opacity-50 text-sm"
 									>
-										<FaPause className="text-sm" />
+										<FaPause className="text-xs" />
 										Pausar
 									</button>
 									<button
 										onClick={() => handleStatusChange('completed')}
 										disabled={actionLoading}
-										className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-indigo-700 shadow-lg shadow-blue-500/25 transition-all disabled:opacity-50"
+										className="flex items-center gap-2 px-4 py-2 bg-linear-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-indigo-700 shadow-lg shadow-blue-500/25 transition-all disabled:opacity-50 text-sm"
 									>
-										<FaCheckCircle className="text-sm" />
+										<FaCheckCircle className="text-xs" />
 										Finalizar
 									</button>
 								</>
 							)}
-
 							{training.status === 'paused' && (
 								<>
 									<button
 										onClick={() => handleStatusChange('active')}
 										disabled={actionLoading}
-										className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-emerald-500 to-teal-600 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/25 transition-all disabled:opacity-50"
+										className="flex items-center gap-2 px-4 py-2 bg-linear-to-r from-emerald-500 to-teal-600 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/25 transition-all disabled:opacity-50 text-sm"
 									>
-										<FaPlay className="text-sm" />
+										<FaPlay className="text-xs" />
 										Retomar
 									</button>
 									<button
 										onClick={() => handleStatusChange('completed')}
 										disabled={actionLoading}
-										className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-indigo-700 shadow-lg shadow-blue-500/25 transition-all disabled:opacity-50"
+										className="flex items-center gap-2 px-4 py-2 bg-linear-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-indigo-700 shadow-lg shadow-blue-500/25 transition-all disabled:opacity-50 text-sm"
 									>
-										<FaCheckCircle className="text-sm" />
+										<FaCheckCircle className="text-xs" />
 										Finalizar
 									</button>
 								</>
 							)}
-
 							{training.status === 'completed' && (
 								<button
 									onClick={() => handleStatusChange('not_started')}
 									disabled={actionLoading}
-									className="flex items-center gap-2 px-5 py-2.5 bg-white text-slate-700 font-semibold rounded-xl hover:bg-slate-50 border-2 border-slate-200 hover:border-slate-300 transition-all disabled:opacity-50"
+									className="flex items-center gap-2 px-4 py-2 bg-white text-slate-700 font-semibold rounded-xl hover:bg-slate-50 border-2 border-slate-200 hover:border-slate-300 transition-all disabled:opacity-50 text-sm"
 								>
-									<FaUndoAlt className="text-sm" />
-									Resetar Treinamento
+									<FaUndoAlt className="text-xs" />
+									Resetar
 								</button>
 							)}
+							<button
+								onClick={() => window.open(`/ranking/${params.id}`, '_blank')}
+								className="flex items-center gap-2 px-4 py-2 bg-white text-amber-700 font-semibold rounded-xl hover:bg-amber-50 border-2 border-amber-200 hover:border-amber-300 transition-all text-sm"
+							>
+								<FaTrophy className="text-xs" />
+								Ranking
+							</button>
 						</div>
+					</div>
+
+					{/* Bottom row: timers side by side, compact */}
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+						<TrainingTimerDisplay training={training} />
+						<RoundTimerDisplay
+							training={training}
+							userRole={userRole}
+							onTimerAction={handleTimerAction}
+						/>
 					</div>
 				</div>
 
-				{/* Two Column Layout */}
-				<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-					{/* Left Column */}
-					<div className="space-y-6">
-						<TrainingTimerDisplay 
-							training={training}
-						/>
-						<RoundTimerDisplay 
-							training={training} 
-							userRole={userRole} 
-							onTimerAction={handleTimerAction}
-						/>
-						<AccessCodeCard 
-							accessCode={training.access_code} 
-							accessType={training.access_type}
-						/>
-					</div>
+				{/* ── MAIN WORKSPACE: 2-column on lg ── */}
+				<div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-					{/* Right Column */}
-					<div className="space-y-6">
+					{/* LEFT: Primary workspace (2/3 width) */}
+					<div className="lg:col-span-2 space-y-5">
+						{/* Round Control */}
 						{scenarioData?.rounds && (
 							<RoundControl
 								training={training}
@@ -334,21 +377,82 @@ export default function FacilitatorPage() {
 								disabled={actionLoading || training.status === 'completed'}
 							/>
 						)}
-						<ScenarioInfo scenario={training.scenario} />
-						<InviteParticipantCard 
-							trainingId={params.id}
-							onInviteSent={handleInviteSent}
-						/>
+
+						{/* Round Info */}
+						{scenarioData?.rounds && scenarioData.rounds[training.current_round] && (
+							<RoundInfo
+								round={scenarioData.rounds[training.current_round]}
+								roundIndex={training.current_round}
+								totalRounds={scenarioData.rounds.length}
+							/>
+						)}
+
+						{/* Metrics Display */}
+						{scenarioData?.rounds && (
+							<MetricsDisplay
+								rounds={scenarioData.rounds.slice(0, training.current_round + 1)}
+								currentRound={training.current_round}
+							/>
+						)}
+
+						{/* Questions & Responses (facilitator's main monitoring area) */}
+						{scenarioData?.rounds && (
+							<FacilitatorQuestionsView
+								rounds={scenarioData.rounds}
+								currentRound={training.current_round}
+								responses={responses}
+								totalParticipants={acceptedParticipants}
+								summary={responseSummary}
+							/>
+						)}
+					</div>
+
+					{/* RIGHT: Sidebar tools (1/3 width) */}
+					<div className="space-y-5">
+						{/* Participant Management Tools - collapsible on mobile */}
+						<div className="lg:hidden">
+							<button
+								onClick={() => setShowTools(prev => !prev)}
+								className="w-full flex items-center justify-between px-4 py-3 bg-white rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+							>
+								Ferramentas de Gerenciamento
+								{showTools ? <FaChevronUp className="text-xs text-slate-400" /> : <FaChevronDown className="text-xs text-slate-400" />}
+							</button>
+						</div>
+
+						<div className={`space-y-5 ${showTools ? 'block' : 'hidden'} lg:block`}>
+							<AccessCodeCard
+								accessCode={training.access_code}
+								accessType={training.access_type}
+							/>
+
+							<InviteParticipantCard
+								trainingId={params.id}
+								onInviteSent={handleInviteSent}
+							/>
+
+							<ParticipantsList
+								participants={training.participants}
+								userRole={userRole}
+								showManagement={true}
+								onManageParticipant={handleManageParticipant}
+							/>
+
+							<ScenarioInfo scenario={training.scenario} />
+						</div>
 					</div>
 				</div>
 
-				{/* Participants Section */}
-				<ParticipantsList 
-					participants={training.participants} 
-					userRole={userRole}
-					showManagement={true}
-					onManageParticipant={handleManageParticipant}
-				/>
+				{/* ── FULL-WIDTH: Statistics Dashboard ── */}
+				{scenarioData?.rounds && (
+					<TrainingStatsDashboard
+						training={training}
+						responses={responses}
+						summary={responseSummary}
+						scenarioData={scenarioData}
+						totalParticipants={acceptedParticipants}
+					/>
+				)}
 			</div>
 		</DashboardLayout>
 	);

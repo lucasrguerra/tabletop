@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/utils/auth';
+import { withCsrf } from '@/utils/csrf';
 import getAvailableTrainings from '@/models/Trainings/getAvailableTrainings';
 import joinTraining from '@/models/Trainings/joinTraining';
 
@@ -54,7 +55,7 @@ export const GET = withAuth(async (request, context, session) => {
  * Joins a training (open or with access code)
  * Requires authentication
  */
-export const POST = withAuth(async (request, context, session) => {
+export const POST = withAuth(withCsrf(async (request, context, session) => {
 	try {
 		const user_id = session.user.id;
 		const body = await request.json();
@@ -102,4 +103,4 @@ export const POST = withAuth(async (request, context, session) => {
 			{ status: 500 }
 		);
 	}
-});
+}));

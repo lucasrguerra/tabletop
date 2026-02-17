@@ -1,6 +1,8 @@
 import Training from '@/database/schemas/Training';
+import User from '@/database/schemas/User';
 import connectDatabase from '@/database/database';
 import mongoose from 'mongoose';
+import createNotification from '@/models/Notifications/create';
 
 /**
  * Responds to a training invitation (accept or decline)
@@ -87,6 +89,27 @@ export default async function respondToInvite(training_id, user_id, action) {
 
 			await training.save();
 
+			// Notify facilitators that the user accepted
+			const responding_user = await User.findById(user_id).select('name nickname');
+			const facilitators = training.participants.filter(
+				p => p.role === 'facilitator' && p.status === 'accepted' && p.user_id.toString() !== user_id
+			);
+			for (const facilitator of facilitators) {
+				await createNotification({
+					user_id: facilitator.user_id.toString(),
+					type: 'invite_accepted',
+					title: 'Convite aceito',
+					message: `${responding_user?.name || 'Um usuário'} aceitou o convite para o treinamento "${training.name}".`,
+					training_id: training._id,
+					metadata: {
+						responding_user_id: user_id,
+						responding_user_name: responding_user?.name,
+						responding_user_nickname: responding_user?.nickname,
+						role: participant.role,
+					},
+				});
+			}
+
 			return {
 				success: true,
 				message: 'Convite aceito com sucesso',
@@ -101,6 +124,26 @@ export default async function respondToInvite(training_id, user_id, action) {
 			participant.status = 'declined';
 
 			await training.save();
+
+			// Notify facilitators that the user declined
+			const responding_user = await User.findById(user_id).select('name nickname');
+			const facilitators = training.participants.filter(
+				p => p.role === 'facilitator' && p.status === 'accepted' && p.user_id.toString() !== user_id
+			);
+			for (const facilitator of facilitators) {
+				await createNotification({
+					user_id: facilitator.user_id.toString(),
+					type: 'invite_declined',
+					title: 'Convite recusado',
+					message: `${responding_user?.name || 'Um usuário'} recusou o convite para o treinamento "${training.name}".`,
+					training_id: training._id,
+					metadata: {
+						responding_user_id: user_id,
+						responding_user_name: responding_user?.name,
+						responding_user_nickname: responding_user?.nickname,
+					},
+				});
+			}
 
 			return {
 				success: true,

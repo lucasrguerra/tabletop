@@ -13,9 +13,9 @@ export default async function validateToken(token) {
 		const tokenDoc = await Token.findOne({
 			token_hash: token_hash,
 			expires_at: { $gt: new Date() }
-		}).populate('userId', 'name email nickname');
+		}).populate('user_id', 'name email nickname');
 
-		if (!token_doc) {
+		if (!tokenDoc) {
 			return {
 				valid: false,
 				message: 'Token inválido ou expirado'
@@ -24,8 +24,8 @@ export default async function validateToken(token) {
 
 		return {
 			valid: true,
-			token: token_doc,
-			user: token_doc.user_id
+			token: tokenDoc,
+			user: tokenDoc.user_id
 		};
 	} catch (error) {
 		console.error('Error validating token:', error);
