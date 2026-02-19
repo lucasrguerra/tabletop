@@ -1,7 +1,7 @@
 /**
  * Regex for validating nicknames: 3-30 characters, alphanumeric and underscores only
  */
-export const nickname_regex = /^[a-zA-Z0-9_]{3,30}$/;
+export const nickname_regex = /^[a-zA-Z0-9_.]{3,30}$/;
 
 /**
  * Improved regex for validating emails (RFC 5322 compliant)

@@ -37,7 +37,7 @@ export default async function register(name, email, nickname, password) {
 		if (!nickname_regex.test(nickname)) {
 			return { 
 				success: false, 
-				message: 'O nickname deve conter apenas letras, números e underscores e ter entre 3 e 30 caracteres' 
+				message: 'O nickname deve conter apenas letras, números, pontos e underscores e ter entre 3 e 30 caracteres' 
 			};
 		}
 
