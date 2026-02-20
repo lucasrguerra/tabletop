@@ -50,7 +50,12 @@ async function registerHandler(request) {
 				);
 			}
 		} catch (sanitize_error) {
-			if (sanitize_error.message.includes('must be') || sanitize_error.message.includes('Invalid')) {
+			if (sanitize_error.message.includes('deve ser') || 
+			    sanitize_error.message.includes('deve conter') || 
+			    sanitize_error.message.includes('deve ter') ||
+			    sanitize_error.message.includes('inválido') ||
+			    sanitize_error.message.includes('muito longo') ||
+			    sanitize_error.message.includes('contém')) {
 				return NextResponse.json(
 					{
 						success: false,
