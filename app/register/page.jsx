@@ -237,7 +237,7 @@ export default function RegisterPage() {
 									/>
 								</div>
 								<p className="mt-2 text-xs text-slate-500">
-									Apenas letras, numeros e underscore
+									Apenas letras, numeros, pontos e underscore
 								</p>
 							</div>
 

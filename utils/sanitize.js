@@ -21,7 +21,7 @@ export function sanitizeInput(input) {
 
 	// If input is an object or array, reject it (common NoSQL injection pattern)
 	if (typeof input === 'object') {
-		throw new Error('Invalid input format');
+		throw new Error('Formato de entrada inválido');
 	}
 
 	// Convert to string and check for MongoDB operators
@@ -31,7 +31,7 @@ export function sanitizeInput(input) {
 	const mongo_operators = ['$', '{', '}', '[', ']'];
 	for (const op of mongo_operators) {
 		if (str.includes(op)) {
-			throw new Error('Invalid input format');
+			throw new Error('Formato de entrada inválido');
 		}
 	}
 
@@ -48,7 +48,7 @@ export function sanitizeEmail(email) {
 	const sanitized = sanitizeInput(email);
 	
 	if (typeof sanitized !== 'string') {
-		throw new Error('Email must be a string');
+		throw new Error('Email deve ser uma string');
 	}
 	
 	// Additional email-specific sanitization
@@ -56,7 +56,7 @@ export function sanitizeEmail(email) {
 	
 	// Max length check
 	if (trimmed.length > 254) {
-		throw new Error('Email too long');
+		throw new Error('Email muito longo');
 	}
 	
 	return trimmed;
@@ -72,19 +72,19 @@ export function sanitizeNickname(nickname) {
 	const sanitized = sanitizeInput(nickname);
 	
 	if (typeof sanitized !== 'string') {
-		throw new Error('Nickname must be a string');
+		throw new Error('Nickname deve ser uma string');
 	}
 	
 	const trimmed = sanitized.trim().toLowerCase();
 	
 	// Length check
 	if (trimmed.length < 3 || trimmed.length > 30) {
-		throw new Error('Nickname must be between 3 and 30 characters');
+		throw new Error('O nickname deve ter entre 3 e 30 caracteres');
 	}
 	
-	// Only allow alphanumeric and underscores
-	if (!/^[a-z0-9_]+$/.test(trimmed)) {
-		throw new Error('Nickname can only contain letters, numbers, and underscores');
+	// Only allow alphanumeric, underscores, and dots
+	if (!/^[a-z0-9_.]+$/.test(trimmed)) {
+		throw new Error('O nickname deve conter apenas letras, números, pontos e underscores');
 	}
 	
 	return trimmed;
@@ -100,21 +100,21 @@ export function sanitizeName(name) {
 	const sanitized = sanitizeInput(name);
 	
 	if (typeof sanitized !== 'string') {
-		throw new Error('Name must be a string');
+		throw new Error('Nome deve ser uma string');
 	}
 	
 	const trimmed = sanitized.trim();
 	
 	// Length check
 	if (trimmed.length < 3 || trimmed.length > 100) {
-		throw new Error('Name must be between 3 and 100 characters');
+		throw new Error('O nome deve ter entre 3 e 100 caracteres');
 	}
 	
 	// Remove any HTML tags or special characters that could be dangerous
 	const cleaned = trimmed.replace(/<[^>]*>/g, '');
 	
 	if (cleaned !== trimmed) {
-		throw new Error('Name contains invalid characters');
+		throw new Error('O nome contém caracteres inválidos');
 	}
 	
 	return cleaned;

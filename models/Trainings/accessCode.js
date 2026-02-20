@@ -87,7 +87,32 @@ export async function validate(code) {
     return true;
 }
 
+/**
+ * Validate only the format of an access code (no uniqueness check).
+ * Use this when verifying a code provided by a user trying to join.
+ *
+ * @param {string} code - Access code to validate
+ * @returns {boolean} True if the format is valid
+ */
+export function validateFormat(code) {
+    if (typeof code !== 'string') {
+        return false;
+    }
+
+    if (code.length < 4 || code.length > 20) {
+        return false;
+    }
+
+    const code_pattern = /^[A-Za-z0-9_-]+$/;
+    if (!code_pattern.test(code)) {
+        return false;
+    }
+
+    return true;
+}
+
 export default {
     generate,
-    validate
+    validate,
+    validateFormat
 }
