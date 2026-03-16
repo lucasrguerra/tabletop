@@ -20,7 +20,7 @@ app.prepare().then(() => {
 		path: '/api/socketio',
 		addTrailingSlash: false,
 		cors: {
-			origin: dev ? '*' : false,
+			origin: process.env.NEXTAUTH_URL || (dev ? '*' : false),
 			methods: ['GET', 'POST'],
 		},
 		transports: ['websocket', 'polling'],
