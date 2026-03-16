@@ -4,6 +4,7 @@ npm-debug.log*
 
 # Next.js build output
 .next
+.next.tar.gz
 out
 
 # Git
