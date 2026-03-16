@@ -7,8 +7,21 @@ import Login from '@/models/User/login';
 /**
  * NextAuth configuration - must be exported to use with getServerSession
  */
+const useSecureCookies = process.env.NEXTAUTH_URL?.startsWith('https://') ?? (process.env.NODE_ENV === 'production');
+
 export const authOptions = {
 	trustHost: true,
+	cookies: {
+		sessionToken: {
+			name: useSecureCookies ? '__Secure-next-auth.session-token' : 'next-auth.session-token',
+			options: {
+				httpOnly: true,
+				sameSite: 'lax',
+				path: '/',
+				secure: useSecureCookies,
+			},
+		},
+	},
 	providers: [
 		CredentialsProvider({
 			name: 'Credentials',
