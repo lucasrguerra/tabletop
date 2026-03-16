@@ -22,7 +22,7 @@ services:
       - PORT=3000
       - MONGODB_URI=mongodb://${SERVICE_USER_MONGODB:-tabletop}:${SERVICE_PASSWORD_MONGODB:-tabletop_pass}@mongodb:27017/tabletop?authSource=admin
       - NEXTAUTH_SECRET=${SERVICE_PASSWORD_64_NEXTAUTH:-default_nextauth_secret_change_me}
-      - NEXTAUTH_URL=${SERVICE_FQDN_APP:-http://localhost:3000}
+      - NEXTAUTH_URL=${http://localhost:3000}
       - CSRF_SECRET=${SERVICE_PASSWORD_64_CSRF:-default_csrf_secret_change_me}
     depends_on:
       mongodb:
