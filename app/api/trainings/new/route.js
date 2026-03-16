@@ -15,6 +15,17 @@ export const POST = withAuth(withCsrf(async (request, context, session) => {
         // Extract user ID from authenticated session
         const user_id = session.user.id;
         
+        // Ensure user is a facilitator
+        if (!session.user.facilitator) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: 'Apenas facilitadores podem criar sessões'
+                },
+                { status: 403 }
+            );
+        }
+        
         // Validate required fields
         if (!body.name || !body.description || !body.scenario.category || !body.scenario.type || !body.scenario.id) {
             return NextResponse.json(

@@ -16,9 +16,18 @@ export function useAuth() {
 	 */
 	const logout = async () => {
 		try {
+			// Fetch CSRF token for the logout request
+			const csrfResponse = await fetch('/api/csrf');
+			const csrfData = await csrfResponse.json();
+			const csrfToken = csrfData.success ? csrfData.csrf_token : '';
+
 			// Call API to revoke token in database
 			const response = await fetch('/api/auth/logout', {
 				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-CSRF-Token': csrfToken
+				}
 			});
 
 			const data = await response.json();

@@ -1,16 +1,22 @@
 import mongoose from 'mongoose';
 
-let errors = [];
-if (!process.env.DATABASE_USER) { errors.push('DATABASE_USER'); }
-if (!process.env.DATABASE_PASSWORD) { errors.push('DATABASE_PASSWORD'); }
-if (!process.env.DATABASE_URI) { errors.push('DATABASE_URI'); }
-if (!process.env.DATABASE_NAME) { errors.push('DATABASE_NAME'); }
+let URI;
 
-if (errors.length > 0) {
-    throw new Error(`The following environment variables are missing to connect to the MongoDB database: ${errors.join(', ')}`);
+if (process.env.MONGODB_URI) {
+    URI = process.env.MONGODB_URI;
+} else {
+    let errors = [];
+    if (!process.env.DATABASE_USER) { errors.push('DATABASE_USER'); }
+    if (!process.env.DATABASE_PASSWORD) { errors.push('DATABASE_PASSWORD'); }
+    if (!process.env.DATABASE_URI) { errors.push('DATABASE_URI'); }
+    if (!process.env.DATABASE_NAME) { errors.push('DATABASE_NAME'); }
+
+    if (errors.length > 0) {
+        throw new Error(`The following environment variables are missing to connect to the MongoDB database: ${errors.join(', ')}`);
+    }
+
+    URI = `mongodb+srv://${process.env.DATABASE_USER}:${process.env.DATABASE_PASSWORD}@${process.env.DATABASE_URI}/${process.env.DATABASE_NAME}?retryWrites=true&w=majority`;
 }
-
-const URI = `mongodb+srv://${process.env.DATABASE_USER}:${process.env.DATABASE_PASSWORD}@${process.env.DATABASE_URI}/${process.env.DATABASE_NAME}?retryWrites=true&w=majority`;
 mongoose.set('strictQuery', false);
 let is_connected = false;
 

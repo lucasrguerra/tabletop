@@ -1,16 +1,22 @@
+# ── Production image ──
 FROM node:22-slim
+WORKDIR /app
 
-WORKDIR /usr/src/app
-COPY package*.json ./
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
 
-RUN apt-get update && apt-get install -y curl jq unzip
-RUN npm ci
 COPY public ./public
+COPY scenarios ./scenarios
+COPY server.mjs ./
+COPY next.config.mjs ./
+COPY scripts ./scripts
 
-COPY .next.zip ./
-RUN mkdir -p ./next && \
-    if [ -f .next.zip ]; then unzip .next.zip -d .; else echo ".next.zip not found, skipping unzip"; fi
+# Unpack pre-built Next.js output
+COPY .next.tar.gz ./
+RUN tar -xzf .next.tar.gz && rm .next.tar.gz
 
-EXPOSE $PORT
+ENV NODE_ENV=production
+ENV PORT=3000
+EXPOSE 3000
 
-CMD ["npm", "start"]
+CMD ["node", "server.mjs"]

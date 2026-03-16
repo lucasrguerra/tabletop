@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { withAuth } from '@/utils/auth';
 import { withCsrf } from '@/utils/csrf';
 import { withTrainingRole } from '@/utils/trainingAuth';
+import { emitTrainingUpdate } from '@/utils/socket';
 import Training from '@/database/schemas/Training';
 import connectDatabase from '@/database/database';
 
@@ -84,6 +85,9 @@ export const PATCH = withAuth(withCsrf(withTrainingRole(async (request, context,
 			{ $set: updates },
 			{ new: true, runValidators: true }
 		);
+
+		// Emit real-time update to all clients in this training room
+		emitTrainingUpdate(training.id, { type: 'timer', action });
 
 		return NextResponse.json({
 			success: true,
