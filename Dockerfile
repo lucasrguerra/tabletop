@@ -1,34 +1,19 @@
-FROM node:22-slim AS builder
-WORKDIR /app
-
-COPY package.json package-lock.json ./
-RUN npm ci
-
-COPY public ./public
-COPY scenarios ./scenarios
-COPY server.mjs ./
-COPY next.config.mjs ./
-COPY scripts ./scripts
-COPY app ./app
-COPY components ./components
-COPY database ./database
-COPY models ./models
-COPY utils ./utils
-
-RUN npm run build
-
+# ── Production image ──
 FROM node:22-slim
 WORKDIR /app
 
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/scenarios ./scenarios
-COPY --from=builder /app/server.mjs ./
-COPY --from=builder /app/next.config.mjs ./
-COPY --from=builder /app/scripts ./scripts
-COPY --from=builder /app/.next ./.next
+COPY public ./public
+COPY scenarios ./scenarios
+COPY server.mjs ./
+COPY next.config.mjs ./
+COPY scripts ./scripts
+
+# Unpack pre-built Next.js output
+COPY .next.tar.gz ./
+RUN tar -xzf .next.tar.gz && rm .next.tar.gz
 
 ENV NODE_ENV=production
 ENV PORT=3000
