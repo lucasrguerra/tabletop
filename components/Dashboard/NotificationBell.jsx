@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import useUserSocket from '@/utils/useUserSocket';
 import { FaBell, FaCheck, FaCheckDouble, FaEnvelope, FaEnvelopeOpen, FaUserPlus, FaUserCheck, FaUserTimes } from 'react-icons/fa';
 
 const NOTIFICATION_ICONS = {
@@ -40,6 +42,10 @@ export default function NotificationBell() {
 	const dropdownRef = useRef(null);
 	const bellRef = useRef(null);
 	const router = useRouter();
+	const { data: session } = useSession();
+
+	// Socket.io connection for real-time notifications
+	const { socket } = useUserSocket(session?.user?.id || null);
 
 	// Fetch CSRF token
 	useEffect(() => {
@@ -73,12 +79,25 @@ export default function NotificationBell() {
 		}
 	}, [filter]);
 
-	// Fetch notifications on mount and periodically
+	// Fetch notifications on mount
 	useEffect(() => {
 		fetchNotifications();
-		const interval = setInterval(fetchNotifications, 30000);
-		return () => clearInterval(interval);
 	}, [fetchNotifications]);
+
+	// Socket.io: listen for real-time notification events (replaces polling)
+	useEffect(() => {
+		if (!socket) return;
+
+		const onNewNotification = () => {
+			fetchNotifications();
+		};
+
+		socket.on('notification:new', onNewNotification);
+
+		return () => {
+			socket.off('notification:new', onNewNotification);
+		};
+	}, [socket, fetchNotifications]);
 
 	// Close dropdown on outside click
 	useEffect(() => {

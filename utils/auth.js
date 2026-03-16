@@ -41,6 +41,7 @@ export const authOptions = {
 							name: result.user.name,
 							email: result.user.email,
 							nickname: result.user.nickname,
+							facilitator: result.user.facilitator,
 							token: result.token
 						};
 					}
@@ -67,6 +68,7 @@ export const authOptions = {
 				token.name = user.name;
 				token.email = user.email;
 				token.nickname = user.nickname;
+				token.facilitator = user.facilitator;
 				token.customToken = user.token; // Store our custom JWT token
 			}
 			return token;
@@ -82,6 +84,7 @@ export const authOptions = {
 				session.user.name = token.name;
 				session.user.email = token.email;
 				session.user.nickname = token.nickname;
+				session.user.facilitator = token.facilitator;
 				session.customToken = token.customToken; // Include custom token in session
 			}
 			return session;

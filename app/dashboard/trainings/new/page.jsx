@@ -53,6 +53,15 @@ export default function NewTrainingPage() {
 	const [validating_code, setValidatingCode] = useState(false);
 	const [code_is_valid, setCodeIsValid] = useState(null); // null = not validated, true/false = validation result
 
+	const { data: session, status } = require('next-auth/react').useSession();
+
+	// Redirect if not a facilitator
+	useEffect(() => {
+		if (status === 'authenticated' && !session?.user?.facilitator) {
+			router.push('/dashboard');
+		}
+	}, [status, session, router]);
+
 	// Load CSRF token and categories on mount
 	useEffect(() => {
 		const fetchCsrfToken = async () => {

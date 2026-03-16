@@ -610,19 +610,21 @@ export default function DashboardPage() {
 						Ações Rápidas
 					</h2>
 					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-						<Link
-							href="/dashboard/trainings/new"
-							className="group relative p-5 bg-white border-2 border-slate-200 rounded-xl hover:bg-blue-50 hover:border-blue-300 transition-all duration-300 text-left overflow-hidden"
-						>
-							<div className="inline-flex p-3 bg-linear-to-br from-blue-500 to-indigo-600 rounded-xl mb-4 shadow-lg">
-								<FaPlus className="text-lg text-white" />
-							</div>
-							<div className="font-semibold text-slate-900 mb-1 flex items-center gap-2">
-								Novo Treinamento
-								<FaArrowRight className="text-sm text-slate-400 group-hover:translate-x-1 group-hover:text-slate-600 transition-all" />
-							</div>
-							<p className="text-sm text-slate-500">Criar um novo cenário de treinamento</p>
-						</Link>
+						{session?.user?.facilitator && (
+							<Link
+								href="/dashboard/trainings/new"
+								className="group relative p-5 bg-white border-2 border-slate-200 rounded-xl hover:bg-blue-50 hover:border-blue-300 transition-all duration-300 text-left overflow-hidden"
+							>
+								<div className="inline-flex p-3 bg-linear-to-br from-blue-500 to-indigo-600 rounded-xl mb-4 shadow-lg">
+									<FaPlus className="text-lg text-white" />
+								</div>
+								<div className="font-semibold text-slate-900 mb-1 flex items-center gap-2">
+									Novo Treinamento
+									<FaArrowRight className="text-sm text-slate-400 group-hover:translate-x-1 group-hover:text-slate-600 transition-all" />
+								</div>
+								<p className="text-sm text-slate-500">Criar um novo cenário de treinamento</p>
+							</Link>
+						)}
 						<Link
 							href="/dashboard/trainings/access"
 							className="group relative p-5 bg-white border-2 border-slate-200 rounded-xl hover:bg-emerald-50 hover:border-emerald-300 transition-all duration-300 text-left overflow-hidden"

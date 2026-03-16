@@ -308,13 +308,15 @@ function EmptyState({ hasFilters, onClearFilters }) {
 						Acessar Treinamento
 					</Link>
 				)}
-				<Link
-					href="/dashboard/trainings/new"
-					className="px-5 py-2.5 bg-linear-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/25 transition-all flex items-center gap-2 font-medium"
-				>
-					<FaPlus className="text-sm" />
-					Criar Treinamento
-				</Link>
+				{session?.user?.facilitator && (
+					<Link
+						href="/dashboard/trainings/new"
+						className="px-5 py-2.5 bg-linear-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/25 transition-all flex items-center gap-2 font-medium"
+					>
+						<FaPlus className="text-sm" />
+						Criar Treinamento
+					</Link>
+				)}
 			</div>
 		</div>
 	);
@@ -501,13 +503,15 @@ export default function TrainingsPage() {
 							<FaArrowRight className="text-sm" />
 							<span>Acessar Treinamento</span>
 						</Link>
-						<Link
-							href="/dashboard/trainings/new"
-							className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-linear-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg shadow-blue-500/25 font-semibold"
-						>
-							<FaPlus className="text-sm" />
-							<span>Novo Treinamento</span>
-						</Link>
+						{session?.user?.facilitator && (
+							<Link
+								href="/dashboard/trainings/new"
+								className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-linear-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg shadow-blue-500/25 font-semibold"
+							>
+								<FaPlus className="text-sm" />
+								<span>Novo Treinamento</span>
+							</Link>
+						)}
 					</div>
 				</div>
 

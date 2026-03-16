@@ -27,6 +27,7 @@ export default async function getOne(identifier, with_password = false) {
             name: user.name,
             email: user.email,
             nickname: user.nickname,
+            facilitator: user.facilitator,
             password_hash: with_password ? user.password_hash : undefined,
         }
 

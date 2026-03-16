@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { withAuth } from '@/utils/auth';
 import { withCsrf } from '@/utils/csrf';
 import { withTrainingRole } from '@/utils/trainingAuth';
+import { emitResponseUpdate } from '@/utils/socket';
 import { submitAnswer } from '@/models/Trainings/submitAnswer';
 import { getResponses } from '@/models/Trainings/getResponses';
 
@@ -53,6 +54,9 @@ export const POST = withAuth(withCsrf(withTrainingRole(async (request, context, 
 				{ status: result.statusCode || 400 }
 			);
 		}
+
+		// Emit real-time update to all clients in this training room
+		emitResponseUpdate(training.id, { type: 'response' });
 
 		return NextResponse.json({
 			success: true,

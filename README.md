@@ -40,8 +40,8 @@ O **Tabletop** é uma plataforma web desenvolvida para facilitar a condução de
 - **3 Papéis Distintos**: Facilitador (controle total), Participante (responde questões) e Observador (acompanhamento read-only)
 - **Timer Sincronizado**: Cronômetro de treinamento (automático) + cronômetro de rodada (manual) controlados pelo facilitador
 - **Métricas Técnicas**: Apresentação de dados realistas (logs, gráficos, análises de rede, status de servidores) via Recharts
-- **Ranking Público em Tempo Real**: Leaderboard projetável com atualização a cada 3 segundos
-- **Sistema de Notificações**: Convites, aceites e recusas com polling a cada 30 segundos
+- **Ranking Público em Tempo Real**: Leaderboard projetável com atualização sincronizada via WebSockets
+- **Sistema de Notificações**: Convites, aceites e recusas em tempo real via WebSockets
 - **Exportação PDF**: Relatório completo do treinamento exportável pelo facilitador
 - **Avaliação Pós-Treinamento**: Formulário de feedback com ratings de 1-5 estrelas e estatísticas agregadas
 
@@ -59,7 +59,7 @@ Exercícios tabletop são simulações baseadas em discussão onde equipes traba
 - ✅ Navegar entre rodadas (próxima / anterior / ir para rodada específica)
 - ✅ Convidar participantes por nickname com papel definido (participante/observador/facilitador)
 - ✅ Configurar acesso aberto ou protegido com código de acesso
-- ✅ Acompanhar respostas dos participantes em tempo real (polling de 5s)
+- ✅ Acompanhar respostas dos participantes em tempo real via WebSockets
 - ✅ Visualizar métricas técnicas e questões de cada rodada com respostas dos participantes
 - ✅ Monitorar painel de estatísticas com distribuição de acertos, pontuação e comparativos
 - ✅ Exportar relatório completo em PDF
@@ -104,7 +104,7 @@ Distribuição recomendada por cenário: 60-70% múltipla escolha, 10-15% verdad
 | `/` | Landing page com apresentação da plataforma, seções de features, como funciona, benefícios e CTA dinâmico (detecta sessão ativa) |
 | `/login` | Formulário de login com email ou nickname + senha (proteção CSRF) |
 | `/register` | Formulário de registro com validação client-side (senha: 8+ chars, maiúscula, minúscula, número, especial; nickname: alfanumérico + underscore) |
-| `/ranking/:id` | Leaderboard público em tempo real (sem autenticação), projetável em tela durante o exercício, polling de 3s |
+| `/ranking/:id` | Leaderboard público em tempo real (sem autenticação), projetável em tela durante o exercício, atualizado via WebSockets |
 
 ### Dashboard
 | Rota | Descrição |
@@ -152,7 +152,7 @@ Distribuição recomendada por cenário: 60-70% múltipla escolha, 10-15% verdad
 │  │  Page   │  │  Register    │  │  (Facilitador/Partic./  │  │
 │  │   (/)   │  │              │  │    Observador)          │  │
 │  └─────────┘  └──────────────┘  └─────────────────────────┘  │
-│                         │ Polling (3-10s)                    │
+│                         │ WebSockets (Socket.IO)             │
 ├─────────────────────────┼────────────────────────────────────┤
 │                   MIDDLEWARE (proxy.js)                      │
 │  Security Headers │ CSP │ HSTS │ Route Protection │ JWT Check│
@@ -189,7 +189,7 @@ Distribuição recomendada por cenário: 60-70% múltipla escolha, 10-15% verdad
 ### Padrões Chave
 - **Autenticação**: NextAuth.js com `CredentialsProvider` → JWT strategy → tokens armazenados como hashes SHA-256 no banco → sessões de 30 dias
 - **Autorização**: Middleware composável via HOFs: `withAuth` → `withCsrf` → `withTrainingRole(['facilitator'])`
-- **Polling**: Dados de treinamento (10s), respostas (5s para facilitador), ranking público (3s), notificações (30s)
+- **WebSockets (Socket.IO)**: Comunicação em tempo real para sincronizar o status do treinamento, timers, respostas dos participantes, ranking público e notificações.
 - **Path alias**: `@/*` mapeia para a raiz do projeto via jsconfig.json
 
 ## 📁 Estrutura do Projeto
@@ -241,7 +241,7 @@ tabletop/
 ├── components/                       # 28 Componentes React
 │   ├── Dashboard/                    # Layout e notificações do dashboard
 │   │   ├── Layout.jsx                # Sidebar colapsável + header + nav
-│   │   └── NotificationBell.jsx      # Dropdown de notificações (polling 30s)
+│   │   └── NotificationBell.jsx      # Dropdown de notificações (WebSockets)
 │   ├── Trainings/                    # Componentes de treinamentos
 │   │   ├── AccessCodeCard.jsx        # Card de código de acesso
 │   │   ├── BaseScenarioDisplay.jsx   # Exibição do cenário base
@@ -844,7 +844,7 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 
 **Lucas Rayan Guerra**
 
-- Email: lucas@cienciaembarcada.com.br
+- Email: [contato@lucasrguerra.dev.br](mailto:contato@lucasrguerra.dev.br)
 
 ---
 
@@ -854,15 +854,18 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 
 | Comando | Descrição |
 |---------|-----------|
-| `npm run dev` | Inicia servidor de desenvolvimento com hot reload |
-| `npm run build` | Build de produção otimizado |
-| `npm run start` | Inicia servidor de produção |
-| `npm run lint` | Executa linting do código |
+| `npm run dev` | Inicia servidor de desenvolvimento via `server.mjs` com Socket.IO |
+| `npm run build` | Build de produção otimizado com rotas do Next.js |
+| `npm run build:release` | Build de produção e cria pacote comprimido em `.next.tar.gz` |
+| `npm run start` | Inicia servidor de produção via `server.mjs` (com `NODE_ENV=production`) |
+| `npm run lint` | Executa linting do código pelo Next.js |
+| `npm run clean` | Remove as pastas `.next` e arquivos de build `.tar.gz` usando `rimraf` |
+| `node scripts/add-facilitator.mjs <nickname>` | Concede papel de facilitador a um usuário cadastrado |
+| `node scripts/remove-facilitator.mjs <nickname>` | Remove o papel de facilitador de um usuário cadastrado |
 
 ### Limitações Conhecidas
 
-- **Rate Limiter**: Implementação in-memory — não é cluster-safe. Para múltiplas instâncias, considerar Redis
-- **Polling**: Atualizações via polling HTTP — sem WebSockets/SSE
+- **Redundância/Clusterização**: Atualmente a implementação do Next.js rate limiting em memória e as instâncias de WebSocket (Socket.IO) operam como Single Node stateful. Para múltiplos nós/clusters é necessário alocar persistência compartilhada (ex: adaptador Redis).
 - **Cenário SEC_SYS_WEB_DEFACEMENT**: Tipo cadastrado mas sem cenário JSON implementado
 
 ---

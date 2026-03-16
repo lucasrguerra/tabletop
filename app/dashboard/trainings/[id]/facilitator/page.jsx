@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import useSocket from '@/utils/useSocket';
 import DashboardLayout from '@/components/Dashboard/Layout';
 import TrainingHeader from '@/components/Trainings/TrainingHeader';
 import TrainingTimerDisplay from '@/components/Trainings/TrainingTimerDisplay';
@@ -38,6 +39,9 @@ export default function FacilitatorPage() {
 	const [evaluationStats, setEvaluationStats] = useState(null);
 	const [csrfToken, setCsrfToken] = useState(null);
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+	// Socket.io connection for real-time updates
+	const { socket } = useSocket(params.id);
 
 	// Fetch CSRF token
 	useEffect(() => {
@@ -159,28 +163,10 @@ export default function FacilitatorPage() {
 		fetchTraining(true);
 	}, [params.id]);
 
-	// Poll for updates every 10 seconds when training is active
-	useEffect(() => {
-		if (!training || training.status === 'not_started' || training.status === 'completed') return;
-
-		const interval = setInterval(() => {
-			fetchTraining();
-		}, 10000);
-
-		return () => clearInterval(interval);
-	}, [training?.status, params.id]);
-
-	// Fetch responses on initial load and poll every 5 seconds when active
+	// Fetch responses on initial load
 	useEffect(() => {
 		if (!training) return;
-
-		// Initial fetch
 		fetchResponses();
-
-		if (training.status === 'not_started') return;
-
-		const interval = setInterval(fetchResponses, 5000);
-		return () => clearInterval(interval);
 	}, [training?.status, training?.current_round, params.id, fetchResponses]);
 
 	// Fetch evaluations when training is completed
@@ -189,6 +175,27 @@ export default function FacilitatorPage() {
 			fetchEvaluations();
 		}
 	}, [training?.status, params.id, fetchEvaluations]);
+
+	// Socket.io: listen for real-time updates (replaces polling)
+	useEffect(() => {
+		if (!socket) return;
+
+		const onTrainingUpdated = () => {
+			fetchTraining();
+		};
+
+		const onResponseSubmitted = () => {
+			fetchResponses();
+		};
+
+		socket.on('training:updated', onTrainingUpdated);
+		socket.on('training:response-submitted', onResponseSubmitted);
+
+		return () => {
+			socket.off('training:updated', onTrainingUpdated);
+			socket.off('training:response-submitted', onResponseSubmitted);
+		};
+	}, [socket, fetchResponses]);
 
 	// Handle invite sent
 	const handleInviteSent = () => {

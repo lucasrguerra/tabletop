@@ -1,0 +1,28 @@
+# Dependencies
+node_modules
+npm-debug.log*
+
+# Next.js build output
+.next
+out
+
+# Git
+.git
+.gitignore
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE / OS
+.vscode
+.idea
+.DS_Store
+*.swp
+
+# Docs
+README.md
+SCENARIO_STRUCTURE.md
+LICENSE
+

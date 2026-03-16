@@ -27,6 +27,10 @@ const UserSchema = new mongoose.Schema({
         maxlength: 255,
         select: false,
     },
+    facilitator: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
