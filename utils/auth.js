@@ -8,6 +8,7 @@ import Login from '@/models/User/login';
  * NextAuth configuration - must be exported to use with getServerSession
  */
 export const authOptions = {
+	trustHost: true,
 	providers: [
 		CredentialsProvider({
 			name: 'Credentials',
