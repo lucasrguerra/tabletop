@@ -7,7 +7,21 @@ import Login from '@/models/User/login';
 /**
  * NextAuth configuration - must be exported to use with getServerSession
  */
+const useSecureCookies = process.env.NEXTAUTH_URL?.startsWith('https://') ?? (process.env.NODE_ENV === 'production');
+
 export const authOptions = {
+	trustHost: true,
+	cookies: {
+		sessionToken: {
+			name: useSecureCookies ? '__Secure-next-auth.session-token' : 'next-auth.session-token',
+			options: {
+				httpOnly: true,
+				sameSite: 'lax',
+				path: '/',
+				secure: useSecureCookies,
+			},
+		},
+	},
 	providers: [
 		CredentialsProvider({
 			name: 'Credentials',
@@ -101,9 +115,6 @@ export const authOptions = {
 		strategy: 'jwt',
 		maxAge: 30 * 24 * 60 * 60, // 30 days
 	},
-
-	// Use same secret as JWT_SECRET for consistency
-	secret: process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET,
 
 	debug: process.env.NODE_ENV === 'development',
 };
