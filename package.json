@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node server.mjs",
     "build": "next build",
-    "build:release": "next build && tar -czf .next.tar.gz .next",
+    "build:release": "next build && tar --dereference -czf .next.tar.gz .next",
     "start": "NODE_ENV=production node server.mjs",
     "lint": "next lint",
     "clean": "npx -y rimraf .next .next.tar.gz"
