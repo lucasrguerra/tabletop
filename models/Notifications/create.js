@@ -1,6 +1,7 @@
 import Notification from '@/database/schemas/Notification';
 import connectDatabase from '@/database/database';
 import mongoose from 'mongoose';
+import { emitNotification } from '@/utils/socket';
 
 /**
  * Creates a new notification for a user
@@ -33,6 +34,12 @@ export default async function createNotification({ user_id, type, title, message
 			message,
 			training_id,
 			metadata,
+		});
+
+		// Emit real-time notification to the user via Socket.io
+		emitNotification(user_id.toString(), {
+			type: notification.type,
+			title: notification.title,
 		});
 
 		return {

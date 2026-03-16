@@ -13,11 +13,9 @@ import {
 	FaSignOutAlt,
 	FaBars,
 	FaTimes,
-	FaUserCircle,
 	FaLock,
 	FaPlus,
 	FaChevronRight,
-	FaBell,
 	FaArrowRight
 } from 'react-icons/fa';
 import NotificationBell from '@/components/Dashboard/NotificationBell';
@@ -224,27 +222,29 @@ export default function DashboardLayout({ children }) {
 					</div>
 
 					{/* Quick Actions */}
-					<div className="px-3 pb-5">
-						<p className="px-3 mb-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-							Ações Rápidas
-						</p>
-						<Link
-							href="/dashboard/trainings/new"
-							className="group flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium
-								bg-linear-to-r from-emerald-50 to-teal-50 
-								hover:from-emerald-100 hover:to-teal-100
-								border border-emerald-200/60 hover:border-emerald-300
-								text-emerald-700 hover:text-emerald-800
-								transition-all duration-200"
-							onClick={() => setSidebarOpen(false)}
-						>
-							<div className="p-2 rounded-lg bg-linear-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/25">
-								<FaPlus className="text-sm text-white" />
-							</div>
-							<span className="flex-1">Novo Treinamento</span>
-							<FaArrowRight className="text-xs opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
-						</Link>
-					</div>
+					{session?.user?.facilitator && (
+						<div className="px-3 pb-5">
+							<p className="px-3 mb-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+								Ações Rápidas
+							</p>
+							<Link
+								href="/dashboard/trainings/new"
+								className="group flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium
+									bg-linear-to-r from-emerald-50 to-teal-50 
+									hover:from-emerald-100 hover:to-teal-100
+									border border-emerald-200/60 hover:border-emerald-300
+									text-emerald-700 hover:text-emerald-800
+									transition-all duration-200"
+								onClick={() => setSidebarOpen(false)}
+							>
+								<div className="p-2 rounded-lg bg-linear-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/25">
+									<FaPlus className="text-sm text-white" />
+								</div>
+								<span className="flex-1">Novo Treinamento</span>
+								<FaArrowRight className="text-xs opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
+							</Link>
+						</div>
+					)}
 				</div>
 				
 				{/* Bottom Section - Logout */}

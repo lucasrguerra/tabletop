@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import useSocket from '@/utils/useSocket';
 import DashboardLayout from '@/components/Dashboard/Layout';
 import TrainingHeader from '@/components/Trainings/TrainingHeader';
 import TrainingTimerDisplay from '@/components/Trainings/TrainingTimerDisplay';
@@ -33,6 +34,9 @@ export default function ParticipantPage() {
 	const [resultsData, setResultsData] = useState(null);
 	const [evaluationData, setEvaluationData] = useState(undefined);
 	const [csrfToken, setCsrfToken] = useState(null);
+
+	// Socket.io connection for real-time updates
+	const { socket } = useSocket(params.id);
 
 	// Fetch CSRF token
 	useEffect(() => {
@@ -216,16 +220,20 @@ export default function ParticipantPage() {
 		}
 	}, [training?.status, params.id]);
 
-	// Poll for updates every 10 seconds when training is active or paused
+	// Socket.io: listen for real-time updates (replaces polling)
 	useEffect(() => {
-		if (!training || training.status === 'not_started' || training.status === 'completed') return;
+		if (!socket) return;
 
-		const interval = setInterval(() => {
+		const onTrainingUpdated = () => {
 			fetchTraining();
-		}, 10000);
+		};
 
-		return () => clearInterval(interval);
-	}, [training?.status, params.id]);
+		socket.on('training:updated', onTrainingUpdated);
+
+		return () => {
+			socket.off('training:updated', onTrainingUpdated);
+		};
+	}, [socket]);
 
 	if (loading) {
 		return (

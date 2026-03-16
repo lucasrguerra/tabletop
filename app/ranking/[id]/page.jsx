@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
+import useSocket from '@/utils/useSocket';
 import { FaTrophy, FaMedal, FaStar, FaSync, FaCheck, FaTimes, FaCrown } from 'react-icons/fa';
 
 const PODIUM_STYLES = {
@@ -129,7 +130,9 @@ export default function RankingPage() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [lastUpdated, setLastUpdated] = useState(null);
-	const intervalRef = useRef(null);
+
+	// Socket.io connection for real-time updates
+	const { socket, isConnected } = useSocket(params.id);
 
 	const fetchRanking = useCallback(async (showLoading = false) => {
 		try {
@@ -164,22 +167,22 @@ export default function RankingPage() {
 		fetchRanking(true);
 	}, [fetchRanking]);
 
-	// Poll every 3 seconds while training is active or paused
+	// Socket.io: listen for real-time updates (replaces polling)
 	useEffect(() => {
-		if (!data) return;
+		if (!socket) return;
 
-		const status = data.training?.status;
-		if (status === 'active' || status === 'paused') {
-			intervalRef.current = setInterval(() => fetchRanking(false), 3000);
-		}
+		const onUpdate = () => {
+			fetchRanking(false);
+		};
+
+		socket.on('training:updated', onUpdate);
+		socket.on('training:response-submitted', onUpdate);
 
 		return () => {
-			if (intervalRef.current) {
-				clearInterval(intervalRef.current);
-				intervalRef.current = null;
-			}
+			socket.off('training:updated', onUpdate);
+			socket.off('training:response-submitted', onUpdate);
 		};
-	}, [data?.training?.status, fetchRanking]);
+	}, [socket, fetchRanking]);
 
 	// ── Loading state ──
 	if (loading) {
@@ -268,7 +271,7 @@ export default function RankingPage() {
 					<FaSync className={`text-[10px] ${data?.training?.status === 'active' ? 'animate-spin' : ''}`} />
 					<span>
 						{data?.training?.status === 'active' || data?.training?.status === 'paused'
-							? 'Atualização automática a cada 3s'
+							? 'Atualização em tempo real'
 							: 'Ranking final'}
 					</span>
 					{lastUpdated && (
