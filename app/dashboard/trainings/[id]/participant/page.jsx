@@ -331,8 +331,13 @@ export default function ParticipantPage() {
 							/>
 						)}
 
-						{/* Questions - the participant's main task */}
-						{viewingRoundData?.questions?.length > 0 && (
+						{/* Primeira rodada (contextualização): exibir cenário base com destaque */}
+						{viewingRound === 0 && scenarioData && (
+							<BaseScenarioDisplay scenario={scenarioData} />
+						)}
+
+						{/* Demais rodadas: questões normalmente */}
+						{viewingRound > 0 && viewingRoundData?.questions?.length > 0 && (
 							<RoundQuestions
 								questions={viewingRoundData.questions}
 								roundIndex={viewingRound}
@@ -344,8 +349,8 @@ export default function ParticipantPage() {
 							/>
 						)}
 
-						{/* Show a waiting state if no questions */}
-						{training.status !== 'not_started' && (!viewingRoundData?.questions || viewingRoundData.questions.length === 0) && (
+						{/* Demais rodadas: sem questões disponíveis */}
+						{viewingRound > 0 && training.status !== 'not_started' && (!viewingRoundData?.questions || viewingRoundData.questions.length === 0) && (
 							<div className="bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 p-8 text-center">
 								<p className="text-slate-500">Nenhuma questão disponível para esta rodada.</p>
 							</div>
@@ -363,8 +368,8 @@ export default function ParticipantPage() {
 							/>
 						)}
 
-						{/* Scenario Context */}
-						{scenarioData && (
+						{/* Scenario Context — omitido na rodada 0, pois aparece em destaque na coluna esquerda */}
+						{viewingRound > 0 && scenarioData && (
 							<BaseScenarioDisplay scenario={scenarioData} />
 						)}
 
