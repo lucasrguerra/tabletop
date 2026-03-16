@@ -1,11 +1,14 @@
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 
-const JWT_SECRET = process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET;
 const TOKEN_EXPIRY = '30d';
 
-if (!JWT_SECRET) {
-	throw new Error('JWT_SECRET or NEXTAUTH_SECRET must be defined in environment variables');
+function getSecret() {
+	const secret = process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET;
+	if (!secret) {
+		throw new Error('JWT_SECRET or NEXTAUTH_SECRET must be defined in environment variables');
+	}
+	return secret;
 }
 
 /**
@@ -25,7 +28,7 @@ export function generateToken(payload) {
 			token_id: token_id, // Unique identifier for this specific token
 			type: 'session'
 		},
-		JWT_SECRET,
+		getSecret(),
 		{
 			expiresIn: TOKEN_EXPIRY,
 			issuer: 'tabletop-app',
@@ -43,7 +46,7 @@ export function generateToken(payload) {
  */
 export function verifyToken(token) {
 	try {
-		const decoded = jwt.verify(token, JWT_SECRET, {
+		const decoded = jwt.verify(token, getSecret(), {
 			issuer: 'tabletop-app',
 			audience: 'tabletop-users'
 		});
