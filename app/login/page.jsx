@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import {
@@ -16,7 +15,6 @@ import {
 } from 'react-icons/fa';
 
 export default function LoginPage() {
-	const router = useRouter();
 	const [formData, setFormData] = useState({
 		identifier: '',
 		password: ''
@@ -76,8 +74,7 @@ export default function LoginPage() {
 			if (result?.error) {
 				setError('Email/Nickname ou senha invalidos');
 			} else if (result?.ok) {
-				router.push('/dashboard');
-				router.refresh();
+				window.location.href = '/dashboard';
 			}
 		} catch (err) {
 			console.error('Login error');
