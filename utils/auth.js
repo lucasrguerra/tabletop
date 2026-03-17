@@ -56,6 +56,7 @@ export const authOptions = {
 							email: result.user.email,
 							nickname: result.user.nickname,
 							facilitator: result.user.facilitator,
+							admin: result.user.admin,
 							token: result.token
 						};
 					}
@@ -83,6 +84,7 @@ export const authOptions = {
 				token.email = user.email;
 				token.nickname = user.nickname;
 				token.facilitator = user.facilitator;
+				token.admin = user.admin;
 				token.customToken = user.token; // Store our custom JWT token
 			}
 			return token;
@@ -99,6 +101,7 @@ export const authOptions = {
 				session.user.email = token.email;
 				session.user.nickname = token.nickname;
 				session.user.facilitator = token.facilitator;
+				session.user.admin = token.admin;
 				session.customToken = token.customToken; // Include custom token in session
 			}
 			return session;
@@ -181,6 +184,63 @@ export function withAuth(handler) {
 
 		} catch (error) {
 			console.error('Authentication validation error:', error);
+			return NextResponse.json(
+				{
+					success: false,
+					message: 'Erro ao validar autenticação'
+				},
+				{ status: 500 }
+			);
+		}
+	};
+}
+
+/**
+ * Higher-order function to wrap API route handlers with admin authentication check
+ * Ensures user has an active session AND is an admin before executing the handler
+ *
+ * @param {Function} handler - The route handler function to wrap
+ * @returns {Function} Wrapped handler with admin authentication validation
+ */
+export function withAdmin(handler) {
+	return async (request, context) => {
+		try {
+			const session = await getServerSession(authOptions);
+
+			if (!session) {
+				return NextResponse.json(
+					{
+						success: false,
+						message: 'Não autorizado. Faça login para continuar.'
+					},
+					{ status: 401 }
+				);
+			}
+
+			if (!session.user?.id) {
+				return NextResponse.json(
+					{
+						success: false,
+						message: 'Sessão inválida'
+					},
+					{ status: 401 }
+				);
+			}
+
+			if (session.user.admin !== true) {
+				return NextResponse.json(
+					{
+						success: false,
+						message: 'Acesso restrito a administradores.'
+					},
+					{ status: 403 }
+				);
+			}
+
+			return await handler(request, context, session);
+
+		} catch (error) {
+			console.error('Admin authentication error:', error);
 			return NextResponse.json(
 				{
 					success: false,

@@ -273,7 +273,7 @@ function Pagination({ pagination, onPageChange }) {
 }
 
 // Empty State Component
-function EmptyState({ hasFilters, onClearFilters }) {
+function EmptyState({ hasFilters, onClearFilters, isFacilitator }) {
 	return (
 		<div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm shadow-slate-200/50 p-8 sm:p-12 text-center">
 			<div className="relative inline-flex items-center justify-center w-20 h-20 mb-6">
@@ -308,7 +308,7 @@ function EmptyState({ hasFilters, onClearFilters }) {
 						Acessar Treinamento
 					</Link>
 				)}
-				{session?.user?.facilitator && (
+				{isFacilitator && (
 					<Link
 						href="/dashboard/trainings/new"
 						className="px-5 py-2.5 bg-linear-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/25 transition-all flex items-center gap-2 font-medium"
@@ -579,7 +579,7 @@ export default function TrainingsPage() {
 				) : error ? (
 					<ErrorState message={error} onRetry={() => fetchTrainings(pagination?.current_page || 1)} />
 				) : trainings.length === 0 ? (
-					<EmptyState hasFilters={hasFilters} onClearFilters={clearFilters} />
+					<EmptyState hasFilters={hasFilters} onClearFilters={clearFilters} isFacilitator={session?.user?.facilitator} />
 				) : (
 					<>
 						{/* Trainings Grid */}

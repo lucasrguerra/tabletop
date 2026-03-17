@@ -9,14 +9,14 @@ import {
 	FaShieldAlt,
 	FaTachometerAlt,
 	FaBook,
-	FaCog,
 	FaSignOutAlt,
 	FaBars,
 	FaTimes,
 	FaLock,
 	FaPlus,
 	FaChevronRight,
-	FaArrowRight
+	FaArrowRight,
+	FaCrown
 } from 'react-icons/fa';
 import NotificationBell from '@/components/Dashboard/NotificationBell';
 
@@ -77,14 +77,17 @@ export default function DashboardLayout({ children }) {
 			href: '/dashboard/sessions',
 			icon: FaLock,
 			exact: false
-		},
-		{
-			name: 'Configurações',
-			href: '/dashboard/settings',
-			icon: FaCog,
-			exact: false
 		}
 	];
+
+	if (session?.user?.admin) {
+		menuItems.push({
+			name: 'Administração',
+			href: '/dashboard/admin',
+			icon: FaCrown,
+			exact: false
+		});
+	}
 
 	const handleLogout = async () => {
 		if (confirm('Tem certeza que deseja sair?')) {
@@ -222,29 +225,44 @@ export default function DashboardLayout({ children }) {
 					</div>
 
 					{/* Quick Actions */}
-					{session?.user?.facilitator && (
-						<div className="px-3 pb-5">
-							<p className="px-3 mb-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-								Ações Rápidas
-							</p>
-							<Link
-								href="/dashboard/trainings/new"
-								className="group flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium
-									bg-linear-to-r from-emerald-50 to-teal-50 
-									hover:from-emerald-100 hover:to-teal-100
-									border border-emerald-200/60 hover:border-emerald-300
-									text-emerald-700 hover:text-emerald-800
-									transition-all duration-200"
-								onClick={() => setSidebarOpen(false)}
-							>
-								<div className="p-2 rounded-lg bg-linear-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/25">
-									<FaPlus className="text-sm text-white" />
-								</div>
-								<span className="flex-1">Novo Treinamento</span>
-								<FaArrowRight className="text-xs opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
-							</Link>
-						</div>
-					)}
+				{session?.user?.facilitator && (
+					<div className="px-3 pb-5">
+						<p className="px-3 mb-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+							Ações Rápidas
+						</p>
+						<Link
+							href="/dashboard/trainings/new"
+							className="group flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium bg-linear-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200/60 hover:border-emerald-300 text-emerald-700 hover:text-emerald-800 transition-all duration-200"
+							onClick={() => setSidebarOpen(false)}
+						>
+							<div className="p-2 rounded-lg bg-linear-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/25">
+								<FaPlus className="text-sm text-white" />
+							</div>
+							<span className="flex-1">Novo Treinamento</span>
+							<FaArrowRight className="text-xs opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
+						</Link>
+					</div>
+				)}
+
+				{/* Admin Quick Action */}
+				{session?.user?.admin && (
+					<div className="px-3 pb-5">
+						<p className="px-3 mb-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+							Administração
+						</p>
+						<Link
+							href="/dashboard/admin"
+							className="group flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium bg-linear-to-r from-rose-50 to-red-50 hover:from-rose-100 hover:to-red-100 border border-rose-200/60 hover:border-rose-300 text-rose-700 hover:text-rose-800 transition-all duration-200"
+							onClick={() => setSidebarOpen(false)}
+						>
+							<div className="p-2 rounded-lg bg-linear-to-br from-rose-500 to-red-600 shadow-lg shadow-rose-500/25">
+								<FaCrown className="text-sm text-white" />
+							</div>
+							<span className="flex-1">Painel Admin</span>
+							<FaArrowRight className="text-xs opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
+						</Link>
+					</div>
+				)}
 				</div>
 				
 				{/* Bottom Section - Logout */}
