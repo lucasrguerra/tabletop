@@ -34,12 +34,6 @@ const Footer = () => {
                         <p className="text-slate-400 text-sm leading-relaxed">
                             Plataforma de treinamentos em resposta a incidentes de seguranca cibernetica por meio de exercicios tabletop.
                         </p>
-                        <div className="pt-2">
-                            <p className="inline-flex items-center gap-2 text-xs text-slate-500 bg-slate-800/50 px-3 py-2 rounded-lg">
-                                <FaBook className="text-blue-400" />
-                                <span>Residencia Tecnologica RNP</span>
-                            </p>
-                        </div>
                     </div>
 
                     {/* Links Section */}
@@ -95,14 +89,14 @@ const Footer = () => {
                         <ul className="space-y-3">
                             <li>
                                 <a 
-                                    href="mailto:l.rayanguerra@gmail.com" 
+                                    href="mailto:contato@lucasrguerra.dev.br" 
                                     className="group flex items-center gap-3 text-slate-400 hover:text-white transition-colors duration-200"
                                 >
                                     <div className="p-2 bg-slate-800 rounded-lg group-hover:bg-emerald-600/20 transition-colors">
                                         <FaEnvelope className="text-sm text-slate-500 group-hover:text-emerald-400" />
                                     </div>
                                     <span className="text-sm group-hover:translate-x-0.5 transition-transform">
-                                        l.rayanguerra@gmail.com
+                                        contato@lucasrguerra.dev.br
                                     </span>
                                 </a>
                             </li>
@@ -136,7 +130,7 @@ const Footer = () => {
                             <FaHeart className="text-red-500 animate-pulse" />
                             <span>por</span>
                             <a 
-                                href="https://www.linkedin.com/in/lucasrguerra"
+                                href="https://lucasrguerra.dev.br"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-blue-400 hover:text-blue-300 font-semibold transition-colors"
