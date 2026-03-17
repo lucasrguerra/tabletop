@@ -44,7 +44,8 @@ export default async function Login(identifier, password, metadata = {}) {
 			email: user.email,
 			nickname: user.nickname,
 			name: user.name,
-			facilitator: user.facilitator
+			facilitator: user.facilitator,
+			admin: user.admin
 		});
 		const tokenResult = await createToken(user.id, token, token_id, metadata);
 		
@@ -65,6 +66,7 @@ export default async function Login(identifier, password, metadata = {}) {
 				email: user.email,
 				nickname: user.nickname,
 				facilitator: user.facilitator,
+				admin: user.admin,
 			}
 		};
 	} catch (error) {

@@ -27,7 +27,8 @@ import {
 	FaDatabase,
 	FaLock,
 	FaExclamationTriangle,
-	FaKey
+	FaKey,
+	FaCrown
 } from 'react-icons/fa';
 
 const STATUS_CONFIG = {
@@ -651,6 +652,21 @@ export default function DashboardPage() {
 							</div>
 							<p className="text-sm text-slate-500">Visualizar e gerenciar todos os treinamentos</p>
 						</Link>
+						{session?.user?.admin && (
+							<Link
+								href="/dashboard/admin"
+								className="group relative p-5 bg-white border-2 border-slate-200 rounded-xl hover:bg-rose-50 hover:border-rose-300 transition-all duration-300 text-left overflow-hidden"
+							>
+								<div className="inline-flex p-3 bg-linear-to-br from-rose-500 to-red-600 rounded-xl mb-4 shadow-lg">
+									<FaCrown className="text-lg text-white" />
+								</div>
+								<div className="font-semibold text-slate-900 mb-1 flex items-center gap-2">
+									Painel Admin
+									<FaArrowRight className="text-sm text-slate-400 group-hover:translate-x-1 group-hover:text-slate-600 transition-all" />
+								</div>
+								<p className="text-sm text-slate-500">Gerenciar usuários e treinamentos da plataforma</p>
+							</Link>
+						)}
 					</div>
 				</div>
 			</div>
