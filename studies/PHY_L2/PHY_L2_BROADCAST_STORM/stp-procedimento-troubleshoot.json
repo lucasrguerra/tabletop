@@ -1,0 +1,123 @@
+{
+  "id": "stp-procedimento-troubleshoot",
+  "title": "Troubleshooting de Loop L2 e Tempestade de Broadcast",
+  "description": "Procedimento para identificar e eliminar loops de camada 2 em redes comutadas: desde o reconhecimento dos sintomas de broadcast storm até a localização da porta causadora e restauração do STP.",
+  "content_type": "PROCEDIMENTO",
+  "category": {
+    "id": "PHY_L2",
+    "type": "PHY_L2_BROADCAST_STORM",
+    "title": "Broadcast Storm / Loop L2"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "10 minutos",
+    "difficulty": "Intermediario",
+    "targetAudience": "Engenheiros de Rede NOC, Técnicos de Infraestrutura",
+    "prerequisites": ["stp-conceito-spanning-tree"]
+  },
+  "tags": ["STP", "loop L2", "broadcast storm", "switch", "BPDU", "PortFast"],
+  "content": {
+    "context": "Acionado quando há degradação severa e súbita da rede local: CPU de switches em 100%, LEDs de porta piscando freneticamente, perda de conectividade generalizada para hosts. Um loop L2 faz broadcast se multiplicar exponencialmente — a rede entra em colapso em segundos. Ação rápida é crítica.",
+    "steps": [
+      {
+        "id": 1,
+        "title": "Reconhecer sintomas de broadcast storm",
+        "description": "Um loop L2 tem sintomas muito específicos. Confirme antes de agir.",
+        "commands": [
+          "# Verificar CPU do switch — loop causa CPU alta constante\nshow processes cpu sorted | head -10",
+          "# Verificar contadores de broadcast/multicast na interface\nshow interfaces GigabitEthernet0/1 counters\nshow interfaces GigabitEthernet0/1 | include input rate",
+          "# Verificar log do switch — BPDU Guard ou loop guard podem ter disparado\nshow log | include storm|loop|BPDU|topology"
+        ],
+        "expectedResult": "CPU do switch acima de 80-100%. Taxa de broadcast entrando em portas muito acima do normal (ex: > 1 Mbps de broadcast puro). Possível mensagem de 'topology change' repetida no log.",
+        "warnings": [
+          "Não tente diagnóstico prolongado — cada segundo de loop causa mais degradação. Aja rápido",
+          "Se o switch não responde a SSH/Telnet (CPU 100%), tente console físico"
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Isolar a origem do loop: identificar a porta com tráfego anômalo",
+        "description": "Identifique qual porta ou switch está introduzindo o loop. O loop geralmente vem de uma porta de acesso (usuário conectou cabo errado) ou de uma porta uplink redundante sem STP.",
+        "commands": [
+          "# Ver todas as interfaces e taxa de broadcast — a porta com loop terá taxa absurda\nshow interfaces counters | include Broadcast|GigabitEthernet",
+          "# Verificar topologia STP — qual porta deveria estar bloqueada?\nshow spanning-tree\nshow spanning-tree detail | include ieee|from|occurred",
+          "# Verificar se houve mudança de topologia recente\nshow spanning-tree detail | include topology change",
+          "# Identificar MAC address duplicado (indicador de loop)\nshow mac address-table | sort"
+        ],
+        "expectedResult": "Uma ou mais portas com taxa de broadcast/multicast anormalmente alta. O 'show spanning-tree' pode mostrar porta que deveria estar em estado Blocking mas está Forwarding, ou ausência de STP em uma das portas.",
+        "warnings": [
+          "MAC address duplicado na tabela CAM (mesmo MAC em portas diferentes) é sinal claro de loop",
+          "Em switches empilhados (stack), o loop pode cruzar membros do stack — verificar todos"
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Desligar a porta suspeita para quebrar o loop imediatamente",
+        "description": "Com a porta suspeita identificada, desligue-a para cessar o loop. Isso restaura a rede imediatamente, mesmo sem entender a causa raiz ainda.",
+        "commands": [
+          "# Desligar porta suspeita (acesso de usuário ou uplink extra)\ninterface GigabitEthernet0/24\n shutdown",
+          "# Confirmar que o loop cessou\nshow interfaces GigabitEthernet0/1 | include input rate\nshow processes cpu sorted | head -5",
+          "# Se não tiver certeza da porta, desligar todas as portas de acesso do segmento\n# e reabilitar uma por uma até identificar a causadora:\ninterface range GigabitEthernet0/1 - 24\n shutdown"
+        ],
+        "expectedResult": "Imediatamente após o shutdown: CPU do switch cai, tráfego de broadcast normaliza, conectividade da rede retorna.",
+        "warnings": [
+          "Desligar um uplink pode causar perda de redundância — prefira desligar porta de acesso primeiro",
+          "Se o loop é entre dois switches via uplink redundante, desligar o uplink extra é o correto"
+        ],
+        "rollbackAction": "Reabilitar a porta com 'no shutdown' após identificar e corrigir a causa raiz"
+      },
+      {
+        "id": 4,
+        "title": "Identificar a causa raiz do loop",
+        "description": "Com o loop resolvido e a rede estável, investigue por que o STP não bloqueou o loop.",
+        "commands": [
+          "# Verificar se PortFast está em porta de uplink (erro comum)\nshow running-config interface GigabitEthernet0/24\nshow spanning-tree interface GigabitEthernet0/24 portfast",
+          "# Verificar se BPDU Guard está ativo nas portas de acesso\nshow spanning-tree summary | include PortFast\nshow spanning-tree detail | include BPDU",
+          "# Verificar se STP está habilitado na VLAN correta\nshow spanning-tree vlan <VLAN_ID>",
+          "# Verificar se há switch não gerenciado na topologia (não envia BPDUs)\n# Procurar portas sem BPDU recebido\nshow spanning-tree detail | include hello"
+        ],
+        "expectedResult": "Causa raiz encontrada: porta de acesso com PortFast sem BPDU Guard, STP desabilitado em uma VLAN, switch não gerenciado conectado sem STP, ou cabo errado criando loop físico.",
+        "warnings": [
+          "Switch não gerenciado (barato, sem STP) é a causa mais comum — usuário conecta dois cabos ao mesmo switch não gerenciado",
+          "PortFast em porta de uplink faz o switch entrar imediatamente em Forwarding sem aguardar STP — loop instantâneo"
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Aplicar proteções STP permanentes e reabilitar a porta",
+        "description": "Corrija a configuração para que o STP bloqueie loops automaticamente no futuro.",
+        "commands": [
+          "# Habilitar BPDU Guard em todas as portas de acesso (PortFast)\nspanning-tree portfast bpduguard default",
+          "# Habilitar Loop Guard em portas uplink\nspanning-tree loopguard default",
+          "# Habilitar Storm Control na porta de acesso\ninterface GigabitEthernet0/24\n storm-control broadcast level 10\n storm-control action shutdown",
+          "# Reabilitar a porta corrigida\ninterface GigabitEthernet0/24\n no shutdown",
+          "# Confirmar STP convergiu corretamente\nshow spanning-tree"
+        ],
+        "expectedResult": "BPDU Guard ativo nas portas de acesso. Storm Control configurado. STP mostrando topologia estável com portas corretas em Forwarding/Blocking.",
+        "warnings": [
+          "Storm Control com 'action shutdown' desliga a porta automaticamente se atingir o threshold — monitorar porta após reabilitar"
+        ]
+      }
+    ],
+    "postConditions": [
+      "Rede L2 estável, sem topology changes no STP",
+      "BPDU Guard habilitado em todas as portas de acesso (PortFast)",
+      "Loop Guard habilitado em portas de uplink redundante",
+      "Storm Control configurado como salvaguarda adicional",
+      "Causa raiz documentada — switch não gerenciado substituído ou cabo removido"
+    ],
+    "escalationCriteria": [
+      "Loop persistindo após identificar e desligar a porta suspeita — pode haver loop em outro ponto da topologia",
+      "CPU de múltiplos switches em 100% simultaneamente — loop pode estar no core",
+      "Topology changes constantes após resolução — indica instabilidade de STP sistêmica (verificar Root Bridge)"
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": ["stp-conceito-spanning-tree", "glossario-phy-l2"],
+  "technicalReferences": [
+    { "title": "Cisco - Understanding and Configuring Spanning Tree Protocol", "url": "https://www.cisco.com/c/en/us/support/docs/lan-switching/spanning-tree-protocol/5234-5.html" },
+    { "title": "Cisco - Recovering from STP Loops", "url": "https://www.cisco.com/c/en/us/support/docs/lan-switching/spanning-tree-protocol/12013-16.html" }
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "id": "fibra-procedimento-troubleshoot",
+  "title": "Troubleshooting de Link de Fibra Óptica Degradado",
+  "description": "Procedimento passo-a-passo para diagnosticar e localizar falhas em links de fibra óptica: desde análise de DDM/DOM até medição com OTDR e identificação de conector sujo.",
+  "content_type": "PROCEDIMENTO",
+  "category": {
+    "id": "PHY_L2",
+    "type": "PHY_L2_FIBER_CUT",
+    "title": "Falha de Fibra Óptica"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "10 minutos",
+    "difficulty": "Intermediario",
+    "targetAudience": "Técnicos de Campo, Engenheiros de Rede NOC",
+    "prerequisites": ["glossario-phy-l2"]
+  },
+  "tags": ["fibra", "SFP", "DDM", "DOM", "OTDR", "troubleshooting", "óptico"],
+  "content": {
+    "context": "Acionado quando um link de fibra apresenta: interface down sem causa óbvia, erros de FCS elevados, intermitência, ou degradação de throughput com link aparentemente up. O diagnóstico segue do mais simples (limpeza de conectores) ao mais complexo (OTDR).",
+    "steps": [
+      {
+        "id": 1,
+        "title": "Verificar DDM/DOM do transceptor",
+        "description": "O primeiro passo é ler os parâmetros ópticos do SFP via DDM/DOM. Isso indica se o problema é no transceptor local, no nível de sinal recebido (Rx) ou no nível transmitido (Tx).",
+        "commands": [
+          "# Cisco IOS/IOS-XE\nshow interfaces GigabitEthernet0/0 transceiver",
+          "# Juniper JunOS\nshow interfaces ge-0/0/0 diagnostics optics",
+          "# Linux (ethtool)\nethtool -m eth0"
+        ],
+        "expectedResult": "Rx Power entre -3 dBm e -20 dBm (varia por tipo de SFP). Tx Power dentro da faixa especificada. Temperature < 70°C. Voltage entre 3.1V e 3.5V.",
+        "warnings": [
+          "Rx Power abaixo de -30 dBm quase certamente indica fibra cortada, conector sujo ou SFP com defeito",
+          "Tx Power anormalmente baixo indica SFP com laser degradado — troque o transceptor"
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Inspecionar e limpar os conectores",
+        "description": "70-80% das falhas em links de fibra são causadas por conectores sujos. Um único grão de poeira no conector pode causar atenuação de 3-6 dB, suficiente para derrubar o link.",
+        "commands": [],
+        "expectedResult": "Conector visualmente limpo sob inspetor óptico (microscópio de fibra). Sem detritos, arranhões ou contaminação na face do conector.",
+        "warnings": [
+          "NUNCA olhe diretamente para a ponta de um cabo de fibra sem primeiro verificar se há sinal óptico ativo — risco de lesão ocular",
+          "Use apenas ferramentas de limpeza apropriadas: swab de limpeza seco ou kit de limpeza IEC 61300-3-35",
+          "Limpe sempre imediatamente antes de conectar — fibra limpa e depois deixada exposta recontamina"
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Substituir o patch cord de fibra",
+        "description": "Se após limpeza o problema persiste, substitua o patch cord entre o transceptor e o patch panel. Fibras curtas são o componente mais sujeito a dano mecânico.",
+        "commands": [],
+        "expectedResult": "Após substituição do patch cord, Rx Power retorna à faixa normal e link sobe.",
+        "warnings": [
+          "Verifique o tipo de conector (LC, SC, ST) e o tipo de fibra (single-mode 9/125 µm ou multimode 50/125 µm ou 62.5/125 µm) — incompatibilidade causa alta atenuação"
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Medir a planta com OTDR",
+        "description": "Se o problema está na fibra externa (fora do rack), use o OTDR para localizar a posição exata da falha. O OTDR injeta pulsos de laser e analisa reflexos para mapear a fibra.",
+        "commands": [],
+        "expectedResult": "Relatório OTDR mostrando a posição da descontinuidade (metros ou km desde o OTDR). Quebra total aparece como queda abrupta de nível seguida de ausência de sinal.",
+        "warnings": [
+          "Desconecte o link ativo no outro lado antes de conectar o OTDR — sinal ativo danifica o equipamento",
+          "A precisão do OTDR depende do índice de refração configurado — verifique as especificações da fibra instalada"
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Acionar equipe de campo para reparo da fibra",
+        "description": "Com a posição da falha identificada pelo OTDR (em metros desde o armário de distribuição), acione a equipe de campo para inspeção visual e emenda ou substituição do trecho afetado.",
+        "commands": [],
+        "expectedResult": "Emenda por fusão realizada. Nova medição OTDR confirma perda da emenda < 0.1 dB (típico para fusão automática). Rx Power retorna ao nível normal.",
+        "warnings": [
+          "Emendas mecânicas (não fusão) têm perda típica de 0.3-0.5 dB — evitar em backbones",
+          "Documentar a posição e comprimento do trecho substituído no inventário da planta"
+        ]
+      }
+    ],
+    "postConditions": [
+      "Link operacional com Rx Power dentro da faixa nominal",
+      "Documentação da falha, causa raiz e reparo registrada no sistema de tickets",
+      "Plantas atualizadas se houve substituição de trecho de fibra"
+    ],
+    "escalationCriteria": [
+      "Link crítico de backbone com impacto em múltiplas instituições",
+      "Falha em duto subterrâneo ou cabo aéreo que requer trabalho em altura ou escavação",
+      "Sem OTDR disponível e posição da falha desconhecida em planta longa (>1 km)"
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": ["glossario-phy-l2"],
+  "technicalReferences": [
+    { "title": "IEC 61300-3-35 - Fiber Optic Connector Inspection", "url": "https://standards.ieee.org/" },
+    { "title": "Fluke Networks - Fiber Optic Testing Guide", "url": "https://www.flukenetworks.com/expertise/application-spotlight/fiber-optic-testing-standards" }
+  ]
+}

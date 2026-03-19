@@ -1,0 +1,125 @@
+{
+  "id": "ransomware-procedimento-containment",
+  "title": "Contenção de Incidente de Ransomware",
+  "description": "Procedimento de resposta imediata a ransomware ativo: isolamento de hosts, preservação de evidências, avaliação de impacto e início da recuperação.",
+  "content_type": "PROCEDIMENTO",
+  "category": {
+    "id": "SEC_SYS",
+    "type": "SEC_SYS_RANSOMWARE",
+    "title": "Ransomware"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "12 minutos",
+    "difficulty": "Avancado",
+    "targetAudience": "CIRT, Administradores de Sistemas, Equipe de Segurança",
+    "prerequisites": ["ransomware-conceito-taxonomia"]
+  },
+  "tags": ["ransomware", "contenção", "isolamento", "forense", "recuperação", "playbook"],
+  "content": {
+    "context": "Acionado quando há confirmação de ransomware ativo: usuários relatando arquivos criptografados, extensões desconhecidas em arquivos, ransom notes em pastas. O objetivo primário é PARAR A PROPAGAÇÃO antes de tentar recuperação. Não desligar hosts até que evidências forenses sejam preservadas, a menos que a criptografia ativa ameace dados críticos.",
+    "steps": [
+      {
+        "id": 1,
+        "title": "Isolar hosts afetados da rede imediatamente",
+        "description": "O isolamento de rede é a ação mais crítica. Impede movimento lateral e comunicação C2. Execute sem aguardar confirmação completa do incidente — falso positivo é preferível à propagação.",
+        "commands": [
+          "# Isolamento via firewall — bloquear host específico\niptables -I FORWARD -s 10.0.0.50 -j DROP\niptables -I FORWARD -d 10.0.0.50 -j DROP",
+          "# Em switch gerenciável — desabilitar porta\n# (Cisco IOS)\ninterface GigabitEthernet0/1\n  shutdown",
+          "# Windows — desabilitar adaptador de rede remotamente (se ainda acessível)\nnetsh interface set interface 'Ethernet' disable"
+        ],
+        "expectedResult": "Host isolado da rede. Nenhum tráfego de/para o host afetado. Verificar no switch que a porta está down ou sem ARP entry.",
+        "warnings": [
+          "NÃO desligue o host ainda — memória RAM pode conter chaves de criptografia, credenciais e artefatos forenses",
+          "Se múltiplos hosts estão afetados, priorize isolar pelo segmento/VLAN para contenção em massa",
+          "Mantenha um canal de comunicação alternativo com o time (telefone, Signal) — e-mail corporativo pode estar comprometido"
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Preservar evidências forenses (memória e disco)",
+        "description": "Antes de qualquer remediação, capture evidências forenses. Isso é obrigatório para análise posterior e pode ser necessário para requisições legais.",
+        "commands": [
+          "# Dump de memória RAM (Linux — requer LiME ou volatility)\nsudo insmod lime.ko \"path=/media/usb/mem.lime format=lime\"",
+          "# Dump de memória (Windows — DumpIt ou WinPmem)\nwinpmem.exe -o C:\\forense\\mem.raw",
+          "# Imagem de disco (dd — Linux)\ndd if=/dev/sda of=/media/usb/imagem.dd bs=4M status=progress",
+          "# Coletar logs críticos antes de isolar\ncp /var/log/auth.log /media/usb/\ncp /var/log/syslog /media/usb/\n# Windows: exportar Event Logs\nwevtutil epl Security C:\\forense\\security.evtx\nwevtutil epl System C:\\forense\\system.evtx"
+        ],
+        "expectedResult": "Imagem de memória e logs preservados em mídia externa isolada. Hash MD5/SHA256 calculado para cadeia de custódia.",
+        "warnings": [
+          "A imagem de memória deve ser feita ANTES da imagem de disco — RAM é volátil",
+          "Calcule hash antes e após a cópia para garantir integridade da evidência",
+          "Se não houver capacidade forense interna, contrate empresa especializada ANTES de formatar"
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Identificar o escopo do incidente",
+        "description": "Determine quantos hosts foram afetados, quais sistemas de arquivos foram criptografados e se há exfiltração de dados em andamento.",
+        "commands": [
+          "# Buscar extensões de ransomware em compartilhamentos (Windows)\nGet-ChildItem -Path '\\\\server\\shares' -Recurse -Include '*.encrypted','*.locked','*.ransom' | Measure-Object",
+          "# Verificar logs de DNS para comunicação C2\ngrep -E '(pastebin|anonfiles|mega\\.nz|tor2web)' /var/log/dns/queries.log",
+          "# Identificar processo criptografando arquivos (se ainda ativo)\nGet-Process | Where-Object {$_.CPU -gt 50} | Sort-Object CPU -Descending | Select-Object -First 10",
+          "# Verificar shadow copies\nvssadmin list shadows"
+        ],
+        "expectedResult": "Mapa de hosts afetados com número de arquivos criptografados. Lista de sistemas de arquivo impactados. Confirmação de comunicação C2 (se houver).",
+        "warnings": [
+          "Ausência de shadow copies (vssadmin list retorna vazio) confirma que ransomware já as deletou"
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Notificar partes interessadas e acionar CIRT",
+        "description": "Com o escopo identificado, notifique formalmente: gestão de TI, gestão da instituição, DPO (se dados pessoais foram afetados) e, se aplicável, autoridades.",
+        "commands": [],
+        "expectedResult": "Ticket de incidente aberto. CIRT acionado. DPO notificado se houver indicação de exfiltração de dados pessoais (obrigação LGPD: notificação à ANPD em até 72h se houver risco aos titulares).",
+        "warnings": [
+          "Não pague o resgate sem consulta jurídica e de seguro — o pagamento pode não resultar na chave e pode financiar atividade criminosa",
+          "Comunicação pública prematura pode prejudicar a investigação — comunicados devem ser coordenados com jurídico"
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Iniciar recuperação a partir de backup",
+        "description": "Com o ambiente isolado e evidências preservadas, inicie a recuperação a partir dos backups mais recentes anteriores ao incidente. Restaure primeiro em ambiente isolado para verificação.",
+        "commands": [
+          "# Verificar integridade do backup antes de restaurar\nsha256sum backup_2025-02-28.tar.gz",
+          "# Restaurar em host limpo isolado para teste\ntar -xzf backup_2025-02-28.tar.gz -C /mnt/restore_test/",
+          "# Verificar se arquivos restaurados não contêm artefatos de ransomware\nclamscan -r /mnt/restore_test/"
+        ],
+        "expectedResult": "Backup verificado sem comprometimento. Restauração em ambiente de teste bem-sucedida. Arquivos íntegros antes de restaurar em produção.",
+        "warnings": [
+          "Backups que foram montados ou acessíveis pela rede durante o incidente podem estar comprometidos",
+          "Restaurar o sistema operacional a partir de imagem limpa — não apenas os dados",
+          "Antes de reconectar hosts recuperados à rede, confirmar que o vetor de entrada foi corrigido"
+        ],
+        "rollbackAction": "Se o backup restaurado apresentar arquivos criptografados, identificar a data de infecção real e usar backup anterior a ela."
+      }
+    ],
+    "postConditions": [
+      "Todos os hosts afetados reformatados e reconstruídos a partir de imagem limpa",
+      "Vetor de acesso inicial identificado e corrigido (patch, MFA, segmentação)",
+      "Backups verificados e isolados fisicamente ou via air-gap",
+      "Relatório pós-incidente entregue ao CIRT em até 5 dias úteis",
+      "Notificação à ANPD enviada (se aplicável — dados pessoais afetados)"
+    ],
+    "escalationCriteria": [
+      "Ransomware ativo em servidores de dados críticos de pesquisa ou sistemas de gestão acadêmica",
+      "Evidência de exfiltração de dados de alunos ou pesquisadores",
+      "Incidente afeta múltiplas instituições na rede da RNP",
+      "Atacante ainda ativo na rede após isolamento inicial (persistence descoberta)"
+    ]
+  },
+  "relatedScenarios": ["ransomware-attack"],
+  "relatedStudies": [
+    "ransomware-conceito-taxonomia",
+    "glossario-sec-sys"
+  ],
+  "technicalReferences": [
+    { "title": "CISA - Ransomware Response Checklist", "url": "https://www.cisa.gov/stopransomware/ransomware-guide" },
+    { "title": "NIST SP 800-61r2 - Computer Security Incident Handling Guide", "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-61r2.pdf" },
+    { "title": "ANPD - Notificação de incidentes de segurança", "url": "https://www.gov.br/anpd/pt-br/assuntos/incidentes" }
+  ]
+}

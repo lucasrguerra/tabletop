@@ -1,0 +1,137 @@
+{
+  "id": "tcp-procedimento-mitigacao-syn",
+  "title": "Mitigação de SYN Flood: Procedimento Operacional",
+  "description": "Procedimento passo-a-passo para detectar, confirmar e mitigar um ataque SYN Flood em andamento: desde a identificação do tráfego malicioso até a ativação de SYN Cookies, rate limiting e RTBH.",
+  "content_type": "PROCEDIMENTO",
+  "category": {
+    "id": "NET_VOL",
+    "type": "NET_VOL_SYN_FLOOD",
+    "title": "SYN Flood"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "10 minutos",
+    "difficulty": "Avancado",
+    "targetAudience": "Engenheiros de Rede NOC, Analistas de Segurança",
+    "prerequisites": ["tcp-conceito-syn-flood"]
+  },
+  "tags": ["SYN flood", "DDoS", "mitigação", "SYN Cookies", "RTBH", "rate limiting"],
+  "content": {
+    "context": "Acionado quando sistemas de monitoramento alertam para esgotamento de tabela de conexões TCP, alta taxa de SYN packets sem ACK correspondente, ou degradação de serviço em servidores web/SSH. O objetivo é confirmar o ataque, isolar a origem quando possível, e aplicar mitigação sem causar blackhole de tráfego legítimo.",
+    "steps": [
+      {
+        "id": 1,
+        "title": "Confirmar o ataque: analisar tráfego de entrada",
+        "description": "Antes de tomar qualquer ação, confirme que o tráfego é um SYN flood e não um pico legítimo. Verifique métricas de volume e o padrão de flags TCP.",
+        "commands": [
+          "# Verificar taxa de SYN packets na interface de borda\nnetstat -s | grep 'SYNs to LISTEN'",
+          "# Contar SYN packets por segundo com tcpdump (10 segundos)\ntcpdump -i eth0 'tcp[tcpflags] & tcp-syn != 0 and tcp[tcpflags] & tcp-ack == 0' -c 10000 -q 2>&1 | tail -1",
+          "# Verificar tabela de conexões half-open no servidor\nss -n state syn-recv | wc -l",
+          "# Top IPs de origem com SYN (últimos 60 segundos de log de firewall)\ncat /var/log/firewall.log | grep 'SYN' | awk '{print $NF}' | sort | uniq -c | sort -rn | head -20"
+        ],
+        "expectedResult": "Taxa de SYN/s significativamente acima da baseline (ex: > 10.000 SYN/s). Alta contagem de conexões em estado SYN_RECV. IPs de origem com distribuição anômala (muito espalhados = spoofing; concentrados = botnet pequena).",
+        "warnings": [
+          "Não confunda com spike legítimo de tráfego — confirme comparando com baseline histórica",
+          "IPs de origem espalhados pelo mundo indicam spoofing — rate limiting por IP de origem será ineficaz"
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Ativar SYN Cookies no servidor alvo",
+        "description": "SYN Cookies é a defesa imediata no servidor: elimina a necessidade de alocar estado na tabela half-open, tornando o servidor imune ao esgotamento de recursos por SYN flood.",
+        "commands": [
+          "# Linux — verificar se SYN Cookies já está ativo\ncat /proc/sys/net/ipv4/tcp_syncookies",
+          "# Ativar SYN Cookies imediatamente (sem reinicialização)\necho 1 > /proc/sys/net/ipv4/tcp_syncookies\n# Ou via sysctl:\nsysctl -w net.ipv4.tcp_syncookies=1",
+          "# Tornar permanente (adicionar ao /etc/sysctl.conf):\nnet.ipv4.tcp_syncookies = 1\nnet.ipv4.tcp_max_syn_backlog = 4096\nnet.ipv4.tcp_synack_retries = 2",
+          "# Verificar backlog atual\nss -n state syn-recv | wc -l"
+        ],
+        "expectedResult": "tcp_syncookies = 1. Após ativação, o número de conexões SYN_RECV para de crescer e o servidor para de rejeitar conexões legítimas por falta de recursos.",
+        "warnings": [
+          "SYN Cookies tem limitação: algumas opções TCP (window scaling, SACK) podem não ser negociadas corretamente em conexões que usaram cookie — impacto mínimo em produção",
+          "SYN Cookies protege o servidor mas não reduz o volume de tráfego — a banda ainda é consumida"
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Aplicar rate limiting no firewall/roteador de borda",
+        "description": "Com SYN Cookies ativo no servidor, aplique rate limiting para reduzir o volume de pacotes que chegam à rede. Esta etapa reduz consumo de banda e CPU dos equipamentos intermediários.",
+        "commands": [
+          "# Linux iptables — limitar SYN a 100/s por IP de origem\niptables -A INPUT -p tcp --syn -m limit --limit 100/s --limit-burst 200 -j ACCEPT\niptables -A INPUT -p tcp --syn -j DROP",
+          "# Linux nftables (preferido em kernels modernos)\nnft add rule inet filter input tcp flags syn limit rate 100/second burst 200 packets accept\nnft add rule inet filter input tcp flags syn drop",
+          "# Cisco IOS — rate limit de SYN na interface de borda\nip access-list extended BLOCK_SYN_FLOOD\n permit tcp any <IP_ALVO>/32 syn\n!\nrate-limit input access-group name BLOCK_SYN_FLOOD 100000000 6250000 6250000 conform-action transmit exceed-action drop",
+          "# Verificar efetividade\nwatch -n 1 'ss -n state syn-recv | wc -l'"
+        ],
+        "expectedResult": "Redução gradual do número de conexões SYN_RECV. Taxa de SYN/s na interface cai ao nível do rate limit configurado.",
+        "warnings": [
+          "Rate limiting por IP de origem é ineficaz contra IPs spoofados — use rate limiting global de SYN",
+          "Limite muito agressivo (ex: 10/s) pode bloquear tráfego legítimo em servidores de alto tráfego"
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Escalar para RTBH se o volume saturar o link",
+        "description": "Se o volume de SYN flood saturar o link de uplink antes de chegar ao roteador de borda, o rate limiting local é ineficaz. Nesse caso, solicite RTBH (Remotely Triggered Black Hole) ao provider para descartar o tráfego no upstream.",
+        "commands": [
+          "# Anunciar prefixo alvo via BGP com community de RTBH do provider\n# (Configuração específica do provider — exemplo genérico)\nrouter bgp 64500\n address-family ipv4\n  network <IP_ALVO>/32 route-map SET_BLACKHOLE\n!\nroute-map SET_BLACKHOLE permit 10\n set community 64496:9999  ! community de RTBH do provider\n set local-preference 50",
+          "# Verificar que prefixo foi anunciado\nshow ip bgp <IP_ALVO>/32",
+          "# Confirmar com NOC do provider que blackhole foi aceito\n# (via ticket ou telefone — crítico para ação coordenada)"
+        ],
+        "expectedResult": "Tráfego para o IP alvo descartado no roteador do provider antes de chegar ao link de borda. Volume no link cai para zero (ou baseline).",
+        "warnings": [
+          "RTBH é um blackhole total — tráfego legítimo para o IP também é descartado. Use apenas em último recurso",
+          "Coordene com o provider antes — cada provider tem community de RTBH diferente",
+          "Remova o anúncio RTBH assim que o ataque cessar para restaurar o serviço"
+        ],
+        "rollbackAction": "Remover network statement com community RTBH do BGP e aguardar propagação (~30 segundos para retirar blackhole)"
+      },
+      {
+        "id": 5,
+        "title": "Acionar scrubbing center se disponível",
+        "description": "Se a organização possui contrato com serviço de scrubbing (Limpeza de tráfego) ou serviço de mitigação DDoS gerenciado, este é o momento de acioná-lo. O tráfego é redirecionado ao scrubbing center via BGP, limpo e reenviado ao destino.",
+        "commands": [
+          "# Redirecionar tráfego ao scrubbing via BGP (específico do provider de scrubbing)\n# Geralmente: anunciar prefixo mais específico via BGP apontando para scrubbing center\n\n# Verificar que tráfego está chegando ao scrubbing center (coordenar com NOC do serviço)\n# Monitorar volume de tráfego limpo retornando ao servidor alvo"
+        ],
+        "expectedResult": "Tráfego limpo (sem SYN flood) chega ao servidor alvo. Serviço restaurado para usuários legítimos.",
+        "warnings": [
+          "Scrubbing center adiciona latência — verificar impacto em aplicações sensíveis a RTT",
+          "Acionar o serviço tem custo — confirmar autorização antes de ativar"
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Monitorar, documentar e reverter mitigações",
+        "description": "Após o ataque cessar, reverta as mitigações temporárias, documente o incidente e revise medidas permanentes.",
+        "commands": [
+          "# Verificar que o ataque cessou\nwatch -n 5 'ss -n state syn-recv | wc -l'",
+          "# Remover regras temporárias de iptables (se aplicável)\niptables -D INPUT -p tcp --syn -m limit --limit 100/s --limit-burst 200 -j ACCEPT\niptables -D INPUT -p tcp --syn -j DROP",
+          "# Remover anúncio RTBH (se ativado)\n# Remover network statement do BGP no roteador",
+          "# Verificar que serviço voltou ao normal\ncurl -I https://<IP_ALVO>"
+        ],
+        "expectedResult": "Taxa de SYN/s volta à baseline. Serviço responde normalmente. Todas as mitigações temporárias removidas.",
+        "warnings": [
+          "Mantenha SYN Cookies ativo permanentemente — não há motivo para desativar",
+          "Documente: horário de início/fim, volume estimado, medidas aplicadas, impacto em usuários legítimos"
+        ]
+      }
+    ],
+    "postConditions": [
+      "SYN Cookies habilitado permanentemente em todos os servidores expostos",
+      "Rate limiting de SYN configurado na borda como medida preventiva",
+      "Relatório de incidente documentado com timeline e impacto",
+      "Canais de comunicação com provider (RTBH, scrubbing) verificados e testados"
+    ],
+    "escalationCriteria": [
+      "Volume saturando o link de uplink — escalar para RTBH ou scrubbing center imediatamente",
+      "Múltiplos IPs alvo simultâneos — pode indicar ataque distribuído direcionado a toda a rede",
+      "Ataque persistindo por mais de 1 hora sem redução — considerar contrato de proteção DDoS gerenciada"
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": ["tcp-conceito-syn-flood", "dns-procedimento-mitigacao-ddos", "glossario-net-vol"],
+  "technicalReferences": [
+    { "title": "RFC 4987 - TCP SYN Flooding Attacks and Common Mitigations", "url": "https://www.rfc-editor.org/rfc/rfc4987" },
+    { "title": "Linux Kernel - SYN Cookies", "url": "https://www.kernel.org/doc/html/latest/networking/synccookies.html" }
+  ]
+}

@@ -1,0 +1,116 @@
+{
+  "id": "glossario-net-vol",
+  "title": "Glossário: Ataques Volumétricos",
+  "description": "Definições técnicas dos principais termos de ataques DDoS, amplificação, mitigação e infraestrutura de scrubbing usados nos cenários NET_VOL.",
+  "content_type": "GLOSSARIO",
+  "category": {
+    "id": "NET_VOL",
+    "type": null,
+    "title": "Ataques Volumétricos"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "8 minutos",
+    "difficulty": "Basico",
+    "targetAudience": "Todos os participantes de exercícios NET_VOL",
+    "prerequisites": []
+  },
+  "tags": ["DDoS", "amplificação", "mitigação", "scrubbing", "volumétrico", "glossário"],
+  "content": {
+    "terms": [
+      {
+        "term": "DDoS (Distributed Denial of Service)",
+        "acronym": "DDoS",
+        "definition": "Ataque que usa múltiplos sistemas distribuídos para sobrecarregar um alvo com tráfego ou requisições, tornando-o indisponível para usuários legítimos. Diferencia-se do DoS simples pela distribuição das fontes.",
+        "seeAlso": ["Amplificação", "Botnet", "RTBH"],
+        "relatedStudyId": "dns-conceito-amplificacao"
+      },
+      {
+        "term": "Amplificação",
+        "acronym": null,
+        "definition": "Técnica de ataque que explora protocolos onde a resposta é significativamente maior que a consulta. Combinada com IP spoofing, direciona esse volume amplificado para a vítima. Exemplos: DNS (até 80x), NTP monlist (até 556x), SSDP (até 30x).",
+        "seeAlso": ["Fator de Amplificação", "IP Spoofing", "Reflexão"],
+        "relatedStudyId": "dns-conceito-amplificacao"
+      },
+      {
+        "term": "Fator de Amplificação",
+        "acronym": null,
+        "definition": "Razão entre o tamanho da resposta e o tamanho da consulta em ataques de amplificação. Um fator de 70x significa que 1 byte de consulta gera 70 bytes de resposta. Determina a eficácia do ataque: quanto maior, mais tráfego direcionado à vítima por unidade de largura de banda do atacante.",
+        "seeAlso": ["Amplificação"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "IP Spoofing",
+        "acronym": null,
+        "definition": "Forjamento do endereço IP de origem em pacotes de rede. Permite que o atacante se apresente como outra origem (a vítima, em ataques de amplificação) ou oculte sua identidade. Combatido por BCP38 (filtragem de saída nas redes de acesso).",
+        "seeAlso": ["BCP38", "Amplificação"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "BCP38",
+        "acronym": "BCP38",
+        "definition": "Best Current Practice 38 (RFC 2827) — recomendação para que provedores de Internet implementem filtros de saída que impeçam que pacotes com endereços IP de origem inválidos (spoofados) saiam da rede. A adoção universal eliminaria os ataques de amplificação/reflexão.",
+        "seeAlso": ["IP Spoofing", "uRPF"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "Open Resolver (Resolver Aberto)",
+        "acronym": null,
+        "definition": "Servidor DNS configurado para responder a consultas recursivas de qualquer endereço IP de origem, incluindo endereços externos à sua rede. Principal vetor de ataques de amplificação DNS. Deve ser configurado para aceitar recursão apenas de clientes internos autorizados.",
+        "seeAlso": ["DNS", "Amplificação"],
+        "relatedStudyId": "dns-conceito-amplificacao"
+      },
+      {
+        "term": "Scrubbing Center",
+        "acronym": null,
+        "definition": "Infraestrutura especializada que recebe o tráfego de uma rede atacada por DDoS (via desvio BGP/Anycast), remove o tráfego malicioso e reinjeta apenas o tráfego legítimo. Operado por ISPs e serviços de proteção anti-DDoS.",
+        "seeAlso": ["RTBH", "BGP"],
+        "relatedStudyId": "dns-procedimento-mitigacao-ddos"
+      },
+      {
+        "term": "RTBH (Remote Triggered Black Hole)",
+        "acronym": "RTBH",
+        "definition": "Técnica que usa BGP para sinalizar ao upstream que descarte todo tráfego destinado a um IP/prefixo específico. Sacrifica a disponibilidade do alvo para proteger o restante da infraestrutura. Comunidades BGP especiais (ex: 65535:666) ativam o blackhole no upstream.",
+        "seeAlso": ["BGP", "DDoS"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "RRL (Response Rate Limiting)",
+        "acronym": "RRL",
+        "definition": "Mecanismo implementado em servidores DNS que limita a quantidade de respostas idênticas enviadas para o mesmo endereço de destino em um intervalo de tempo. Reduz a eficácia de amplificação DNS sem bloquear tráfego legítimo.",
+        "seeAlso": ["DNS", "Amplificação"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "SYN Flood",
+        "acronym": null,
+        "definition": "Ataque de camada 4 que envia grande volume de pacotes TCP SYN (com IP de origem spoofado ou real), esgotando a tabela de conexões half-open do servidor. Mitigado por SYN Cookies (RFC 4987), que elimina a necessidade de manter estado para conexões não confirmadas.",
+        "seeAlso": ["DDoS", "TCP", "SYN Cookie"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "NTP Monlist",
+        "acronym": null,
+        "definition": "Comando do protocolo NTP (Network Time Protocol) que retorna a lista dos últimos 600 hosts que sincronizaram com o servidor. Fator de amplificação de até 556x. Desabilitado em versões modernas do NTPd por padrão.",
+        "seeAlso": ["Amplificação", "DDoS"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "Botnet",
+        "acronym": null,
+        "definition": "Rede de dispositivos comprometidos (bots/zumbis) controlados por um Command and Control (C2). Usados para ataques DDoS volumétricos diretos (sem amplificação). Exemplos notórios: Mirai (dispositivos IoT), Emotet.",
+        "seeAlso": ["DDoS", "C2"],
+        "relatedStudyId": null
+      }
+    ]
+  },
+  "relatedScenarios": ["dns-amplification-attack"],
+  "relatedStudies": [
+    "dns-conceito-amplificacao",
+    "dns-procedimento-mitigacao-ddos",
+    "dns-ferramenta-dig-analise"
+  ],
+  "technicalReferences": []
+}

@@ -7,6 +7,7 @@ RUN npm ci --omit=dev
 
 COPY public ./public
 COPY scenarios ./scenarios
+copy studies ./studies
 COPY server.mjs ./
 COPY next.config.mjs ./
 COPY scripts ./scripts

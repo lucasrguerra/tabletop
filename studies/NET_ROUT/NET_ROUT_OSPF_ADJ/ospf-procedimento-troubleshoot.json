@@ -1,0 +1,124 @@
+{
+  "id": "ospf-procedimento-troubleshoot",
+  "title": "Troubleshooting de Adjacência OSPF",
+  "description": "Procedimento passo-a-passo para diagnosticar e corrigir falhas de adjacência OSPF: de vizinhos presos em Init/2-Way até o impasse em ExStart por MTU mismatch.",
+  "content_type": "PROCEDIMENTO",
+  "category": {
+    "id": "NET_ROUT",
+    "type": "NET_ROUT_OSPF_ADJ",
+    "title": "Falha de Adjacência OSPF"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "10 minutos",
+    "difficulty": "Avancado",
+    "targetAudience": "Engenheiros de Rede NOC",
+    "prerequisites": ["ospf-conceito-adjacencia"]
+  },
+  "tags": ["OSPF", "adjacência", "troubleshooting", "IGP", "MTU", "autenticação"],
+  "content": {
+    "context": "Acionado quando uma adjacência OSPF não forma, cai intermitentemente ou trava em estado diferente de Full. Impacto: rotas internas sumiram, hosts de segmentos específicos inacessíveis. O troubleshooting segue os estados OSPF para identificar em qual ponto o processo está travado.",
+    "steps": [
+      {
+        "id": 1,
+        "title": "Verificar o estado atual das adjacências",
+        "description": "Identifique o estado de cada vizinho. O estado em que a adjacência está presa indica a causa provável.",
+        "commands": [
+          "# Cisco IOS\nshow ip ospf neighbor",
+          "# Juniper JunOS\nshow ospf neighbor",
+          "# FRRouting (vtysh)\nshow ip ospf neighbor"
+        ],
+        "expectedResult": "Adjacências saudáveis aparecem como 'FULL'. Estados problemáticos:\n- INIT ou ausente: roteador não está recebendo Hello do vizinho\n- 2-WAY: em redes multiacesso, normal para não-DR/BDR. Em P2P, indica problema\n- EXSTART/EXCHANGE: quase sempre MTU mismatch\n- LOADING: raramente — problema de banco de estados (LSDB)",
+        "warnings": []
+      },
+      {
+        "id": 2,
+        "title": "Verificar conectividade L2/L3 básica",
+        "description": "Antes de ir ao OSPF, confirme que existe conectividade IP entre as interfaces que deveriam ser vizinhas OSPF.",
+        "commands": [
+          "# Verificar se o endereço do vizinho é alcançável\nping <IP_VIZINHO> source <IP_LOCAL>",
+          "# Verificar ARP (para links Ethernet)\nshow arp | include <IP_VIZINHO>",
+          "# Verificar se a interface está ativa com IP correto\nshow interfaces GigabitEthernet0/0"
+        ],
+        "expectedResult": "Ping com sucesso (resposta). ARP resolvido. Interface up/up com IP na mesma subnet do vizinho.",
+        "warnings": [
+          "Em links point-to-point (serial, WAN), não há ARP — use apenas ping",
+          "ACLs bloqueando protocolo 89 (OSPF) ou multicast 224.0.0.5/224.0.0.6 impedem Hello packets"
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Verificar parâmetros OSPF na interface",
+        "description": "Confirme que os parâmetros críticos são idênticos em ambos os lados: área, tipo de rede, timers Hello/Dead, autenticação.",
+        "commands": [
+          "# Cisco — detalhe da interface OSPF\nshow ip ospf interface GigabitEthernet0/0",
+          "# Juniper\nshow ospf interface ge-0/0/0 detail",
+          "# FRRouting\nshow ip ospf interface eth0"
+        ],
+        "expectedResult": "Em ambos os roteadores do link:\n- Area ID idêntica\n- Network Type idêntico (broadcast / point-to-point)\n- Hello interval idêntico (ex: 10s)\n- Dead interval idêntico (ex: 40s)\n- Auth type idêntico (none / simple / MD5)\n- Subnet idêntica",
+        "warnings": [
+          "Network type 'broadcast' vs 'point-to-point' no mesmo link é causa comum de adjacência 2-Way permanente",
+          "Timers diferentes fazem o roteador com Dead interval menor remover o vizinho antes de o outro enviar Hello"
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Diagnosticar MTU mismatch (adjacência presa em EXSTART)",
+        "description": "MTU incompatível impede a troca de DBD packets, travando a adjacência em EXSTART. Verifique o MTU configurado e o efetivo em ambos os lados.",
+        "commands": [
+          "# Verificar MTU da interface\nshow interfaces GigabitEthernet0/0 | include MTU",
+          "# Verificar se OSPF está ignorando MTU mismatch (workaround, não solução)\nshow running-config | include ip ospf mtu-ignore",
+          "# Solução real: alinhar o MTU\ninterface GigabitEthernet0/0\n  ip mtu 1500"
+        ],
+        "expectedResult": "MTU idêntico em ambos os lados do link. Sem 'ip ospf mtu-ignore' exceto em circunstâncias documentadas.",
+        "warnings": [
+          "ip ospf mtu-ignore é um workaround — pode mascarar problemas de MTU que afetam outros protocolos",
+          "Em túneis GRE e VxLAN, o MTU efetivo é menor que o da interface física — ajuste explicitamente"
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Verificar autenticação OSPF",
+        "description": "Se autenticação estiver configurada em um lado mas não no outro, ou com senhas diferentes, os Hello packets são descartados silenciosamente.",
+        "commands": [
+          "# Verificar configuração de autenticação\nshow running-config | section interface\nshow running-config | section router ospf",
+          "# Habilitar debug para ver rejeições\ndebug ip ospf adj\n# CUIDADO: verboso — use apenas em janela de manutenção"
+        ],
+        "expectedResult": "Auth type e senha/chave idênticas em ambos os lados. Nenhuma mensagem de rejeição de autenticação no debug.",
+        "warnings": [
+          "debug ip ospf adj é muito verboso em redes com muitas adjacências — use apenas na interface específica: debug ip ospf adj GigabitEthernet0/0"
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Verificar propagação de rotas após adjacência Full",
+        "description": "Com a adjacência em Full, confirme que as rotas esperadas aparecem na tabela de roteamento.",
+        "commands": [
+          "# Verificar rotas OSPF na tabela\nshow ip route ospf",
+          "# Verificar LSDB para consistência\nshow ip ospf database",
+          "# Confirmar rota específica\nshow ip route 10.0.0.0 255.0.0.0"
+        ],
+        "expectedResult": "Rotas marcadas com 'O' (OSPF intra-area) ou 'O IA' (inter-area) na tabela. LSDB sincronizado com o vizinho.",
+        "warnings": []
+      }
+    ],
+    "postConditions": [
+      "Todas as adjacências esperadas no estado Full",
+      "Rotas OSPF completas na tabela de roteamento",
+      "Causa raiz documentada e corrigida permanentemente (não apenas ip ospf mtu-ignore como workaround)"
+    ],
+    "escalationCriteria": [
+      "Adjacência em Full mas rotas específicas ausentes — pode indicar redistribuição ou summarization problemáticos",
+      "Adjacências formam e caem repetidamente — possível problema de hardware (perda de pacotes intermitente no link)",
+      "Falha afeta múltiplos links simultâneos — pode indicar problema no processo OSPF ou sobrecarga de CPU"
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": ["ospf-conceito-adjacencia", "glossario-net-rout"],
+  "technicalReferences": [
+    { "title": "Cisco - OSPF Troubleshooting Guide", "url": "https://www.cisco.com/c/en/us/support/docs/ip/open-shortest-path-first-ospf/7039-1.html" },
+    { "title": "RFC 2328 - OSPF Version 2", "url": "https://www.rfc-editor.org/rfc/rfc2328" }
+  ]
+}

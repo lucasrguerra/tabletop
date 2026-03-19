@@ -1,0 +1,104 @@
+{
+  "id": "dns-ferramenta-dig-analise",
+  "title": "dig: Análise e Diagnóstico DNS",
+  "description": "Referência completa do comando dig para diagnóstico de problemas DNS, análise de respostas DNSSEC, detecção de resolvers abertos e troubleshooting de propagação.",
+  "content_type": "FERRAMENTA",
+  "category": {
+    "id": "NET_VOL",
+    "type": "NET_VOL_DNS_REFLECTION",
+    "title": "Amplificação DNS"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "12 minutos",
+    "difficulty": "Basico",
+    "targetAudience": "Analistas de Segurança, Engenheiros de Rede, Administradores de Sistemas",
+    "prerequisites": []
+  },
+  "tags": ["dig", "DNS", "DNSSEC", "troubleshooting", "ferramentas"],
+  "content": {
+    "toolName": "dig (Domain Information Groper)",
+    "toolVersion": "BIND utils 9.x+",
+    "purpose": "Consultar servidores DNS diretamente para diagnóstico, verificação de configuração, análise de DNSSEC e detecção de open resolvers.",
+    "installHint": "Linux: apt install dnsutils / yum install bind-utils | macOS: brew install bind | Windows: incluído no BIND para Windows",
+    "commands": [
+      {
+        "command": "dig @<SERVIDOR> <DOMINIO> <TIPO>",
+        "description": "Consulta básica: pergunta ao servidor especificado pelo registro de um domínio.",
+        "flags": [
+          { "flag": "@<SERVIDOR>", "meaning": "Resolver a consultar (IP ou hostname)" },
+          { "flag": "<TIPO>", "meaning": "Tipo de registro: A, AAAA, MX, NS, TXT, SOA, CNAME, ANY" },
+          { "flag": "+short", "meaning": "Saída resumida — apenas a resposta" },
+          { "flag": "+norecurse", "meaning": "Não solicita recursão (testa autoritative servers)" },
+          { "flag": "+tcp", "meaning": "Usa TCP em vez de UDP" }
+        ],
+        "exampleOutput": "; <<>> DiG 9.18 <<>> @8.8.8.8 rnp.br A\n;; ANSWER SECTION:\nrnp.br.   300  IN  A   200.130.0.9",
+        "interpretation": "Verificar se o IP retornado é o esperado. TTL baixo (<60s) pode indicar zona em transição ou misconfiguration."
+      },
+      {
+        "command": "dig @<RESOLVER_SUSPEITO> . ANY +bufsize=4096",
+        "description": "Testa se um resolver é aberto (responde a consultas de origens externas). Consulta a raiz com ANY e buffer EDNS grande para maximizar o tamanho da resposta.",
+        "flags": [
+          { "flag": ". ANY", "meaning": "Consulta registros ANY da zona raiz — resposta grande" },
+          { "flag": "+bufsize=4096", "meaning": "Solicita buffer EDNS de 4096 bytes — resposta ainda maior" }
+        ],
+        "exampleOutput": ";; Got answer:\n;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 12345\n;; flags: qr aa ra; QUERY: 1, ANSWER: 13, AUTHORITY: 0, ADDITIONAL: 25\n;; MSG SIZE  rcvd: 1129",
+        "interpretation": "Se 'ra' (recursion available) está nas flags e o resolver respondeu com NOERROR a partir do seu IP externo — é um open resolver. 'REFUSED' indica que está corretamente restrito."
+      },
+      {
+        "command": "dig @<SERVIDOR> <DOMINIO> +dnssec +multiline",
+        "description": "Consulta com validação DNSSEC. Verifica se o domínio está assinado e se as assinaturas são válidas.",
+        "flags": [
+          { "flag": "+dnssec", "meaning": "Solicita registros RRSIG/DNSKEY na resposta" },
+          { "flag": "+multiline", "meaning": "Formata registros longos em múltiplas linhas (legível)" },
+          { "flag": "+sigchase", "meaning": "Rastreia a cadeia de confiança DNSSEC (versões antigas do dig)" }
+        ],
+        "exampleOutput": ";; flags: qr rd ra ad; QUERY: 1, ANSWER: 2\n;; ANSWER SECTION:\nrnp.br.  300 IN A 200.130.0.9\nrnp.br.  300 IN RRSIG A 8 2 300 (\n                20250401000000 20250301000000 12345 rnp.br.\n                <assinatura_base64> )",
+        "interpretation": "Flag 'ad' (authenticated data) indica que o resolver validou DNSSEC com sucesso. Ausência de RRSIG indica domínio sem DNSSEC ou servidor não retornando assinaturas."
+      },
+      {
+        "command": "dig <DOMINIO> +trace",
+        "description": "Segue a delegação DNS desde a raiz até o servidor autoritativo. Útil para diagnosticar problemas de delegação ou NS desatualizados.",
+        "flags": [
+          { "flag": "+trace", "meaning": "Realiza a resolução iterativa passo-a-passo" },
+          { "flag": "+nssearch", "meaning": "Encontra servidores NS autoritativos e testa cada um" }
+        ],
+        "exampleOutput": ". 518400 IN NS a.root-servers.net.\n;; Received 228 bytes from 198.41.0.4#53\n\nbr. 172800 IN NS a.dns.br.\n;; Received 614 bytes from 192.5.6.30#53\n\nrnp.br. 86400 IN NS ns1.rnp.br.\n;; Received 98 bytes from 200.160.0.1#53",
+        "interpretation": "Cada bloco é um nível de delegação. Se a resolução falha em algum nível, o problema está no servidor daquele nível. Compare os NSes retornados em cada etapa com o esperado."
+      },
+      {
+        "command": "dig -x <IP>",
+        "description": "Consulta reversa (PTR) para um endereço IP. Útil para identificar proprietário de IPs em análise de tráfego.",
+        "flags": [
+          { "flag": "-x <IP>", "meaning": "Realiza lookup reverso automaticamente no formato in-addr.arpa" }
+        ],
+        "exampleOutput": ";; ANSWER SECTION:\n9.0.130.200.in-addr.arpa. 3600 IN PTR ns1.rnp.br.",
+        "interpretation": "Ausência de registro PTR é esperado para muitos IPs. PTR incoerente com o hostname forward pode indicar misconfiguration ou IP de terceiro."
+      }
+    ],
+    "outputFields": [
+      { "field": "status", "meaning": "NOERROR=resposta normal, NXDOMAIN=domínio não existe, REFUSED=servidor recusou, SERVFAIL=falha interna", "normalRange": "NOERROR para consultas a domínios existentes" },
+      { "field": "flags: ra", "meaning": "Recursion Available — servidor aceita consultas recursivas", "normalRange": "Presente apenas em resolvers internos/autorizados" },
+      { "field": "flags: ad", "meaning": "Authenticated Data — DNSSEC validado com sucesso", "normalRange": "Presente quando domínio tem DNSSEC e resolver valida" },
+      { "field": "MSG SIZE rcvd", "meaning": "Tamanho da resposta recebida em bytes", "normalRange": "Respostas >512 bytes usam EDNS ou TCP; >3000 bytes são grandes e exploráveis para amplificação" },
+      { "field": "TTL", "meaning": "Time to Live — quanto tempo a resposta pode ser cacheada", "normalRange": "300-86400s típico; valores muito baixos (<30s) podem indicar mudanças em andamento" }
+    ],
+    "commonPitfalls": [
+      "dig sem @ usa o resolver do sistema (/etc/resolv.conf) — para testar um servidor específico, sempre especifique @IP",
+      "Consultas ANY foram depreciadas (RFC 8482) — servidores modernos podem responder com HINFO ou resposta mínima",
+      "+short omite informação de debug útil — use apenas para automação, não para diagnóstico manual",
+      "Timeout padrão do dig é 5 segundos — em redes lentas, aumentar com +time=10"
+    ]
+  },
+  "relatedScenarios": ["dns-amplification-attack"],
+  "relatedStudies": [
+    "dns-conceito-amplificacao",
+    "dns-procedimento-mitigacao-ddos"
+  ],
+  "technicalReferences": [
+    { "title": "dig man page (ISC BIND)", "url": "https://linux.die.net/man/1/dig" },
+    { "title": "RFC 8482 - Deprecating ANY queries", "url": "https://www.rfc-editor.org/rfc/rfc8482" }
+  ]
+}

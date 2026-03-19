@@ -1,0 +1,95 @@
+{
+  "id": "bgp-ferramenta-rpki-validacao",
+  "title": "Ferramentas de Validação e Monitoramento RPKI/BGP",
+  "description": "Referência de comandos e ferramentas para verificar cobertura RPKI, validar ROAs, consultar tabelas BGP globais e monitorar anúncios de prefixos em tempo real.",
+  "content_type": "FERRAMENTA",
+  "category": {
+    "id": "NET_ROUT",
+    "type": "NET_ROUT_BGP_HIJACK",
+    "title": "Sequestro de Prefixo BGP"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "15 minutos",
+    "difficulty": "Intermediario",
+    "targetAudience": "Engenheiros de Rede, Equipe NOC",
+    "prerequisites": ["bgp-conceito-prefix-hijacking"]
+  },
+  "tags": ["RPKI", "BGP", "ROA", "ferramentas", "looking glass", "monitoramento"],
+  "content": {
+    "toolName": "Conjunto de ferramentas RPKI/BGP",
+    "purpose": "Verificar o estado da tabela BGP global, validar cobertura RPKI, consultar registros IRR e identificar anúncios suspeitos.",
+    "commands": [
+      {
+        "command": "curl -s 'https://stat.ripe.net/data/bgp-state/data.json?resource=<PREFIXO>'",
+        "description": "Consulta o estado BGP atual de um prefixo via RIPE Stat API. Retorna todos os AS origins e AS paths observados globalmente.",
+        "flags": [],
+        "exampleOutput": "{\n  \"data\": {\n    \"routes\": [\n      { \"origin\": \"AS64500\", \"peer_count\": 142, \"prefix\": \"198.51.100.0/16\" }\n    ]\n  }\n}",
+        "interpretation": "Verifique se o campo 'origin' contém apenas ASNs autorizados. Múltiplos origins para o mesmo prefixo podem indicar hijack ou anycast legítimo."
+      },
+      {
+        "command": "curl -s 'https://stat.ripe.net/data/rpki-validation/data.json?resource=<ASN>&prefix=<PREFIXO>'",
+        "description": "Verifica o status de validação RPKI de um par ASN+prefixo. Retorna 'valid', 'invalid' ou 'not-found'.",
+        "flags": [],
+        "exampleOutput": "{\n  \"data\": {\n    \"status\": \"valid\",\n    \"validating_roas\": [\n      { \"origin\": \"AS64500\", \"prefix\": \"198.51.100.0/16\", \"max_length\": 24 }\n    ]\n  }\n}",
+        "interpretation": "'valid' = ROA existe e cobre este par ASN+prefixo. 'not-found' = sem ROA (aceito por ASes sem ROV). 'invalid' = ROA existe mas contradiz o anúncio (descartado por ASes com ROV habilitado)."
+      },
+      {
+        "command": "bgpq4 -j -A <AS-SET>",
+        "description": "Gera prefix-list JSON a partir de um AS-SET registrado no IRR. Ferramenta local, requer instalação.",
+        "flags": [
+          { "flag": "-j", "meaning": "Saída em formato JSON" },
+          { "flag": "-A", "meaning": "Agrega prefixos (remove rotas mais específicas redundantes)" },
+          { "flag": "-4", "meaning": "Apenas IPv4 (padrão)" },
+          { "flag": "-6", "meaning": "Apenas IPv6" },
+          { "flag": "-S RADB,RIPE,APNIC", "meaning": "Especifica bases IRR a consultar" }
+        ],
+        "exampleOutput": "{\n  \"prefixes\": [\n    { \"prefix\": \"198.51.100.0/16\", \"exact\": false }\n  ]\n}",
+        "interpretation": "Liste os prefixos que seu AS deveria anunciar. Compare com o que está efetivamente na tabela BGP para detectar anúncios não registrados."
+      },
+      {
+        "command": "whois -h whois.bgpmon.net <PREFIXO>",
+        "description": "Consulta histórico de anúncios BGP para um prefixo no BGPmon. Útil para ver quando o hijack começou.",
+        "flags": [],
+        "exampleOutput": "Route: 198.51.100.0/16\nOrigin: AS64500\nPeers: 142\nFirst seen: 2024-01-15 08:32 UTC\nLast seen: 2025-03-01 14:00 UTC",
+        "interpretation": "Compare 'First seen' do AS suspeito com o horário normal dos seus anúncios. Anúncio repentino de um AS desconhecido é indicador forte de hijack."
+      },
+      {
+        "command": "traceroute -A <IP_DESTINO>",
+        "description": "Traceroute com exibição do ASN de cada salto (flag -A em versões modernas). Permite visualizar onde o tráfego desvia para o AS do hijacker.",
+        "flags": [
+          { "flag": "-A", "meaning": "Exibe ASN de cada hop (requer suporte do SO)" },
+          { "flag": "-n", "meaning": "Não resolve nomes DNS (mais rápido)" },
+          { "flag": "-m 30", "meaning": "Máximo de 30 hops" }
+        ],
+        "exampleOutput": "traceroute to 198.51.100.1, 30 hops max\n  1  192.168.1.1 [AS64500]   1.2 ms\n  2  10.0.0.1 [AS64500]      2.1 ms\n  3  203.0.113.1 [AS65530]   45.3 ms  ← DESVIO AQUI\n  4  198.51.100.1 [AS65530]  46.0 ms",
+        "interpretation": "Se o tráfego passa por um AS não esperado antes de chegar ao destino, esse AS pode ser o hijacker — ou um AS intermediário que instalou a rota errada."
+      }
+    ],
+    "outputFields": [
+      { "field": "origin", "meaning": "ASN que origina o prefixo na tabela BGP", "normalRange": "Deve ser um dos ASNs autorizados da organização" },
+      { "field": "peer_count", "meaning": "Número de peers BGP que veem esta rota", "normalRange": "Valores altos (>50) indicam propagação global ampla" },
+      { "field": "status (RPKI)", "meaning": "Resultado da validação RPKI", "normalRange": "'valid' para todos os prefixos com ROA configurado" },
+      { "field": "max_length", "meaning": "Comprimento máximo de prefixo permitido pelo ROA", "normalRange": "Deve ser >= que o maior prefixo específico anunciado" }
+    ],
+    "commonPitfalls": [
+      "ROA com maxLength igual ao do prefixo raiz bloqueia anúncios de sub-prefixos legítimos — sempre verifique antes de anunciar /24 se há ROA cobrindo",
+      "A API do RIPE Stat pode ter delay de 5-15 minutos em relação ao estado real da tabela — para tempo real, use looking glass local do seu upstream",
+      "bgpq4 requer que os objetos route/route6 no IRR estejam atualizados — IRR desatualizado é tão perigoso quanto não ter IRR",
+      "traceroute com -A nem sempre mostra o ASN correto — cross-referenciar com whois do IP do salto"
+    ]
+  },
+  "relatedScenarios": ["bgp-prefix-hijacking"],
+  "relatedStudies": [
+    "bgp-conceito-prefix-hijacking",
+    "bgp-procedimento-resposta-hijack"
+  ],
+  "technicalReferences": [
+    { "title": "RIPE Stat API Documentation", "url": "https://stat.ripe.net/docs/02.data-api/" },
+    { "title": "bgpq4 - BGP Prefix List Generator", "url": "https://github.com/bgp/bgpq4" },
+    { "title": "Hurricane Electric BGP Looking Glass", "url": "https://lg.he.net/" },
+    { "title": "Cloudflare RPKI Validator", "url": "https://rpki.cloudflare.com/" }
+  ]
+}

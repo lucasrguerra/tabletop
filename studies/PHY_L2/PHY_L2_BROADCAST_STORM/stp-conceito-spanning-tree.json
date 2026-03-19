@@ -1,0 +1,74 @@
+{
+  "id": "stp-conceito-spanning-tree",
+  "title": "Spanning Tree Protocol: Loops de Camada 2 e Convergência",
+  "description": "Explica como loops de camada 2 causam broadcast storms, como o STP previne esse cenário através da eleição de Root Bridge e bloqueio de portas, e as variantes RSTP e MSTP.",
+  "content_type": "CONCEITO",
+  "category": {
+    "id": "PHY_L2",
+    "type": "PHY_L2_BROADCAST_STORM",
+    "title": "Broadcast Storm e Spanning Tree"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "10 minutos",
+    "difficulty": "Basico",
+    "targetAudience": "Engenheiros de Rede, Técnicos de NOC, Administradores de Infraestrutura",
+    "prerequisites": []
+  },
+  "tags": ["STP", "RSTP", "spanning tree", "loop L2", "broadcast storm", "switch"],
+  "content": {
+    "sections": [
+      {
+        "id": "problema-loop-l2",
+        "title": "O problema: loops de camada 2",
+        "body": "Redes Ethernet com redundância física criam loops de camada 2. Diferente do IP, os switches não têm um equivalente ao TTL para descartar quadros em loop — um quadro pode circular indefinidamente.\n\nO resultado de um loop L2 ativo é uma broadcast storm: quadros broadcast (ARP, DHCP) são replicados exponencialmente em cada switch do loop, saturando completamente todos os links em milissegundos a segundos. A rede inteira entra em colapso.",
+        "callout": {
+          "type": "danger",
+          "text": "Uma broadcast storm pode derrubar uma rede inteira em menos de 5 segundos. Um único cabo patch plugado em duas portas do mesmo switch pode causar isso. Monitore erros de interface e tabelas CAM anormais como sinal de alerta."
+        },
+        "keyPoints": [
+          "Ethernet não tem TTL — loops circulam indefinidamente sem controle",
+          "Broadcast storm = replicação exponencial de quadros broadcast em loop",
+          "Sintoma: 100% de utilização em todas as interfaces, perda total de conectividade"
+        ]
+      },
+      {
+        "id": "stp-mecanismo",
+        "title": "STP (802.1D): solução por bloqueio de portas",
+        "body": "O Spanning Tree Protocol (IEEE 802.1D) constrói uma topologia lógica em árvore sem loops, mesmo que a topologia física contenha redundância.\n\nO processo funciona em três etapas:\n1. Eleição do Root Bridge: o switch com menor Bridge ID (prioridade + MAC) se torna a raiz.\n2. Seleção de Root Ports: cada switch não-raiz escolhe a porta com menor custo para alcançar o Root Bridge.\n3. Bloqueio de portas redundantes: portas que criariam loops são colocadas em estado Blocking — passam a descartar quadros mas continuam monitorando BPDUs.",
+        "codeBlock": {
+          "language": "text",
+          "code": "Bridge ID = Prioridade (16 bits) + MAC Address (48 bits)\nPadrão: prioridade = 32768\n\nEleição: Bridge ID mais baixo vence\n  → 32768.aa:bb:cc:dd:ee:01  vs  32768.aa:bb:cc:dd:ee:02\n  → Switch com MAC menor se torna Root Bridge (empate em prioridade)"
+        },
+        "keyPoints": [
+          "Root Bridge é eleito — mas deve ser o switch core, não qualquer switch",
+          "Prioridade configurável em múltiplos de 4096 (0–61440) — configure explicitamente!",
+          "Portas em Blocking descartam dados mas continuam recebendo BPDUs"
+        ]
+      },
+      {
+        "id": "rstp-mstp",
+        "title": "RSTP e MSTP: convergência rápida",
+        "body": "O STP clássico (802.1D) tem convergência lenta: 30-50 segundos para recalcular a topologia após uma falha. Isso é inaceitável em redes modernas.\n\nRSTP (802.1w — Rapid STP) introduz novos estados de porta e mecanismos de negociação que reduzem a convergência para 1-2 segundos. As portas podem entrar diretamente no estado Forwarding via proposta/acordo com o switch vizinho, sem aguardar timers fixos.\n\nMSTP (802.1s — Multiple STP) permite diferentes instâncias STP para diferentes VLANs, possibilitando balanceamento de carga sobre links redundantes. Cada instância tem seu próprio Root Bridge.\n\nNas implementações modernas (Cisco PVST+, Juniper), RSTP ou MSTP são padrão. STP 802.1D legado deve ser evitado em novas implementações.",
+        "callout": {
+          "type": "tip",
+          "text": "Configure PortFast (Cisco) ou Edge Port (outros) em portas de acesso (hosts/servidores) — elas ignoram STP e entram direto em Forwarding. Configure BPDU Guard nessas mesmas portas para desligar automaticamente se um switch não autorizado for conectado."
+        },
+        "keyPoints": [
+          "RSTP (802.1w) substitui STP — convergência em 1-2s vs 30-50s do 802.1D",
+          "MSTP (802.1s) — instâncias STP por grupo de VLANs, permite load balancing",
+          "PortFast + BPDU Guard são imprescindíveis em portas de acesso"
+        ]
+      }
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": ["glossario-phy-l2"],
+  "technicalReferences": [
+    { "title": "IEEE 802.1D - Spanning Tree Protocol", "url": "https://standards.ieee.org/ieee/802.1D/3484/" },
+    { "title": "IEEE 802.1w - Rapid STP", "url": "https://standards.ieee.org/ieee/802.1w/1940/" },
+    { "title": "Cisco - Understanding Spanning Tree Protocol", "url": "https://www.cisco.com/c/en/us/support/docs/lan-switching/spanning-tree-protocol/5234-5.html" }
+  ]
+}

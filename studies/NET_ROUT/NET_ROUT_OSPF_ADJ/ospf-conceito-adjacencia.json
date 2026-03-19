@@ -1,0 +1,70 @@
+{
+  "id": "ospf-conceito-adjacencia",
+  "title": "OSPF: Adjacências, LSAs e Convergência",
+  "description": "Explica como o OSPF estabelece adjacências entre roteadores, os tipos de LSA e como falhas de adjacência causam blackholes e loops de roteamento interno.",
+  "content_type": "CONCEITO",
+  "category": {
+    "id": "NET_ROUT",
+    "type": "NET_ROUT_OSPF_ADJ",
+    "title": "Falha de Adjacência OSPF"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "10 minutos",
+    "difficulty": "Intermediario",
+    "targetAudience": "Engenheiros de Rede, Operadores de NOC",
+    "prerequisites": []
+  },
+  "tags": ["OSPF", "adjacência", "LSA", "IGP", "SPF", "roteamento interno"],
+  "content": {
+    "sections": [
+      {
+        "id": "ospf-basico",
+        "title": "OSPF: protocolo de estado de link",
+        "body": "O OSPF (Open Shortest Path First) é um protocolo de roteamento intra-domínio baseado em estado de link. Cada roteador mantém um mapa completo da topologia (LSDB — Link State Database) e calcula o caminho mais curto para cada destino usando o algoritmo Dijkstra (SPF — Shortest Path First).\n\nDiferente do RIP (baseado em vetor de distância), o OSPF converge mais rapidamente e não tem o problema de contagem ao infinito. É o IGP dominante em redes corporativas e de pesquisa de médio e grande porte.",
+        "keyPoints": [
+          "OSPF mantém mapa completo da topologia, não apenas vizinhos diretos",
+          "Convergência rápida: recalcula rota em segundos após falha",
+          "Organizado em areas para reduzir volume de LSAs em redes grandes"
+        ]
+      },
+      {
+        "id": "adjacencia-estados",
+        "title": "Estados de adjacência e processo de formação",
+        "body": "Para trocar informações de roteamento, dois roteadores OSPF precisam primeiro estabelecer adjacência. O processo passa por 8 estados:\n\nDown → Init → 2-Way → ExStart → Exchange → Loading → Full\n\nOs mais importantes:\n- 2-Way: roteadores se viram nos Hello packets do outro. Em redes multiacesso (Ethernet), apenas roteadores que chegam a Full com o DR/BDR trocam LSAs.\n- Full: adjacência completa — LSDBs sincronizadas. É o estado desejado.\n\nFalha de adjacência: se a adjacência cair (Dead Interval expirado sem Hello), o roteador remove a rota e recalcula o SPF. Rotas que dependiam daquele vizinho são perdidas.",
+        "codeBlock": {
+          "language": "text",
+          "code": "Timers padrão OSPF:\n  Hello Interval:  10 segundos (redes ponto-a-ponto e broadcast)\n  Dead Interval:   40 segundos (4x Hello Interval)\n  Retransmit:       5 segundos\n\nAjuste para convergência rápida:\n  Hello Interval:  1 segundo\n  Dead Interval:   4 segundos\n  → Detecção de falha em < 5 segundos"
+        },
+        "callout": {
+          "type": "warning",
+          "text": "Os timers Hello e Dead DEVEM ser idênticos em ambos os roteadores de um link. Timers diferentes fazem a adjacência nunca subir ou cair intermitentemente. É uma das causas mais comuns de falhas de adjacência."
+        },
+        "keyPoints": [
+          "Estado Full = adjacência funcionando corretamente",
+          "Dead Interval = tempo sem Hello até marcar vizinho como DOWN",
+          "Timers incompatíveis entre vizinhos impedem formação de adjacência"
+        ]
+      },
+      {
+        "id": "causas-falha",
+        "title": "Causas comuns de falha de adjacência",
+        "body": "As causas mais frequentes de adjacência OSPF não subir ou cair:\n\n1. Timers incompatíveis: Hello ou Dead interval diferentes nos dois lados do link.\n2. Area mismatch: roteadores configurados em areas diferentes no mesmo segmento.\n3. Authentication mismatch: autenticação OSPF habilitada em um lado mas não no outro, ou senhas diferentes.\n4. MTU mismatch: diferentes configurações de MTU impedem troca de DBD packets. Sintoma: adjacência prende no estado ExStart/Exchange.\n5. Subnet mismatch: interfaces em subnets diferentes.\n6. Network type mismatch: um lado configurado como point-to-point, outro como broadcast — afeta eleição de DR/BDR.\n\nO troubleshooting começa com 'show ip ospf neighbor' para ver o estado atual e então verificar os parâmetros de cada causa.",
+        "keyPoints": [
+          "MTU mismatch é a causa mais difícil de diagnosticar — adjacência sobe até Exchange e trava",
+          "Autenticação incompatível não mostra o vizinho em Init — o Hello é descartado silenciosamente",
+          "'debug ip ospf adj' revela a causa exata mas é verboso — usar com cuidado em produção"
+        ]
+      }
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": ["glossario-net-rout"],
+  "technicalReferences": [
+    { "title": "RFC 2328 - OSPF Version 2", "url": "https://www.rfc-editor.org/rfc/rfc2328" },
+    { "title": "RFC 5340 - OSPF for IPv6 (OSPFv3)", "url": "https://www.rfc-editor.org/rfc/rfc5340" },
+    { "title": "Cisco - OSPF Troubleshooting Guide", "url": "https://www.cisco.com/c/en/us/support/docs/ip/open-shortest-path-first-ospf/7039-1.html" }
+  ]
+}

@@ -9,6 +9,7 @@ import {
 	FaShieldAlt,
 	FaTachometerAlt,
 	FaBook,
+	FaGraduationCap,
 	FaSignOutAlt,
 	FaBars,
 	FaTimes,
@@ -70,6 +71,12 @@ export default function DashboardLayout({ children }) {
 			name: 'Treinamentos',
 			href: '/dashboard/trainings',
 			icon: FaBook,
+			exact: false
+		},
+		{
+			name: 'Estudos',
+			href: '/dashboard/studies',
+			icon: FaGraduationCap,
 			exact: false
 		},
 		{

@@ -1,0 +1,80 @@
+{
+  "id": "psi-conceito-politica-seguranca",
+  "title": "Política de Segurança da Informação: Estrutura e Implementação",
+  "description": "Explica o que é uma PSI (Política de Segurança da Informação), sua hierarquia de documentos (política, norma, procedimento, instrução), os requisitos da ISO 27001, e como estruturar uma PSI adequada para instituições de ensino e pesquisa.",
+  "content_type": "CONCEITO",
+  "category": {
+    "id": "GOV_LEGAL",
+    "type": "GOV_LEGAL_PRIVACY_BREACH",
+    "title": "Governança de Segurança"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "10 minutos",
+    "difficulty": "Intermediario",
+    "targetAudience": "Gestores de TI, DPO, CISO, Coordenadores de Segurança",
+    "prerequisites": []
+  },
+  "tags": ["PSI", "ISO 27001", "política", "governança", "segurança da informação", "ISMS"],
+  "content": {
+    "sections": [
+      {
+        "id": "o-que-e-psi",
+        "title": "O que é PSI e por que é obrigatória",
+        "body": "Uma Política de Segurança da Informação (PSI) é o documento de mais alto nível que define os princípios, objetivos e responsabilidades da organização em relação à proteção de informações. Ela não descreve como fazer as coisas (isso fica nos procedimentos) — ela declara o que a organização se compromete a proteger e por quê.\n\nNo contexto de instituições de ensino e pesquisa federais, a PSI é exigida por:\n- Instrução Normativa GSI/PR nº 1/2008: obriga órgãos da APF a ter PSI aprovada pela alta administração\n- LGPD (Lei 13.709/2018): organizações que tratam dados pessoais devem ter políticas e medidas de segurança documentadas\n- Acordos de pesquisa internacional: muitos projetos com parceiros europeus exigem conformidade com ISO 27001 ou evidência de PSI formal\n\nSem PSI formalizada, a organização não tem baseline para medir conformidade, não pode demonstrar diligência em caso de incidente e não atende a requisitos legais e contratuais.",
+        "keyPoints": [
+          "PSI é mandatória para órgãos da APF (IN GSI 1/2008) e para organizações que tratam dados pessoais (LGPD)",
+          "PSI não descreve procedimentos técnicos — declara compromissos e princípios de alto nível",
+          "Aprovação pela alta administração é requisito — não pode ser documento apenas do TI"
+        ]
+      },
+      {
+        "id": "hierarquia",
+        "title": "Hierarquia de documentos: Política, Norma, Procedimento, Instrução",
+        "body": "Uma PSI efetiva é composta por uma hierarquia de documentos com granularidade crescente:\n\n1. Política (nível estratégico): declarações de alto nível aprovadas pela alta administração. Ex: 'A instituição protege a confidencialidade das informações de pesquisa de acordo com os termos dos acordos de colaboração.' 3-10 páginas.\n\n2. Norma (nível tático): regras específicas derivadas da política. Ex: 'Senhas devem ter mínimo de 12 caracteres e não podem ser reutilizadas nas últimas 10 trocas.' 1-3 páginas por norma.\n\n3. Procedimento (nível operacional): passo-a-passo de como cumprir as normas. Ex: 'Procedimento de resposta a incidentes de segurança'. 5-15 páginas.\n\n4. Instrução de trabalho (nível técnico): detalhes específicos de configuração. Ex: 'Como configurar autenticação multifator no portal acadêmico'. 1-5 páginas.\n\nEssa hierarquia garante que a política permaneça estável (muda raramente) enquanto as instruções técnicas são atualizadas conforme a tecnologia evolui.",
+        "codeBlock": {
+          "language": "text",
+          "code": "Hierarquia de documentos PSI:\n\n  [POLÍTICA DE SEGURANÇA DA INFORMAÇÃO]\n  ├── Princípios e objetivos\n  ├── Escopo e responsabilidades\n  └── Referências normativas\n      │\n      ├── [NORMA DE CONTROLE DE ACESSO]\n      │   ├── Regras de senha\n      │   └── MFA obrigatório para sistemas críticos\n      │\n      ├── [NORMA DE GESTÃO DE INCIDENTES]\n      │   └── Classificação e prazos de resposta\n      │\n      └── [NORMA DE PROTEÇÃO DE DADOS PESSOAIS]\n          └── Requisitos LGPD internos\n              │\n              ├── [PROC: Resposta a Incidente de Segurança]\n              ├── [PROC: Solicitação Judicial de Logs]\n              └── [INSTRUÇÃO: Configurar MFA no Portal]"
+        },
+        "keyPoints": [
+          "Política muda raramente (1-2 anos); normas mudam anualmente; procedimentos e instruções mudam conforme tecnologia",
+          "Política deve ser genérica o suficiente para não precisar ser atualizada a cada mudança de sistema",
+          "Cada nível referencia o nível superior — rastreabilidade de requisito para implementação"
+        ]
+      },
+      {
+        "id": "iso27001",
+        "title": "ISO 27001: Framework para o SGSI",
+        "body": "A ISO/IEC 27001 é o padrão internacional para Sistemas de Gestão de Segurança da Informação (SGSI). Ela fornece uma estrutura baseada em risco para selecionar, implementar e monitorar controles de segurança.\n\nOs 11 domínios do Anexo A da ISO 27001 cobrem:\n- A.5: Políticas de segurança\n- A.6: Organização da segurança\n- A.7: Segurança em RH\n- A.8: Gestão de ativos\n- A.9: Controle de acesso\n- A.10: Criptografia\n- A.11: Segurança física\n- A.12: Segurança de operações\n- A.13: Segurança de comunicações\n- A.14: Aquisição, desenvolvimento e manutenção de sistemas\n- A.15: Relacionamento com fornecedores\n- A.16: Gestão de incidentes\n- A.17: Continuidade de negócios\n- A.18: Conformidade\n\nPara cada domínio, a organização deve realizar uma análise de risco, selecionar controles adequados e documentar a justificativa para controles não aplicáveis (Statement of Applicability — SoA).",
+        "callout": {
+          "type": "warning",
+          "text": "ISO 27001 não prescreve quais controles implementar — apenas exige que você faça análise de risco e justifique suas escolhas. Uma organização pequena pode ter SGSI conforme sem implementar todos os 93 controles do Anexo A, desde que documente por que os não implementados não são aplicáveis ao seu contexto de risco."
+        },
+        "keyPoints": [
+          "ISO 27001 é baseada em risco — selecione controles proporcionais ao risco da organização",
+          "SoA (Statement of Applicability) documenta quais controles são implementados e por quê — documento central para auditoria",
+          "Conformidade ISO 27001 ≠ certificação ISO 27001 — é possível implementar o framework sem buscar certificação formal"
+        ]
+      },
+      {
+        "id": "psi-pesquisa",
+        "title": "PSI para Instituições de Pesquisa: Particularidades",
+        "body": "Instituições de pesquisa têm características que diferem de empresas privadas e que devem estar refletidas na PSI:\n\n- Dados de pesquisa com requisitos de compartilhamento: acordos internacionais podem exigir que dados sejam acessíveis a parceiros externos. A PSI deve equilibrar compartilhamento necessário com proteção adequada.\n\n- Propriedade intelectual: resultados de pesquisa antes da publicação são críticos. A PSI deve definir quem tem acesso a dados de pesquisa não publicados.\n\n- Pesquisadores como usuários privilegiados: diferente de funcionários corporativos, pesquisadores frequentemente precisam de acesso a sistemas externos, ferramentas diversas e infraestrutura de alto desempenho. A PSI não pode ser tão restritiva a ponto de impedir pesquisa.\n\n- Dados de pesquisa humana: projetos com dados de sujeitos humanos (saúde, comportamento) exigem controles adicionais além da LGPD — aprovação de CEP (Comitê de Ética em Pesquisa) e requisitos específicos de anonimização.",
+        "keyPoints": [
+          "PSI para pesquisa deve equilibrar abertura necessária para ciência com proteção de IP e dados sensíveis",
+          "Dados de pesquisa com sujeitos humanos exigem controles além da LGPD — aprovação de CEP",
+          "Pesquisadores precisam de exceções controladas — PSI rígida demais resulta em shadow IT e desvios não monitorados"
+        ]
+      }
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": ["lgpd-conceito-notificacao", "judicial-procedimento-resposta", "glossario-gov-legal"],
+  "technicalReferences": [
+    { "title": "ISO/IEC 27001:2022 - Information Security Management Systems", "url": "https://www.iso.org/standard/27001" },
+    { "title": "IN GSI/PR nº 1, de 13/06/2008 - Política de Segurança APF", "url": "https://www.gov.br/gsi/pt-br/assuntos/dsi/instrucoes-normativas" },
+    { "title": "ABNT NBR ISO/IEC 27002:2022 - Controles de Segurança", "url": "https://www.abnt.org.br/" }
+  ]
+}

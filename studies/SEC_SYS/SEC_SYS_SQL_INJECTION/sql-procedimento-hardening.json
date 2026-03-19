@@ -1,0 +1,133 @@
+{
+  "id": "sql-procedimento-hardening",
+  "title": "Hardening contra SQL Injection: Revisão e Correção de Código",
+  "description": "Procedimento para identificar, priorizar e corrigir vulnerabilidades de SQL Injection em sistemas existentes: desde o scan inicial com ferramentas automatizadas até a migração de queries concatenadas para prepared statements.",
+  "content_type": "PROCEDIMENTO",
+  "category": {
+    "id": "SEC_SYS",
+    "type": "SEC_SYS_SQL_INJECTION",
+    "title": "Injeção SQL"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "12 minutos",
+    "difficulty": "Intermediario",
+    "targetAudience": "Desenvolvedores, Analistas de Segurança, DevSecOps",
+    "prerequisites": ["sql-conceito-injection"]
+  },
+  "tags": ["SQL injection", "hardening", "prepared statements", "SAST", "DAST", "SQLMap", "WAF"],
+  "content": {
+    "context": "Acionado após descoberta de vulnerabilidade SQLi (por scanner, pentest ou bug bounty) ou como auditoria preventiva de sistemas de gestão acadêmica, portais ou APIs. O objetivo é mapear a superfície de ataque, corrigir as vulnerabilidades de maior risco primeiro e implementar controles compensatórios enquanto as correções são desenvolvidas.",
+    "steps": [
+      {
+        "id": 1,
+        "title": "Mapear entradas de dados do sistema",
+        "description": "Antes de qualquer scan, liste todos os pontos de entrada de dados externos: formulários, parâmetros de URL, headers HTTP, cookies, APIs. Esses são os vetores potenciais de SQLi.",
+        "commands": [
+          "# Listar rotas e parâmetros (exemplo com grep em codebase PHP)\ngrep -rn '\\$_GET\\|\\$_POST\\|\\$_REQUEST\\|\\$_COOKIE' --include='*.php' src/ | head -50",
+          "# Para aplicações Node.js\ngrep -rn 'req\\.query\\|req\\.body\\|req\\.params' --include='*.js' src/ | head -50",
+          "# Para Python/Django\ngrep -rn 'request\\.GET\\|request\\.POST\\|request\\.data' --include='*.py' . | head -50",
+          "# Listar queries SQL diretas (possível concatenação)\ngrep -rn 'SELECT\\|INSERT\\|UPDATE\\|DELETE' --include='*.php' src/ | grep '\\.' | head -30"
+        ],
+        "expectedResult": "Lista de todos os pontos de entrada. Queries SQL identificadas no código. Separação entre entradas já usando ORM/prepared statements e entradas com queries concatenadas.",
+        "warnings": [
+          "Inputs em headers HTTP (User-Agent, Referer, X-Forwarded-For) são frequentemente ignorados e podem conter SQLi",
+          "Parâmetros de paginação e ordenação (ex: ?sort=nome&order=asc) são vetores comuns de SQLi"
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Executar scan automatizado com SQLMap (ambiente de teste)",
+        "description": "Use SQLMap para confirmar vulnerabilidades nas URLs/endpoints identificados. NUNCA execute em produção sem autorização explícita — SQLMap é intrusivo e pode causar instabilidade.",
+        "commands": [
+          "# Scan básico de URL com parâmetro GET\nsqlmap -u 'http://homologacao.exemplo.edu.br/aluno?id=1' --batch --level=3",
+          "# Scan de formulário POST\nsqlmap -u 'http://homologacao.exemplo.edu.br/login' --data='user=teste&pass=teste' --batch",
+          "# Scan de API JSON\nsqlmap -u 'http://homologacao.exemplo.edu.br/api/aluno' --data='{\"id\":1}' --content-type='application/json' --batch",
+          "# Identificar banco de dados e versão\nsqlmap -u 'http://homologacao.exemplo.edu.br/aluno?id=1' --batch --dbs",
+          "# Listar tabelas de um banco (somente em ambiente de teste)\nsqlmap -u 'http://homologacao.exemplo.edu.br/aluno?id=1' --batch -D nome_banco --tables"
+        ],
+        "expectedResult": "SQLMap confirma ou descarta vulnerabilidade por endpoint. Relatório gerado em ~/.sqlmap/output/ com tipo de injeção (boolean-based, time-based, union-based) e payload.",
+        "warnings": [
+          "Nunca executar SQLMap em produção sem janela de manutenção e autorização — pode causar erros de banco e alertas no SIEM",
+          "SQLMap pode ser detectado por WAFs — em ambiente de teste, desabilitar WAF ou usar flag --tamper para bypass",
+          "SQLMap com --dump pode extrair dados reais — garantir que está em ambiente de homologação com dados anonimizados"
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Priorizar correções por criticidade",
+        "description": "Nem todas as SQLi têm o mesmo risco. Priorize pela combinação de facilidade de exploração, dados acessíveis e autenticação necessária.",
+        "commands": [
+          "# Critério de prioridade:\n# CRÍTICO: SQLi sem autenticação em endpoint público\n# ALTO: SQLi com autenticação em endpoint com dados sensíveis\n# MÉDIO: SQLi em endpoint administrativo\n# BAIXO: SQLi blind time-based em endpoint de baixo impacto\n\n# Verificar proteção de autenticação dos endpoints vulneráveis\ngrep -rn 'middleware\\|authenticate\\|isLoggedIn' --include='*.php' src/ | head -20"
+        ],
+        "expectedResult": "Lista priorizada: endpoints críticos (público + sem auth) no topo. Cronograma de correção definido com prazos por criticidade.",
+        "warnings": [
+          "Endpoints de login são especialmente críticos: SQLi em login permite bypass de autenticação completo"
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Corrigir: migrar queries para prepared statements",
+        "description": "A correção definitiva é substituir concatenação de strings por prepared statements. Cada linguagem/framework tem sua implementação.",
+        "commands": [
+          "# PHP — ANTES (vulnerável):\n# $query = \"SELECT * FROM alunos WHERE ra = '\" . $_GET['ra'] . \"'\";\n# $result = mysqli_query($conn, $query);\n\n# PHP — DEPOIS (seguro, PDO):\n# $stmt = $pdo->prepare('SELECT * FROM alunos WHERE ra = ?');\n# $stmt->execute([$_GET['ra']]);\n# $result = $stmt->fetchAll();\n\n# Python — ANTES (vulnerável):\n# cursor.execute(\"SELECT * FROM alunos WHERE ra = '\" + ra + \"'\")\n\n# Python — DEPOIS (seguro):\n# cursor.execute('SELECT * FROM alunos WHERE ra = %s', (ra,))\n\n# Java — DEPOIS (seguro, JDBC):\n# PreparedStatement stmt = conn.prepareStatement('SELECT * FROM alunos WHERE ra = ?');\n# stmt.setString(1, ra);\n# ResultSet rs = stmt.executeQuery();"
+        ],
+        "expectedResult": "Zero queries com concatenação de input de usuário. Todas as queries usando placeholders (?, :param) com valores passados separadamente via execute().",
+        "warnings": [
+          "ORMs como Hibernate, SQLAlchemy e Eloquent usam prepared statements internamente — mas métodos raw_query() e execute() ainda podem ser vulneráveis se usados com concatenação",
+          "ORDER BY e column names não podem ser parametrizados — se dinâmicos, usar whitelist: if ($col not in ['nome','ra','data']) { error; }"
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Aplicar controles compensatórios enquanto correção é desenvolvida",
+        "description": "Para endpoints críticos que não podem ser corrigidos imediatamente, implemente controles temporários que reduzam o risco.",
+        "commands": [
+          "# Habilitar regras de SQLi no WAF (ModSecurity + OWASP CRS)\n# Verificar modo de operação:\ngrep -i 'SecRuleEngine' /etc/modsecurity/modsecurity.conf\n# Ativar modo de bloqueio (DetectionOnly → On):\n# SecRuleEngine On\n\n# Habilitar regras OWASP CRS para SQLi:\n# Garantir que REQUEST-942-APPLICATION-ATTACK-SQLI.conf está ativo\nls /etc/modsecurity/crs/rules/ | grep 942",
+          "# Restringir acesso ao endpoint vulnerável por IP se possível\n# nginx — permitir apenas IPs internos:\n# location /admin/relatorio {\n#   allow 10.0.0.0/8;\n#   deny all;\n# }",
+          "# Adicionar monitoramento de SQLi nos logs de aplicação\ngrep -i \"UNION\\|SELECT.*FROM\\|OR.*=.*\\|--\\|'\\s*OR\" /var/log/nginx/access.log | tail -20"
+        ],
+        "expectedResult": "WAF em modo de bloqueio para regras SQLi. Endpoints críticos com restrição de acesso por IP. Monitoramento ativo para tentativas de exploração.",
+        "warnings": [
+          "WAF não é substituto para código seguro — pode ser bypassado. Usar apenas como controle complementar temporário",
+          "SecRuleEngine On pode bloquear tráfego legítimo — monitorar logs de WAF após ativação e ajustar exceções"
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Verificar correções e retestar",
+        "description": "Após implementar prepared statements, verificar que as correções foram efetivas.",
+        "commands": [
+          "# Retestar com SQLMap no endpoint corrigido\nsqlmap -u 'http://homologacao.exemplo.edu.br/aluno?id=1' --batch --level=3\n# Resultado esperado: 'all tested parameters do not appear to be injectable'",
+          "# Revisão de código — confirmar que não há mais concatenação\ngrep -rn 'execute.*\\$\\|query.*\\.' --include='*.php' src/ | grep -v prepare | head -20",
+          "# Executar análise estática (SAST) — exemplo com semgrep\nsemgrep --config=p/php-security src/\nsemgrep --config=p/python-security src/"
+        ],
+        "expectedResult": "SQLMap não encontra vulnerabilidade. Revisão de código sem queries concatenadas. SAST sem alertas de SQLi.",
+        "warnings": [
+          "Retestar também os endpoints adjacentes — correção de um pode revelar que outros seguem o mesmo padrão vulnerável"
+        ]
+      }
+    ],
+    "postConditions": [
+      "Zero queries com concatenação de input externo no código",
+      "Todos os endpoints testados por SQLMap sem vulnerabilidade confirmada",
+      "WAF ativo com regras SQLi como controle permanente adicional",
+      "Pipeline CI/CD com SAST (semgrep ou similar) bloqueando PRs com queries concatenadas",
+      "Relatório de remediação documentado para auditoria"
+    ],
+    "escalationCriteria": [
+      "SQLi blind time-based em banco de produção — dados podem já ter sido exfiltrados. Notificar DPO e avaliar obrigação de comunicação LGPD",
+      "SQLi com acesso a credenciais ou dados de outros sistemas — ampliar escopo de investigação",
+      "Sistema legado sem suporte a prepared statements (ex: MySQL antigo sem PDO) — avaliar upgrade de urgência"
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": ["sql-conceito-injection", "glossario-sec-sys"],
+  "technicalReferences": [
+    { "title": "OWASP SQL Injection Prevention Cheat Sheet", "url": "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html" },
+    { "title": "SQLMap Documentation", "url": "https://sqlmap.org/" },
+    { "title": "Semgrep - PHP Security Rules", "url": "https://semgrep.dev/p/php-security" }
+  ]
+}

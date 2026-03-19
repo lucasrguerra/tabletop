@@ -1,0 +1,108 @@
+{
+  "id": "glossario-phy-l2",
+  "title": "Glossário: Infraestrutura Física e Camada 2",
+  "description": "Definições técnicas dos principais termos de infraestrutura física, fibra óptica, SFP, Spanning Tree e camada 2 usados nos cenários PHY_L2.",
+  "content_type": "GLOSSARIO",
+  "category": {
+    "id": "PHY_L2",
+    "type": null,
+    "title": "Infraestrutura Física e Camada 2"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "8 minutos",
+    "difficulty": "Basico",
+    "targetAudience": "Todos os participantes de exercícios PHY_L2",
+    "prerequisites": []
+  },
+  "tags": ["fibra", "SFP", "Spanning Tree", "VLAN", "camada 2", "switch", "glossário"],
+  "content": {
+    "terms": [
+      {
+        "term": "SFP (Small Form-factor Pluggable)",
+        "acronym": "SFP",
+        "definition": "Transceptor óptico ou elétrico compacto e hot-swappable usado em equipamentos de rede. SFP suporta até 1 Gbps; SFP+ até 10 Gbps; QSFP até 40/100 Gbps. Monitora parâmetros ópticos via DDM/DOM (temperatura, potência TX/RX, tensão).",
+        "seeAlso": ["DDM/DOM", "Potência Óptica"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "DDM/DOM (Digital Diagnostic Monitoring)",
+        "acronym": "DDM",
+        "definition": "Padrão SFF-8472 que permite que transceptores ópticos reportem parâmetros de diagnóstico em tempo real via I2C: temperatura, tensão de alimentação, corrente de bias do laser, potência óptica TX e RX. Valores fora de faixa indicam falha iminente ou degradação.",
+        "seeAlso": ["SFP"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "Potência Óptica",
+        "acronym": null,
+        "definition": "Medida da energia de luz em um link de fibra óptica, expressa em dBm. Link saudável: RX entre -3 dBm e -20 dBm (varia por tipo de SFP). Valores abaixo do threshold mínimo indicam atenuação excessiva, conector sujo ou fratura de fibra.",
+        "seeAlso": ["SFP", "DDM/DOM", "OTDR"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "OTDR (Optical Time-Domain Reflectometer)",
+        "acronym": "OTDR",
+        "definition": "Equipamento de medição que injeta pulsos de laser em uma fibra óptica e analisa os reflexos para identificar localização de quebras, conectores, emendas e atenuação. A distância da falha é calculada com base no tempo de retorno do pulso.",
+        "seeAlso": ["Potência Óptica"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "STP (Spanning Tree Protocol)",
+        "acronym": "STP",
+        "definition": "Protocolo IEEE 802.1D que elimina loops de camada 2 em redes com redundância física. Seleciona uma Bridge Raiz (Root Bridge) e coloca portas redundantes em estado Blocking. Variantes: RSTP (802.1w — convergência rápida) e MSTP (802.1s — múltiplas instâncias por VLAN).",
+        "seeAlso": ["BPDU", "Root Bridge", "Broadcast Storm"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "BPDU (Bridge Protocol Data Unit)",
+        "acronym": "BPDU",
+        "definition": "Quadros de controle trocados entre switches para eleição do Root Bridge e manutenção da topologia STP. BPDU Guard bloqueia portas que recebem BPDUs inesperados (portas de acesso). BPDU Filter suprime BPDUs em portas específicas.",
+        "seeAlso": ["STP", "Root Bridge"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "Root Bridge",
+        "acronym": null,
+        "definition": "Switch eleito como raiz da árvore spanning tree. Todos os outros switches calculam o caminho mais curto até o Root Bridge. Eleição baseada em Bridge ID = prioridade (0-61440, múltiplo de 4096) + MAC address. Switch com menor Bridge ID vence.",
+        "seeAlso": ["STP", "BPDU"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "Broadcast Storm",
+        "acronym": null,
+        "definition": "Amplificação exponencial de quadros broadcast em uma rede com loop de camada 2 sem STP ativo. Um único quadro broadcast pode gerar tráfego que satura completamente todos os links envolvidos em milissegundos, derrubando a rede.",
+        "seeAlso": ["STP", "BPDU"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "VLAN (Virtual Local Area Network)",
+        "acronym": "VLAN",
+        "definition": "Segmentação lógica de uma rede física em múltiplos domínios de broadcast independentes. Configurada via tags IEEE 802.1Q nos switches. VLANs isolam tráfego entre departamentos/funções sem necessidade de hardware separado.",
+        "seeAlso": ["Trunk", "Access Port"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "Trunk Port",
+        "acronym": null,
+        "definition": "Porta de switch configurada para transportar múltiplas VLANs simultaneamente usando tags 802.1Q. Usada tipicamente em links entre switches ou entre switch e roteador/servidor. Opposite: access port (única VLAN, sem tag).",
+        "seeAlso": ["VLAN"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "LACP (Link Aggregation Control Protocol)",
+        "acronym": "LACP",
+        "definition": "Protocolo IEEE 802.3ad que agrega múltiplos links físicos em um único link lógico (LAG/bond), aumentando largura de banda e fornecendo redundância. Negociação dinâmica entre os dois lados. Alternativa estática: Port-channel sem LACP.",
+        "seeAlso": ["LAG"],
+        "relatedStudyId": null
+      }
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": [],
+  "technicalReferences": [
+    { "title": "IEEE 802.1D - Spanning Tree Protocol", "url": "https://standards.ieee.org/ieee/802.1D/3484/" },
+    { "title": "SFF-8472 - DDM for SFP", "url": "https://members.snia.org/document/dl/26411" }
+  ]
+}

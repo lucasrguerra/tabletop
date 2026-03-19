@@ -1,0 +1,79 @@
+{
+  "id": "dns-conceito-amplificacao",
+  "title": "Ataques de Amplificação DNS: Fundamentos",
+  "description": "Explica como ataques de amplificação DNS funcionam, o papel do IP spoofing, o fator de amplificação e por que resolvers abertos são o principal vetor.",
+  "content_type": "CONCEITO",
+  "category": {
+    "id": "NET_VOL",
+    "type": "NET_VOL_DNS_REFLECTION",
+    "title": "Amplificação DNS"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "10 minutos",
+    "difficulty": "Basico",
+    "targetAudience": "Analistas de Segurança, Engenheiros de Rede, Equipe NOC",
+    "prerequisites": []
+  },
+  "tags": ["DNS", "DDoS", "amplificação", "reflexão", "UDP", "spoofing"],
+  "content": {
+    "sections": [
+      {
+        "id": "mecanismo-basico",
+        "title": "O mecanismo básico: reflexão e amplificação",
+        "body": "Um ataque de amplificação DNS combina dois conceitos: reflexão (usar um terceiro como intermediário) e amplificação (obter resposta maior que a requisição).\n\nO atacante envia consultas DNS com o IP de origem falsificado (spoofed) para o endereço da vítima. Os resolvers DNS recebem a consulta aparentemente da vítima e enviam as respostas volumosas diretamente para ela. A vítima recebe tráfego que não solicitou, de centenas de resolvers diferentes, tornando o bloqueio por IP de origem praticamente inviável.",
+        "callout": {
+          "type": "info",
+          "text": "Para que o IP spoofing funcione, o atacante precisa estar em uma rede que não implementa BCP38/uRPF (Unicast Reverse Path Forwarding). Redes que implementam filtragem de saída bloqueiam pacotes com IP de origem falso antes que saiam da rede do atacante."
+        },
+        "keyPoints": [
+          "IP spoofing direciona respostas para a vítima sem que ela tenha enviado consultas",
+          "Resolvers abertos (open resolvers) respondem a qualquer origem — são o vetor principal",
+          "UDP é preferido por não exigir handshake — não há verificação de origem"
+        ]
+      },
+      {
+        "id": "fator-amplificacao",
+        "title": "Fator de amplificação: por que DNS é perigoso",
+        "body": "O fator de amplificação é a razão entre o tamanho da resposta e o da consulta. Para DNS, isso pode ser dramaticamente alto.\n\nUma consulta DNS típica tem 40-60 bytes. Mas consultas por registros ANY ou DNSSEC podem gerar respostas de 3.000 a 4.000 bytes. Um fator de amplificação de 70x significa que 1 Gbps de tráfego de saída do atacante se transforma em 70 Gbps direcionados à vítima.",
+        "codeBlock": {
+          "language": "text",
+          "code": "Consulta DNS (qualquer tipo):\n  Tamanho: ~40 bytes\n  Fonte:   [IP vítima SPOOFADO]\n  Destino: [Resolver aberto]\n\nResposta DNS (registro DNSKEY grande):\n  Tamanho: ~3.200 bytes  → fator 80x\n  Fonte:   [Resolver aberto]\n  Destino: [IP vítima]\n\nAtacante com 1 Gbps → vítima recebe até 80 Gbps"
+        },
+        "keyPoints": [
+          "Registros EDNS0/DNSSEC produzem respostas maiores — aumentam o fator de amplificação",
+          "Consultas ANY foram depreciadas (RFC 8482) justamente por este vetor",
+          "Fator típico: 28x a 80x dependendo do tipo de registro consultado"
+        ]
+      },
+      {
+        "id": "mitigacao-estrutural",
+        "title": "Mitigações estruturais",
+        "body": "A mitigação definitiva exige ação em múltiplas camadas:\n\n1. BCP38 nos provedores de acesso (impede IP spoofing na origem)\n2. Fechamento de resolvers abertos (responder apenas para IPs internos autorizados)\n3. Rate limiting de respostas DNS (Response Rate Limiting — RRL)\n4. Filtragem de tráfego volumétrico no upstream (scrubbing centers)\n\nA RNP opera um conjunto de scrubbing centers que podem ser acionados quando o volume de ataque ultrapassa a capacidade de absorção local.",
+        "callout": {
+          "type": "warning",
+          "text": "Fechar um resolver aberto elimina o vetor mas não protege a organização de ser vítima de amplificação usando resolvers de terceiros. Implemente rate limiting no upstream e configure alertas de volumetria."
+        },
+        "keyPoints": [
+          "BCP38 (filtragem de saída) é a solução mais eficaz globalmente — depende de adoção do setor",
+          "RRL (Response Rate Limiting) limita a quantidade de respostas idênticas por intervalo de tempo",
+          "Scrubbing center desvia tráfego de ataque antes de atingir a infraestrutura"
+        ]
+      }
+    ]
+  },
+  "relatedScenarios": ["dns-amplification-attack"],
+  "relatedStudies": [
+    "dns-procedimento-mitigacao-ddos",
+    "dns-ferramenta-dig-analise",
+    "glossario-net-vol"
+  ],
+  "technicalReferences": [
+    { "title": "RFC 5358 - Preventing Use of Recursive Nameservers in Reflector Attacks", "url": "https://www.rfc-editor.org/rfc/rfc5358" },
+    { "title": "RFC 8482 - Providing Minimal-Sized Responses to DNS Queries for QTYPE=ANY", "url": "https://www.rfc-editor.org/rfc/rfc8482" },
+    { "title": "BCP38 - Network Ingress Filtering", "url": "https://www.rfc-editor.org/rfc/rfc2827" },
+    { "title": "CAIDA - Open DNS Resolver Project", "url": "https://openresolverproject.org/" }
+  ]
+}

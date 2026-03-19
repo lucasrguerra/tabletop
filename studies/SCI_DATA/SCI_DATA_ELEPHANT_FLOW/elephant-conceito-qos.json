@@ -1,0 +1,70 @@
+{
+  "id": "elephant-conceito-qos",
+  "title": "Elephant Flows e QoS em Redes de Pesquisa",
+  "description": "Explica o problema de elephant flows em redes de alta velocidade, o impacto em outros usuários, e como QoS, DSCP e filas de prioridade mitigam a contenção por largura de banda.",
+  "content_type": "CONCEITO",
+  "category": {
+    "id": "SCI_DATA",
+    "type": "SCI_DATA_ELEPHANT_FLOW",
+    "title": "Elephant Flow / Congestionamento"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "10 minutos",
+    "difficulty": "Intermediario",
+    "targetAudience": "Engenheiros de Rede, Administradores de Infraestrutura Científica",
+    "prerequisites": []
+  },
+  "tags": ["elephant flow", "QoS", "DSCP", "redes científicas", "GridFTP", "congestionamento"],
+  "content": {
+    "sections": [
+      {
+        "id": "o-que-e-elephant",
+        "title": "O que são elephant flows",
+        "body": "Em análise de tráfego de rede, distingue-se dois tipos de fluxo:\n\nMouse flows: fluxos curtos (< 1 MB), alta frequência, baixa latência exigida. Representam a maioria dos fluxos em número, mas pequena fração do volume total. Exemplos: consultas DNS, requisições HTTP de páginas, e-mails.\n\nElephant flows: fluxos longos (> 1 GB), baixa frequência, alto volume. Representam pequena fração dos fluxos em número, mas 80-90% do volume total de bytes. Exemplos: transferências de datasets científicos (LHC, imagens de telescópios), backups, replicação de VMs.\n\nO problema: um único elephant flow pode monopolizar a largura de banda disponível em um link, degradando a experiência de centenas de mouse flows simultâneos.",
+        "keyPoints": [
+          "Elephant flows = pequena fração dos fluxos, grande fração do volume",
+          "Mouse flows = grande fração dos fluxos, pequena fração do volume",
+          "Sem QoS, um único GridFTP pode degradar e-mail e acesso web de toda a instituição"
+        ]
+      },
+      {
+        "id": "qos-dscp",
+        "title": "QoS e DSCP: diferenciação de tráfego",
+        "body": "Quality of Service (QoS) é o conjunto de técnicas para garantir que diferentes tipos de tráfego recebam o tratamento adequado em termos de largura de banda, latência e descarte.\n\nO DSCP (Differentiated Services Code Point) é um campo de 6 bits no cabeçalho IP usado para marcar pacotes com sua classe de serviço. Os roteadores no caminho reconhecem e tratam diferentemente:\n\n- EF (Expedited Forwarding, DSCP 46): tráfego de tempo real, baixa latência garantida (VoIP, videoconferência)\n- AF41 (Assured Forwarding 41, DSCP 34): dados importantes que tolerem alguma latência (aplicações críticas)\n- AF11 (DSCP 10): dados de baixa prioridade que podem ser descartados sob congestionamento\n- BE (Best Effort, DSCP 0): tráfego sem marca — tratamento padrão\n\nA marcação DSCP é feita na borda da rede. Fluxos GridFTP/elephant podem ser marcados como AF11 para que sejam os primeiros a ser descartados ou limitados quando houver congestionamento.",
+        "codeBlock": {
+          "language": "text",
+          "code": "DSCP mais comuns na RNP e redes de pesquisa:\n\nDSCP 46 (EF)  → VoIP, videoconferência → fila de prioridade máxima\nDSCP 34 (AF41)→ Dados críticos de pesquisa com deadline\nDSCP 18 (AF21)→ Tráfego interativo de usuários (SSH, web)\nDSCP 10 (AF11)→ Transferências bulk (GridFTP, backup, rsync)\nDSCP 0  (BE)  → Todo tráfego sem marcação explícita"
+        },
+        "keyPoints": [
+          "DSCP é marcado na borda — roteadores do núcleo encaminham com base na marcação",
+          "Elephant flows devem ser marcados com DSCP baixo (AF11) para ceder à prioridade",
+          "Marking neutro (BE) é o padrão — sem QoS configurado, tudo compete igualmente"
+        ]
+      },
+      {
+        "id": "tecnicas-mitigacao",
+        "title": "Técnicas de mitigação de elephant flows",
+        "body": "Além de QoS/DSCP, outras abordagens são usadas:\n\n1. Detecção e redirecionamento: ferramentas de análise de NetFlow detectam elephant flows em tempo real e redirecionam via roteamento específico para link separado (circuit switching ou SDN).\n\n2. Traffic shaping: limitação da taxa de envio de fluxos bulk via policing no roteador de borda da instituição. GridFTP pode ter sua taxa limitada a X% do link.\n\n3. Separação física de redes: algumas universidades operam redes separadas para tráfego de pesquisa (dados científicos) e tráfego corporativo (e-mail, VoIP), eliminando a competição.\n\n4. Perfsonar e monitoramento: a plataforma perfSONAR permite medir e monitorar a performance de links em tempo real, detectando quando elephant flows estão impactando outros serviços.",
+        "callout": {
+          "type": "tip",
+          "text": "A RNP oferece o serviço REMAV (Rede de Medição e Análise de Vídeo) e a plataforma perfSONAR para monitoramento de performance. Antes de tomar ações, confirme a causa do congestionamento com dados de telemetria — não assuma que é sempre um elephant flow."
+        },
+        "keyPoints": [
+          "Detecção de NetFlow + redirecionamento SDN é a abordagem mais sofisticada",
+          "Traffic shaping na borda da instituição é a opção mais simples e imediata",
+          "Separação física elimina o problema mas tem custo de infraestrutura"
+        ]
+      }
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": ["netflow-ferramenta-analise", "glossario-sci-data"],
+  "technicalReferences": [
+    { "title": "perfSONAR Documentation", "url": "https://docs.perfsonar.net/" },
+    { "title": "RFC 2474 - DSCP", "url": "https://www.rfc-editor.org/rfc/rfc2474" },
+    { "title": "Cisco - Elephant Flows in DC Networks", "url": "https://www.cisco.com/c/en/us/solutions/collateral/data-center-virtualization/unified-fabric/white_paper_c11-586079.html" }
+  ]
+}

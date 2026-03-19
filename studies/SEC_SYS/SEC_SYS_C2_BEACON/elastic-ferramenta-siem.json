@@ -1,0 +1,98 @@
+{
+  "id": "elastic-ferramenta-siem",
+  "title": "Elastic SIEM: Consultas e Detecção de Ameaças com KQL",
+  "description": "Referência de consultas KQL (Kibana Query Language) e EQL (Event Query Language) no Elastic SIEM para detecção de comportamentos suspeitos: beaconing, exfiltração, escalação de privilégios e movimentação lateral.",
+  "content_type": "FERRAMENTA",
+  "category": {
+    "id": "SEC_SYS",
+    "type": "SEC_SYS_C2_BEACON",
+    "title": "SIEM e Detecção"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "10 minutos",
+    "difficulty": "Avancado",
+    "targetAudience": "Analistas de Segurança, Equipe CIRT, SOC",
+    "prerequisites": ["c2-conceito-beacon-ioc", "ransomware-conceito-taxonomia"]
+  },
+  "tags": ["Elastic", "SIEM", "KQL", "EQL", "threat hunting", "SOC", "detecção"],
+  "content": {
+    "toolName": "Elastic SIEM (Kibana / Elastic Security)",
+    "purpose": "Interface de consulta e correlação de eventos de segurança. O Elastic SIEM agrega logs de endpoints (Elastic Agent/Winlogbeat), rede (Packetbeat, firewall), DNS e autenticação para detecção de ameaças por regras e threat hunting.",
+    "commands": [
+      {
+        "command": "event.category:network AND destination.port:443 AND NOT destination.ip:10.0.0.0/8 AND NOT destination.ip:172.16.0.0/12",
+        "description": "KQL: tráfego HTTPS saindo da rede interna para a Internet — base para detecção de beaconing",
+        "flags": [
+          { "flag": "event.category:network", "meaning": "Filtra apenas eventos de rede (Packetbeat, firewall logs)" },
+          { "flag": "destination.port:443", "meaning": "Apenas HTTPS" },
+          { "flag": "NOT destination.ip:10.0.0.0/8", "meaning": "Exclui tráfego interno — foca em destinos externos" }
+        ],
+        "exampleOutput": "1,423 hits\n\nTimestamp            Source IP         Destination IP    Bytes  Duration\n2025-03-01 02:13:01  192.168.10.55     45.134.215.89     350    0.2s\n2025-03-01 02:18:01  192.168.10.55     45.134.215.89     350    0.2s\n2025-03-01 02:23:01  192.168.10.55     45.134.215.89     350    0.2s",
+        "interpretation": "Intervalos exatamente de 5 minutos, bytes consistentes (350), mesmo destino — padrão clássico de beacon. Sem jitter = malware simples. Com jitter (ex: 298-402 bytes, 4:45-5:15 intervalo) = malware sofisticado."
+      },
+      {
+        "command": "event.category:dns AND dns.response_code:NXDOMAIN | stats count() by source.ip | sort count desc | limit 10",
+        "description": "KQL + agregação: hosts com mais respostas NXDOMAIN — possível DGA (Domain Generation Algorithm)",
+        "flags": [
+          { "flag": "dns.response_code:NXDOMAIN", "meaning": "Domínio não existe — alta taxa por host indica tentativas de DGA" },
+          { "flag": "stats count() by source.ip", "meaning": "Agrupar por host de origem e contar" }
+        ],
+        "exampleOutput": "source.ip          count\n192.168.10.55      2847\n192.168.20.12      1203\n192.168.30.88       234",
+        "interpretation": "Host com 2847 NXDOMAINs em 1 hora é altamente suspeito. Baseline normal: < 50 NXDOMAINs por hora por host. Correlacionar com outros IOCs do mesmo host (beaconing, processos suspeitos)."
+      },
+      {
+        "command": "sequence by host.name\n  [process where process.name == \"cmd.exe\" or process.name == \"powershell.exe\"]\n  [network where destination.port == 443 and not destination.ip like \"10.*\"]",
+        "description": "EQL Sequence: detectar processo de linha de comando fazendo conexão HTTPS — possível LOLBin C2",
+        "flags": [
+          { "flag": "sequence by host.name", "meaning": "EQL: sequência de eventos no mesmo host" },
+          { "flag": "[process where ...]", "meaning": "Primeiro evento: processo suspeito executado" },
+          { "flag": "[network where ...]", "meaning": "Segundo evento: conexão de rede logo após o processo" }
+        ],
+        "exampleOutput": "Match: host.name=WORKSTATION-FINANCE-07\n  Event 1: 2025-03-01 14:23:01 - process: powershell.exe (pid:4521) parent: winword.exe\n  Event 2: 2025-03-01 14:23:02 - network: 192.168.10.55:49821 -> 45.134.215.89:443",
+        "interpretation": "PowerShell filha de winword.exe (Word) fazendo conexão HTTPS = indicador forte de macrodocumento malicioso. Parent process é o indicador crítico — powershell filha de explorer.exe é mais comum em administração legítima."
+      },
+      {
+        "command": "event.category:authentication AND event.outcome:failure AND winlog.event_id:4625 | stats count() by source.ip, user.name | where count > 10 | sort count desc",
+        "description": "KQL: falhas de autenticação Windows agrupadas por IP e usuário — detecção de brute force",
+        "flags": [
+          { "flag": "winlog.event_id:4625", "meaning": "Windows Security Event 4625 = logon failure" },
+          { "flag": "where count > 10", "meaning": "Filtrar apenas combinações com mais de 10 falhas" }
+        ],
+        "exampleOutput": "source.ip         user.name    count\n192.168.5.100     admin        247\n203.0.113.45      adm          189\n10.10.0.5         sa           143",
+        "interpretation": "247 falhas do 192.168.5.100 para usuário 'admin' = brute force interno. Possível host comprometido tentando lateral movement. IP externo (203.0.113.45) = brute force via RDP/SMB exposto."
+      },
+      {
+        "command": "event.category:file AND event.action:creation AND file.extension:(doc OR docx OR xls OR xlsx OR pdf OR zip OR rar) AND process.name:svchost.exe",
+        "description": "KQL: criação de arquivo de documentos por svchost.exe — possível ransomware em estágio de cifragem",
+        "flags": [
+          { "flag": "event.action:creation", "meaning": "Apenas criação de arquivo" },
+          { "flag": "process.name:svchost.exe", "meaning": "svchost.exe não deve criar documentos — comportamento anômalo" }
+        ],
+        "exampleOutput": "847 hits in last 5 minutes\n\nfile.path: C:\\Users\\joao\\Documents\\relatorio_final.pdf.encrypted\nfile.path: C:\\Users\\joao\\Documents\\notas_aula.docx.encrypted\nfile.path: C:\\Users\\maria\\Desktop\\pesquisa_2025.xlsx.encrypted",
+        "interpretation": "Extensões .encrypted criadas por processo de sistema = ransomware em ação. Escalar imediatamente — isolamento de endpoint. Verificar 'ransom note' (arquivo .txt com instruções) nos mesmos diretórios."
+      }
+    ],
+    "outputFields": [
+      { "field": "event.outcome", "meaning": "Resultado do evento: success, failure, unknown", "normalRange": "Depende do evento. Alto failure em autenticação é suspeito" },
+      { "field": "process.parent.name", "meaning": "Processo pai — indica como o processo foi iniciado", "normalRange": "powershell/cmd filhos de Word/Excel/Outlook são suspeitos. Filhos de svchost são normais" },
+      { "field": "dns.response_code", "meaning": "Código de resposta DNS: NOERROR, NXDOMAIN, SERVFAIL, REFUSED", "normalRange": "< 5% NXDOMAIN por host. > 10% por host é indicador de DGA" },
+      { "field": "network.bytes", "meaning": "Total de bytes no fluxo de rede", "normalRange": "Beacon: consistente (ex: 300-400 bytes). Exfiltração: grandes volumes para destinos externos" }
+    ],
+    "commonPitfalls": [
+      "KQL não tem joins nativos — usar EQL Sequence para correlacionar eventos de diferentes tipos no mesmo host",
+      "Elastic Security usa dois índices diferentes: logs-* (dados brutos) e .alerts-* (alertas gerados por regras) — especificar o índice correto na pesquisa",
+      "Timestamps no Elastic estão em UTC — converter para horário local ao correlacionar com tickets ou logs de outros sistemas",
+      "Excluir IPs de scanners de segurança internos (Nessus, Qualys) nas consultas de anomalia de rede para evitar falsos positivos"
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": ["c2-conceito-beacon-ioc", "ransomware-conceito-taxonomia", "phishing-conceito-vetores", "glossario-sec-sys"],
+  "technicalReferences": [
+    { "title": "Elastic KQL Reference", "url": "https://www.elastic.co/guide/en/kibana/current/kuery-query.html" },
+    { "title": "Elastic EQL Reference", "url": "https://www.elastic.co/guide/en/elasticsearch/reference/current/eql.html" },
+    { "title": "Elastic Security Detection Rules (GitHub)", "url": "https://github.com/elastic/detection-rules" }
+  ]
+}

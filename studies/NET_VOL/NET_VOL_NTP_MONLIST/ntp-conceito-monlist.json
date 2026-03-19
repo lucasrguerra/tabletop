@@ -1,0 +1,59 @@
+{
+  "id": "ntp-conceito-monlist",
+  "title": "Amplificação NTP via Monlist: O Maior Fator de Amplificação",
+  "description": "Explica o comando monlist do NTP, por que ele produz o maior fator de amplificação conhecido (até 556x) e como desabilitá-lo em servidores NTP.",
+  "content_type": "CONCEITO",
+  "category": {
+    "id": "NET_VOL",
+    "type": "NET_VOL_NTP_MONLIST",
+    "title": "Amplificação NTP"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "7 minutos",
+    "difficulty": "Basico",
+    "targetAudience": "Analistas de Segurança, Administradores de Sistemas, Engenheiros de Rede",
+    "prerequisites": ["dns-conceito-amplificacao"]
+  },
+  "tags": ["NTP", "monlist", "amplificação", "DDoS", "UDP"],
+  "content": {
+    "sections": [
+      {
+        "id": "ntp-monlist",
+        "title": "O comando monlist e seu fator de amplificação",
+        "body": "O Network Time Protocol (NTP) é o protocolo de sincronização de tempo da Internet. Além da sincronização, versões antigas do NTPd implementavam um comando de monitoramento chamado 'monlist' (ou 'MON_GETLIST') que retorna a lista dos últimos 600 hosts que sincronizaram com o servidor.\n\nO abuso para amplificação funciona assim:\n- Consulta monlist: ~8 bytes\n- Resposta monlist: até 4.460 bytes (600 entradas)\n- Fator de amplificação: até 556x\n\nIsso faz a amplificação NTP a mais eficiente conhecida. Um atacante com 1 Gbps pode gerar 556 Gbps de tráfego direcionado à vítima usando apenas servidores NTP vulneráveis.",
+        "callout": {
+          "type": "danger",
+          "text": "Ataques de amplificação NTP via monlist foram responsáveis pelos maiores ataques DDoS registrados até 2014 (> 400 Gbps). A vulnerabilidade CVE-2013-5211 está associada a este vetor."
+        },
+        "keyPoints": [
+          "Fator de amplificação de até 556x — maior de todos os protocolos explorados para DDoS",
+          "Servidores NTP com ntpd < 4.2.7p26 são vulneráveis por padrão",
+          "CVE-2013-5211 — patch disponível há mais de 10 anos, mas servidores desatualizados ainda existem"
+        ]
+      },
+      {
+        "id": "correcao",
+        "title": "Correção e verificação",
+        "body": "A solução é simples: desabilitar o subsistema de monitoramento do NTP ou atualizar para versão >= 4.2.7p26 (onde monlist está desabilitado por padrão).\n\nPara verificar se um servidor está vulnerável: enviar uma consulta monlist e ver se responde. Para corrigir: adicionar 'disable monitor' no ntp.conf ou usar ntpd moderno.\n\nAlternativa moderna: usar Chrony (chronyc) em vez de ntpd. Chrony não implementa monlist e é o padrão em distribuições Linux recentes.",
+        "codeBlock": {
+          "language": "bash",
+          "code": "# Verificar se servidor NTP responde a monlist (requer nmap com script)\nnmap -sU -p 123 --script ntp-monlist <SERVIDOR_NTP>\n\n# Corrigir em ntpd — adicionar ao ntp.conf:\ndisable monitor\n\n# Reiniciar ntpd após a correção\nsystemctl restart ntpd\n\n# Verificar que chrony está instalado (recomendado em vez de ntpd)\nsystemctl status chronyd"
+        },
+        "keyPoints": [
+          "Verificar servidores NTP internos — organizações também podem ser fonte involuntária de amplificação",
+          "Chrony é preferível ao ntpd em instalações novas",
+          "'disable monitor' no ntp.conf é correção imediata para ntpd legado"
+        ]
+      }
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": ["dns-conceito-amplificacao", "glossario-net-vol"],
+  "technicalReferences": [
+    { "title": "CVE-2013-5211 - NTP monlist DDoS amplification", "url": "https://nvd.nist.gov/vuln/detail/CVE-2013-5211" },
+    { "title": "US-CERT Alert TA14-013A - NTP Amplification", "url": "https://www.cisa.gov/news-events/alerts/2014/01/13/ntp-amplification-attacks-using-cve-2013-5211" }
+  ]
+}

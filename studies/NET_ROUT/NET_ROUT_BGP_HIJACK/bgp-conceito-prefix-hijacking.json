@@ -1,0 +1,89 @@
+{
+  "id": "bgp-conceito-prefix-hijacking",
+  "title": "BGP Prefix Hijacking: Fundamentos e Mecanismos",
+  "description": "Explica como o sequestro de prefixo BGP funciona, por que o longest prefix match é explorado e quais mecanismos de proteção existem (RPKI, IRR, MANRS).",
+  "content_type": "CONCEITO",
+  "category": {
+    "id": "NET_ROUT",
+    "type": "NET_ROUT_BGP_HIJACK",
+    "title": "Sequestro de Prefixo BGP"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "12 minutos",
+    "difficulty": "Intermediario",
+    "targetAudience": "Engenheiros de Rede, Analistas de Segurança, Equipe NOC",
+    "prerequisites": []
+  },
+  "tags": ["BGP", "prefix hijacking", "RPKI", "IRR", "MANRS", "roteamento"],
+  "content": {
+    "sections": [
+      {
+        "id": "o-que-e-bgp",
+        "title": "O que é BGP e por que ele importa",
+        "body": "O Border Gateway Protocol (BGP) é o protocolo de roteamento que mantém a Internet funcionando. É o único protocolo de roteamento inter-domínio amplamente implantado, responsável por propagar informações de alcançabilidade entre os mais de 100.000 Sistemas Autônomos (AS) que compõem a Internet global.\n\nCada AS anuncia os blocos de endereços IP que ele opera — chamados de prefixos — para seus vizinhos BGP. Esses anúncios se propagam em cascata, construindo tabelas de roteamento globais. A tabela BGP global atualmente contém mais de 950.000 prefixos IPv4 e IPv6.\n\nO problema central: o BGP foi projetado em 1989 em um ambiente de confiança implícita entre operadores. Não existe autenticação nativa dos anúncios. Qualquer AS pode, técnica e silenciosamente, anunciar prefixos que não lhe pertencem.",
+        "keyPoints": [
+          "BGP é o único protocolo de roteamento inter-domínio da Internet",
+          "Não possui autenticação nativa de origem de prefixos",
+          "Um AS malicioso pode anunciar qualquer prefixo sem verificação técnica imediata"
+        ]
+      },
+      {
+        "id": "longest-prefix-match",
+        "title": "O mecanismo explorado: Longest Prefix Match",
+        "body": "O roteamento IP segue uma regra fundamental: quando múltiplas rotas existem para o mesmo endereço de destino, a rota com o prefixo mais específico (maior máscara) sempre vence, independentemente de qualquer outra consideração.\n\nSe um roteador conhece tanto a rota 198.51.100.0/16 quanto 198.51.100.0/24, qualquer pacote destinado a um IP dentro do /24 será encaminhado seguindo a rota /24 — sem exceção.",
+        "callout": {
+          "type": "danger",
+          "text": "Longest prefix match opera na camada de encaminhamento IP, não no BGP decision process. Mesmo que o BGP prefira a rota legítima por AS path length, se o hijacker anunciar um /24 mais específico, o tráfego seguirá para o hijacker nos ASes que não implementam RPKI ROV."
+        },
+        "codeBlock": {
+          "language": "text",
+          "code": "Tabela de roteamento simplificada de um AS terceiro:\n  198.51.100.0/16  via AS64500 (legítimo)   — menos específico\n  198.51.100.0/24  via AS65530 (hijacker)   — MAIS específico\n\nDestino: 198.51.100.10 → encaminhado via /24 (hijacker)\nDestino: 198.51.200.10 → encaminhado via /16 (legítimo, fora do /24)"
+        },
+        "keyPoints": [
+          "Prefixo mais longo sempre vence no encaminhamento IP",
+          "O hijacker precisa anunciar apenas um /24 dentro do /16 da vítima",
+          "O tráfego de destinos fora do /24 continua chegando normalmente — o ataque pode ser cirúrgico"
+        ]
+      },
+      {
+        "id": "rpki-protecao",
+        "title": "RPKI: Validação Criptográfica de Origem",
+        "body": "O Resource Public Key Infrastructure (RPKI) é o mecanismo de proteção mais robusto disponível hoje. Funciona através de Route Origin Authorizations (ROAs): objetos assinados criptograficamente publicados pelos detentores legítimos dos blocos IP, declarando quais ASes estão autorizados a originar aquele prefixo.\n\nQuando um AS implementa Route Origin Validation (ROV), ele verifica cada anúncio BGP contra os ROAs publicados. Anúncios de origem não autorizada são marcados como RPKI Invalid e, por política, descartados.\n\nA limitação atual: a adoção global de ROV ainda é parcial. ASes que não validam tratam prefixos Invalid como Not Found e os aceitam.",
+        "callout": {
+          "type": "info",
+          "text": "Um ROA com maxLength=/16 impede que o próprio dono anuncie /24 válidos. Sempre configure ROAs adicionais ou ajuste maxLength se precisar anunciar sub-redes mais específicas legitimamente."
+        },
+        "keyPoints": [
+          "ROA = declaração criptograficamente assinada de quem pode originar um prefixo",
+          "ROV = processo de validar anúncios BGP contra ROAs",
+          "Adoção parcial limita a eficácia global — mas cresce a cada ano"
+        ]
+      },
+      {
+        "id": "manrs-irr",
+        "title": "MANRS e IRR: A Camada de Filtragem Operacional",
+        "body": "O Internet Routing Registry (IRR) é um conjunto de bases de dados distribuídas onde operadores registram objetos route e route6 — declarações de quais prefixos cada AS anuncia. Transit providers usam esses registros para construir prefix filters e bloquear anúncios de clientes que extrapolam o que foi declarado.\n\nO MANRS (Mutually Agreed Norms for Routing Security) é uma iniciativa da comunidade de operadores que formaliza quatro ações: (1) filtragem de clientes, (2) anti-spoofing BCP38, (3) manutenção de contatos de operações, (4) publicação de ROAs RPKI e registros IRR.\n\nA RNP já é membro do MANRS. O registro dos prefixos no IRR e a publicação de ROAs para os blocos operados são obrigações que diretamente reduzem a janela de exposição a sequestros.",
+        "keyPoints": [
+          "IRR não usa criptografia — é baseado em confiança operacional entre operadores",
+          "MANRS combina IRR + RPKI + anti-spoofing em uma postura de segurança coerente",
+          "A adesão ao MANRS é verificável publicamente em manrs.org"
+        ]
+      }
+    ]
+  },
+  "relatedScenarios": ["bgp-prefix-hijacking"],
+  "relatedStudies": [
+    "bgp-procedimento-resposta-hijack",
+    "bgp-ferramenta-rpki-validacao",
+    "glossario-net-rout"
+  ],
+  "technicalReferences": [
+    { "title": "RFC 4271 - BGP-4", "url": "https://www.rfc-editor.org/rfc/rfc4271" },
+    { "title": "RFC 6811 - BGP Prefix Origin Validation", "url": "https://www.rfc-editor.org/rfc/rfc6811" },
+    { "title": "MANRS - Mutually Agreed Norms for Routing Security", "url": "https://www.manrs.org/" },
+    { "title": "RIPE NCC - RPKI Documentation", "url": "https://www.ripe.net/manage-ips-and-asns/resource-management/rpki/" }
+  ]
+}

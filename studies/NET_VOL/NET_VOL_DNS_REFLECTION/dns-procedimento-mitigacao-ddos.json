@@ -1,0 +1,112 @@
+{
+  "id": "dns-procedimento-mitigacao-ddos",
+  "title": "Mitigação de DDoS de Amplificação DNS",
+  "description": "Procedimento de resposta a ataques volumétricos de amplificação DNS: do diagnóstico inicial à ativação do scrubbing e normalização do tráfego.",
+  "content_type": "PROCEDIMENTO",
+  "category": {
+    "id": "NET_VOL",
+    "type": "NET_VOL_DNS_REFLECTION",
+    "title": "Amplificação DNS"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "8 minutos",
+    "difficulty": "Avancado",
+    "targetAudience": "Engenheiros de Rede NOC, Equipe de Resposta a Incidentes",
+    "prerequisites": ["dns-conceito-amplificacao"]
+  },
+  "tags": ["DDoS", "DNS", "amplificação", "mitigação", "scrubbing", "blackhole", "RTBH"],
+  "content": {
+    "context": "Acionado quando monitoramento detecta tráfego UDP/53 anômalo em direção a IPs da organização, ou quando serviços apresentam degradação severa indicativa de saturação de link. O objetivo é reduzir o impacto sobre serviços legítimos preservando conectividade enquanto o ataque é mitigado.",
+    "steps": [
+      {
+        "id": 1,
+        "title": "Confirmar e quantificar o ataque",
+        "description": "Antes de agir, confirme que o evento é um DDoS volumétrico e não uma falha de link ou misconfiguration. Identifique o IP ou prefixo alvo e o volume de tráfego.",
+        "commands": [
+          "# Verificar utilização de interface (SNMP/Netflow)\nsnmpwalk -v2c -c public ROTEADOR_BORDA ifHCInOctets",
+          "# Analisar top sources em Netflow (nfdump)\nnfdump -R /var/netflow/ -s ip/bytes -n 20 'dst ip 198.51.100.0/16'",
+          "# Verificar tabela de estado se firewall com estado\nshow conn count"
+        ],
+        "expectedResult": "Volume acima de 500 Mbps direcionado ao IP/prefixo alvo. Tráfego predominantemente UDP/53 de múltiplas origens distintas (centenas a milhares de IPs).",
+        "warnings": [
+          "Não confunda link congestionado por ataque com falha de hardware — verifique erros de interface antes de acionar procedimento de DDoS"
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Aplicar RTBH (Remote Triggered Black Hole) se necessário",
+        "description": "Se o alvo for um único IP e o volume ameaça saturar o link de uplink inteiro, aplique RTBH para sacrificar o IP alvo e proteger o restante da infraestrutura. Esta ação torna o IP alvo inacessível.",
+        "commands": [
+          "# Anunciar rota black hole para o IP alvo via BGP community\n# (configuração específica do upstream — exemplo genérico)\nrouter bgp 64500\n  neighbor UPSTREAM_BGP route-map BLACKHOLE out\n  \nip route 198.51.100.100/32 Null0\nnetwork 198.51.100.100/32",
+          "# Verificar se upstream aceitou o blackhole\nshow bgp neighbors UPSTREAM_IP advertised-routes | grep 198.51.100.100"
+        ],
+        "expectedResult": "Tráfego de ataque descartado no upstream antes de atingir o link da organização. Serviços no /24 adjacente recuperam conectividade.",
+        "warnings": [
+          "RTBH torna o IP alvo inacessível para tráfego legítimo também — é um sacrifício consciente",
+          "Se o alvo for um servidor crítico (DNS autoritativo, gateway VPN), considere scrubbing antes de blackhole"
+        ],
+        "rollbackAction": "Remover a rota /32 para Null0 e o anúncio BGP do blackhole quando o ataque cessar."
+      },
+      {
+        "id": 3,
+        "title": "Acionar scrubbing center (se disponível)",
+        "description": "Se a organização tem contrato de scrubbing com o upstream ou com a RNP, acione o desvio do tráfego para o scrubbing center. O tráfego legítimo é filtrado e reentregue enquanto o ataque é descartado.",
+        "commands": [
+          "# Processo tipicamente via portal web do provedor de scrubbing\n# ou via BGP community específica — consulte documentação do seu upstream"
+        ],
+        "expectedResult": "Tráfego de ataque absorvido pelo scrubbing center. Latência pode aumentar levemente durante o scrubbing. Serviços voltam a responder.",
+        "warnings": [
+          "Ativação de scrubbing pode ter custo adicional — verificar contrato antes",
+          "Tempo de ativação tipicamente 15-30 minutos para desvio BGP propagar"
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Fechar resolver aberto se a organização é fonte de amplificação",
+        "description": "Se o NOC de outro operador notificar que seus resolvers DNS estão sendo usados para amplificação, restrinja imediatamente o acesso ao resolver.",
+        "commands": [
+          "# BIND — restringir acesso ao resolver\nnamed.conf:\n  acl trusted-clients { 10.0.0.0/8; 192.168.0.0/16; };\n  options { allow-recursion { trusted-clients; }; };",
+          "# Unbound — restringir acesso\nunbound.conf:\n  server:\n    access-control: 0.0.0.0/0 refuse\n    access-control: 10.0.0.0/8 allow\n    access-control: 192.168.0.0/16 allow"
+        ],
+        "expectedResult": "Resolver para de responder a consultas de IPs externos. Volume de tráfego de saída UDP/53 cai para próximo de zero.",
+        "warnings": [
+          "Após restringir, testar resolução a partir de clientes legítimos internos para confirmar que não houve impacto colateral"
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Monitorar e documentar o incidente",
+        "description": "Mantenha monitoramento ativo por pelo menos 2 horas após o fim aparente do ataque. Capture métricas de tráfego antes, durante e após para o relatório pós-incidente.",
+        "commands": [
+          "# Capturar estatísticas de tráfego para relatório\nnfdump -R /var/netflow/ -t '2025-03-01 14:00:00' -T '2025-03-01 16:00:00' -s ip/bytes -o csv > ddos_report.csv"
+        ],
+        "expectedResult": "Tráfego retorna a níveis normais. Nenhuma recidiva nas 2 horas seguintes.",
+        "warnings": []
+      }
+    ],
+    "postConditions": [
+      "Resolver DNS configurado para aceitar recursão apenas de clientes internos",
+      "Alertas de volumetria ajustados com threshold aprendido do ataque",
+      "Relatório pós-incidente com volumes, duração, IPs de origem e ações tomadas"
+    ],
+    "escalationCriteria": [
+      "Volume acima de 10 Gbps e sem capacidade de scrubbing disponível",
+      "Ataque persiste por mais de 4 horas sem redução",
+      "Serviços críticos de múltiplas instituições afetadas simultaneamente"
+    ]
+  },
+  "relatedScenarios": ["dns-amplification-attack"],
+  "relatedStudies": [
+    "dns-conceito-amplificacao",
+    "dns-ferramenta-dig-analise",
+    "glossario-net-vol"
+  ],
+  "technicalReferences": [
+    { "title": "RFC 7534 - AS112 Nameserver Operations", "url": "https://www.rfc-editor.org/rfc/rfc7534" },
+    { "title": "IETF - RTBH Filtering with Unicast Reverse Path Forwarding (RFC 5635)", "url": "https://www.rfc-editor.org/rfc/rfc5635" },
+    { "title": "BIND 9 Security Best Practices", "url": "https://kb.isc.org/docs/aa-00959" }
+  ]
+}

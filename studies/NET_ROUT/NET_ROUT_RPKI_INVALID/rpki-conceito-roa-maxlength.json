@@ -1,0 +1,70 @@
+{
+  "id": "rpki-conceito-roa-maxlength",
+  "title": "ROA e maxLength: Configuração Correta de RPKI",
+  "description": "Explica a estrutura de um ROA, o papel do campo maxLength, erros comuns de configuração que tornam prefixos legítimos Invalid, e como planejar a cobertura RPKI corretamente.",
+  "content_type": "CONCEITO",
+  "category": {
+    "id": "NET_ROUT",
+    "type": "NET_ROUT_RPKI_INVALID",
+    "title": "Prefixo RPKI Invalid"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "8 minutos",
+    "difficulty": "Intermediario",
+    "targetAudience": "Engenheiros de Rede, Administradores de Sistemas Autônomos",
+    "prerequisites": ["bgp-conceito-prefix-hijacking"]
+  },
+  "tags": ["RPKI", "ROA", "maxLength", "BGP", "RPKI Invalid", "prefixo"],
+  "content": {
+    "sections": [
+      {
+        "id": "estrutura-roa",
+        "title": "Estrutura de um ROA",
+        "body": "Um ROA (Route Origin Authorization) tem três campos principais:\n- prefix: o bloco IP ao qual o ROA se aplica (ex: 200.130.0.0/16)\n- asID: o ASN autorizado a originar este prefixo (ex: AS64500)\n- maxLength: o comprimento máximo de máscara permitido para prefixos mais específicos (ex: /24)\n\nUm anúncio BGP é RPKI Valid se:\n1. Existe um ROA para o prefixo anunciado (ou um superprefixo dele)\n2. O ASN de origem no anúncio corresponde ao asID do ROA\n3. O comprimento da máscara anunciada é ≤ maxLength do ROA",
+        "codeBlock": {
+          "language": "text",
+          "code": "ROA: prefix=200.130.0.0/16, asID=64500, maxLength=24\n\nAnúncios e seus status:\n  AS64500 anuncia 200.130.0.0/16  → VALID (origin certo, tamanho ≤ maxLength)\n  AS64500 anuncia 200.130.1.0/24  → VALID (origin certo, /24 ≤ maxLength /24)\n  AS64500 anuncia 200.130.1.0/25  → INVALID (/25 > maxLength /24!)\n  AS65530 anuncia 200.130.0.0/16  → INVALID (origin errado)\n  AS64500 anuncia 200.131.0.0/16  → NOT FOUND (sem ROA para este prefixo)"
+        },
+        "keyPoints": [
+          "maxLength define o prefixo mais específico que pode ser anunciado validamente",
+          "/25 mais específico que /24 — se maxLength=/24, anúncio /25 é INVALID mesmo pelo ASN correto",
+          "NOT FOUND é diferente de INVALID — roteadores com ROV não descartam NOT FOUND"
+        ]
+      },
+      {
+        "id": "erro-comum",
+        "title": "Erro comum: maxLength restritivo demais",
+        "body": "O erro mais frequente na configuração de ROAs é definir maxLength igual ao comprimento do prefixo raiz. Por exemplo:\n\nROA: prefix=200.130.0.0/16, maxLength=16\n\nIsso significa que qualquer anúncio mais específico (200.130.1.0/24) será marcado como RPKI Invalid, mesmo vindo do ASN correto. Se o operador precisar anunciar sub-prefixos por qualquer razão (engenharia de tráfego, blackholing, RTBH), o anúncio será descartado por roteadores com ROV.\n\nA correção é criar ROAs separados para os sub-prefixos, ou aumentar maxLength para cobrir os prefixos que são anunciados.",
+        "callout": {
+          "type": "danger",
+          "text": "maxLength=16 em um ROA /16 é chamado de 'ROA de tiro no pé' — torna os próprios anúncios mais específicos Invalid. Isso acontece frequentemente quando operadores criam ROAs sem compreender o campo maxLength. Verifique SEMPRE antes de criar ROAs em produção."
+        },
+        "keyPoints": [
+          "maxLength deve ser = ao comprimento máximo de prefixo específico que você anuncia legitimamente",
+          "Se anuncia /24 dentro de um /16, maxLength deve ser pelo menos /24",
+          "maxLength muito permissivo (/32) é quase tão ruim quanto não ter ROA — facilita hijack de sub-prefixos"
+        ]
+      },
+      {
+        "id": "planejamento",
+        "title": "Como planejar a cobertura RPKI",
+        "body": "Antes de criar ROAs, mapeie:\n1. Todos os prefixos que sua organização anuncia (use 'show bgp summary' e 'show ip bgp')\n2. Quais desses prefixos você anuncia como mais específicos (para engenharia de tráfego ou blackholing)\n3. Quais ASNs legitimamente originam cada prefixo (ASNs próprios + ASNs de clientes)\n\nCom esse mapeamento, crie ROAs que cobrem:\n- O prefixo raiz com maxLength igual ao prefixo mais específico que você anuncia\n- ROAs separados para prefixos de clientes (com o ASN do cliente como asID)\n\nVerifique a cobertura com a API do RIPE Stat antes de habilitar ROV nos roteadores.",
+        "keyPoints": [
+          "Mapeie prefixos anunciados ANTES de criar ROAs",
+          "ROAs para clientes devem ter o ASN do cliente como asID, não o seu",
+          "Teste cobertura via RIPE Stat antes de habilitar ROV — um INVALID pode causar blackhole de tráfego legítimo"
+        ]
+      }
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": ["bgp-conceito-prefix-hijacking", "bgp-ferramenta-rpki-validacao", "glossario-net-rout"],
+  "technicalReferences": [
+    { "title": "RFC 6482 - Route Origin Authorizations (ROA)", "url": "https://www.rfc-editor.org/rfc/rfc6482" },
+    { "title": "LACNIC - RPKI para operadores", "url": "https://www.lacnic.net/web/lacnic/rpki" },
+    { "title": "RIPE NCC - Creating ROAs", "url": "https://www.ripe.net/manage-ips-and-asns/resource-management/rpki/roa-management/" }
+  ]
+}
