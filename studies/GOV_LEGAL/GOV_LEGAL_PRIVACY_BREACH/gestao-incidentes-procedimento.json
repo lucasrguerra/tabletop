@@ -1,0 +1,122 @@
+{
+  "id": "gestao-incidentes-procedimento",
+  "title": "Gestão de Incidentes de Segurança: Do Alerta à Lição Aprendida",
+  "description": "Procedimento completo de gestão de incidentes de segurança seguindo o ciclo PICERL (Preparação, Identificação, Contenção, Erradicação, Recuperação, Lições Aprendidas), com foco em documentação, comunicação e obrigações legais.",
+  "content_type": "PROCEDIMENTO",
+  "category": {
+    "id": "GOV_LEGAL",
+    "type": "GOV_LEGAL_PRIVACY_BREACH",
+    "title": "Gestão de Incidentes"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "12 minutos",
+    "difficulty": "Intermediario",
+    "targetAudience": "Coordenadores de CIRT, Gestores de TI, Analistas de Segurança",
+    "prerequisites": ["lgpd-conceito-notificacao", "psi-conceito-politica-seguranca"]
+  },
+  "tags": ["gestão de incidentes", "PICERL", "CIRT", "resposta a incidentes", "LGPD", "comunicação"],
+  "content": {
+    "context": "Processo formal acionado quando um alerta de segurança é elevado para incidente confirmado. Um incidente de segurança é um evento que compromete ou ameaça a confidencialidade, integridade ou disponibilidade de informações ou sistemas. O processo garante resposta estruturada, documentação adequada e cumprimento de obrigações legais.",
+    "steps": [
+      {
+        "id": 1,
+        "title": "Preparação (pré-incidente): garantir que o processo existe",
+        "description": "Esta etapa ocorre antes de qualquer incidente. Define os papéis, ferramentas e canais de comunicação para quando um incidente ocorrer. Sem preparação, a resposta será desorganizada e lenta.",
+        "commands": [
+          "# Verificar que o plano de resposta está documentado e acessível\n# (deve estar offline — incidente pode comprometer sistemas internos)\n\n# Verificar lista de contatos do CIRT (atualizada?)\n# - Coordenador de CIRT\n# - Analistas de segurança on-call\n# - DPO (se dados pessoais envolvidos)\n# - Jurídico (se obrigação legal)\n# - Comunicação (se incidente externo)\n# - Contatos de terceiros: CERT.br, fornecedores críticos, ANPD\n\n# Verificar que backups existem e foram testados\n# Verificar acesso a logs históricos (SIEM, firewall) por período suficiente"
+        ],
+        "expectedResult": "Plano de resposta documentado. Contatos atualizados. Acesso a ferramentas forenses garantido. Canais de comunicação fora-de-banda estabelecidos (Signal, telefone) caso e-mail seja comprometido.",
+        "warnings": [
+          "Se o incidente envolver comprometimento do e-mail corporativo, usar canal alternativo (Signal, telefone, e-mail pessoal de gestores) para coordenação"
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Identificação e triagem: confirmar incidente e classificar severidade",
+        "description": "Nem todo alerta é incidente. Triagem rápida determina se é um falso positivo ou um incidente real, e qual a severidade.",
+        "commands": [
+          "# Perguntas de triagem:\n# 1. O evento foi confirmado por mais de uma fonte? (SIEM + firewall + endpoint)\n# 2. Há evidência de ação adversarial (não apenas configuração incorreta)?\n# 3. Quais sistemas/dados foram afetados?\n# 4. O incidente está ativo (em andamento) ou já cessou?\n\n# Classificação de severidade:\n# CRÍTICO: sistema produtivo comprometido, dados sensíveis exfiltrados, ransomware ativo\n# ALTO: tentativa confirmada de acesso não autorizado, malware detectado (não executado)\n# MÉDIO: phishing entregue a usuário, anomalia de rede sem comprometimento confirmado\n# BAIXO: scan de porta, tentativa de brute force bloqueada\n\n# Registrar no ticket de incidente:\n# - Timestamp de detecção\n# - Fonte do alerta\n# - Sistemas envolvidos\n# - Classificação inicial de severidade"
+        ],
+        "expectedResult": "Ticket de incidente aberto com classificação de severidade. Equipe de resposta acionada conforme o nível de severidade.",
+        "warnings": [
+          "Errar para o lado do 'Crítico' na triagem inicial é melhor que subestimar — é mais fácil rebaixar severidade depois de investigar",
+          "Documentar TUDO desde o início — horário de cada ação, quem fez, o que encontrou"
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Contenção: limitar o dano imediato",
+        "description": "Com o incidente confirmado, aja para impedir que ele se espalhe. Contenção é diferente de erradicação — o objetivo é limitar o dano, não necessariamente eliminar a causa raiz.",
+        "commands": [
+          "# Contenção de curto prazo (imediata):\n# - Isolamento de rede do host comprometido (sem desligar — preserva memória para forense)\n#   -> isolamento via switch: desligar porta ou mover para VLAN quarentena\n#   -> no endpoint: netsh advfirewall set allprofiles firewallpolicy blockinbound,blockoutbound\n\n# Contenção de médio prazo:\n# - Revogar credenciais comprometidas ou suspeitas\n# - Bloquear IOCs (IPs, hashes, domínios) no firewall e proxy\n# - Desabilitar contas de serviço afetadas\n\n# Coleta de evidências forenses (antes de qualquer mudança no sistema):\n# - Captura de memória RAM: winpmem (Windows), avml (Linux)\n# - Imagem de disco: dc3dd ou FTK Imager\n# - Dump de logs: copiar para storage seguro antes de qualquer cleanup"
+        ],
+        "expectedResult": "Host comprometido isolado (sem desligar). Credenciais comprometidas revogadas. IOCs bloqueados na borda. Evidências coletadas e documentadas com hash de integridade.",
+        "warnings": [
+          "NÃO desligue o host comprometido se possível — memória RAM pode conter chaves de criptografia, processos maliciosos e conexões ativas essenciais para forense",
+          "Documente a cadeia de custódia de evidências: quem coletou, quando, onde armazenou — necessário para uso judicial"
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Comunicação e obrigações legais: notificar stakeholders",
+        "description": "Para incidentes com dados pessoais, a notificação à ANPD é obrigatória pela LGPD. Para incidentes em infra crítica, o CERT.br deve ser notificado. Comunicação interna deve ser coordenada.",
+        "commands": [
+          "# Verificar se dados pessoais foram envolvidos:\n# - Dados de alunos, funcionários, pesquisadores\n# - Dados de saúde, financeiros, documentos de identificação\n\n# Se dados pessoais → acionar DPO imediatamente\n# DPO avalia: há obrigação de notificar ANPD em até 3 dias úteis? (Art. 48 LGPD)\n\n# Notificação ao CERT.br (recomendada para incidentes em infra de rede):\n# - Enviar relato para cert@cert.br com IOCs identificados\n# - Formato: https://www.cert.br/docs/relato/\n\n# Comunicação interna:\n# - Alta administração: comunicar imediatamente para incidentes CRÍTICO/ALTO\n# - Área jurídica: se há risco de litígio ou obrigação contratual\n# - Usuários afetados: se credenciais comprometidas — instrução para trocar senha"
+        ],
+        "expectedResult": "DPO notificado. ANPD notificada em até 3 dias úteis se dados pessoais foram afetados. CERT.br notificado. Alta administração informada. Comunicação com usuários afetados coordenada.",
+        "warnings": [
+          "Prazo LGPD para notificar ANPD: 3 dias úteis contados do conhecimento do incidente pelo controlador — não da descoberta técnica",
+          "Notificação prematura com dados incompletos é melhor que notificação tardia — complementar com dados adicionais depois"
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Erradicação: eliminar a causa raiz",
+        "description": "Após contenção e comunicação, elimine a causa raiz: remova o malware, feche a vulnerabilidade explorada, revogue acessos não autorizados.",
+        "commands": [
+          "# Erradicação no endpoint:\n# - Reimagem do sistema (preferível a limpeza de malware)\n# - Se reimagem não for possível: varredura com ferramenta especializada\n#   Opções: Malwarebytes, CrowdStrike, Microsoft Defender Offline Scan\n\n# Erradicação na infraestrutura:\n# - Corrigir vulnerabilidade explorada (patch, mudança de configuração)\n# - Revogar tokens, chaves SSH, certificados comprometidos\n# - Eliminar persistência: scheduled tasks, registry run keys, cron jobs criados pelo atacante\n\n# Verificar que todos os sistemas afetados foram tratados:\n# - Movimentação lateral pode ter comprometido outros hosts\n# - Pesquisar IOCs em todos os hosts da rede via SIEM"
+        ],
+        "expectedResult": "Sistema reimageado ou malware removido e persistência eliminada. Vulnerabilidade corrigida. Todos os hosts confirmados como limpos.",
+        "warnings": [
+          "Preferir reimagem a limpeza manual — é impossível garantir que todo malware foi removido",
+          "Verificar que o atacante não criou backdoors adicionais (novas contas, chaves SSH, tarefas agendadas) antes de declarar erradicação"
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Recuperação e Lições Aprendidas",
+        "description": "Restaure os sistemas de forma controlada, monitore para garantir que o incidente não retornou, e conduza reunião de lições aprendidas.",
+        "commands": [
+          "# Recuperação:\n# - Restaurar de backup limpo (se disponível)\n# - Monitoramento aumentado por 2-4 semanas após recuperação\n# - Testar funcionalidade antes de retornar à produção\n\n# Reunião de Lições Aprendidas (dentro de 2 semanas do encerramento):\n# Perguntas a responder:\n# 1. O que aconteceu? (timeline completa)\n# 2. O que funcionou bem na resposta?\n# 3. O que poderia ter sido feito melhor?\n# 4. Que controles preventivos teriam evitado o incidente?\n# 5. Que controles detectivos teriam identificado mais cedo?\n# 6. Quais ações de melhoria são necessárias? (com responsável e prazo)"
+        ],
+        "expectedResult": "Sistemas restaurados e monitorados. Relatório final de incidente produzido. Plano de melhorias com responsáveis e prazos. Documentação arquivada para auditoria.",
+        "warnings": [
+          "Lições aprendidas não é reunião de culpas — foco em processos e controles, não em pessoas",
+          "Relatório final deve incluir: timeline, impacto, causa raiz, controles que falharam, ações de melhoria"
+        ]
+      }
+    ],
+    "postConditions": [
+      "Ticket de incidente fechado com todos os campos preenchidos",
+      "Relatório final de incidente aprovado e arquivado",
+      "Notificações legais (ANPD, CERT.br) realizadas e documentadas",
+      "Ações de melhoria registradas com responsáveis e prazos",
+      "Indicadores de incidente (MTTD, MTTR) atualizados"
+    ],
+    "escalationCriteria": [
+      "Dados de sujeitos de pesquisa humana comprometidos — pode exigir notificação ao CEP além da ANPD",
+      "Incidente afeta infraestrutura crítica da RNP ou de múltiplas instituições — escalar ao CAIS/RNP",
+      "Evidência de APT (atacante persistente) — investigação forense especializada necessária"
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": ["lgpd-conceito-notificacao", "judicial-procedimento-resposta", "psi-conceito-politica-seguranca", "ransomware-procedimento-containment", "glossario-gov-legal"],
+  "technicalReferences": [
+    { "title": "NIST SP 800-61 - Computer Security Incident Handling Guide", "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-61r2.pdf" },
+    { "title": "CERT.br - Como relatar incidentes", "url": "https://www.cert.br/docs/relato/" },
+    { "title": "ANPD - Notificação de Incidentes (Art. 48 LGPD)", "url": "https://www.gov.br/anpd/pt-br/assuntos/noticias/anpd-regulamenta-comunicacao-de-incidentes-de-seguranca" }
+  ]
+}

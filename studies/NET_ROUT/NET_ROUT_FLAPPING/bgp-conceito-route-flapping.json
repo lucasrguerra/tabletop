@@ -1,0 +1,83 @@
+{
+  "id": "bgp-conceito-route-flapping",
+  "title": "Route Flapping e BGP Dampening: Estabilidade de Rotas",
+  "description": "Explica o que é route flapping no BGP, por que ele amplifica instabilidade em toda a Internet, e como o mecanismo de dampening (RFC 2439) suprime rotas instáveis com half-life, suppress threshold e reuse threshold.",
+  "content_type": "CONCEITO",
+  "category": {
+    "id": "NET_ROUT",
+    "type": "NET_ROUT_FLAPPING",
+    "title": "Route Flapping BGP"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "9 minutos",
+    "difficulty": "Intermediario",
+    "targetAudience": "Engenheiros de Rede, Operadores BGP",
+    "prerequisites": ["bgp-conceito-prefix-hijacking"]
+  },
+  "tags": ["BGP", "route flapping", "dampening", "instabilidade", "RFC 2439", "IGP"],
+  "content": {
+    "sections": [
+      {
+        "id": "o-que-e-flapping",
+        "title": "O que é route flapping e por que é problemático",
+        "body": "Route flapping ocorre quando um prefixo BGP alterna repetidamente entre os estados announced (anunciado) e withdrawn (retirado) em curto espaço de tempo. Cada mudança de estado gera um UPDATE message BGP que se propaga para todos os peers e, consequentemente, para toda a Internet.\n\nO problema é de escala: um único link instável pode causar centenas de updates por minuto. Como o BGP é um protocolo path-vector que propaga atualizações para todos os vizinhos, um flap em um AS pequeno pode gerar uma cascata de mensagens que alcança ASes na borda oposta do globo — o chamado 'route flap propagation'.\n\nImpactos práticos:\n- Sobrecarga de CPU nos roteadores que processam UPDATE messages\n- Instabilidade na tabela de roteamento — hosts ficam intermitentemente inacessíveis\n- Convergência lenta — cada flap dispara o processo de seleção de melhor rota (best path selection)\n- Em episódios graves, pode causar memory exhaustion em roteadores com tabela BGP grande",
+        "keyPoints": [
+          "Cada flap gera UPDATE messages que se propagam para todos os peers BGP",
+          "Impacto é global — um link instável num AS pequeno afeta roteadores no mundo todo",
+          "Flapping severo pode sobrecarregar CPU e memória de roteadores de borda"
+        ]
+      },
+      {
+        "id": "dampening",
+        "title": "BGP Route Dampening: RFC 2439",
+        "body": "O mecanismo de dampening, definido no RFC 2439, suprime automaticamente rotas que flap com frequência. O algoritmo associa uma penalidade a cada prefixo e suprime a rota quando a penalidade ultrapassa o suppress threshold.\n\nParâmetros do dampening:\n\n- Penalty: valor somado a cada flap. Valor padrão: 1000 por flap\n- Half-life: tempo para a penalidade cair à metade (decay exponencial). Padrão: 15 minutos\n- Suppress threshold: penalidade a partir da qual a rota é suprimida. Padrão: 2000\n- Reuse threshold: penalidade abaixo da qual a rota suprimida volta a ser anunciada. Padrão: 750\n- Max suppress time: tempo máximo que uma rota pode ficar suprimida, independente da penalidade. Padrão: 60 minutos\n\nO decay é exponencial: após 1 half-life a penalidade é 500, após 2 half-lives é 250, etc. Isso significa que uma rota que para de flapar gradualmente tem sua penalidade reduzida e volta a circular.",
+        "codeBlock": {
+          "language": "text",
+          "code": "Exemplo de dampening em ação:\n\n  T=0min:   Prefixo 200.130.0.0/16 flapa → penalty = 1000\n  T=1min:   Flapa novamente → penalty = 2000 → SUPRIMIDO (≥ suppress threshold)\n  T=16min:  Sem flap por 15min → penalty decay: 2000 → 1000 (1 half-life)\n  T=31min:  Sem flap por mais 15min → penalty: 1000 → 500\n  T=46min:  Sem flap → penalty: 500 → 250 → abaixo de reuse (750) → ROTA RESTAURADA\n\n  Total suprimido: ~44 minutos para uma rota que flapou 2x e parou"
+        },
+        "keyPoints": [
+          "Penalty acumula com cada flap; decai exponencialmente no half-life configurado",
+          "Rota suprimida quando penalty ≥ suppress threshold (padrão: 2000)",
+          "Rota restaurada quando penalty < reuse threshold (padrão: 750) — garante que rota estabilizou"
+        ]
+      },
+      {
+        "id": "controversia-dampening",
+        "title": "Controvérsia: dampening prejudica convergência",
+        "body": "Embora o dampening pareça a solução óbvia, ele foi amplamente desabilitado pelos grandes operadores a partir dos anos 2000. O problema é que o dampening, com os parâmetros padrão do RFC 2439, suprime rotas por muito tempo — às vezes dezenas de minutos — mesmo após o link se tornar estável.\n\nIsso é especialmente problemático para prefixos com muito tráfego: um prefixo suprimido fica inacessível para todos os peers, causando blackhole de tráfego. O remédio ficou pior que a doença.\n\nRecomendações atuais (RIPE-580, 2013):\n- Se usar dampening, usar parâmetros muito mais conservadores: half-life = 1 min, suppress = 6000, reuse = 1500, max-suppress = 4 min\n- Esses parâmetros suprimem apenas rotas que flapam de forma absurda e restauram rápido\n- A maioria dos grandes ISPs simplesmente não usa dampening hoje — preferem BFD para detecção rápida e melhores filtros de entrada",
+        "callout": {
+          "type": "warning",
+          "text": "Dampening com parâmetros padrão (RFC 2439) pode manter um prefixo suprimido por até 60 minutos mesmo após estabilização. O RIPE-580 documenta casos onde dampening causou mais downtime que o próprio flapping. Use parâmetros conservadores ou não use dampening."
+        },
+        "keyPoints": [
+          "Dampening com parâmetros padrão pode causar mais downtime que o flapping em si",
+          "RIPE-580 recomenda half-life de 1 minuto e max-suppress de 4 minutos se usar dampening",
+          "Alternativa moderna: monitoramento de estabilidade via BGP Communities + alertas"
+        ]
+      },
+      {
+        "id": "diagnostico",
+        "title": "Diagnosticar e monitorar flapping",
+        "body": "Para identificar route flapping em operação:",
+        "codeBlock": {
+          "language": "text",
+          "code": "# Cisco IOS — ver histórico de flaps por prefixo\nshow ip bgp flap-statistics\nshow ip bgp flap-statistics filter-list <access-list>\n\n# Verificar prefixos suprimidos por dampening\nshow ip bgp dampening dampened-paths\nshow ip bgp dampening flap-statistics\n\n# Verificar parâmetros de dampening ativos\nshow ip bgp dampening parameters\n\n# Juniper JunOS\nshow bgp neighbor <IP> flap-statistics\nshow route damping suppressed\n\n# Monitorar UPDATE messages por peer (indicador de instabilidade)\nshow ip bgp neighbors <IP> | include Updates"
+        },
+        "keyPoints": [
+          "'show ip bgp flap-statistics' mostra contagem de flaps por prefixo — útil para identificar rotas problemáticas",
+          "Alta taxa de UPDATE messages de um peer específico indica instabilidade naquele AS",
+          "Correlacionar com logs de interface para identificar causa física (link loss, erro de FCS)"
+        ]
+      }
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": ["bgp-conceito-prefix-hijacking", "bgp-ferramenta-rpki-validacao", "glossario-net-rout"],
+  "technicalReferences": [
+    { "title": "RFC 2439 - BGP Route Flap Damping", "url": "https://www.rfc-editor.org/rfc/rfc2439" },
+    { "title": "RIPE-580 - Revisiting BGP Route Flap Dampening", "url": "https://www.ripe.net/publications/docs/ripe-580" }
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "id": "judicial-procedimento-resposta",
+  "title": "Resposta a Requisição Judicial de Logs",
+  "description": "Procedimento para atendimento a ordens judiciais de preservação e fornecimento de logs de acesso, incluindo verificação de validade, escopo, preservação de evidências e cadeia de custódia.",
+  "content_type": "PROCEDIMENTO",
+  "category": {
+    "id": "GOV_LEGAL",
+    "type": "GOV_LEGAL_LOG_REQUEST",
+    "title": "Requisição Judicial de Logs"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "8 minutos",
+    "difficulty": "Intermediario",
+    "targetAudience": "DPO, Equipe Jurídica, Administradores de TI, Gestores",
+    "prerequisites": ["glossario-gov-legal"]
+  },
+  "tags": ["judicial", "logs", "Marco Civil", "cadeia de custódia", "evidência digital", "governança"],
+  "content": {
+    "context": "Acionado ao receber ofício ou mandado judicial solicitando logs de conexão, acesso ou comunicação de usuários da rede. O Marco Civil da Internet (Lei 12.965/2014) obriga provedores a guardar logs de conexão por 1 ano e logs de aplicação por 6 meses, fornecendo-os mediante ordem judicial. O não atendimento configura crime.",
+    "steps": [
+      {
+        "id": 1,
+        "title": "Verificar a validade formal da ordem judicial",
+        "description": "Antes de qualquer ação, encaminhe o documento ao setor jurídico para verificação de sua validade formal. Não forneça dados com base em solicitações informais.",
+        "commands": [],
+        "expectedResult": "Confirmação do setor jurídico de que: (1) o documento é uma ordem judicial válida, (2) emanado de autoridade competente, (3) dentro do prazo, (4) claramente especifica o escopo (IPs, contas, período).",
+        "warnings": [
+          "NUNCA forneça logs com base em e-mail, telefonema ou solicitação informal de policiais ou investigadores — exija a ordem judicial por escrito",
+          "Ordens sem determinação de escopo específico ('todos os logs') devem ser questionadas pelo jurídico antes do atendimento"
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Identificar e preservar os logs solicitados",
+        "description": "Com o escopo definido (IPs, contas, período), localize e preserve os logs solicitados. A preservação deve garantir integridade e autenticidade.",
+        "commands": [
+          "# Exemplo: exportar logs de firewall para o período solicitado (Cisco ASA)\nshow logging | include 192.168.1.100",
+          "# Linux syslog — extrair logs por período\nawk '/Mar  1 00:00:00/,/Mar 15 23:59:59/' /var/log/auth.log > logs_solicitados.txt",
+          "# Calcular hash para cadeia de custódia\nsha256sum logs_solicitados.txt > logs_solicitados.txt.sha256"
+        ],
+        "expectedResult": "Arquivo de logs extraído no formato bruto (não editado), com hash SHA-256 calculado antes de qualquer transmissão.",
+        "warnings": [
+          "NÃO filtre, edite ou formate os logs antes de calcular o hash — entregue o arquivo bruto como encontrado",
+          "Se os logs do período solicitado já expiraram pela política de retenção, documente isso formalmente ao jurídico"
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Documentar a cadeia de custódia",
+        "description": "A cadeia de custódia garante que as evidências digitais são autênticas e não foram alteradas. É requisito para que os logs sejam aceitos como prova judicial.",
+        "commands": [
+          "# Template de termo de custódia (preencher manualmente):\n# - Data e hora da extração\n# - Nome e cargo do técnico responsável\n# - Hash SHA-256 do arquivo antes da entrega\n# - Mídia utilizada para entrega (CD, pen drive, e-mail cifrado)\n# - Número do processo/ofício judicial"
+        ],
+        "expectedResult": "Termo de custódia assinado pelo responsável técnico e pelo representante jurídico da instituição.",
+        "warnings": [
+          "O técnico que extrai os logs deve assinar o termo — não delegar para outra pessoa que não participou da extração"
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Entregar os logs pela via determinada na ordem judicial",
+        "description": "A ordem judicial especifica como os dados devem ser entregues: físico (mídia), eletrônico (portal do tribunal) ou por oficial de justiça. Siga exatamente o determinado.",
+        "commands": [],
+        "expectedResult": "Protocolo ou confirmação de recebimento da entrega. Guardar cópia do protocolo e dos logs entregues por no mínimo 5 anos.",
+        "warnings": [
+          "Se a ordem determinar sigilo, não divulgue internamente além do estritamente necessário",
+          "Notifique o usuário investigado somente se a ordem judicial autorizar — algumas ordens incluem cláusula de confidencialidade"
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Registrar o atendimento e comunicar internamente",
+        "description": "Registre o atendimento em sistema de controle interno. Comunique à gestão superior e ao DPO, que pode ter obrigações adicionais de registro.",
+        "commands": [],
+        "expectedResult": "Registro interno completo com: número do processo, data de recebimento, data de atendimento, técnico responsável, hash dos arquivos entregues.",
+        "warnings": []
+      }
+    ],
+    "postConditions": [
+      "Logs entregues dentro do prazo determinado na ordem judicial",
+      "Cadeia de custódia documentada e arquivada por 5 anos",
+      "DPO e setor jurídico cientes do atendimento",
+      "Política de retenção de logs revisada se houve incapacidade de atender por expiração de logs"
+    ],
+    "escalationCriteria": [
+      "Ordem judicial com prazo inferior a 24 horas sem justificativa — acione jurídico imediatamente para contestar",
+      "Solicitação de dados além do período de retenção obrigatório — jurídico deve formalizar a impossibilidade",
+      "Ordem que colide com obrigações de sigilo de outros usuários — análise jurídica obrigatória"
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": ["lgpd-conceito-notificacao", "glossario-gov-legal"],
+  "technicalReferences": [
+    { "title": "Marco Civil da Internet - Lei nº 12.965/2014", "url": "https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2014/lei/l12965.htm" },
+    { "title": "Decreto 8.771/2016 - Regulamento do Marco Civil", "url": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2016/decreto/d8771.htm" }
+  ]
+}

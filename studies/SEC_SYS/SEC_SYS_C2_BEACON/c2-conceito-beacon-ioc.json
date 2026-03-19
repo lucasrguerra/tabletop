@@ -1,0 +1,70 @@
+{
+  "id": "c2-conceito-beacon-ioc",
+  "title": "Comunicação C2 e Beaconing: Detecção por Comportamento",
+  "description": "Explica como malware implementa comunicação com servidores C2 via beaconing, técnicas de evasão (Domain Fronting, DGA, HTTPS) e como detectar beacons por análise de padrões de tráfego.",
+  "content_type": "CONCEITO",
+  "category": {
+    "id": "SEC_SYS",
+    "type": "SEC_SYS_C2_BEACON",
+    "title": "Beaconing e Comunicação C2"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "12 minutos",
+    "difficulty": "Avancado",
+    "targetAudience": "Analistas de Segurança, Equipe CIRT, SOC",
+    "prerequisites": ["ransomware-conceito-taxonomia"]
+  },
+  "tags": ["C2", "beaconing", "malware", "DGA", "Domain Fronting", "threat hunting", "IOC"],
+  "content": {
+    "sections": [
+      {
+        "id": "o-que-e-beaconing",
+        "title": "O que é beaconing e por que é difícil detectar",
+        "body": "Beaconing é o padrão de comunicação periódica de malware com seu servidor de Command and Control (C2). O malware envia periodicamente um sinal de 'estou vivo' ao C2, que pode responder com novos comandos, payloads ou dados exfiltrados.\n\nO intervalo pode ser fixo (ex: a cada 60 segundos) ou jitterizado (aleatório ±30% para dificultar detecção). A carga de dados em cada beacon pode ser mínima (keep-alive) ou conter resultados de comandos executados.\n\nPor que é difícil detectar: beacons muitas vezes usam protocolos legítimos (HTTPS, DNS, HTTP) e se misturam ao tráfego normal de usuários. Um único beacon de 200 bytes a cada 5 minutos é invisível em um link de 10 Gbps.",
+        "keyPoints": [
+          "Beaconing periódico permite ao atacante manter acesso sem conexão contínua — menor exposição",
+          "Jitter dificulta detecção por período fixo — análise estatística ainda detecta o padrão",
+          "Beacons sobre HTTPS são indistinguíveis de tráfego web legítimo sem inspeção de conteúdo"
+        ]
+      },
+      {
+        "id": "tecnicas-evasao",
+        "title": "Técnicas de evasão: DGA, Domain Fronting e DNS over HTTPS",
+        "body": "Atacantes sofisticados usam técnicas para dificultar o bloqueio do canal C2:\n\nDGA (Domain Generation Algorithm): o malware gera centenas de domínios aleatórios diariamente usando um algoritmo determinístico. O atacante registra apenas alguns desses domínios. O malware tenta todos — os não registrados retornam NXDOMAIN, e os registrados respondem com o IP do C2. Bloquear um domínio é ineficaz porque amanhã há centenas novos.\n\nDomain Fronting: o beacon parece se comunicar com um CDN legítimo (Cloudflare, Azure) no campo SNI do TLS, mas o Host header interno aponta para o C2 real. O tráfego é indistinguível de tráfego HTTPS para a CDN legítima.\n\nDNS over HTTPS (DoH): o beaconing usa DoH para encapsular o canal C2 em consultas DNS criptografadas via HTTPS para resolvers como 8.8.8.8 ou 1.1.1.1, bypassando firewalls que inspecionam DNS.",
+        "callout": {
+          "type": "warning",
+          "text": "Domain Fronting foi amplamente usado por APTs e grupos de ransomware usando Cobalt Strike. CDNs como Cloudflare e Google implementaram restrições, mas variantes continuam emergindo. Detectar por comportamento (periodicidade) é mais eficaz que bloquear por domínio."
+        },
+        "keyPoints": [
+          "DGA: detectar por alto volume de NXDOMAIN de um único host",
+          "Domain Fronting: detectar por anomalia de SNI vs Host header (requer inspeção TLS)",
+          "DoH: detectar por tráfego HTTPS para IPs de resolvers DoH conhecidos fora do padrão da organização"
+        ]
+      },
+      {
+        "id": "deteccao-comportamental",
+        "title": "Detecção por análise de comportamento de tráfego",
+        "body": "Como os IOCs (domínios, IPs) mudam rapidamente, a detecção mais eficaz é comportamental — identificar o padrão de beaconing, não o destino:\n\n1. Análise de periodicidade: beacons em intervalos regulares criam um padrão de frequência estável. Em NetFlow, um fluxo de mesmo src/dst com intervalos regulares e tamanho consistente é suspeito.\n\n2. Análise de volume: beacons têm carga pequena e consistente. Fluxos HTTPS de 200-500 bytes a cada minuto, 24 horas por dia, de um host são atípicos.\n\n3. Taxa de NXDOMAIN: host com alto percentual de respostas DNS NXDOMAIN (>10%) pode estar tentando domínios DGA.\n\n4. Destinos incomuns: hosts em ASes recém-criados, geolocalização incoerente com o uso do sistema, domínios registrados há menos de 30 dias.",
+        "codeBlock": {
+          "language": "text",
+          "code": "Indicadores de beaconing em logs de tráfego (NetFlow/firewall):\n\n  Suspeito:\n  - dst: 45.134.215.89 (AS recém-criado, registrado há 3 dias)\n  - proto: HTTPS (TCP/443)\n  - bytes: 350 bytes (sent) / 280 bytes (recv) — consistente\n  - intervalo: a cada 300 segundos (±15s jitter)\n  - horário: 24h por dia, 7 dias por semana\n  - host: workstation-finance-07\n\n  → Padrão de beacon com jitter de 5%"
+        },
+        "keyPoints": [
+          "Periodicidade é o indicador principal — use análise estatística, não apenas regras fixas",
+          "NXDOMAIN alto é sinal forte de DGA — correlacionar com outros IOCs",
+          "Anomalias de horário: beacon 24h/7d de workstation usualmente offline à noite é suspeito"
+        ]
+      }
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": ["ransomware-conceito-taxonomia", "glossario-sec-sys"],
+  "technicalReferences": [
+    { "title": "MITRE ATT&CK T1071 - Application Layer Protocol (C2)", "url": "https://attack.mitre.org/techniques/T1071/" },
+    { "title": "MITRE ATT&CK T1568 - Dynamic Resolution (DGA)", "url": "https://attack.mitre.org/techniques/T1568/" },
+    { "title": "Cisco Umbrella - DGA Detection", "url": "https://umbrella.cisco.com/blog/domain-generation-algorithms" }
+  ]
+}

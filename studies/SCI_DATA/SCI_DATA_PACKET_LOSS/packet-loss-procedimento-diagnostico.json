@@ -1,0 +1,120 @@
+{
+  "id": "packet-loss-procedimento-diagnostico",
+  "title": "Diagnóstico de Perda de Pacotes em Infraestrutura de Pesquisa",
+  "description": "Procedimento para isolar a causa de perda de pacotes em redes de pesquisa de alto desempenho: diferenciação entre perda física, congestionamento, configuração de QoS e problemas de roteamento.",
+  "content_type": "PROCEDIMENTO",
+  "category": {
+    "id": "SCI_DATA",
+    "type": "SCI_DATA_PACKET_LOSS",
+    "title": "Perda de Pacotes"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "11 minutos",
+    "difficulty": "Avancado",
+    "targetAudience": "Engenheiros de Rede, Analistas de NOC, Operadores de Infraestrutura de Pesquisa",
+    "prerequisites": ["elephant-conceito-qos", "perfsonar-ferramenta-medicao"]
+  },
+  "tags": ["perda de pacotes", "QoS", "troubleshooting", "redes de pesquisa", "BDP", "congestionamento"],
+  "content": {
+    "context": "Acionado quando pesquisadores reportam transferências de dados lentas, timeouts em aplicações científicas, ou quando o perfSONAR detecta perda de pacotes acima do limiar (> 0.1%). Em redes de pesquisa de alto desempenho, até 0.1% de perda pode reduzir o throughput TCP efetivo em 90% por causa do mecanismo de controle de congestionamento.",
+    "steps": [
+      {
+        "id": 1,
+        "title": "Confirmar e quantificar a perda com perfSONAR",
+        "description": "Antes de investigar, confirme a extensão e o padrão da perda. Perda constante tem causa diferente de perda intermitente.",
+        "commands": [
+          "# Medir perda one-way nos dois sentidos (fonte → destino e destino → fonte)\npscheduler task --tool owping latency --source <IP_A> --dest <IP_B> --duration 60",
+          "# Verificar histórico de 24h via API REST do perfSONAR\ncurl -s 'https://PERFSONAR_A/esmond/perfsonar/archive/?format=json&event-type=packet-loss-rate&time-range=86400' | python3 -m json.tool",
+          "# Verificar assimetria: se perda ocorre só em um sentido, o problema é naquele path\n# A→B sem perda e B→A com perda → problema no path B→A (não no equipamento de A)"
+        ],
+        "expectedResult": "Taxa de perda quantificada (ex: 0.5% one-way A→B). Padrão identificado: contínuo vs. intermitente. Assimetria identificada se presente.",
+        "warnings": [
+          "OWAMP requer NTP sincronizado — verificar 'chronyc tracking' em ambos os nós antes de confiar nos resultados",
+          "Perda apenas em um sentido simplifica o diagnóstico — foca no path unidirecional"
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Localizar o hop onde ocorre a perda com trace",
+        "description": "Use trace de rota para identificar em qual hop do caminho a perda está ocorrendo.",
+        "commands": [
+          "# Trace com medição de perda por hop (MTR)\nmtr --report --report-cycles 100 --interval 0.1 <IP_DESTINO>",
+          "# pScheduler trace com latência por hop\npscheduler task --tool tracepath trace --dest <IP_DESTINO>",
+          "# Paris-traceroute (evita load balancing ECMP que confunde traceroute tradicional)\nparis-traceroute <IP_DESTINO>",
+          "# OWAMP apenas até o hop específico suspeito (se acessível)\npscheduler task --tool owping latency --source <IP_A> --dest <IP_HOP_SUSPEITO>"
+        ],
+        "expectedResult": "Identificação do hop onde a latência aumenta ou a perda começa. Geralmente um link entre dois roteadores ou entre PoPs de diferentes redes.",
+        "warnings": [
+          "Roteadores podem aplicar rate limiting em respostas ICMP TTL exceeded — falsa aparência de perda em hops intermediários",
+          "ECMP (load balancing) pode distribuir traceroute entre múltiplos paths — paris-traceroute usa flow hashing consistente"
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Verificar contadores de descarte no roteador/switch",
+        "description": "Com o hop suspeito identificado, verifique os contadores de descarte de pacotes no equipamento.",
+        "commands": [
+          "# Cisco IOS — contadores de saída da interface\nshow interfaces GigabitEthernet0/1 | include output drops|output queue|throttles",
+          "# Verificar filas de QoS (se configuradas)\nshow policy-map interface GigabitEthernet0/1",
+          "# Juniper\nshow interfaces ge-0/0/1 detail | match drop|discard",
+          "# Verificar utilização da interface (é congestionamento?)\nshow interfaces GigabitEthernet0/1 | include rate|load",
+          "# Verificar erros físicos (FCS, Align)\nshow interfaces GigabitEthernet0/1 | include FCS|Align|error"
+        ],
+        "expectedResult": "Output drops em uma interface específica confirma congestionamento naquele ponto. FCS errors confirma problema físico. Filas de QoS saturadas confirmam problema de classificação de tráfego.",
+        "warnings": [
+          "Output drops em interface de baixa velocidade conectando a uplink de alta velocidade é esperado em congestionamento — verificar se o link está superdimensionado",
+          "FCS errors em link de fibra podem ser causados por conector sujo — limpar antes de substituir hardware"
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Diferenciar: perda por congestionamento vs. perda física",
+        "description": "A causa da perda determina a solução. Perda por congestionamento exige aumento de capacidade ou QoS. Perda física exige manutenção do meio.",
+        "commands": [
+          "# Indicadores de CONGESTIONAMENTO:\n# - Output drops crescendo na interface de saída\n# - Utilização > 70% na interface\n# - Perda correlaciona com horário de pico\n# - Perda em tráfego bulk (elephant flows), não em ICMP\n\n# Indicadores de PROBLEMA FÍSICO:\n# - FCS errors, Align errors na interface\n# - Rx power fora do range no DDM do SFP:\nshow interfaces GigabitEthernet0/1 transceiver\n# - Perda não correlaciona com utilização\n# - Perda em TODOS os tipos de tráfego uniformemente\n\n# Indicadores de PROBLEMA DE ROTEAMENTO:\n# - Perda apenas em destinos específicos\n# - Assimetria severa (perda em um sentido)\n# - Correlação com mudança de rota BGP/OSPF"
+        ],
+        "expectedResult": "Categorização clara: congestionamento (precisa de capacidade ou QoS), problema físico (manutenção de meio), ou roteamento (investigar BGP/OSPF).",
+        "warnings": [
+          "Perda intermitente pode ser causada por SFP com problema de temperatura — verificar em diferentes horários do dia",
+          "Em links de microondas e satélite, alguma perda é esperada — verificar se está dentro dos SLAs do link"
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Mitigar conforme causa identificada",
+        "description": "Aplique a solução adequada à causa raiz.",
+        "commands": [
+          "# CONGESTIONAMENTO — opções:\n# 1. Aumentar capacidade do link (médio prazo)\n# 2. Habilitar QoS/DSCP para proteger tráfego científico crítico\n#    - Classificar GridFTP, SFTP em DSCP AF41 (throughput assegurado)\n#    - Classificar beacons perfSONAR em DSCP CS6\ninterface GigabitEthernet0/1\n service-policy output POLITICA_QOS_PESQUISA",
+          "# PROBLEMA FÍSICO — opções:\n# 1. Limpar conector de fibra com kit de limpeza\n# 2. Substituir patch cord de fibra\n# 3. Solicitar OTDR se problema em fibra de longa distância\n# 4. Substituir SFP (após confirmar problema no DDM)",
+          "# ROTEAMENTO — opções:\n# 1. Verificar e corrigir rota BGP/OSPF\n# 2. Policy-based routing para desviar de path problemático\n# 3. Coordenar com NOC do provider do link com perda",
+          "# Após mitigação: retestar com pScheduler\npscheduler task --tool owping latency --source <IP_A> --dest <IP_B> --duration 120"
+        ],
+        "expectedResult": "Perda reduzida abaixo de 0.1% ou eliminada. Throughput TCP efetivo restaurado. Transferências de dados científicos voltando ao nível esperado.",
+        "warnings": [
+          "QoS protege tráfego classificado mas não cria capacidade — se o link está saturado por tráfego legítimo, aumento de capacidade é necessário",
+          "Aguardar pelo menos 10 minutos após correção antes de retestar para dar tempo ao TCP de sair do estado de backoff"
+        ]
+      }
+    ],
+    "postConditions": [
+      "Perda de pacotes < 0.1% confirmada por perfSONAR após mitigação",
+      "Causa raiz documentada (congestionamento/físico/roteamento)",
+      "Ação permanente planejada se solução foi temporária (ex: upgrade de link agendado)",
+      "Threshold de alerta configurado no perfSONAR para detecção automática futura"
+    ],
+    "escalationCriteria": [
+      "Perda em múltiplos paths simultaneamente — pode indicar problema de hardware em roteador core",
+      "Perda persistindo após limpeza de fibra e substituição de SFP — solicitar OTDR e inspeção de campo",
+      "Perda causada por saturação de link transoceânico/transatlântico — escalar para NOC da RNP e parceiros internacionais"
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": ["elephant-conceito-qos", "perfsonar-ferramenta-medicao", "netflow-ferramenta-analise", "sfp-ferramenta-dom-ddm", "glossario-sci-data"],
+  "technicalReferences": [
+    { "title": "ESnet Network Performance Troubleshooting Guide", "url": "https://fasterdata.es.net/network-tuning/" },
+    { "title": "GÉANT - Network Monitoring Best Practices", "url": "https://www.geant.org/networks/network-technologies/" }
+  ]
+}

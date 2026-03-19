@@ -1,0 +1,122 @@
+{
+  "id": "bgp-procedimento-resposta-hijack",
+  "title": "Resposta a Sequestro de Prefixo BGP",
+  "description": "Procedimento passo-a-passo para detecção, contenção e recuperação de um evento de BGP prefix hijacking, desde a notificação inicial até a verificação de normalização do roteamento.",
+  "content_type": "PROCEDIMENTO",
+  "category": {
+    "id": "NET_ROUT",
+    "type": "NET_ROUT_BGP_HIJACK",
+    "title": "Sequestro de Prefixo BGP"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "10 minutos",
+    "difficulty": "Avancado",
+    "targetAudience": "Engenheiros de Rede NOC, Equipe de Resposta a Incidentes",
+    "prerequisites": ["bgp-conceito-prefix-hijacking"]
+  },
+  "tags": ["BGP", "hijacking", "resposta a incidente", "playbook", "NOC"],
+  "content": {
+    "context": "Este procedimento é ativado quando há evidência de anúncio não autorizado de prefixos pertencentes à organização por um AS externo. A detecção pode vir de alertas automáticos (BGPmon, RIPE Stat), relatos de usuários ou NOC de terceiros. O objetivo é confirmar o incidente, reduzir o impacto e prevenir recorrência.",
+    "steps": [
+      {
+        "id": 1,
+        "title": "Confirmar e caracterizar o hijack",
+        "description": "Antes de qualquer ação, confirme que o anúncio é de fato não autorizado. Falsos positivos incluem anúncios legítimos de clientes ou provedores de trânsito com autorização prévia.",
+        "commands": [
+          "# Verificar tabela BGP global via Looking Glass\ncurl -s 'https://stat.ripe.net/data/bgp-state/data.json?resource=SEU_PREFIXO' | jq '.data.routes[] | {peer_asn, path}'",
+          "# Consultar quais ASes estão anunciando o prefixo agora\nbgpq4 -j AS-SUAORG | jq '.prefixes[]'"
+        ],
+        "expectedResult": "AS origin diferente do(s) seu(s) ASN(s) legítimos na tabela BGP global. Confirmar que o prefixo não está em nenhum ROA ou IRR do AS suspeito.",
+        "warnings": [
+          "Não confundir anycast legítimo com hijack — verifique sua documentação interna de ASes autorizados",
+          "Anúncios de backup/failover de provedores de trânsito podem aparecer como hijack se não documentados"
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Notificar o CIRT e acionar escalada",
+        "description": "Com confirmação do hijack, notifique imediatamente o CIRT da organização e o gestor de rede responsável. Abra um ticket de incidente com severidade Alta.",
+        "commands": [],
+        "expectedResult": "Ticket de incidente aberto com: prefixo afetado, AS origem do hijack, horário de detecção, AS path observado, impacto estimado (quais serviços apontam para aquele prefixo).",
+        "warnings": [
+          "Não tente resolver sozinho sem registrar — a linha do tempo é evidência crítica"
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Anunciar prefixo mais específico (contenção imediata)",
+        "description": "Para recuperar o tráfego, anuncie sub-prefixos mais específicos (/24 ou menores) a partir dos seus roteadores de borda. O longest prefix match garantirá que seu anúncio vença o do hijacker para os destinos cobertos.",
+        "commands": [
+          "# Exemplo em Cisco IOS-XR\nrouter bgp 64500\n address-family ipv4 unicast\n  network 198.51.100.0/24\n  network 198.51.101.0/24",
+          "# Exemplo em FRRouting\nvtysh\n  configure terminal\n  router bgp 64500\n  address-family ipv4 unicast\n  network 198.51.100.0/24"
+        ],
+        "expectedResult": "Após propagação (2-15 minutos), os anúncios /24 devem aparecer na tabela global sobrepondo o /16 do hijacker. Verificar com looking glass externo.",
+        "warnings": [
+          "Verifique seus ROAs antes — anunciar /24 sem ROA correspondente pode fazer seu próprio anúncio ser marcado como RPKI Invalid em ASes com ROV habilitado",
+          "Crie ROAs para os /24 antes ou simultaneamente ao anúncio BGP"
+        ],
+        "rollbackAction": "Remover os anúncios /24 e voltar a anunciar apenas o prefixo agregado original quando o hijack for resolvido."
+      },
+      {
+        "id": 4,
+        "title": "Contactar o AS origem e o upstream provider do hijacker",
+        "description": "Identifique o contato operacional do AS origem usando o WHOIS e o banco de dados do PeeringDB. Envie notificação formal solicitando remoção do anúncio. Em paralelo, contacte o(s) upstream provider(s) do AS para filtragem emergencial.",
+        "commands": [
+          "# Identificar contato operacional do AS\nwhois -h whois.radb.net AS65530",
+          "# Consultar PeeringDB\ncurl -s 'https://www.peeringdb.com/api/net?asn=65530' | jq '.data[0] | {name, aka, website, policy_email, poc_set}'"
+        ],
+        "expectedResult": "E-mail de notificação enviado para NOC e abuse@ do AS origem e seu(s) upstream(s). Registrar todos os contatos e horários no ticket.",
+        "warnings": [
+          "Hijacks acidentais (misconfiguration) são mais comuns que hijacks maliciosos — mantenha tom técnico e não acusatório na comunicação inicial"
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Verificar e atualizar ROAs e registros IRR",
+        "description": "Se o incidente expôs lacunas na cobertura RPKI, corrija agora. Certifique-se de que todos os prefixos anunciados têm ROAs válidos com maxLength correto.",
+        "commands": [
+          "# Verificar cobertura RPKI atual dos seus prefixos\ncurl -s 'https://stat.ripe.net/data/rpki-validation/data.json?resource=AS64500&prefix=198.51.100.0/16' | jq '.data.validating_roas'"
+        ],
+        "expectedResult": "Todos os prefixos anunciados com ROA status 'valid'. Nenhum prefixo 'not-found' nos blocos operados.",
+        "warnings": [
+          "maxLength muito permissivo (ex: /8 com maxLength=/24) é quase tão ruim quanto não ter ROA — permite que qualquer sub-prefixo seja válido"
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Monitorar normalização e confirmar resolução",
+        "description": "Acompanhe a tabela BGP global por pelo menos 2 horas após a remoção do anúncio malicioso para confirmar que não há recidiva.",
+        "commands": [
+          "# Monitorar prefixo via RIPE Stat (polling a cada 5 min)\nwatch -n 300 \"curl -s 'https://stat.ripe.net/data/bgp-state/data.json?resource=198.51.100.0/16' | jq '.data.routes[].path'\""
+        ],
+        "expectedResult": "Apenas AS origin legítimos na tabela global. Ausência de sub-prefixos /24 não autorizados.",
+        "warnings": []
+      }
+    ],
+    "postConditions": [
+      "Todos os prefixos da organização com ROAs válidos e atualizados",
+      "Ticket de incidente documentado com linha do tempo completa",
+      "Relatório pós-incidente enviado ao CIRT em até 72h",
+      "Alertas de monitoramento BGP configurados (BGPmon ou equivalente)"
+    ],
+    "escalationCriteria": [
+      "Hijack em andamento por mais de 30 minutos sem resposta do AS origem",
+      "Serviços críticos (DNS autoritativo, e-mail, VPN) afetados",
+      "Indícios de hijack deliberado (AS de origem com histórico de abuse)"
+    ]
+  },
+  "relatedScenarios": ["bgp-prefix-hijacking"],
+  "relatedStudies": [
+    "bgp-conceito-prefix-hijacking",
+    "bgp-ferramenta-rpki-validacao",
+    "glossario-net-rout"
+  ],
+  "technicalReferences": [
+    { "title": "RIPE NCC - What to do if you are a victim of a BGP hijack", "url": "https://www.ripe.net/publications/docs/ripe-788" },
+    { "title": "MANRS - BGP Hijack Mitigation Best Practices", "url": "https://www.manrs.org/netops/guide/hijacks/" },
+    { "title": "BGPmon - Real-time BGP monitoring", "url": "https://bgpmon.net/" }
+  ]
+}

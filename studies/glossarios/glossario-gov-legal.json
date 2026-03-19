@@ -1,0 +1,102 @@
+{
+  "id": "glossario-gov-legal",
+  "title": "Glossário: Governança e Aspectos Legais",
+  "description": "Definições dos principais termos de governança de TI, privacidade de dados, LGPD e conformidade relevantes nos cenários GOV_LEGAL.",
+  "content_type": "GLOSSARIO",
+  "category": {
+    "id": "GOV_LEGAL",
+    "type": null,
+    "title": "Governança e Aspectos Legais"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "8 minutos",
+    "difficulty": "Basico",
+    "targetAudience": "Todos os participantes de exercícios GOV_LEGAL",
+    "prerequisites": []
+  },
+  "tags": ["LGPD", "governança", "privacidade", "conformidade", "DPO", "ANPD", "glossário"],
+  "content": {
+    "terms": [
+      {
+        "term": "LGPD (Lei Geral de Proteção de Dados Pessoais)",
+        "acronym": "LGPD",
+        "definition": "Lei Federal nº 13.709/2018 que estabelece regras para coleta, armazenamento, tratamento e compartilhamento de dados pessoais no Brasil. Baseada no GDPR europeu. Aplica-se a qualquer operação de tratamento realizada no Brasil ou que tenha como objetivo oferecer bens/serviços a pessoas no Brasil.",
+        "seeAlso": ["DPO", "ANPD", "Dado Pessoal", "Incidente de Segurança"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "Dado Pessoal",
+        "acronym": null,
+        "definition": "Qualquer informação relacionada a pessoa natural identificada ou identificável. Inclui: nome, CPF, e-mail, endereço IP, dados de localização, cookies, matrículas acadêmicas. Dado pessoal sensível (categoria especial): origem racial, saúde, biometria, filiação política/sindical/religiosa.",
+        "seeAlso": ["LGPD"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "DPO (Data Protection Officer / Encarregado)",
+        "acronym": "DPO",
+        "definition": "Pessoa indicada pelo controlador ou operador responsável por comunicar-se com titulares e ANPD, orientar funcionários sobre práticas de proteção e receber reclamações. Obrigatório para controladores que tratam dados pessoais em larga escala. Na LGPD é chamado de 'Encarregado'.",
+        "seeAlso": ["LGPD", "ANPD"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "ANPD (Autoridade Nacional de Proteção de Dados)",
+        "acronym": "ANPD",
+        "definition": "Órgão federal brasileiro responsável por fiscalizar o cumprimento da LGPD, aplicar sanções, editar regulamentos e promover educação em privacidade. Deve ser notificada em casos de incidentes de segurança que possam acarretar risco ou dano relevante aos titulares.",
+        "seeAlso": ["LGPD", "DPO"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "Incidente de Segurança (LGPD)",
+        "acronym": null,
+        "definition": "Acesso não autorizado, perda, destruição, alteração, comunicação ou qualquer forma de tratamento inadequado de dados pessoais. Quando houver risco ou dano relevante aos titulares, a ANPD deve ser notificada em prazo razoável (entendido como até 72 horas pelo regulamento).",
+        "seeAlso": ["LGPD", "ANPD", "DPO"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "Controlador",
+        "acronym": null,
+        "definition": "Pessoa natural ou jurídica que toma as decisões sobre o tratamento de dados pessoais: finalidade, meios, quais dados coletar. Na cadeia universidade/RNP: a IES é controladora dos dados de seus alunos e pesquisadores.",
+        "seeAlso": ["Operador", "LGPD"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "Operador",
+        "acronym": null,
+        "definition": "Pessoa natural ou jurídica que realiza o tratamento de dados pessoais em nome do controlador, seguindo suas instruções. Prestadores de serviços de nuvem, provedores de e-mail corporativo, empresas de backup são exemplos de operadores.",
+        "seeAlso": ["Controlador", "LGPD"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "Marco Civil da Internet",
+        "acronym": null,
+        "definition": "Lei Federal nº 12.965/2014 que estabelece princípios, garantias, direitos e deveres para o uso da Internet no Brasil. Define obrigações de guarda de logs de acesso por provedores de conexão (1 ano) e provedores de aplicação (6 meses), com fornecimento mediante ordem judicial.",
+        "seeAlso": ["LGPD"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "PSI (Política de Segurança da Informação)",
+        "acronym": "PSI",
+        "definition": "Documento formal que estabelece as diretrizes, princípios e responsabilidades de uma organização em relação à segurança da informação. Deve ser aprovado pela alta gestão, comunicado a todos os colaboradores e revisado periodicamente. Base para outras políticas específicas (política de senhas, uso aceitável, etc.).",
+        "seeAlso": [],
+        "relatedStudyId": null
+      },
+      {
+        "term": "ISO/IEC 27001",
+        "acronym": null,
+        "definition": "Norma internacional para Sistemas de Gestão de Segurança da Informação (SGSI). Define requisitos para estabelecer, implementar, manter e melhorar continuamente um SGSI. Certificação demonstra conformidade com práticas de segurança reconhecidas internacionalmente.",
+        "seeAlso": ["PSI"],
+        "relatedStudyId": null
+      }
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": [],
+  "technicalReferences": [
+    { "title": "LGPD - Lei nº 13.709/2018 (texto completo)", "url": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm" },
+    { "title": "ANPD - Portal oficial", "url": "https://www.gov.br/anpd/pt-br" },
+    { "title": "Marco Civil da Internet - Lei nº 12.965/2014", "url": "https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2014/lei/l12965.htm" }
+  ]
+}

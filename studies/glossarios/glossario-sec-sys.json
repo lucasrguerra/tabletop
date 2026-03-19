@@ -1,0 +1,125 @@
+{
+  "id": "glossario-sec-sys",
+  "title": "Glossário: Segurança de Sistemas",
+  "description": "Definições técnicas dos principais termos de malware, resposta a incidentes, forense digital e segurança de sistemas usados nos cenários SEC_SYS.",
+  "content_type": "GLOSSARIO",
+  "category": {
+    "id": "SEC_SYS",
+    "type": null,
+    "title": "Segurança de Sistemas"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "10 minutos",
+    "difficulty": "Basico",
+    "targetAudience": "Todos os participantes de exercícios SEC_SYS",
+    "prerequisites": []
+  },
+  "tags": ["malware", "ransomware", "MITRE", "forense", "IOC", "incident response", "glossário"],
+  "content": {
+    "terms": [
+      {
+        "term": "IOC (Indicator of Compromise)",
+        "acronym": "IOC",
+        "definition": "Artefato observado em rede ou sistema que indica com alta probabilidade que ele foi comprometido. Exemplos: hash MD5 de arquivo malicioso, endereço IP de servidor C2, domínio de phishing, chave de registro específica. Usado para detecção e threat hunting.",
+        "seeAlso": ["TTP", "MITRE ATT&CK"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "TTP (Tactics, Techniques and Procedures)",
+        "acronym": "TTP",
+        "definition": "No contexto de segurança ofensiva/defensiva: Táticas são os objetivos de alto nível do atacante (ex: Persistência), Técnicas são os meios usados (ex: T1053 - Scheduled Task), Procedimentos são as implementações específicas observadas. TTPs são mais estáveis que IOCs e mais difíceis de mudar para o atacante.",
+        "seeAlso": ["IOC", "MITRE ATT&CK"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "MITRE ATT&CK",
+        "acronym": null,
+        "definition": "Framework de conhecimento que cataloga TTPs observados de grupos de ameaça reais. Organizado em matrizes por plataforma (Enterprise, Mobile, ICS). Cada técnica tem ID único (ex: T1486 para Data Encrypted for Impact). Usado para mapeamento de incidentes, detecção e red team.",
+        "seeAlso": ["TTP", "IOC"],
+        "relatedStudyId": "ransomware-conceito-taxonomia"
+      },
+      {
+        "term": "Ransomware",
+        "acronym": null,
+        "definition": "Malware que criptografa dados da vítima e exige pagamento (geralmente em criptomoeda) pela chave de descriptografia. Variante moderna usa extorsão dupla: exfiltra dados antes de criptografar e ameaça publicar se não houver pagamento.",
+        "seeAlso": ["RaaS", "Extorsão Dupla", "C2"],
+        "relatedStudyId": "ransomware-conceito-taxonomia"
+      },
+      {
+        "term": "RaaS (Ransomware as a Service)",
+        "acronym": "RaaS",
+        "definition": "Modelo de negócio criminoso onde um grupo desenvolve o ransomware e a infraestrutura de pagamento e aluga para 'afiliados' que executam os ataques. O grupo principal recebe percentual do resgate (tipicamente 20-30%). Exemplos: LockBit, BlackCat/ALPHV.",
+        "seeAlso": ["Ransomware"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "C2 (Command and Control)",
+        "acronym": "C2",
+        "definition": "Infraestrutura usada pelo atacante para comunicar com malware instalado em sistemas comprometidos. Permite enviar comandos, receber dados exfiltrados e atualizar o malware. Beaconing é o padrão de comunicação periódica do malware com o C2.",
+        "seeAlso": ["Beaconing", "IOC"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "Beaconing",
+        "acronym": null,
+        "definition": "Comportamento de malware que realiza comunicação periódica com servidor C2 em intervalos regulares (ex: a cada 60 segundos). Permite ao atacante enviar comandos quando conveniente. Detectável por análise de tráfego de rede buscando padrões de periodicidade.",
+        "seeAlso": ["C2"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "LOLBins (Living off the Land Binaries)",
+        "acronym": "LOLBins",
+        "definition": "Técnica de ataque que usa ferramentas legítimas do sistema operacional (powershell.exe, wmic.exe, certutil.exe, etc.) para executar ações maliciosas, evitando detecção por soluções AV que buscam arquivos maliciosos conhecidos. Detectável por monitoramento comportamental.",
+        "seeAlso": ["MITRE ATT&CK", "TTP"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "Movimento Lateral (Lateral Movement)",
+        "acronym": null,
+        "definition": "Fase de um ataque em que o adversário se move de um sistema comprometido para outros sistemas na mesma rede. Técnicas incluem Pass-the-Hash, Kerberoasting, exploração de shares SMB e abuso de ferramentas de administração remota.",
+        "seeAlso": ["Pass-the-Hash", "MITRE ATT&CK"],
+        "relatedStudyId": "ransomware-conceito-taxonomia"
+      },
+      {
+        "term": "Shadow Copy (VSS)",
+        "acronym": "VSS",
+        "definition": "Volume Shadow Copy Service — funcionalidade do Windows que cria snapshots pontuais de volumes de disco. Ransomware quase universalmente deleta shadow copies (vssadmin delete shadows /all) antes ou durante a criptografia para impedir recuperação sem pagamento.",
+        "seeAlso": ["Ransomware"],
+        "relatedStudyId": "ransomware-procedimento-containment"
+      },
+      {
+        "term": "Extorsão Dupla (Double Extortion)",
+        "acronym": null,
+        "definition": "Modelo de ransomware moderno em que o atacante exfiltra dados antes de criptografar. O pagamento é exigido tanto pela chave de descriptografia quanto para evitar publicação dos dados roubados em sites de vazamento (leak sites). Torna backups isolados insuficientes como única defesa.",
+        "seeAlso": ["Ransomware", "RaaS"],
+        "relatedStudyId": "ransomware-conceito-taxonomia"
+      },
+      {
+        "term": "LGPD (Lei Geral de Proteção de Dados)",
+        "acronym": "LGPD",
+        "definition": "Lei brasileira nº 13.709/2018 que regula o tratamento de dados pessoais. Em incidentes de segurança com vazamento de dados pessoais, exige notificação à ANPD e aos titulares afetados em prazo razoável (interpretado como 72h para situações de risco). Aplicável a todas as IES e unidades da RNP.",
+        "seeAlso": ["ANPD"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "SQL Injection",
+        "acronym": "SQLi",
+        "definition": "Vulnerabilidade de aplicação web onde entrada do usuário é inserida diretamente em consultas SQL sem sanitização adequada. Permite ao atacante ler, modificar ou deletar dados do banco, executar comandos no SO (via xp_cmdshell em MSSQL) ou bypassar autenticação. Prevenção: prepared statements/parameterized queries.",
+        "seeAlso": ["OWASP"],
+        "relatedStudyId": null
+      }
+    ]
+  },
+  "relatedScenarios": ["ransomware-attack"],
+  "relatedStudies": [
+    "ransomware-conceito-taxonomia",
+    "ransomware-procedimento-containment"
+  ],
+  "technicalReferences": [
+    { "title": "MITRE ATT&CK Enterprise Matrix", "url": "https://attack.mitre.org/matrices/enterprise/" },
+    { "title": "LGPD - Lei nº 13.709/2018", "url": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm" }
+  ]
+}

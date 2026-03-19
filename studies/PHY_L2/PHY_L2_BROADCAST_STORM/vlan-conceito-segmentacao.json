@@ -1,0 +1,83 @@
+{
+  "id": "vlan-conceito-segmentacao",
+  "title": "VLANs: Segmentação L2 e Isolamento de Domínios de Broadcast",
+  "description": "Explica como VLANs segmentam domínios de broadcast em redes comutadas, a diferença entre portas access e trunk, o protocolo 802.1Q, e como a segmentação VLAN limita o impacto de broadcast storms e incidentes de segurança.",
+  "content_type": "CONCEITO",
+  "category": {
+    "id": "PHY_L2",
+    "type": "PHY_L2_BROADCAST_STORM",
+    "title": "Segmentação L2"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "8 minutos",
+    "difficulty": "Basico",
+    "targetAudience": "Engenheiros de Rede, Técnicos de Infraestrutura, Estudantes",
+    "prerequisites": []
+  },
+  "tags": ["VLAN", "802.1Q", "segmentação", "broadcast domain", "trunk", "access", "switch"],
+  "content": {
+    "sections": [
+      {
+        "id": "o-que-e-vlan",
+        "title": "O que é uma VLAN e por que existe",
+        "body": "Em uma rede comutada sem VLANs, todos os hosts conectados ao mesmo conjunto de switches compartilham o mesmo domínio de broadcast. Isso significa que um broadcast enviado por qualquer host (ARP request, DHCP discover, etc.) é recebido por todos os outros hosts — independente de serem da mesma organização ou segmento lógico.\n\nUma VLAN (Virtual Local Area Network) cria domínios de broadcast virtuais dentro de um ou mais switches físicos. Hosts em VLANs diferentes não se comunicam diretamente em L2 — precisam de um roteador (ou switch L3) para atravessar a fronteira de VLAN.\n\nBenefícios práticos:\n- Contenção de broadcast storms: um loop L2 em VLAN 10 não afeta VLAN 20\n- Segurança: um host comprometido em VLAN de usuários não enxerga tráfego da VLAN de servidores\n- Organização lógica: separar setores (TI, RH, Pesquisa) em VLANs diferentes sem rearranjar cabos físicos\n- Redução de tabela MAC: cada VLAN tem sua própria tabela MAC no switch",
+        "keyPoints": [
+          "VLAN = domínio de broadcast virtual — broadcast não atravessa fronteira de VLAN",
+          "Comunicação entre VLANs requer roteamento (L3) — switch L3 ou roteador dedicado",
+          "Segmentação VLAN limita impacto de loops, storms e hosts comprometidos"
+        ]
+      },
+      {
+        "id": "802-1q",
+        "title": "IEEE 802.1Q: Tagging de VLAN",
+        "body": "O padrão IEEE 802.1Q define como VLANs são transportadas em links que carregam múltiplas VLANs (links trunk). O switch insere um header de 4 bytes (tag) entre o cabeçalho Ethernet e o payload, contendo:\n\n- TPID (Tag Protocol Identifier): 0x8100 — indica que o frame está tagged\n- PCP (Priority Code Point): 3 bits de QoS (0-7)\n- DEI (Drop Eligible Indicator): 1 bit — indica se o frame pode ser descartado em congestionamento\n- VID (VLAN Identifier): 12 bits — identifica a VLAN (1-4094)\n\nPortas trunk transmitem frames com tag 802.1Q, permitindo que múltiplas VLANs sejam transportadas em um único link físico entre switches. Portas access removem a tag antes de entregar ao host e inserem a tag ao receber do host — o host não sabe que está em uma VLAN.",
+        "codeBlock": {
+          "language": "text",
+          "code": "Frame Ethernet sem tag:\n[ Dest MAC (6B) | Src MAC (6B) | EtherType (2B) | Payload | FCS ]\n\nFrame Ethernet com tag 802.1Q:\n[ Dest MAC (6B) | Src MAC (6B) | TPID 0x8100 (2B) | PCP|DEI|VID (2B) | EtherType (2B) | Payload | FCS ]\n                                 ^_____ 802.1Q Tag (4 bytes) _____^\n\nExemplo de VID para VLAN 100:\nPCP=0, DEI=0, VID=0x064 (100 decimal)"
+        },
+        "keyPoints": [
+          "802.1Q adiciona 4 bytes ao frame Ethernet — VLAN ID de 12 bits suporta até 4094 VLANs",
+          "Portas trunk: frames com tag. Portas access: sem tag (switch faz o tagging/untagging)",
+          "VLAN 1 é a native VLAN padrão em trunks Cisco — frames sem tag são na VLAN nativa"
+        ]
+      },
+      {
+        "id": "access-trunk",
+        "title": "Portas Access vs Trunk",
+        "body": "Os dois modos de porta VLAN têm usos distintos:\n\nPorta Access: pertence a exatamente uma VLAN. Usada para conectar hosts finais (computadores, impressoras, câmeras IP). O host não precisa entender VLANs — o switch adiciona/remove a tag transparentemente. Configuração: 'switchport mode access; switchport access vlan X'\n\nPorta Trunk: transporta múltiplas VLANs simultaneamente com tags 802.1Q. Usada em links switch-a-switch e switch-a-roteador. Configuração: 'switchport mode trunk; switchport trunk allowed vlan X,Y,Z'\n\nNative VLAN em trunk: tráfego sem tag em uma porta trunk é associado à native VLAN. Padrão: VLAN 1. Recomendação: trocar native VLAN para uma VLAN não usada (ex: VLAN 999) para evitar VLAN hopping attacks.",
+        "codeBlock": {
+          "language": "text",
+          "code": "Configuração típica — Cisco IOS:\n\n! Porta access para usuário:\ninterface GigabitEthernet0/1\n switchport mode access\n switchport access vlan 10\n spanning-tree portfast\n!\n! Porta trunk entre switches:\ninterface GigabitEthernet0/24\n switchport mode trunk\n switchport trunk encapsulation dot1q\n switchport trunk allowed vlan 10,20,30,99\n switchport trunk native vlan 999\n!\n! Verificar configuração:\nshow interfaces trunk\nshow vlan brief"
+        },
+        "keyPoints": [
+          "Access: um host, uma VLAN. Trunk: múltiplas VLANs com 802.1Q tags",
+          "Native VLAN deve ser trocada da VLAN 1 para evitar VLAN hopping por frames não taggeados",
+          "'switchport trunk allowed vlan' lista explícita evita vazar VLANs desnecessárias no trunk"
+        ]
+      },
+      {
+        "id": "vlan-seguranca",
+        "title": "VLANs e segurança: limitações",
+        "body": "VLANs oferecem isolamento L2, mas não são um mecanismo de segurança completo:\n\nVLAN Hopping: um atacante pode encapsular frames com double tagging (802.1Q dentro de 802.1Q) para saltar da VLAN de acesso para a native VLAN do trunk. Mitigação: trocar a native VLAN para uma VLAN não utilizada e não rotear a native VLAN.\n\nIsolamento apenas em L2: VLANs não filtram tráfego L3+. Um host em VLAN de usuários que conseguir um endereço IP da VLAN de servidores (via DHCP mal configurado ou IP estático) pode comunicar-se normalmente via roteamento. O isolamento real requer ACLs no roteador inter-VLAN.\n\nPrivate VLAN (PVLAN): extensão que isola hosts dentro da mesma VLAN — cada porta isolada só pode comunicar com a porta promíscua (uplink), não com outras portas isoladas. Útil em redes de hospedagem onde clientes na mesma /24 não devem enxergar uns aos outros.",
+        "callout": {
+          "type": "warning",
+          "text": "VLAN separada para servidores sem ACL no roteador inter-VLAN é segurança ilusória. Um host comprometido que consiga roteamento para a VLAN de servidores tem acesso completo. Sempre combine VLANs com ACLs nos gateways inter-VLAN."
+        },
+        "keyPoints": [
+          "VLAN Hopping via double tagging: mitigar trocando a native VLAN para VLAN não utilizada",
+          "VLANs isolam L2 apenas — ACLs no roteador inter-VLAN são necessárias para segurança real",
+          "Private VLAN (PVLAN) isola hosts dentro da mesma VLAN — útil em ambientes multi-tenant"
+        ]
+      }
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": ["stp-conceito-spanning-tree", "stp-procedimento-troubleshoot", "glossario-phy-l2"],
+  "technicalReferences": [
+    { "title": "IEEE 802.1Q-2018 Standard", "url": "https://standards.ieee.org/ieee/802.1Q/6844/" },
+    { "title": "Cisco - Understanding and Configuring VLANs", "url": "https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst4500/12-2/25ew/configuration/guide/conf/vlans.html" }
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "id": "tcp-conceito-syn-flood",
+  "title": "SYN Flood: Esgotamento de Estado TCP",
+  "description": "Explica como ataques SYN flood exploram o three-way handshake TCP, esgotam a tabela de conexões half-open do servidor, e como SYN Cookies e rate limiting mitigam o ataque.",
+  "content_type": "CONCEITO",
+  "category": {
+    "id": "NET_VOL",
+    "type": "NET_VOL_SYN_FLOOD",
+    "title": "SYN Flood"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "8 minutos",
+    "difficulty": "Basico",
+    "targetAudience": "Analistas de Segurança, Engenheiros de Rede, Administradores de Sistemas",
+    "prerequisites": []
+  },
+  "tags": ["SYN flood", "TCP", "DDoS", "SYN cookie", "half-open", "esgotamento"],
+  "content": {
+    "sections": [
+      {
+        "id": "tcp-handshake",
+        "title": "O three-way handshake TCP e sua vulnerabilidade",
+        "body": "Para estabelecer uma conexão TCP, cliente e servidor realizam um three-way handshake:\n1. Cliente → SYN → Servidor (solicita conexão)\n2. Servidor → SYN-ACK → Cliente (confirma, aguarda ACK)\n3. Cliente → ACK → Servidor (completa a conexão)\n\nO problema: entre os passos 2 e 3, o servidor aloca recursos de memória para a conexão half-open (semi-aberta) e a mantém em uma tabela por um tempo (tipicamente 75 segundos) aguardando o ACK.\n\nEm um SYN flood, o atacante envia milhares de SYNs com IP de origem spoofado. O servidor responde com SYN-ACKs (que vão para endereços aleatórios que nunca respondem), mantendo cada conexão half-open por 75 segundos. Quando a tabela lota, novos SYNs legítimos são descartados.",
+        "codeBlock": {
+          "language": "text",
+          "code": "Three-way handshake normal:\n  Cliente → SYN → Servidor  (SYN_SENT)\n  Servidor → SYN-ACK → Cliente  (SYN_RECEIVED, aloca estado)\n  Cliente → ACK → Servidor  (ESTABLISHED, conexão completa)\n\nSYN Flood:\n  Atacante → SYN (src=IP_FALSO_1) → Servidor  → estado SYN_RECEIVED\n  Atacante → SYN (src=IP_FALSO_2) → Servidor  → estado SYN_RECEIVED\n  Atacante → SYN (src=IP_FALSO_3) → Servidor  → estado SYN_RECEIVED\n  ... (100.000 vezes)\n\n  Tabela esgotada → novos SYN legítimos DESCARTADOS"
+        },
+        "keyPoints": [
+          "O servidor aloca estado (memória) no SYN-ACK antes da confirmação do cliente",
+          "Tabela de conexões half-open tem capacidade limitada",
+          "IP spoofing garante que o ACK nunca chegue — preenchendo a tabela indefinidamente"
+        ]
+      },
+      {
+        "id": "syn-cookies",
+        "title": "SYN Cookies: solução sem estado",
+        "body": "SYN Cookies (RFC 4987) resolvem o problema eliminando a necessidade de alocar estado no SYN-ACK.\n\nCom SYN Cookies habilitado, quando o servidor recebe um SYN, ele não aloca estado. Em vez disso, codifica informações da conexão no Initial Sequence Number (ISN) do SYN-ACK usando um hash criptográfico (timestamp + MSS + chave secreta).\n\nQuando (e se) o ACK chegar, o servidor verifica o ISN, reconstrói o estado da conexão e completa o handshake. Conexões legitimas funcionam normalmente. SYN flood não aloca estado no servidor.\n\nDesvantagem: SYN Cookies quebram algumas opções TCP avançadas (Window Scaling, SACK) que precisam ser negociadas no SYN. Em prática, isso raramente causa problema.",
+        "callout": {
+          "type": "info",
+          "text": "SYN Cookies estão habilitados por padrão na maioria dos sistemas operacionais modernos e são ativados automaticamente quando o sistema detecta que está sob ataque (número de half-open connections acima de threshold). Verifique: sysctl net.ipv4.tcp_syncookies no Linux."
+        },
+        "keyPoints": [
+          "SYN Cookies eliminam o problema de estado sem desabilitar TCP",
+          "Ativação automática quando half-open connections excedem threshold",
+          "Compensação menor: algumas opções TCP avançadas não são negociadas"
+        ]
+      },
+      {
+        "id": "outras-mitigacoes",
+        "title": "Outras mitigações complementares",
+        "body": "Além de SYN Cookies, outras medidas complementam a defesa:\n\n1. SYN Rate Limiting: limitar o número de SYNs aceitos por segundo por IP de origem (firewall stateful ou iptables hashlimit).\n\n2. Aumentar SYN backlog: o parâmetro tcp_max_syn_backlog controla o tamanho da fila de half-open connections (Linux). Aumentar de 128 para 2048+ dá mais margem.\n\n3. Reduzir SYN-ACK retries: tcp_synack_retries controla quantas vezes o servidor reenvia SYN-ACKs antes de desistir. Reduzir de 5 para 2 libera estado mais rapidamente.\n\n4. Scrubbing upstream: para ataques volumétricos de SYN, scrubbing center absorve o tráfego antes de atingir o servidor.",
+        "keyPoints": [
+          "tcp_syncookies=1 é a mitigação principal — verificar se está habilitado",
+          "Rate limiting por IP de origem no firewall reduz eficácia do ataque com IPs reais",
+          "Para volume muito alto (> 1M SYN/s), scrubbing upstream é necessário"
+        ]
+      }
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": ["dns-conceito-amplificacao", "glossario-net-vol"],
+  "technicalReferences": [
+    { "title": "RFC 4987 - TCP SYN Flooding Attacks and Common Mitigations", "url": "https://www.rfc-editor.org/rfc/rfc4987" },
+    { "title": "Cloudflare - SYN Flood Explanation", "url": "https://www.cloudflare.com/learning/ddos/syn-flood-ddos-attack/" }
+  ]
+}

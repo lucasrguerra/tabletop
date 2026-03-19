@@ -1,0 +1,94 @@
+{
+  "id": "switch-ferramenta-diagnostico",
+  "title": "Diagnóstico de Switch: Comandos Essenciais para NOC",
+  "description": "Referência de comandos para diagnóstico rápido de switches Cisco Catalyst e Juniper EX: interfaces com erros, tabela MAC, STP, PoE, CPU/memória e coleta de informações para escalonamento.",
+  "content_type": "FERRAMENTA",
+  "category": {
+    "id": "PHY_L2",
+    "type": "PHY_L2_SFP_FAIL",
+    "title": "Diagnóstico de Switch"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "9 minutos",
+    "difficulty": "Intermediario",
+    "targetAudience": "Engenheiros de Rede NOC, Técnicos de Infraestrutura",
+    "prerequisites": ["stp-conceito-spanning-tree"]
+  },
+  "tags": ["switch", "Cisco", "Juniper", "diagnóstico", "STP", "VLAN", "PoE", "MAC table"],
+  "content": {
+    "toolName": "Cisco IOS show commands / Juniper JunOS",
+    "purpose": "Conjunto de comandos de diagnóstico para switches gerenciáveis. Cobrem desde a saúde de interfaces individuais até a topologia STP, tabela de endereços MAC, consumo de PoE e recursos do sistema (CPU/memória).",
+    "commands": [
+      {
+        "command": "show interfaces status",
+        "description": "Visão geral do estado de todas as interfaces em uma linha por porta",
+        "flags": [],
+        "exampleOutput": "Port      Name               Status       Vlan       Duplex  Speed Type\nGi0/1     PC-Recepcao        connected    10         a-full  a-100 10/100/1000BaseTX\nGi0/2                        notconnect   20           auto   auto 10/100/1000BaseTX\nGi0/23    UPLINK-SW-CORE     connected    trunk       a-full a-1000 1000BaseSX\nGi0/24    MGMT               connected    99         a-full  a-100 10/100/1000BaseTX",
+        "interpretation": "Status 'connected' = link ativo. 'notconnect' = sem cabo ou host desligado. 'err-disabled' = porta desabilitada por violação (BPDU Guard, storm control, port security). Velocidade 'a-100' = auto-negociou 100 Mbps — verificar se era esperado 1000."
+      },
+      {
+        "command": "show interfaces GigabitEthernet0/1 counters errors",
+        "description": "Contadores de erros na interface — identificar problemas de cabo, SFP ou duplex mismatch",
+        "flags": [],
+        "exampleOutput": "Port        Align-Err    FCS-Err   Xmit-Err    Rcv-Err  UnderSize   OutDiscards\nGi0/1               0       1423           0          0          0             0",
+        "interpretation": "FCS-Err alto = erros de integridade de frame — cabo ruim, conector sujo ou SFP com problema. Align-Err = problema de sincronização de clock ou duplex mismatch. Xmit-Err = congestionamento de saída. Todos devem ser zero em operação normal."
+      },
+      {
+        "command": "show mac address-table vlan 10",
+        "description": "Tabela de endereços MAC aprendidos na VLAN 10 — útil para localizar host por MAC ou detectar loop (MAC em múltiplas portas)",
+        "flags": [],
+        "exampleOutput": "          Mac Address Table\n-------------------------------------------\n\nVlan    Mac Address       Type        Ports\n----    -----------       --------    -----\n  10    0050.56a1.2345    DYNAMIC     Gi0/1\n  10    0050.56a1.6789    DYNAMIC     Gi0/3\n  10    0050.56a1.2345    DYNAMIC     Gi0/5",
+        "interpretation": "Mesmo MAC (0050.56a1.2345) em dois ports diferentes (Gi0/1 e Gi0/5) = loop L2 ativo. Em operação normal, cada MAC deve aparecer em exatamente uma porta. Entradas 'STATIC' são configuradas manualmente ou por port security."
+      },
+      {
+        "command": "show spanning-tree vlan 10",
+        "description": "Topologia STP para a VLAN 10 — Root Bridge, função de cada porta (Root/Designated/Alternate) e estado (FWD/BLK)",
+        "flags": [],
+        "exampleOutput": "VLAN0010\n  Spanning tree enabled protocol ieee\n  Root ID    Priority    32778\n             Address     0023.ebf9.1234\n             This bridge is the root\n\n  Bridge ID  Priority    32778\n             Address     0023.ebf9.1234\n\nInterface           Role Sts Cost      Prio.Nbr Type\n------------------- ---- --- --------- -------- ----\nGi0/1               Desg FWD 19        128.1    P2p\nGi0/23              Desg FWD 4         128.23   P2p\nGi0/24              Root FWD 19        128.24   P2p",
+        "interpretation": "Role Desg (Designated) + Sts FWD = porta encaminhando e é designated para o segmento. Role Root + Sts FWD = porta mais próxima ao Root Bridge. Role Altn + Sts BLK = porta alternativa bloqueada (redundância STP). Se uma porta que deveria estar BLK está FWD = possível loop."
+      },
+      {
+        "command": "show power inline",
+        "description": "Status do PoE (Power over Ethernet) por porta — potência consumida, dispositivo conectado e faults",
+        "flags": [],
+        "exampleOutput": "                                             Mdi/Mdix\nInterface Admin  Oper       Power   Device              Class Max\n--------- ------ ---------- ------- ------------------- ----- ----\nGi0/1     auto   on         3.8     IP Phone 8851       2     30.0\nGi0/2     auto   on         13.2    Access Point 3702   3     30.0\nGi0/3     auto   off        0.0     n/a                 n/a   30.0\nGi0/4     auto   fault      0.0     n/a                 n/a   30.0",
+        "interpretation": "Oper 'on' = PoE ativo e dispositivo alimentado. 'off' = sem dispositivo ou dispositivo não suporta PoE. 'fault' = problema no fornecimento de energia — possível problema no dispositivo, cabo ou limite de orçamento PoE do switch."
+      },
+      {
+        "command": "show processes cpu sorted | head -15",
+        "description": "Top processos por uso de CPU — identificar processo causando CPU alta",
+        "flags": [],
+        "exampleOutput": "CPU utilization for five seconds: 94%/72%; one minute: 87%; five minutes: 65%\n PID Runtime(ms)   Invoked      uSecs   5Sec   1Min   5Min TTY Process\n  98     3456123   789012       4380  35.02% 28.12% 20.01%   0 ARP Input\n  15     2341234   456789       5132  22.45% 19.34% 15.23%   0 Spanning Tree\n  12      987654   123456       8012  10.12%  9.45%  8.34%   0 IP Input",
+        "interpretation": "CPU alta (>70% por 5min) em 'ARP Input' = possível ARP flood (storm). CPU alta em 'Spanning Tree' = topologia STP instável com muitas topology changes. CPU alta em 'IP Input' = tráfego roteado excessivo. CPU alta em geral = loop L2."
+      },
+      {
+        "command": "show version",
+        "description": "Informações do sistema: modelo, versão de IOS, uptime, memória e motivo do último reload",
+        "flags": [],
+        "exampleOutput": "Cisco IOS Software, Version 15.2(7)E3\nCisco WS-C2960X-48TS-L\nProcessor board ID FDO1234X5YZ\n...\nCisco WS-C2960X-48TS-L uptime is 47 weeks, 3 days, 14 hours\nSystem returned to ROM by power-on\nSystem image file is \"flash:c2960x-universalk9-mz.152-7.E3.bin\"\n\n512K bytes of flash-simulated non-volatile configuration memory.",
+        "interpretation": "Motivo de reload 'power-on' = boot normal. 'reload command' = reload manual. 'software-forced crash' ou 'bus error' = crash — checar logs e crashinfo. Uptime curto inesperado = reinício não planejado."
+      }
+    ],
+    "outputFields": [
+      { "field": "FCS-Err", "meaning": "Frame Check Sequence errors — frames corrompidos recebidos", "normalRange": "Zero. Qualquer valor crescente indica problema físico: cabo, conector ou SFP" },
+      { "field": "err-disabled", "meaning": "Porta desabilitada automaticamente pelo switch por violação de política", "normalRange": "Não deve aparecer em produção. Causa mais comum: BPDU Guard (loop) ou port security (MAC não autorizado)" },
+      { "field": "CPU 5Sec", "meaning": "Uso de CPU na janela de 5 segundos (instantâneo)", "normalRange": "< 50% em operação normal. > 80% sustentado indica problema (loop, storm, processo travado)" },
+      { "field": "Topology Changes", "meaning": "Número de mudanças de topologia STP desde o último reload", "normalRange": "Deve crescer lentamente. Crescimento rápido indica instabilidade: link flapping ou loop intermitente" }
+    ],
+    "commonPitfalls": [
+      "Não confundir 'notconnect' com 'err-disabled' — notconnect é normal para portas sem cabo; err-disabled requer investigação ativa",
+      "show interfaces sem 'counters' mostra taxa atual; usar 'counters' para ver erros acumulados desde o último 'clear counters'",
+      "Em switches Juniper, o equivalente de 'show interfaces status' é 'show interfaces terse'",
+      "Tabela MAC cheia (show mac address-table count) pode causar flooding em todas as portas — verificar em switches antigos com tabelas pequenas"
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": ["stp-conceito-spanning-tree", "vlan-conceito-segmentacao", "sfp-ferramenta-dom-ddm", "glossario-phy-l2"],
+  "technicalReferences": [
+    { "title": "Cisco - Catalyst Switch Command Reference", "url": "https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst2960x/software/15-2_7_e/command_reference/b_1527e_2960x_cr.html" },
+    { "title": "Juniper - EX Series show Commands", "url": "https://www.juniper.net/documentation/us/en/software/junos/interfaces-ethernet-switches/topics/ref/command/show-interfaces.html" }
+  ]
+}

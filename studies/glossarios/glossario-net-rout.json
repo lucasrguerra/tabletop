@@ -1,0 +1,139 @@
+{
+  "id": "glossario-net-rout",
+  "title": "Glossário: Roteamento de Redes",
+  "description": "Definições técnicas dos principais termos de roteamento BGP, OSPF, MPLS, RPKI e segurança de roteamento usados nos cenários de incidentes NET_ROUT.",
+  "content_type": "GLOSSARIO",
+  "category": {
+    "id": "NET_ROUT",
+    "type": null,
+    "title": "Roteamento de Redes"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "10 minutos",
+    "difficulty": "Basico",
+    "targetAudience": "Todos os participantes de exercícios NET_ROUT",
+    "prerequisites": []
+  },
+  "tags": ["BGP", "OSPF", "MPLS", "RPKI", "roteamento", "glossário"],
+  "content": {
+    "terms": [
+      {
+        "term": "AS (Autonomous System)",
+        "acronym": "AS",
+        "definition": "Conjunto de redes IP sob controle de uma única entidade administrativa que apresenta uma política de roteamento comum para a Internet. Identificado por um Autonomous System Number (ASN).",
+        "seeAlso": ["ASN", "BGP"],
+        "relatedStudyId": "bgp-conceito-prefix-hijacking"
+      },
+      {
+        "term": "ASN (Autonomous System Number)",
+        "acronym": "ASN",
+        "definition": "Número de 16 ou 32 bits que identifica unicamente um Autonomous System. Números públicos são alocados por RIRs (RIPE, LACNIC, etc.). Faixa privada: 64512-65534 (16 bits) e 4200000000-4294967294 (32 bits).",
+        "seeAlso": ["AS", "RIR"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "BGP (Border Gateway Protocol)",
+        "acronym": "BGP",
+        "definition": "Protocolo de roteamento inter-domínio da Internet (EGP). Usa TCP porta 179. Versão atual: BGP-4 (RFC 4271). Propaga informações de alcançabilidade (prefixos) entre ASes usando atributos de rota como AS_PATH, LOCAL_PREF e MED.",
+        "seeAlso": ["AS", "Prefix", "Route Advertisement"],
+        "relatedStudyId": "bgp-conceito-prefix-hijacking"
+      },
+      {
+        "term": "Prefix (Prefixo)",
+        "acronym": null,
+        "definition": "Bloco de endereços IP descrito em notação CIDR (ex: 200.130.0.0/16). No contexto BGP, representa a unidade básica de anúncio de alcançabilidade.",
+        "seeAlso": ["BGP", "CIDR", "Prefix Hijacking"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "Prefix Hijacking (Sequestro de Prefixo)",
+        "acronym": null,
+        "definition": "Situação em que um AS anuncia via BGP prefixos que não lhe pertencem. Pode ser acidental (misconfiguration) ou intencional (ataque). Resulta em desvio de tráfego para o AS do hijacker.",
+        "seeAlso": ["BGP", "RPKI", "ROA"],
+        "relatedStudyId": "bgp-conceito-prefix-hijacking"
+      },
+      {
+        "term": "ROA (Route Origin Authorization)",
+        "acronym": "ROA",
+        "definition": "Objeto criptograficamente assinado publicado no RPKI que autoriza um ou mais ASes a originar um prefixo específico até um comprimento de máscara máximo (maxLength). Publicado pelos detentores do bloco IP junto aos RIRs.",
+        "seeAlso": ["RPKI", "ROV", "maxLength"],
+        "relatedStudyId": "bgp-ferramenta-rpki-validacao"
+      },
+      {
+        "term": "RPKI (Resource Public Key Infrastructure)",
+        "acronym": "RPKI",
+        "definition": "Infraestrutura de chave pública para recursos de Internet (blocos IP e ASNs). Permite que detentores de recursos publiquem ROAs que validam criptograficamente a origem de anúncios BGP.",
+        "seeAlso": ["ROA", "ROV"],
+        "relatedStudyId": "bgp-ferramenta-rpki-validacao"
+      },
+      {
+        "term": "ROV (Route Origin Validation)",
+        "acronym": "ROV",
+        "definition": "Processo de verificar anúncios BGP contra ROAs publicados no RPKI. Resulta em: Valid (prefixo e origin batem com ROA), Invalid (origin não autorizado), Not Found (sem ROA). Roteadores com ROV habilitado descartam rotas Invalid.",
+        "seeAlso": ["RPKI", "ROA"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "IRR (Internet Routing Registry)",
+        "acronym": "IRR",
+        "definition": "Conjunto de bases de dados distribuídas (RADB, RIPE, APNIC, etc.) onde operadores registram objetos de roteamento: route, route6, aut-num, as-set. Usado para gerar prefix-lists e route-maps em roteadores de borda.",
+        "seeAlso": ["RPKI", "MANRS"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "MANRS (Mutually Agreed Norms for Routing Security)",
+        "acronym": "MANRS",
+        "definition": "Iniciativa global que define quatro ações de segurança de roteamento que operadores devem implementar: (1) filtrar anúncios de clientes, (2) anti-spoofing BCP38, (3) manter contatos operacionais públicos, (4) publicar ROAs e registros IRR.",
+        "seeAlso": ["IRR", "RPKI", "BCP38"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "Longest Prefix Match",
+        "acronym": null,
+        "definition": "Regra de encaminhamento IP que seleciona a rota com a máscara de rede mais longa (mais específica) para um destino quando múltiplas rotas existem. Fundamental para entender como hijacks com /24 sobrepõem prefixos /16 legítimos.",
+        "seeAlso": ["Prefix Hijacking"],
+        "relatedStudyId": "bgp-conceito-prefix-hijacking"
+      },
+      {
+        "term": "AS_PATH",
+        "acronym": null,
+        "definition": "Atributo BGP que lista todos os ASes pelos quais um anúncio passou, em ordem. Usado para detecção de loops (AS não aceita anúncios com seu próprio ASN no path) e como métrica de distância. Hijackers frequentemente inserem AS path mais curto para tornar a rota preferida.",
+        "seeAlso": ["BGP"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "OSPF (Open Shortest Path First)",
+        "acronym": "OSPF",
+        "definition": "Protocolo de roteamento intra-domínio (IGP) baseado em estado de link (Link State). Usa algoritmo Dijkstra (SPF). Versão para IPv4: OSPFv2 (RFC 2328); para IPv6: OSPFv3 (RFC 5340). Areas organizam a hierarquia de roteamento, reduzindo flooding de LSAs.",
+        "seeAlso": ["LSA", "Area"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "MPLS (Multiprotocol Label Switching)",
+        "acronym": "MPLS",
+        "definition": "Tecnologia de encaminhamento baseada em labels (rótulos) em vez de endereços IP. Permite criação de VPNs (L3VPN, L2VPN), tráfego engineering e Fast Reroute. Labels são empilhadas (MPLS label stack).",
+        "seeAlso": ["LSP", "LDP", "RSVP-TE"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "RTBH (Remote Triggered Black Hole)",
+        "acronym": "RTBH",
+        "definition": "Técnica de mitigação que usa BGP para propagar uma rota /32 (ou /128 IPv6) que descarta todo tráfego destinado a um IP específico. Acionada por community BGP especial combinada com upstream providers. Sacrifica o IP alvo para proteger o restante da rede.",
+        "seeAlso": ["BGP", "DDoS"],
+        "relatedStudyId": null
+      }
+    ]
+  },
+  "relatedScenarios": ["bgp-prefix-hijacking"],
+  "relatedStudies": [
+    "bgp-conceito-prefix-hijacking",
+    "bgp-procedimento-resposta-hijack",
+    "bgp-ferramenta-rpki-validacao"
+  ],
+  "technicalReferences": [
+    { "title": "RIPE NCC - Glossário de termos de roteamento", "url": "https://www.ripe.net/manage-ips-and-asns/resource-management/rpki/glossary-of-rpki-terms" }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "id": "perfsonar-ferramenta-medicao",
+  "title": "perfSONAR: Medição de Desempenho em Redes de Pesquisa",
+  "description": "Referência operacional do perfSONAR para medição de latência, perda de pacotes, jitter e throughput em infraestrutura de redes de pesquisa: comandos pScheduler, interpretação de resultados e diagnóstico de degradação.",
+  "content_type": "FERRAMENTA",
+  "category": {
+    "id": "SCI_DATA",
+    "type": "SCI_DATA_PACKET_LOSS",
+    "title": "Medição de Desempenho"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "9 minutos",
+    "difficulty": "Intermediario",
+    "targetAudience": "Engenheiros de Rede, Analistas de NOC, Pesquisadores de Infraestrutura",
+    "prerequisites": ["elephant-conceito-qos", "netflow-ferramenta-analise"]
+  },
+  "tags": ["perfSONAR", "pScheduler", "OWAMP", "iperf3", "latência", "throughput", "redes de pesquisa"],
+  "content": {
+    "toolName": "perfSONAR / pScheduler",
+    "purpose": "perfSONAR é uma plataforma de medição de desempenho de rede amplamente usada em redes de pesquisa e educação (NREN). Permite medir one-way latency, round-trip latency, perda de pacotes, throughput e trace de rota entre pontos de medição. A interface de linha de comando principal é o pScheduler.",
+    "commands": [
+      {
+        "command": "pscheduler task --tool owping latency --source <IP_LOCAL> --dest <IP_DESTINO>",
+        "description": "Medir latência one-way (OWD) e perda de pacotes com OWAMP — mais preciso que ping para detectar assimetria",
+        "flags": [
+          { "flag": "--tool owping", "meaning": "Usar OWAMP (One-Way Active Measurement Protocol) — mede latência unidirecional" },
+          { "flag": "latency", "meaning": "Tipo de teste: latência e perda de pacotes" },
+          { "flag": "--source", "meaning": "IP de origem da medição (nó perfSONAR local)" },
+          { "flag": "--dest", "meaning": "IP de destino (nó perfSONAR remoto)" }
+        ],
+        "exampleOutput": "{\n  \"schema\": 1,\n  \"succeeded\": true,\n  \"result\": {\n    \"packets-sent\": 600,\n    \"packets-received\": 598,\n    \"packets-lost\": 2,\n    \"packets-duplicated\": 0,\n    \"packets-reordered\": 0,\n    \"histogram-latency\": {\n      \"15.2\": 120, \"15.3\": 180, \"15.4\": 200, \"15.5\": 98\n    },\n    \"latency-mean\": 15.38,\n    \"jitter\": 0.42\n  }\n}",
+        "interpretation": "packets-lost: 2 de 600 = 0.33% — limiar de alerta para dados científicos. latency-mean: 15.38ms (São Paulo → Rio típico). jitter: 0.42ms — excelente (< 2ms é bom). Perda > 0.1% em links dedicados é anômala."
+      },
+      {
+        "command": "pscheduler task --tool tracepath trace --dest <IP_DESTINO>",
+        "description": "Trace de rota com medição de latência por hop — identificar onde a latência ou perda está ocorrendo",
+        "flags": [
+          { "flag": "--tool tracepath", "meaning": "Usar tracepath para trace de rota" },
+          { "flag": "trace", "meaning": "Tipo de teste: trace de rota" }
+        ],
+        "exampleOutput": "{\n  \"hops\": [\n    {\"ip\": \"10.0.1.1\", \"rtt\": 0.8, \"as\": \"AS1916\"},\n    {\"ip\": \"200.130.0.1\", \"rtt\": 2.1, \"as\": \"AS1916\"},\n    {\"ip\": \"177.52.0.1\", \"rtt\": 15.3, \"as\": \"AS2715\"},\n    {\"ip\": \"189.0.0.1\", \"rtt\": 15.8, \"as\": \"AS2715\"}\n  ]\n}",
+        "interpretation": "Salto de 2.1ms para 15.3ms no hop 3 indica que a latência é adicionada no link entre AS1916 e AS2715 — link inter-AS lento ou roteamento subótimo. Hops sem resposta (* em ping) podem indicar firewall bloqueando ICMP TTL exceeded."
+      },
+      {
+        "command": "pscheduler task --tool iperf3 throughput --source <IP_LOCAL> --dest <IP_DESTINO> --duration 30",
+        "description": "Medir throughput TCP máximo entre dois nós perfSONAR — verificar capacidade efetiva do path",
+        "flags": [
+          { "flag": "--tool iperf3", "meaning": "Usar iperf3 como ferramenta de throughput" },
+          { "flag": "throughput", "meaning": "Tipo de teste: throughput" },
+          { "flag": "--duration 30", "meaning": "Duração do teste em segundos" }
+        ],
+        "exampleOutput": "{\n  \"throughput-bits\": 9856123456,\n  \"streams\": 1,\n  \"retransmits\": 12,\n  \"rtt\": 15.4,\n  \"tcp-window-size\": 4194304\n}",
+        "interpretation": "throughput-bits: 9.856 Gbps em link de 10 Gbps = 98.5% de utilização. Excelente. retransmits: 12 em 30s = baixo (indica perda mínima). Se throughput < 60% da capacidade do link com latência > 10ms = suspeitar de TCP buffer insuficiente (BDP problem)."
+      },
+      {
+        "command": "pscheduler task --tool nuttcp throughput --source <IP_LOCAL> --dest <IP_DESTINO> --duration 60 --parallel 4",
+        "description": "Throughput com múltiplos streams paralelos — necessário para saturar links de alta latência (BDP)",
+        "flags": [
+          { "flag": "--tool nuttcp", "meaning": "Alternativa ao iperf3, mais eficiente para múltiplos streams" },
+          { "flag": "--parallel 4", "meaning": "4 streams TCP paralelos — contorna limitação de TCP window size único em links longos" }
+        ],
+        "exampleOutput": "{\n  \"throughput-bits\": 38420000000,\n  \"streams\": 4,\n  \"retransmits\": 8,\n  \"rtt\": 152.3\n}",
+        "interpretation": "Link transatlântico (152ms RTT): 38.4 Gbps com 4 streams vs. possivelmente < 5 Gbps com stream único. Em links com alto BDP (Bandwidth-Delay Product), múltiplos streams são necessários para saturar a capacidade."
+      },
+      {
+        "command": "curl -s 'https://PERFSONAR_HOST/esmond/perfsonar/archive/?format=json&event-type=packet-loss-rate&time-range=86400&source=<IP_LOCAL>&dest=<IP_DESTINO>' | python3 -m json.tool",
+        "description": "Consultar dados históricos de perda de pacotes via API REST do perfSONAR (último 24h)",
+        "flags": [
+          { "flag": "event-type=packet-loss-rate", "meaning": "Tipo de métrica: taxa de perda de pacotes" },
+          { "flag": "time-range=86400", "meaning": "Janela de tempo: últimas 86400 segundos (24 horas)" }
+        ],
+        "exampleOutput": "[\n  {\n    \"ts\": 1709294400,\n    \"val\": 0.0\n  },\n  {\n    \"ts\": 1709298000,\n    \"val\": 0.0033\n  },\n  {\n    \"ts\": 1709301600,\n    \"val\": 0.0\n  }\n]",
+        "interpretation": "val: 0.0033 = 0.33% de perda naquele intervalo (às 14h). Em links de pesquisa, qualquer perda > 0% é investigável. Pico de perda correlacionar com eventos de rede (manutenção, tráfego alto)."
+      }
+    ],
+    "outputFields": [
+      { "field": "packets-lost", "meaning": "Pacotes enviados mas não recebidos no destino", "normalRange": "0 em links dedicados de pesquisa. > 0.1% já é anômalo e afeta transferências de dados científicos" },
+      { "field": "jitter", "meaning": "Variação de latência entre pacotes consecutivos (ms)", "normalRange": "< 2ms em links bem dimensionados. > 5ms indica fila/congestionamento intermitente" },
+      { "field": "retransmits", "meaning": "Retransmissões TCP durante teste de throughput", "normalRange": "< 0.1% dos segmentos. Alto retransmit com throughput baixo indica perda ou limitação de buffer" },
+      { "field": "throughput-bits", "meaning": "Throughput medido em bps", "normalRange": "> 80% da capacidade do link em condições normais. < 60% indica gargalo: buffer, perda, BDP, ou congestionamento" }
+    ],
+    "commonPitfalls": [
+      "pScheduler requer que ambos os nós (source e dest) tenham perfSONAR instalado e acessível — verificar conectividade e firewall na porta 443 (HTTPS) e 861/862 (OWAMP/TWAMP)",
+      "Testes de throughput consomem banda real — não executar em horário de pico sem coordenação com NOC",
+      "One-way latency (OWAMP) requer sincronização de clock NTP precisa em ambos os nós — desvio > 1ms invalida medição de OWD",
+      "Resultado de throughput single-stream em link com alta latência (> 50ms) será artificialmente baixo — usar multiple streams para medir capacidade real"
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": ["elephant-conceito-qos", "netflow-ferramenta-analise", "iperf3-ferramenta-throughput", "glossario-sci-data"],
+  "technicalReferences": [
+    { "title": "perfSONAR Documentation", "url": "https://docs.perfsonar.net/" },
+    { "title": "pScheduler CLI Reference", "url": "https://docs.perfsonar.net/pscheduler_client_tasks.html" },
+    { "title": "RNP - Infraestrutura perfSONAR", "url": "https://www.rnp.br/servicos/pesquisa/perfsonar" }
+  ]
+}

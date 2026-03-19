@@ -1,0 +1,74 @@
+{
+  "id": "lgpd-conceito-notificacao",
+  "title": "LGPD: Obrigações em Incidentes de Segurança",
+  "description": "Explica as obrigações legais da LGPD em caso de incidente de segurança envolvendo dados pessoais: o que deve ser notificado, para quem, em qual prazo e quais informações são obrigatórias.",
+  "content_type": "CONCEITO",
+  "category": {
+    "id": "GOV_LEGAL",
+    "type": "GOV_LEGAL_PRIVACY_BREACH",
+    "title": "Vazamento de Dados Pessoais"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "10 minutos",
+    "difficulty": "Basico",
+    "targetAudience": "DPO, Equipe Jurídica, Gestores de TI, CIRT",
+    "prerequisites": []
+  },
+  "tags": ["LGPD", "privacidade", "notificação", "ANPD", "incidente", "dados pessoais"],
+  "content": {
+    "sections": [
+      {
+        "id": "quando-notificar",
+        "title": "Quando a notificação é obrigatória",
+        "body": "O Art. 48 da LGPD obriga o controlador a comunicar à ANPD e ao titular de dados a ocorrência de incidente de segurança que possa acarretar risco ou dano relevante aos titulares.\n\nO critério não é o incidente em si, mas o risco resultante. Um incidente que afete apenas dados já públicos pode não exigir notificação; o mesmo incidente envolvendo dados sensíveis (saúde, biometria, CPF) ou dados de grande volume provavelmente exige.\n\nExemplos que tipicamente exigem notificação:\n- Vazamento de banco de dados com dados pessoais de alunos\n- Ransomware com evidência de exfiltração de dados pessoais\n- Acesso não autorizado a sistema de gestão acadêmica ou RH\n- Perda de dispositivo com dados pessoais não criptografados",
+        "callout": {
+          "type": "warning",
+          "text": "A LGPD não especifica um prazo exato em horas ou dias. O regulamento da ANPD (Resolução CD/ANPD nº 02/2022) estabelece que a comunicação deve ser feita em até 3 dias úteis após o conhecimento do incidente para os casos de risco relevante, com comunicação complementar possível em até 20 dias úteis."
+        },
+        "keyPoints": [
+          "O gatilho para notificação é o risco ou dano relevante aos titulares — não o incidente em si",
+          "Comunicação ao DPO interno deve ocorrer imediatamente após identificação",
+          "Prazo ANPD: 3 dias úteis para notificação inicial (Resolução CD/ANPD nº 02/2022)"
+        ]
+      },
+      {
+        "id": "conteudo-notificacao",
+        "title": "O que deve conter a notificação",
+        "body": "A notificação à ANPD deve conter, no mínimo:\n1. Descrição da natureza dos dados pessoais afetados\n2. Informações sobre os titulares envolvidos (número estimado, categorias)\n3. Indicação das medidas técnicas e de segurança utilizadas\n4. Riscos relacionados ao incidente\n5. Motivos da demora, caso a comunicação não seja feita de forma imediata\n6. Medidas adotadas ou a adotar para reverter ou mitigar os efeitos do incidente\n\nA notificação é feita pelo portal da ANPD (gov.br/anpd). O DPO da organização é o ponto de contato oficial.",
+        "codeBlock": {
+          "language": "text",
+          "code": "Informações mínimas para comunicação à ANPD:\n\n1. Identificação do controlador (CNPJ, nome, contato do DPO)\n2. Data/hora do incidente e da descoberta\n3. Descrição: como ocorreu, o que foi afetado\n4. Tipos de dados: nome, e-mail, CPF, dados de saúde, etc.\n5. Volume: número de titulares afetados (estimativa aceita)\n6. Riscos identificados para os titulares\n7. Medidas de contenção já tomadas\n8. Plano de ação para mitigação e prevenção"
+        },
+        "keyPoints": [
+          "DPO é o ponto focal — deve ser notificado internamente antes da comunicação à ANPD",
+          "Volume estimado é aceito — não é necessário aguardar análise forense completa",
+          "Comunicação pode ser feita em etapas: inicial (3 dias) + complementar (20 dias)"
+        ]
+      },
+      {
+        "id": "titular-comunicacao",
+        "title": "Comunicação aos titulares afetados",
+        "body": "Além da ANPD, o controlador deve comunicar o incidente diretamente aos titulares quando o incidente puder causar risco ou dano relevante a eles.\n\nA comunicação aos titulares deve ser clara, objetiva e em linguagem acessível. Deve informar:\n- O que ocorreu (sem entrar em detalhes técnicos que possam orientar novos ataques)\n- Quais dados foram afetados\n- Riscos decorrentes\n- O que o titular pode fazer para se proteger\n- Canal de contato para dúvidas\n\nPara instituições de ensino: alunos, professores e funcionários cujos dados foram afetados são todos titulares que devem ser comunicados.",
+        "callout": {
+          "type": "info",
+          "text": "A ANPD pode exigir que a comunicação aos titulares seja feita de forma ampla (como publicação no site institucional) quando o número de afetados é muito grande ou quando a identificação individual não é viável. Avalie com o jurídico e o DPO."
+        },
+        "keyPoints": [
+          "Titulares têm o direito de saber que seus dados foram expostos",
+          "Linguagem acessível é obrigatória — evite jargão técnico na comunicação aos titulares",
+          "Forneça canal de atendimento específico para dúvidas sobre o incidente"
+        ]
+      }
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": ["glossario-gov-legal"],
+  "technicalReferences": [
+    { "title": "LGPD - Art. 48 (Comunicação de incidentes)", "url": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm" },
+    { "title": "Resolução CD/ANPD nº 02/2022 - Regulamento de Comunicação de Incidentes", "url": "https://www.gov.br/anpd/pt-br/documentos-e-publicacoes/resolucao-cd-anpd-no-2-2022.pdf" },
+    { "title": "Portal de Notificação ANPD", "url": "https://www.gov.br/anpd/pt-br/assuntos/incidentes" }
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "id": "phishing-conceito-vetores",
+  "title": "Phishing: Vetores, Técnicas e Indicadores de Comprometimento",
+  "description": "Explica os principais vetores de phishing usados contra instituições acadêmicas e de pesquisa (spear phishing, BEC, QR code phishing), técnicas de evasão de filtros e os indicadores que diferenciam e-mail legítimo de phishing.",
+  "content_type": "CONCEITO",
+  "category": {
+    "id": "SEC_SYS",
+    "type": "SEC_SYS_C2_BEACON",
+    "title": "Phishing e Engenharia Social"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "10 minutos",
+    "difficulty": "Intermediario",
+    "targetAudience": "Analistas de Segurança, Equipe CIRT, Usuários Finais Técnicos",
+    "prerequisites": []
+  },
+  "tags": ["phishing", "spear phishing", "BEC", "engenharia social", "e-mail", "IOC", "DKIM", "SPF"],
+  "content": {
+    "sections": [
+      {
+        "id": "taxonomia",
+        "title": "Taxonomia de Phishing",
+        "body": "Phishing é o uso de engenharia social via comunicação eletrônica (principalmente e-mail) para induzir a vítima a revelar credenciais, executar malware ou transferir recursos. Os subtipos variam pela especificidade do alvo e pelo canal:\n\n- Phishing em massa: e-mails genéricos enviados para milhões de endereços. Baixa taxa de sucesso por destinatário, mas volume compensa. Exemplo: 'Seu banco bloqueou sua conta — clique aqui'.\n\n- Spear Phishing: e-mail altamente personalizado para um alvo específico ou organização. Usa informações da vítima (LinkedIn, site institucional, papers publicados) para criar contexto convincente. Taxa de sucesso muito maior.\n\n- Whaling: spear phishing direcionado a executivos (reitor, CIO, diretores financeiros). Frequentemente usado para BEC.\n\n- BEC (Business Email Compromise): e-mail que impersonifica executivo interno para induzir transferência financeira ou mudança de credenciais de pagamento. Causou perdas de bilhões globalmente.\n\n- Vishing/Smishing: phishing por voz (ligação) ou SMS respectivamente.\n\n- QR Code Phishing (Quishing): substituição de links clicáveis por QR codes para contornar filtros de URL que não analisam QR codes.",
+        "keyPoints": [
+          "Spear phishing é 85%+ mais efetivo que phishing em massa por ser personalizado",
+          "BEC é a maior causa de perda financeira por phishing — não envolve malware, apenas engenharia social",
+          "QR code phishing (quishing) bypassa a maioria dos filtros de URL em gateways de e-mail"
+        ]
+      },
+      {
+        "id": "tecnicas-evasao",
+        "title": "Técnicas de evasão de filtros anti-phishing",
+        "body": "Atacantes evoluíram para contornar filtros de e-mail modernos:\n\n- Redirecionadores legítimos: usar URLs de serviços confiáveis (Google, Microsoft) como primeiro hop. Ex: 'https://www.google.com/url?q=http://phishing.malware.com' — o filtro vê um domínio Google legítimo.\n\n- Aging de domínio: registrar domínio com semanas de antecedência para que não apareça em listas de domínios recém-criados.\n\n- Homograph attack: usar caracteres Unicode parecidos com letras latinas. Ex: 'pаypal.com' com 'а' cirílico em vez de 'a' latino — visualmente idêntico.\n\n- Adversary-in-the-Middle (AiTM): phishing não captura a senha, mas age como proxy entre vítima e site real — captura o cookie de sessão depois da autenticação MFA. Ferramentas como Evilginx e Modlishka implementam isso.\n\n- HTML smuggling: código HTML que reconstrói o arquivo malicioso no browser da vítima, bypassando filtros de anexo que inspecionam apenas o e-mail.",
+        "callout": {
+          "type": "danger",
+          "text": "AiTM phishing bypassa MFA de token/app authenticator porque captura o cookie de sessão pós-autenticação. FIDO2/hardware keys (YubiKey) são resistentes a AiTM porque a chave privada nunca sai do hardware e o challenge é domain-bound. Se sua organização usa MFA baseado em OTP, AiTM é um risco real."
+        },
+        "keyPoints": [
+          "Redirecionadores legítimos (Google, Bing) são usados para contornar filtros de reputação de URL",
+          "AiTM phishing bypassa MFA baseado em app/OTP — FIDO2 hardware keys são a defesa efetiva",
+          "HTML smuggling reconstrói payload no browser — inspecionar apenas e-mail não detecta"
+        ]
+      },
+      {
+        "id": "indicadores",
+        "title": "Indicadores para análise de e-mail suspeito",
+        "body": "Para analisar um e-mail suspeito, inspecione os cabeçalhos e o conteúdo:",
+        "codeBlock": {
+          "language": "text",
+          "code": "Cabeçalhos críticos a verificar:\n\n1. Return-Path e From: devem ser do mesmo domínio\n   From: suporte@rnp.br\n   Return-Path: <bounce@malicioushost.ru>  ← SUSPEITO\n\n2. Verificação SPF (em Received-SPF):\n   Received-SPF: fail (domain of rnp.br does not designate 185.220.x.x as permitted)  ← SPOOFING\n   Received-SPF: pass (google.com: domain of rnp.br designates 209.85.x.x)  ← LEGÍTIMO\n\n3. Verificação DKIM (em Authentication-Results):\n   dkim=fail (signature did not verify)  ← SUSPEITO\n   dkim=pass header.d=rnp.br  ← LEGÍTIMO\n\n4. DMARC:\n   dmarc=fail action=quarantine  ← SUSPEITO\n\n5. Reply-To diferente de From:\n   From: suporte@rnp.br\n   Reply-To: coleta-dados@gmail.com  ← SUSPEITO\n\n6. Domínio do link vs texto exibido:\n   Texto: 'Acesse o portal rnp.br'\n   URL real: http://rnp-br.malware.com/login  ← SUSPEITO (subdomínio do atacante)"
+        },
+        "keyPoints": [
+          "SPF fail + DKIM fail = e-mail quase certamente spoofado ou de source não autorizada",
+          "Reply-To diferente de From = resposta vai para endereço controlado pelo atacante",
+          "Hover sobre links antes de clicar — URL exibida vs URL real frequentemente divergem em phishing"
+        ]
+      },
+      {
+        "id": "spear-phishing-academico",
+        "title": "Spear Phishing em Ambiente Acadêmico",
+        "body": "Instituições de pesquisa são alvos específicos por deterem dados valiosos (resultados de pesquisa, dados de alunos, propriedade intelectual) e por terem cultura de colaboração que facilita engenharia social.\n\nVetores específicos em ambiente acadêmico:\n- E-mail fingindo ser de outro pesquisador pedindo acesso a dados de pesquisa\n- Convite falso para revisão de paper com link para 'plataforma de revisão'\n- E-mail de 'TI da universidade' pedindo confirmação de senha para 'migração de sistemas'\n- Alerta falso de infraestrutura de rede com link para portal de credenciais\n- QR code em pôster de conferência levando a formulário de coleta de credenciais\n\nSinal de alerta específico: e-mails pedindo credenciais da conta institucional fora do portal oficial. Sistemas legítimos nunca pedem senha por e-mail.",
+        "keyPoints": [
+          "Portais falsos de 'revisão de paper' ou 'repositório de pesquisa' são vetores comuns para roubo de credenciais",
+          "Sistemas legítimos NUNCA pedem senha por e-mail — qualquer e-mail pedindo credenciais é phishing",
+          "Pesquisadores que publicam papers têm dados públicos (nome, afiliação, e-mail) fáceis de usar em spear phishing"
+        ]
+      }
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": ["ransomware-conceito-taxonomia", "c2-conceito-beacon-ioc", "glossario-sec-sys"],
+  "technicalReferences": [
+    { "title": "MITRE ATT&CK T1566 - Phishing", "url": "https://attack.mitre.org/techniques/T1566/" },
+    { "title": "CISA - Phishing Guidance", "url": "https://www.cisa.gov/topics/cyber-threats-and-advisories/types-of-threats/phishing" },
+    { "title": "Microsoft - AiTM Phishing Detection", "url": "https://www.microsoft.com/en-us/security/blog/2022/07/12/from-cookie-theft-to-bec/" }
+  ]
+}

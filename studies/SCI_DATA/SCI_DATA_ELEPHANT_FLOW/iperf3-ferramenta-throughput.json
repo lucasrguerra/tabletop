@@ -1,0 +1,97 @@
+{
+  "id": "iperf3-ferramenta-throughput",
+  "title": "iperf3: Medição de Throughput e Diagnóstico de Capacidade",
+  "description": "Referência operacional do iperf3 para medição de throughput TCP e UDP, diagnóstico de BDP (Bandwidth-Delay Product), ajuste de buffer TCP e identificação de gargalos em links de alta velocidade.",
+  "content_type": "FERRAMENTA",
+  "category": {
+    "id": "SCI_DATA",
+    "type": "SCI_DATA_ELEPHANT_FLOW",
+    "title": "Medição de Throughput"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "8 minutos",
+    "difficulty": "Intermediario",
+    "targetAudience": "Engenheiros de Rede, Operadores de Infraestrutura de Pesquisa",
+    "prerequisites": ["elephant-conceito-qos", "perfsonar-ferramenta-medicao"]
+  },
+  "tags": ["iperf3", "throughput", "TCP", "UDP", "BDP", "buffer", "redes de pesquisa"],
+  "content": {
+    "toolName": "iperf3",
+    "purpose": "Ferramenta para medição ativa de throughput TCP e UDP entre dois hosts. Essencial para verificar a capacidade efetiva de um path de rede, identificar limitações de buffer TCP em links com alto Bandwidth-Delay Product (BDP), e validar configurações de QoS.",
+    "commands": [
+      {
+        "command": "iperf3 -s",
+        "description": "Iniciar iperf3 em modo servidor — aguarda conexões de clientes na porta 5201",
+        "flags": [
+          { "flag": "-s", "meaning": "Server mode — aguarda conexões" },
+          { "flag": "-p <porta>", "meaning": "Porta alternativa (padrão: 5201)" },
+          { "flag": "-D", "meaning": "Executar como daemon em background" }
+        ],
+        "exampleOutput": "-----------------------------------------------------------\nServer listening on 5201\n-----------------------------------------------------------",
+        "interpretation": "Servidor ativo e aguardando. Firewall deve permitir TCP 5201 de entrada no servidor."
+      },
+      {
+        "command": "iperf3 -c <IP_SERVIDOR> -t 30 -i 5",
+        "description": "Teste básico de throughput TCP (30 segundos, relatório a cada 5 segundos)",
+        "flags": [
+          { "flag": "-c <IP>", "meaning": "Client mode — conectar ao servidor no IP especificado" },
+          { "flag": "-t 30", "meaning": "Duração do teste em segundos (padrão: 10s)" },
+          { "flag": "-i 5", "meaning": "Intervalo de relatório em segundos" }
+        ],
+        "exampleOutput": "Connecting to host 200.130.0.1, port 5201\n[ ID] Interval       Transfer     Bitrate         Retr  Cwnd\n[  5]   0.00-5.00   sec  5.62 GBytes  9.67 Gbits/sec    0   2.40 MBytes\n[  5]   5.00-10.00  sec  5.58 GBytes  9.60 Gbits/sec    3   2.35 MBytes\n[  5]  10.00-15.00  sec  5.59 GBytes  9.62 Gbits/sec    0   2.40 MBytes\n- - - - - - - - - - - - - - - - - - - - -\n[ ID] Interval       Transfer     Bitrate         Retr\n[  5]   0.00-30.00  sec  16.7 GBytes  9.62 Gbits/sec    3   sender",
+        "interpretation": "9.62 Gbps em link de 10 Gbps = 96.2% de utilização. Excelente. Retr=3 (3 retransmissões em 30s) = perda mínima. Cwnd (congestion window) = 2.40 MB estável — TCP convergiu para velocidade ótima."
+      },
+      {
+        "command": "iperf3 -c <IP_SERVIDOR> -t 60 -P 4 -w 32M",
+        "description": "Teste com 4 streams paralelos e window TCP de 32MB — para links com alto BDP (longa distância)",
+        "flags": [
+          { "flag": "-P 4", "meaning": "Número de streams TCP paralelos — contorna limitação de window size único" },
+          { "flag": "-w 32M", "meaning": "TCP socket buffer size (window size) — aumentar para links com alto RTT" }
+        ],
+        "exampleOutput": "[SUM]   0.00-60.00  sec  228 GBytes  32.6 Gbits/sec  48  sender\n[SUM]   0.00-60.00  sec  228 GBytes  32.6 Gbits/sec      receiver",
+        "interpretation": "32.6 Gbps em link de 40 Gbps com 4 streams paralelos e window de 32MB. Com stream único sem ajuste de window, provavelmente seria < 5 Gbps neste link com alto RTT. Isso demonstra o impacto do BDP."
+      },
+      {
+        "command": "iperf3 -c <IP_SERVIDOR> -u -b 1G -t 30",
+        "description": "Teste de throughput UDP a 1 Gbps — mede perda e jitter sem controle de congestionamento TCP",
+        "flags": [
+          { "flag": "-u", "meaning": "Modo UDP em vez de TCP" },
+          { "flag": "-b 1G", "meaning": "Bitrate alvo para UDP (TCP auto-ajusta; UDP precisa de bitrate explícito)" }
+        ],
+        "exampleOutput": "[ ID] Interval       Transfer     Bitrate         Jitter    Lost/Total Datagrams\n[  5]   0.00-30.00  sec  3.55 GBytes  1.02 Gbits/sec  0.142 ms  245/2625478 (0.0093%)",
+        "interpretation": "0.0093% de perda de pacotes UDP a 1 Gbps. Jitter de 0.142ms — excelente. Comparar com teste TCP: se TCP tem throughput muito menor que capacidade do link mas UDP não perde pacotes = problema de buffer TCP ou BDP, não de capacidade física."
+      },
+      {
+        "command": "iperf3 -c <IP_SERVIDOR> -t 30 -R",
+        "description": "Teste de throughput no sentido reverso (servidor → cliente) — detecta assimetria de link",
+        "flags": [
+          { "flag": "-R", "meaning": "Reverse mode: servidor envia, cliente recebe" }
+        ],
+        "exampleOutput": "[ ID] Interval       Transfer     Bitrate         Retr\n[  5]   0.00-30.00  sec  15.1 GBytes  8.68 Gbits/sec  234  sender",
+        "interpretation": "Throughput A→B: 9.62 Gbps. Throughput B→A: 8.68 Gbps. Assimetria de ~10% — pode ser normal em alguns links. Retr=234 no sentido reverso vs. 3 no sentido direto = há problema de congestionamento ou perda no path B→A."
+      }
+    ],
+    "outputFields": [
+      { "field": "Bitrate (sender)", "meaning": "Taxa de transferência medida no lado do transmissor", "normalRange": "> 80% da capacidade do link em condições normais" },
+      { "field": "Retr", "meaning": "Retransmissões TCP — indica perda de pacotes", "normalRange": "< 10 em teste de 30s em link dedicado. > 100 indica problema de perda ou congestionamento" },
+      { "field": "Cwnd", "meaning": "TCP Congestion Window — aumenta quando sem perda, decresce com perda", "normalRange": "Deve crescer e estabilizar. Se oscila muito = perda intermitente no path" },
+      { "field": "Jitter (UDP)", "meaning": "Variação de latência entre pacotes UDP (ms)", "normalRange": "< 2ms em links bem dimensionados. > 10ms indica filas de QoS ou congestionamento" }
+    ],
+    "commonPitfalls": [
+      "iperf3 em modo servidor aceita apenas uma conexão simultânea por padrão — múltiplos clientes simultâneos falham. Usar -1 flag não resolve; iniciar múltiplas instâncias em portas diferentes",
+      "Buffer TCP padrão do sistema (tipicamente 128KB) é insuficiente para links com RTT > 10ms — aumentar com 'sysctl -w net.core.rmem_max=134217728'",
+      "iperf3 mede throughput da camada de transporte, não da aplicação — overhead de protocolo (GridFTP, SFTP) reduz throughput efetivo em 5-20%",
+      "Em sistemas Linux com autotuning de buffer TCP ativado (net.ipv4.tcp_moderate_rcvbuf=1), o parâmetro -w pode não ter efeito — verificar com 'ss -n dst <IP>' após o teste"
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": ["elephant-conceito-qos", "perfsonar-ferramenta-medicao", "packet-loss-procedimento-diagnostico", "glossario-sci-data"],
+  "technicalReferences": [
+    { "title": "iperf3 Documentation", "url": "https://iperf.fr/iperf-doc.php" },
+    { "title": "ESnet - Network Tuning Guide", "url": "https://fasterdata.es.net/network-tuning/" },
+    { "title": "Linux TCP Buffer Tuning", "url": "https://fasterdata.es.net/host-tuning/linux/" }
+  ]
+}

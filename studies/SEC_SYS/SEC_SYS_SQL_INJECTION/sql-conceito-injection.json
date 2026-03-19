@@ -1,0 +1,74 @@
+{
+  "id": "sql-conceito-injection",
+  "title": "SQL Injection: Mecanismos e Impacto em Sistemas Acadêmicos",
+  "description": "Explica como SQL Injection funciona, os tipos mais explorados (clássica, blind, time-based), impacto em sistemas de gestão acadêmica e as defesas efetivas via prepared statements.",
+  "content_type": "CONCEITO",
+  "category": {
+    "id": "SEC_SYS",
+    "type": "SEC_SYS_SQL_INJECTION",
+    "title": "Injeção SQL"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "10 minutos",
+    "difficulty": "Intermediario",
+    "targetAudience": "Desenvolvedores, Analistas de Segurança, Gestores de Sistemas",
+    "prerequisites": []
+  },
+  "tags": ["SQL injection", "SQLi", "OWASP", "prepared statements", "segurança web", "aplicação"],
+  "content": {
+    "sections": [
+      {
+        "id": "mecanismo",
+        "title": "Como SQL Injection funciona",
+        "body": "SQL Injection ocorre quando dados fornecidos pelo usuário são inseridos diretamente em uma consulta SQL sem sanitização adequada. O atacante insere fragmentos de SQL na entrada para alterar a lógica da consulta.\n\nExemplo clássico de login vulnerável:",
+        "codeBlock": {
+          "language": "sql",
+          "code": "-- Código vulnerável (PHP):\n$query = \"SELECT * FROM users WHERE username = '\" . $_POST['user'] . \"' AND password = '\" . $_POST['pass'] . \"'\";\n\n-- Entrada normal:\n-- user: joao  pass: senha123\n-- SQL: SELECT * FROM users WHERE username = 'joao' AND password = 'senha123'\n\n-- Entrada maliciosa (bypass de autenticação):\n-- user: admin'--  pass: qualquer_coisa\n-- SQL: SELECT * FROM users WHERE username = 'admin'-- ' AND password = '...'  \n-- O -- comenta o resto → autentica como admin SEM verificar senha!"
+        },
+        "keyPoints": [
+          "SQLi mais simples: inserir aspas simples ' para causar erro e confirmar vulnerabilidade",
+          "Bypass de autenticação: ' OR '1'='1 faz WHERE sempre verdadeiro",
+          "Comentário SQL (-- ou #) corta o resto da consulta"
+        ]
+      },
+      {
+        "id": "tipos-sqli",
+        "title": "Tipos de SQL Injection",
+        "body": "Além da SQLi clássica (visível na resposta), existem variantes mais sutis:\n\nUnion-based: usa UNION SELECT para unir o resultado da consulta original com dados de outras tabelas. Permite extrair schemas, usuários, senhas.\n\nBlind SQLi: o aplicativo não exibe erros, mas o atacante infere informações pelo comportamento da resposta (Booleana: resposta diferente para condições verdadeiras/falsas).\n\nTime-based Blind: usa funções como SLEEP() ou WAITFOR DELAY para inferir dados por tempo de resposta. 'Se o primeiro caractere da senha é A, espere 5 segundos'.\n\nOut-of-band: extrai dados via canais alternativos (DNS, HTTP externo) em bancos que suportam funções como xp_cmdshell (MSSQL) ou LOAD_FILE (MySQL).",
+        "callout": {
+          "type": "warning",
+          "text": "Sistemas de gestão acadêmica (matrícula, histórico, notas, portal do aluno) frequentemente contêm SQLi não descoberta por anos. Uma SQLi em sistema de matrícula pode expor dados pessoais de todos os alunos (CPF, endereço, histórico) — dado pessoal sensível sob a LGPD."
+        },
+        "keyPoints": [
+          "SQLi em sistema de gestão acadêmica pode expor dados de todos os alunos",
+          "Blind SQLi é mais difícil de detectar manualmente — scanners automatizados (SQLMap) ajudam",
+          "Time-based SQLi é detectável por logs de banco — queries com SLEEP() ou latência anormal"
+        ]
+      },
+      {
+        "id": "defesa",
+        "title": "Defesas efetivas: prepared statements e princípio do menor privilégio",
+        "body": "A defesa principal contra SQLi é o uso de Prepared Statements (Parameterized Queries). Com eles, a estrutura SQL é definida antes dos dados — o banco de dados nunca confunde dados com código SQL.",
+        "codeBlock": {
+          "language": "sql",
+          "code": "-- VULNERÁVEL: concatenação direta\n$query = \"SELECT * FROM users WHERE username = '\" . $user . \"'\";\n\n-- SEGURO: Prepared Statement (PHP PDO)\n$stmt = $pdo->prepare('SELECT * FROM users WHERE username = ?');\n$stmt->execute([$user]);\n\n-- SEGURO: Named parameters\n$stmt = $pdo->prepare('SELECT * FROM users WHERE username = :user');\n$stmt->execute(['user' => $user]);"
+        },
+        "keyPoints": [
+          "Prepared Statements são a única defesa definitiva — filtros e escape são complementos",
+          "ORMs (Eloquent, Hibernate, SQLAlchemy) usam prepared statements internamente quando usados corretamente",
+          "Princípio do menor privilégio: conta de banco do aplicativo não deve ter DROP, CREATE ou acesso a tabelas de sistema"
+        ]
+      }
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": ["glossario-sec-sys"],
+  "technicalReferences": [
+    { "title": "OWASP SQL Injection Prevention Cheat Sheet", "url": "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html" },
+    { "title": "OWASP Top 10 - A03:2021 Injection", "url": "https://owasp.org/Top10/A03_2021-Injection/" },
+    { "title": "PortSwigger - SQL Injection", "url": "https://portswigger.net/web-security/sql-injection" }
+  ]
+}
