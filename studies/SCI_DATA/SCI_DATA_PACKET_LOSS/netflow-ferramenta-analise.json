@@ -1,0 +1,92 @@
+{
+  "id": "netflow-ferramenta-analise",
+  "title": "Análise de Tráfego com NetFlow/nfdump",
+  "description": "Referência de comandos para coleta e análise de dados NetFlow/IPFIX usando nfdump. Inclui identificação de top talkers, elephant flows, anomalias e análise de perda de pacotes.",
+  "content_type": "FERRAMENTA",
+  "category": {
+    "id": "SCI_DATA",
+    "type": "SCI_DATA_PACKET_LOSS",
+    "title": "Perda de Pacotes / Degradação de Performance"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "12 minutos",
+    "difficulty": "Intermediario",
+    "targetAudience": "Engenheiros de Rede NOC, Analistas de Performance",
+    "prerequisites": []
+  },
+  "tags": ["NetFlow", "IPFIX", "nfdump", "tráfego", "análise", "top talkers"],
+  "content": {
+    "toolName": "nfdump (NetFlow dump)",
+    "toolVersion": "nfdump 1.7.x",
+    "purpose": "Analisar dados de fluxo NetFlow/IPFIX para identificar top talkers, elephant flows, anomalias de tráfego, ataques volumétricos e problemas de performance.",
+    "installHint": "Linux: apt install nfdump / yum install nfdump | Coleta: nfcapd (daemon receptor) + nfdump (análise)",
+    "commands": [
+      {
+        "command": "nfdump -R <DIRETORIO_NETFLOW>/ -s ip/bytes -n 20",
+        "description": "Lista os 20 IPs que mais trafegaram em bytes no período dos arquivos no diretório. Identifica elephant flows e top talkers.",
+        "flags": [
+          { "flag": "-R <DIR>/", "meaning": "Lê todos os arquivos do diretório recursivamente" },
+          { "flag": "-s ip/bytes", "meaning": "Ordena por volume de bytes por IP de origem" },
+          { "flag": "-n 20", "meaning": "Exibe os top 20 resultados" },
+          { "flag": "-o extended", "meaning": "Saída estendida com mais campos" },
+          { "flag": "-t '2025-03-01 08:00:00 - 2025-03-01 12:00:00'", "meaning": "Filtra por janela de tempo específica" }
+        ],
+        "exampleOutput": "Top 20 IPs ordered by bytes:\n  No.   Bytes           Flows  Packets  IP Addr\n    1   45.3 G         125    32.1 M   200.130.45.10\n    2   12.1 G          89    8.5 M    200.130.45.22\n    3   4.2 G          1203   3.1 M    192.168.100.5",
+        "interpretation": "IP 200.130.45.10 com 45 GB e apenas 125 fluxos é claramente um elephant flow (alto volume, baixo número de fluxos). IP 192.168.100.5 com 4.2 GB mas 1203 fluxos é uso mais distribuído/normal."
+      },
+      {
+        "command": "nfdump -R <DIR>/ -s dstport/flows -n 10 'proto udp'",
+        "description": "Lista as 10 portas UDP de destino com mais fluxos. Útil para identificar ataques de amplificação (porta 53 DNS, 123 NTP, 19 CHARGEN).",
+        "flags": [
+          { "flag": "-s dstport/flows", "meaning": "Agrupa e ordena por porta de destino/número de fluxos" },
+          { "flag": "'proto udp'", "meaning": "Filtra apenas tráfego UDP" }
+        ],
+        "exampleOutput": "Top 10 UDP dst ports ordered by flows:\n  No. Port    Flows   Bytes\n    1   53    450234  180.5 M    ← DNS reflection!",
+        "interpretation": "450 mil fluxos UDP para porta 53 em tempo curto é típico de ataque de amplificação DNS. Em tráfego normal, porta 53 tem volume muito menor."
+      },
+      {
+        "command": "nfdump -R <DIR>/ -s record/bytes 'src ip 10.0.0.0/8 and proto tcp' -n 5",
+        "description": "Filtra fluxos de uma rede específica e protocolo. Útil para analisar tráfego de transferências de dados de pesquisa (GridFTP usa TCP).",
+        "flags": [
+          { "flag": "'src ip 10.0.0.0/8 and proto tcp'", "meaning": "Filtro de BPF: origem na rede 10/8 e TCP" },
+          { "flag": "-s record/bytes", "meaning": "Ordena fluxos individuais por bytes" }
+        ],
+        "exampleOutput": "Top 5 TCP flows from 10.0.0.0/8 by bytes:\n  Src IP         Dst IP         Src Pt  Dst Pt  Bytes    Duration\n  10.5.1.45      200.130.45.9   52134   2811    38.2 G   2h15m",
+        "interpretation": "Fluxo de 38 GB por 2h15m na porta 2811 (GridFTP) é um elephant flow típico de transferência de dataset científico. Duração longa confirma fluxo elefante."
+      },
+      {
+        "command": "nfdump -R <DIR>/ -O tstart -o csv 'src ip <IP_SUSPEITO>'",
+        "description": "Exporta todos os fluxos de um IP específico em CSV ordenado por início do fluxo. Útil para análise forense de comportamento de um host específico.",
+        "flags": [
+          { "flag": "-O tstart", "meaning": "Ordena por timestamp de início do fluxo" },
+          { "flag": "-o csv", "meaning": "Saída em formato CSV para importar em planilha ou SIEM" }
+        ],
+        "exampleOutput": "ts,te,td,pr,sip,sp,dip,dp,ipkt,ibyt,opkt,obyt,in,out,sas,das,smk,dmk,dtos,dir,nh,nhb,svln,dvln,ismc,odmc,idmc,osmc,mpls1,mpls2,mpls3,mpls4,mpls5,mpls6,mpls7,mpls8,mpls9,mpls10,ra,eng,exid,\n2025-03-01 08:00:01,2025-03-01 10:15:23,...",
+        "interpretation": "CSV permite importação em Elastic/Kibana, Grafana ou planilha para análise de linha do tempo de comportamento do host."
+      }
+    ],
+    "outputFields": [
+      { "field": "Flows", "meaning": "Número de fluxos distintos (5-tuple: src/dst IP, src/dst port, protocolo)", "normalRange": "Varia por serviço. Alto volume + poucos fluxos = elephant. Alto volume + muitos fluxos = possível ataque." },
+      { "field": "Bytes", "meaning": "Volume total de dados transferidos", "normalRange": "Varia por caso de uso. Transferências científicas GB a TB são normais." },
+      { "field": "Packets", "meaning": "Número total de pacotes no fluxo", "normalRange": "Baixo packets/bytes ratio = pacotes grandes (transferências bulk). Alto packets/bytes = pacotes pequenos (possível DDoS UDP)." },
+      { "field": "Duration", "meaning": "Duração do fluxo em segundos/minutos/horas", "normalRange": "Elephant flows: horas. Ataques: segundos a minutos de muito tráfego." },
+      { "field": "Proto", "meaning": "Protocolo (TCP, UDP, ICMP)", "normalRange": "TCP para transferências de dados. UDP para NTP/DNS/streaming. ICMP para diagnóstico." }
+    ],
+    "commonPitfalls": [
+      "Netflow usa amostragem em roteadores de alta velocidade (ex: 1 em cada 1000 pacotes) — os volumes mostrados são estimativas multiplicadas pelo fator de amostragem",
+      "nfdump requer que os arquivos sejam coletados pelo nfcapd — sem coleta prévia não há dados para analisar",
+      "Rotação de arquivos nfcapd cria um arquivo a cada 5 minutos por padrão — para análise longa use -R com diretório",
+      "Filtros nfdump usam sintaxe parecida com BPF mas não idêntica — teste filtros com -r em arquivo único antes de -R no diretório"
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": ["elephant-conceito-qos", "dns-conceito-amplificacao", "glossario-sci-data"],
+  "technicalReferences": [
+    { "title": "nfdump GitHub", "url": "https://github.com/phaag/nfdump" },
+    { "title": "RFC 7011 - IPFIX Protocol Specification", "url": "https://www.rfc-editor.org/rfc/rfc7011" },
+    { "title": "nfdump man page", "url": "https://linux.die.net/man/1/nfdump" }
+  ]
+}

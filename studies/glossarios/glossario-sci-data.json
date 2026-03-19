@@ -1,0 +1,101 @@
+{
+  "id": "glossario-sci-data",
+  "title": "Glossário: Redes de Dados Científicos",
+  "description": "Definições dos principais termos de redes de alta performance, QoS, NetFlow e infraestrutura para dados científicos usados nos cenários SCI_DATA.",
+  "content_type": "GLOSSARIO",
+  "category": {
+    "id": "SCI_DATA",
+    "type": null,
+    "title": "Dados de Redes Científicas"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "7 minutos",
+    "difficulty": "Basico",
+    "targetAudience": "Todos os participantes de exercícios SCI_DATA",
+    "prerequisites": []
+  },
+  "tags": ["QoS", "NetFlow", "elephant flow", "GridFTP", "perfsonar", "redes científicas", "glossário"],
+  "content": {
+    "terms": [
+      {
+        "term": "Elephant Flow",
+        "acronym": null,
+        "definition": "Fluxo de rede de longa duração e alto volume que ocupa desproporcionalmente a largura de banda disponível. Comum em transferências de dados científicos (GridFTP, rsync de datasets). Um único elephant flow pode degradar a experiência de dezenas de outros usuários em links compartilhados.",
+        "seeAlso": ["QoS", "NetFlow", "GridFTP"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "QoS (Quality of Service)",
+        "acronym": "QoS",
+        "definition": "Conjunto de técnicas para gerenciar e priorizar tráfego de rede, garantindo que aplicações críticas recebam largura de banda e latência adequadas. Mecanismos: filas de prioridade, policing (limitar taxa), shaping (suavizar bursts), DSCP marking.",
+        "seeAlso": ["DSCP", "Elephant Flow"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "DSCP (Differentiated Services Code Point)",
+        "acronym": "DSCP",
+        "definition": "Campo de 6 bits no cabeçalho IP (dentro do byte ToS/TClass) usado para marcar pacotes com classe de serviço. Valores comuns: EF (Expedited Forwarding, 46) para VoIP/tempo real; AF41 (34) para dados importantes; BE (Best Effort, 0) para tráfego padrão.",
+        "seeAlso": ["QoS"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "NetFlow / IPFIX",
+        "acronym": null,
+        "definition": "Protocolo de coleta de metadados de fluxos de rede. Roteadores exportam registros de fluxo (5-tuple: src IP, dst IP, src port, dst port, protocolo + bytes/pacotes) para coletores. IPFIX é a versão padronizada (RFC 7011). Fundamental para análise de tráfego e detecção de anomalias.",
+        "seeAlso": ["Elephant Flow", "sFlow"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "sFlow",
+        "acronym": null,
+        "definition": "Protocolo de amostragem de tráfego que exporta 1 em cada N pacotes para análise. Alternativa ao NetFlow que não requer manter estado por fluxo no roteador — escalável para links de alta velocidade. Menor granularidade que NetFlow mas menor overhead no equipamento.",
+        "seeAlso": ["NetFlow / IPFIX"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "perfSONAR",
+        "acronym": null,
+        "definition": "Plataforma de medição e monitoramento de performance de rede desenvolvida para redes de pesquisa e educação. Realiza testes de throughput (iperf3), latência (ping/traceroute), jitter e perda de pacotes entre pontos de medição. Amplamente implantada na RNP e redes correlatas.",
+        "seeAlso": ["iperf3"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "GridFTP",
+        "acronym": null,
+        "definition": "Extensão do protocolo FTP otimizada para transferência de grandes volumes de dados científicos em redes de alta velocidade. Suporta transferências paralelas multi-stream, checksum, autenticação por certificado e restart de transferências. Usado em projetos como LHC (CERN), telescópios e genômica.",
+        "seeAlso": ["Elephant Flow"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "Perda de Pacotes (Packet Loss)",
+        "acronym": null,
+        "definition": "Percentual de pacotes transmitidos que não chegam ao destino. Para transferências TCP, a perda dispara retransmissões e redução da janela de congestionamento, impactando drasticamente o throughput (lei de Mathis: throughput ≈ MSS / (RTT × √perda)). 1% de perda pode reduzir throughput em 90%.",
+        "seeAlso": ["TCP", "Jitter"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "RTT (Round-Trip Time)",
+        "acronym": "RTT",
+        "definition": "Tempo total para um pacote viajar da origem ao destino e a resposta retornar. Composto por latência de propagação (velocidade da luz na fibra), processamento nos roteadores e filas. Fundamental para performance TCP: window size / RTT = throughput máximo teórico.",
+        "seeAlso": ["Perda de Pacotes"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "Jitter",
+        "acronym": null,
+        "definition": "Variação no atraso de entrega entre pacotes consecutivos de um mesmo fluxo. Crítico para aplicações em tempo real (VoIP, videoconferência). Causado por filas variáveis nos roteadores (congestionamento). Medido em ms; acima de 30-50ms impacta perceptivamente chamadas de voz.",
+        "seeAlso": ["RTT", "QoS"],
+        "relatedStudyId": null
+      }
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": [],
+  "technicalReferences": [
+    { "title": "perfSONAR Documentation", "url": "https://docs.perfsonar.net/" },
+    { "title": "RNP - Serviço de Medição de Tráfego", "url": "https://www.rnp.br/servicos" }
+  ]
+}

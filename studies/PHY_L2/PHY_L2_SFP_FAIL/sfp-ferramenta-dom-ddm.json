@@ -1,0 +1,78 @@
+{
+  "id": "sfp-ferramenta-dom-ddm",
+  "title": "Diagnóstico de Transceptores SFP via DDM/DOM",
+  "description": "Referência de comandos para leitura de parâmetros DDM/DOM em transceptores SFP/SFP+/QSFP em diferentes plataformas. Inclui interpretação de valores e thresholds de alarme.",
+  "content_type": "FERRAMENTA",
+  "category": {
+    "id": "PHY_L2",
+    "type": "PHY_L2_SFP_FAIL",
+    "title": "Falha de Transceptor SFP"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "10 minutos",
+    "difficulty": "Basico",
+    "targetAudience": "Engenheiros de Rede NOC, Técnicos de Infraestrutura",
+    "prerequisites": []
+  },
+  "tags": ["SFP", "DDM", "DOM", "óptico", "potência", "diagnóstico"],
+  "content": {
+    "toolName": "DDM/DOM (Digital Diagnostic Monitoring)",
+    "purpose": "Ler parâmetros de diagnóstico em tempo real de transceptores ópticos: temperatura, tensão, corrente do laser, potência TX e RX.",
+    "commands": [
+      {
+        "command": "show interfaces <INTERFACE> transceiver",
+        "description": "Cisco IOS/IOS-XE — exibe parâmetros DDM do transceptor na interface.",
+        "flags": [
+          { "flag": "detail", "meaning": "Mostra thresholds de alarme além dos valores atuais" }
+        ],
+        "exampleOutput": "GigabitEthernet0/0\n  Transceiver is present\n  Type is SFP\n  Name is CISCO-FINISAR\n  Part number is FTLF8524P2BNV\n  Revision is A\n  Serial number is FNS12345678\n  Nominal bitrate is 1300 Mbit/s\n  Link length supported for 50/125um fiber is 550 m\n  Cisco SFP Revision is 1.0\n  cisco id is 3\n  Laser bias current = 28.1 mA\n  Transmit power = -2.5 dBm\n  Receive power = -11.3 dBm\n  Module temperature = 42 Celsius",
+        "interpretation": "Transmit power (-2.5 dBm) e Receive power (-11.3 dBm) dentro da faixa normal para este SFP (tipicamente -1 a -9.5 dBm TX e -1 a -19 dBm RX). Temperatura de 42°C normal (limite típico 70°C)."
+      },
+      {
+        "command": "show interfaces <INTERFACE> diagnostics optics",
+        "description": "Juniper JunOS — exibe parâmetros de diagnóstico óptico.",
+        "flags": [],
+        "exampleOutput": "Physical interface: ge-0/0/0, Enabled, Physical link is Up\n  Laser bias current        : 32.234 mA\n  Laser output power        : -2.4 dBm\n  Laser rx optical power    : -12.1 dBm\n  Module temperature        : 38 degrees C\n  Module voltage            : 3.29 V\n  Laser bias current  high alarm: 80 mA\n  Laser bias current  low alarm:   5 mA",
+        "interpretation": "Bias current de 32 mA, TX de -2.4 dBm e RX de -12.1 dBm são valores saudáveis. Compare com os alarmes high/low para verificar proximidade a limites de falha."
+      },
+      {
+        "command": "ethtool -m <INTERFACE>",
+        "description": "Linux — lê dados DDM do transceptor via ethtool. Requer kernel com suporte e permissão root.",
+        "flags": [
+          { "flag": "-m", "meaning": "Exibe dados de diagnóstico do módulo (DDM)" }
+        ],
+        "exampleOutput": "Transceiver (Laser diagnostics support):\n  Laser bias current          : 28.000 mA\n  Laser output power          : -3.00 dBm\n  Receiver signal average optical power : -9.80 dBm\n  Module temperature          : 40.00 degrees C / 104.00 degrees F\n  Module voltage              : 3.29 V",
+        "interpretation": "Saída equivalente a outras plataformas. Note que nem todos os SFPs suportam DDM — se o comando retornar vazio, o transceptor pode não ter suporte ou ser genérico."
+      },
+      {
+        "command": "show interfaces status | include <INTERFACE>",
+        "description": "Cisco — verifica rapidamente o estado do link (up/down/err-disabled) antes de entrar nos detalhes.",
+        "flags": [],
+        "exampleOutput": "Gi0/0    connected    1        a-full a-1000 10/100/1000BaseTX SFP",
+        "interpretation": "'connected' = link up. 'notconnect' = sem sinal. 'err-disabled' = porta desabilitada por BPDU Guard, port security ou loop detection."
+      }
+    ],
+    "outputFields": [
+      { "field": "Receive power (Rx)", "meaning": "Potência óptica recebida no transceptor", "normalRange": "-3 dBm a -20 dBm (varia por tipo: SR/LX/LH). Abaixo de -30 dBm indica falha." },
+      { "field": "Transmit power (Tx)", "meaning": "Potência óptica emitida pelo laser", "normalRange": "Consulte datasheet do SFP. Queda progressiva indica degradação do laser." },
+      { "field": "Laser bias current", "meaning": "Corrente do diodo laser em mA", "normalRange": "10-80 mA típico. Alta corrente com Tx baixo indica laser degradado." },
+      { "field": "Module temperature", "meaning": "Temperatura interna do transceptor em graus Celsius", "normalRange": "0°C a 70°C (commercial). Acima de 80°C indica problema de resfriamento." },
+      { "field": "Module voltage", "meaning": "Tensão de alimentação do módulo em Volts", "normalRange": "3.1V a 3.5V. Fora deste range indica problema na fonte do switch." }
+    ],
+    "commonPitfalls": [
+      "Transceptores genéricos (não originais) às vezes não reportam DDM corretamente — ignore valores obviamente errados (0 dBm TX em link ativo)",
+      "Rx muito alto (>0 dBm) pode indicar reflexão no conector, não sinal real — inspecione o conector",
+      "Temperatura alta pode ser normal em racks mal ventilados — contextualize com a temperatura ambiente do ambiente",
+      "ethtool -m pode não funcionar com todos os drivers de NIC — verifique se o módulo de kernel correspondente está carregado"
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": ["fibra-procedimento-troubleshoot", "glossario-phy-l2"],
+  "technicalReferences": [
+    { "title": "SFF-8472 - Diagnostic Monitoring Interface for SFP", "url": "https://members.snia.org/document/dl/26411" },
+    { "title": "Cisco - Digital Optical Monitoring", "url": "https://www.cisco.com/c/en/us/support/docs/interfaces-modules/transceiver-modules/213551-digital-optical-monitoring-in-cisco-io.html" }
+  ]
+}

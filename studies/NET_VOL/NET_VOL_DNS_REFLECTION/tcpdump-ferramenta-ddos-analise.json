@@ -1,0 +1,108 @@
+{
+  "id": "tcpdump-ferramenta-ddos-analise",
+  "title": "tcpdump: Análise de Tráfego DDoS em Linha de Comando",
+  "description": "Referência operacional do tcpdump para captura e análise de ataques DDoS volumétricos: filtros para identificar SYN flood, amplificação DNS/NTP/SSDP, top IPs de origem, e geração de capturas para análise forense.",
+  "content_type": "FERRAMENTA",
+  "category": {
+    "id": "NET_VOL",
+    "type": "NET_VOL_DNS_REFLECTION",
+    "title": "DDoS Volumétrico"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "8 minutos",
+    "difficulty": "Intermediario",
+    "targetAudience": "Engenheiros de Rede NOC, Analistas de Segurança",
+    "prerequisites": ["dns-conceito-amplificacao", "tcp-conceito-syn-flood"]
+  },
+  "tags": ["tcpdump", "DDoS", "análise de tráfego", "captura", "pcap", "SYN flood", "amplificação"],
+  "content": {
+    "toolName": "tcpdump",
+    "purpose": "Captura e análise de tráfego de rede em tempo real ou de arquivos pcap. Ferramenta essencial para diagnóstico de ataques DDoS, identificação de padrões de tráfego malicioso e coleta de evidências forenses.",
+    "commands": [
+      {
+        "command": "tcpdump -i eth0 -nn -c 10000 'tcp[tcpflags] & tcp-syn != 0 and tcp[tcpflags] & tcp-ack == 0'",
+        "description": "Captura SYN packets sem ACK (handshake inicial) — padrão de SYN flood",
+        "flags": [
+          { "flag": "-i eth0", "meaning": "Interface a monitorar. Use 'any' para todas as interfaces" },
+          { "flag": "-nn", "meaning": "Não resolver DNS nem nomes de porta (mais rápido, evita DNS reverso atrasar captura)" },
+          { "flag": "-c 10000", "meaning": "Capturar no máximo 10.000 pacotes e encerrar" },
+          { "flag": "'tcp[tcpflags]...'", "meaning": "Filtro BPF: seleciona apenas TCP SYN sem ACK" }
+        ],
+        "exampleOutput": "14:22:01.123456 IP 192.0.2.1.51234 > 203.0.113.10.80: Flags [S], seq 1234567890, win 65535\n14:22:01.123789 IP 198.51.100.5.44321 > 203.0.113.10.80: Flags [S], seq 987654321, win 65535\n10000 packets captured\n10245 packets received by filter\n0 packets dropped by kernel",
+        "interpretation": "Alta taxa de SYN de múltiplos IPs de origem distintos = SYN flood com IP spoofing. IPs de origem concentrados em poucos prefixos = botnet ou refletor real."
+      },
+      {
+        "command": "tcpdump -i eth0 -nn udp port 53 and greater 500",
+        "description": "Captura respostas DNS grandes (>500 bytes) — padrão de amplificação DNS",
+        "flags": [
+          { "flag": "udp port 53", "meaning": "Filtrar apenas tráfego DNS (UDP porta 53)" },
+          { "flag": "greater 500", "meaning": "Apenas pacotes maiores que 500 bytes — respostas pequenas não são amplificação" }
+        ],
+        "exampleOutput": "14:23:01.456789 IP 8.8.8.8.53 > 203.0.113.10.12345: 1453+ [qr] ANY? . (1453)\n14:23:01.456901 IP 1.1.1.1.53 > 203.0.113.10.23456: 1453+ [qr] ANY? . (1453)",
+        "interpretation": "Múltiplos resolvers DNS enviando respostas grandes para o mesmo IP destino = amplificação DNS ativa. A vítima é o IP destino das respostas."
+      },
+      {
+        "command": "tcpdump -i eth0 -nn udp port 123 and greater 400",
+        "description": "Captura respostas NTP grandes (>400 bytes) — padrão de amplificação NTP/monlist",
+        "flags": [
+          { "flag": "udp port 123", "meaning": "Porta NTP" },
+          { "flag": "greater 400", "meaning": "Respostas normais NTP são <100 bytes; monlist gera respostas de até 4460 bytes" }
+        ],
+        "exampleOutput": "14:24:01.789012 IP 200.1.2.3.123 > 203.0.113.10.54321: NTPv2, Reserved, length 440\n14:24:01.789234 IP 177.0.0.1.123 > 203.0.113.10.54321: NTPv2, Reserved, length 4460",
+        "interpretation": "Respostas NTP de 4460 bytes de múltiplos servidores para o mesmo destino = amplificação NTP via monlist ativa."
+      },
+      {
+        "command": "tcpdump -i eth0 -nn -w /tmp/captura_ddos.pcap -C 100 -W 5",
+        "description": "Salvar captura rotativa em arquivos pcap para análise forense posterior",
+        "flags": [
+          { "flag": "-w /tmp/captura_ddos.pcap", "meaning": "Salvar em arquivo binário pcap (não imprime na tela)" },
+          { "flag": "-C 100", "meaning": "Criar novo arquivo a cada 100 MB" },
+          { "flag": "-W 5", "meaning": "Manter no máximo 5 arquivos — evita encher o disco" }
+        ],
+        "exampleOutput": "# Sem output em tela — arquivos gerados:\n# /tmp/captura_ddos.pcap0 (100MB)\n# /tmp/captura_ddos.pcap1 (100MB)\n# ... até pcap4",
+        "interpretation": "Usar durante um ataque para coletar evidência forense. Analisar depois com Wireshark ou tshark. Arquivos rotativos evitam encher o disco durante ataques longos."
+      },
+      {
+        "command": "tcpdump -r /tmp/captura_ddos.pcap0 -nn | awk '{print $3}' | cut -d. -f1-4 | sort | uniq -c | sort -rn | head -20",
+        "description": "Ler arquivo pcap salvo e listar top 20 IPs de origem por volume de pacotes",
+        "flags": [
+          { "flag": "-r arquivo.pcap", "meaning": "Ler de arquivo pcap existente em vez de interface live" }
+        ],
+        "exampleOutput": "   8423 192.0.2.100\n   7891 198.51.100.55\n   6234 203.0.113.200\n   5012 192.0.2.1\n   ...",
+        "interpretation": "IPs com contagem muito alta = fontes principais do ataque ou refletores. Se os IPs são de múltiplos ASes sem padrão geográfico = IP spoofing ativo."
+      },
+      {
+        "command": "tcpdump -r /tmp/captura_ddos.pcap0 -nn -q | awk '{print $5}' | cut -d. -f5 | sort | uniq -c | sort -rn | head -10",
+        "description": "Identificar portas de destino mais atacadas no arquivo pcap",
+        "flags": [
+          { "flag": "-q", "meaning": "Modo quiet — output resumido, mais fácil de parsear com awk" }
+        ],
+        "exampleOutput": "  15234 80\n   8923 443\n   3421 22\n    234 53",
+        "interpretation": "Concentração em porta 80/443 = ataque a servidor web. Porta 22 = SSH. Porta 53 = DNS. Distribuição uniforme em portas altas = possível scan ou ataque de fragmentação."
+      }
+    ],
+    "outputFields": [
+      { "field": "packets captured", "meaning": "Pacotes efetivamente capturados pelo filtro", "normalRange": "Depende do filtro — em SYN flood, esperar milhares por segundo" },
+      { "field": "packets received by filter", "meaning": "Total de pacotes avaliados pelo filtro BPF na interface", "normalRange": "Maior ou igual a 'packets captured'" },
+      { "field": "packets dropped by kernel", "meaning": "Pacotes perdidos porque o buffer do kernel encheu", "normalRange": "Zero. Se > 0%, aumentar buffer com -B 65536 ou reduzir taxa de captura" },
+      { "field": "Flags [S]", "meaning": "TCP SYN — início de handshake", "normalRange": "Normal em tráfego legítimo; anormal em volumes > 10.000/s para um único destino" },
+      { "field": "Flags [S.]", "meaning": "TCP SYN-ACK — resposta do servidor ao SYN", "normalRange": "Cada SYN deve ter um SYN-ACK correspondente em tráfego legítimo" },
+      { "field": "length", "meaning": "Tamanho do payload do pacote em bytes", "normalRange": "DNS response normal: 100-500 bytes. NTP monlist: até 4460 bytes. SYN flood: geralmente 0-60 bytes" }
+    ],
+    "commonPitfalls": [
+      "tcpdump sem filtro em link de alto tráfego pode derrubar a performance do sistema — sempre use filtros BPF específicos",
+      "'-nn' é crítico em ataques DDoS: sem ele, tcpdump tenta resolver DNS para cada IP de origem, causando flood de queries DNS reversas",
+      "Captura sem '-w' imprime na tela — em ataques de alta taxa, o terminal fica inutilizável. Use '-w' e analise depois",
+      "Em sistemas com múltiplas interfaces, confirmar a interface correta com 'ip link show' antes de especificar '-i'"
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": ["dns-conceito-amplificacao", "tcp-conceito-syn-flood", "ntp-conceito-monlist", "dns-procedimento-mitigacao-ddos", "glossario-net-vol"],
+  "technicalReferences": [
+    { "title": "tcpdump man page", "url": "https://www.tcpdump.org/manpages/tcpdump.1.html" },
+    { "title": "BPF Filter Syntax Reference", "url": "https://www.tcpdump.org/manpages/pcap-filter.7.html" }
+  ]
+}

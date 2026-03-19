@@ -1,0 +1,78 @@
+{
+  "id": "ransomware-conceito-taxonomia",
+  "title": "Ransomware: Taxonomia, Técnicas e Fases de Ataque",
+  "description": "Estudo técnico sobre como ransomware moderno opera: acesso inicial, movimento lateral, exfiltração dupla e criptografia. Inclui análise das famílias mais relevantes em ambientes acadêmicos.",
+  "content_type": "CONCEITO",
+  "category": {
+    "id": "SEC_SYS",
+    "type": "SEC_SYS_RANSOMWARE",
+    "title": "Ransomware"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "15 minutos",
+    "difficulty": "Intermediario",
+    "targetAudience": "Analistas de Segurança, Administradores de Sistemas, CIRT",
+    "prerequisites": []
+  },
+  "tags": ["ransomware", "malware", "MITRE ATT&CK", "criptografia", "extorsão dupla", "incident response"],
+  "content": {
+    "sections": [
+      {
+        "id": "definicao-evolucao",
+        "title": "Definição e evolução do ransomware",
+        "body": "Ransomware é uma categoria de malware que impede o acesso a dados ou sistemas e exige pagamento para restaurar esse acesso. A evolução nas últimas décadas passou por três gerações:\n\nGeração 1 (2005–2013): Ransomware simples, frequentemente não criptografava arquivos de verdade — apenas exibia avisos de bloqueio. Facilmente removível com remoção do executável.\n\nGeração 2 (2013–2018): CryptoLocker e variantes introduziram criptografia assimétrica real (RSA + AES). A chave privada ficava no servidor do atacante — sem pagamento, sem recuperação.\n\nGeração 3 (2019–hoje): Extorsão dupla (double extortion) — além de criptografar, exfiltra dados antes. O pagamento é extorquido duas vezes: para obter a chave de descriptografia e para não publicar os dados roubados. Famílias como LockBit, BlackCat/ALPHV e Cl0p operaram com este modelo.",
+        "callout": {
+          "type": "warning",
+          "text": "Ambientes de pesquisa e ensino superior são alvos frequentes de ransomware. Dados de pesquisa inéditos, propriedade intelectual e dados de alunos têm alto valor para extorsão. A percepção de defesas mais fracas e orçamentos limitados de segurança também aumenta a atratividade para grupos criminosos."
+        },
+        "keyPoints": [
+          "Criptografia real (AES+RSA) torna recuperação sem a chave praticamente impossível",
+          "Extorsão dupla significa que backups isolados não eliminam completamente o risco",
+          "Grupos de ransomware modernos operam como empresas com afiliados (RaaS — Ransomware as a Service)"
+        ]
+      },
+      {
+        "id": "cadeia-ataque",
+        "title": "Cadeia de ataque: do acesso inicial à criptografia",
+        "body": "O ransomware moderno raramente é executado imediatamente após a infecção. O modelo atual segue uma cadeia de ataque elaborada que pode levar dias ou semanas:\n\n1. Acesso Inicial: Phishing com anexo malicioso, exploração de VPN/RDP sem MFA, credenciais compradas de brokers de acesso.\n\n2. Estabelecimento de persistência: Instalação de RAT (Remote Access Trojan), backdoors em serviços legítimos, abuso de ferramentas de administração (LOLBins).\n\n3. Reconhecimento interno: Enumeração de AD, mapeamento de shares de arquivo, identificação de backups e servidores críticos.\n\n4. Movimento lateral: Pass-the-hash, Kerberoasting, exploração de serviços internos sem patch.\n\n5. Exfiltração: Upload de dados para servidores controlados pelo atacante antes de criptografar.\n\n6. Criptografia em massa: Execução do ransomware nos hosts identificados, frequentemente via GPO ou PSExec para maximizar impacto simultâneo.",
+        "codeBlock": {
+          "language": "text",
+          "code": "MITRE ATT&CK — Técnicas típicas de ransomware moderno:\n\nT1190 - Exploit Public-Facing Application (acesso via VPN/RDP)\nT1078 - Valid Accounts (uso de credenciais legítimas compradas)\nT1486 - Data Encrypted for Impact (a criptografia em si)\nT1490 - Inhibit System Recovery (deletar shadow copies)\nT1048 - Exfiltration Over Alternative Protocol (upload pré-criptografia)\nT1021.002 - Remote Services: SMB/Windows Admin Shares (movimento lateral)\nT1059.001 - PowerShell (execução do payload)"
+        },
+        "keyPoints": [
+          "O ransomware é frequentemente a última fase de uma intrusão que durou dias ou semanas",
+          "Deletar shadow copies (vssadmin delete shadows) é quase universal — backups locais são ineficazes",
+          "Identificar o 'patient zero' e o vetor inicial é essencial para evitar reinfecção"
+        ]
+      },
+      {
+        "id": "deteccao-indicadores",
+        "title": "Indicadores de Comprometimento e detecção precoce",
+        "body": "A detecção precoce — antes da fase de criptografia — é o objetivo principal. Os indicadores mais relevantes para ambientes acadêmicos:\n\nAtividade de reconhecimento: Volume anormal de consultas LDAP/AD, port scanning interno, acesso a shares de arquivo de múltiplos hosts simultaneamente.\n\nUso anômalo de ferramentas legítimas: Execução de nltest, net user /domain, Mimikatz, BloodHound em horários incomuns ou por contas de serviço.\n\nComunicação C2: Beaconing regular para IPs externos em intervalos fixos, uso de domínios recém-registrados (DGA), tráfego criptografado em portas não-padrão.\n\nPré-criptografia: Acesso em massa a arquivos (leitura de milhares de arquivos em minutos), deletar shadow copies, parar serviços de backup.",
+        "callout": {
+          "type": "tip",
+          "text": "Monitorar a execução de 'vssadmin delete shadows' ou equivalentes PowerShell é um dos indicadores mais confiáveis de ransomware iminente. Implemente alertas de SIEM para esta ação específica."
+        },
+        "keyPoints": [
+          "Detecção na fase de reconhecimento ou movimento lateral permite contenção antes de criptografia",
+          "Ferramentas legítimas (Living off the Land) dificultam detecção por AV tradicional — foque em comportamento",
+          "Honeypots de arquivo (arquivos iscas com nomes atraentes como 'senhas.xlsx') detectam criptografia em estágio inicial"
+        ]
+      }
+    ]
+  },
+  "relatedScenarios": ["ransomware-attack"],
+  "relatedStudies": [
+    "ransomware-procedimento-containment",
+    "glossario-sec-sys"
+  ],
+  "technicalReferences": [
+    { "title": "MITRE ATT&CK - Ransomware", "url": "https://attack.mitre.org/techniques/T1486/" },
+    { "title": "CISA Ransomware Guide", "url": "https://www.cisa.gov/stopransomware/ransomware-guide" },
+    { "title": "No More Ransom Project", "url": "https://www.nomoreransom.org/" },
+    { "title": "ID Ransomware - Identificar família por amostra", "url": "https://id-ransomware.malwarehunterteam.com/" }
+  ]
+}

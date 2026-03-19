@@ -1,0 +1,87 @@
+{
+  "id": "mpls-conceito-vpn",
+  "title": "MPLS L3VPN: Arquitetura e Separação de Tráfego",
+  "description": "Explica a arquitetura MPLS L3VPN (RFC 4364), os papéis de PE, P e CE, como VRFs isolam tabelas de roteamento por cliente, e por que falhas de separação entre VRFs podem expor tráfego de clientes distintos.",
+  "content_type": "CONCEITO",
+  "category": {
+    "id": "NET_ROUT",
+    "type": "NET_ROUT_BGP_HIJACK",
+    "title": "Roteamento BGP e MPLS"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-03-18T18:37:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "10 minutos",
+    "difficulty": "Avancado",
+    "targetAudience": "Engenheiros de Rede, Operadores de Infraestrutura",
+    "prerequisites": ["bgp-conceito-prefix-hijacking"]
+  },
+  "tags": ["MPLS", "L3VPN", "VRF", "BGP", "PE", "CE", "RFC 4364"],
+  "content": {
+    "sections": [
+      {
+        "id": "arquitetura",
+        "title": "Arquitetura MPLS L3VPN: PE, P e CE",
+        "body": "MPLS L3VPN (RFC 4364, anteriormente RFC 2547bis) é a tecnologia dominante para provisionar VPNs de camada 3 em redes de operadoras. Os elementos principais são:\n\n- CE (Customer Edge): roteador do cliente, conectado diretamente ao PE da operadora. O CE não executa MPLS — ele faz roteamento IP normal e troca rotas com o PE via protocolo de roteamento (BGP, OSPF, EIGRP, RIP ou estático).\n\n- PE (Provider Edge): roteador da operadora diretamente conectado ao cliente. O PE mantém uma VRF (Virtual Routing and Forwarding) separada para cada cliente. Ele é o ponto onde as rotas do cliente são encapsuladas em MPLS e injetadas no core.\n\n- P (Provider): roteadores no core da rede MPLS. Os P's não conhecem as rotas dos clientes — eles apenas comutam labels MPLS. Isso é fundamental para a escalabilidade: o core não precisa carregar a tabela de roteamento de cada cliente.",
+        "codeBlock": {
+          "language": "text",
+          "code": "Topologia MPLS L3VPN:\n\n  [CE-ClienteA-SP1] ──── [PE1] ════ [P1] ════ [P2] ════ [PE2] ──── [CE-ClienteA-SP2]\n                           |                              |\n                         VRF-A                         VRF-A\n\n  [CE-ClienteB-SP1] ──── [PE1] ════ (mesmo core P1-P2) ════ [PE2] ──── [CE-ClienteB-SP2]\n                           |                              |\n                         VRF-B                         VRF-B\n\n  PE1 mantém 2 VRFs: VRF-A e VRF-B — tabelas completamente separadas\n  Core P1, P2: apenas comutam labels — não veem rotas de A nem B"
+        },
+        "keyPoints": [
+          "CE não faz MPLS — é roteador IP comum do cliente",
+          "PE mantém uma VRF por cliente — isolamento completo de tabela de roteamento",
+          "P (core) não carrega rotas de cliente — escalabilidade do core é independente do número de VPNs"
+        ]
+      },
+      {
+        "id": "vrf-rd-rt",
+        "title": "VRF, Route Distinguisher e Route Target",
+        "body": "A VRF (Virtual Routing and Forwarding) é uma instância de tabela de roteamento independente no PE. Cada interface do PE é associada a uma VRF, e pacotes recebidos nessa interface são roteados dentro daquela VRF — sem visibilidade das outras VRFs ou da tabela global.\n\nPara distribuir rotas VPN entre PEs via MP-BGP, dois atributos são fundamentais:\n\nRoute Distinguisher (RD): prefixo de 8 bytes adicionado a cada prefixo IPv4 para torná-lo único no MP-BGP global. Dois clientes podem ter o mesmo prefixo (ex: 192.168.1.0/24) — o RD garante que não colidam na tabela BGP dos PEs. Formato típico: AS:número (ex: 64500:100 para ClienteA, 64500:200 para ClienteB).\n\nRoute Target (RT): controla quais rotas são importadas e exportadas para cada VRF. O RT é uma BGP Extended Community. Configurado como 'export RT X' (anunciar rotas desta VRF com RT X) e 'import RT X' (aceitar rotas recebidas com RT X). O RT é a ferramenta que permite topologias Hub-and-Spoke e extranet entre clientes.",
+        "codeBlock": {
+          "language": "text",
+          "code": "Configuração VRF no Cisco IOS:\n\nip vrf ClienteA\n  rd 64500:100\n  route-target export 64500:100\n  route-target import 64500:100\n!\ninterface GigabitEthernet0/1\n  ip vrf forwarding ClienteA\n  ip address 10.0.1.1 255.255.255.252\n!\n! Verificar rotas na VRF:\nshow ip route vrf ClienteA\nshow ip bgp vpnv4 vrf ClienteA"
+        },
+        "keyPoints": [
+          "RD torna prefixos únicos no BGP — dois clientes com mesmo IP não colidem",
+          "RT controla import/export de rotas entre VRFs — modelo de isolamento e extranet",
+          "Mesma VRF em PEs diferentes é conectada via MP-BGP com address-family vpnv4"
+        ]
+      },
+      {
+        "id": "encapsulamento",
+        "title": "Encapsulamento de dois labels: transporte e VPN",
+        "body": "O MPLS L3VPN usa dois labels empilhados (label stack):\n\n- Label externo (transport label): escolhido pelo LDP ou RSVP-TE para alcançar o PE de destino. Esse label é trocado a cada hop nos roteadores P (label switching). O penúltimo hop faz Penultimate Hop Popping (PHP) — remove o label externo antes de entregar ao PE destino.\n\n- Label interno (VPN label): atribuído pelo PE de destino para identificar a VRF de destino. Permanece intocado durante o trajeto no core (os roteadores P não o veem). O PE destino usa o VPN label para determinar em qual VRF entregar o pacote.\n\nEsse design garante que roteadores P no core nunca precisem conhecer as rotas das VPNs — apenas o label externo de transporte é suficiente para comutação.",
+        "callout": {
+          "type": "danger",
+          "text": "Falha de separação de VRF (VRF leak) ocorre quando rotas de um cliente aparecem na VRF de outro — geralmente por erro de configuração de Route Target ou comando 'import vrf' incorreto. O resultado é vazamento de tráfego entre clientes. Em ambientes de operadora, isso é um incidente grave de segurança e disponibilidade."
+        },
+        "keyPoints": [
+          "Dois labels: externo (transporte, trocado nos P) + interno (VPN label, intocado no core)",
+          "PHP no penúltimo hop remove label externo antes do PE destino",
+          "VRF leak por erro de RT é a falha mais comum em L3VPN — sempre verificar import/export"
+        ]
+      },
+      {
+        "id": "diagnostico",
+        "title": "Diagnóstico de problemas em L3VPN",
+        "body": "Problemas comuns e como diagnosticar:",
+        "codeBlock": {
+          "language": "text",
+          "code": "# Verificar rotas na VRF específica\nshow ip route vrf <NOME_VRF>\n\n# Verificar rotas VPNv4 no BGP (PE recebendo do PE remoto?)\nshow ip bgp vpnv4 vrf <NOME_VRF>\nshow ip bgp vpnv4 all\n\n# Verificar se label MPLS está correto\nshow mpls forwarding-table vrf <NOME_VRF>\n\n# Testar conectividade dentro de uma VRF\nping vrf <NOME_VRF> <IP_DESTINO> source <IP_LOCAL>\ntraceroute vrf <NOME_VRF> <IP_DESTINO>\n\n# Verificar adjacência BGP entre PEs (sessão vpnv4)\nshow bgp vpnv4 unicast all neighbors | include BGP state\n\n# Verificar se CE está enviando rotas ao PE\nshow ip bgp neighbors <IP_CE> routes"
+        },
+        "keyPoints": [
+          "Sem rota na VRF do PE remoto → verificar sessão MP-BGP vpnv4 entre PEs",
+          "Rota na VRF mas sem conectividade → verificar label forwarding e interface CE",
+          "Rotas de cliente errado na VRF → verificar Route Target import/export (VRF leak)"
+        ]
+      }
+    ]
+  },
+  "relatedScenarios": [],
+  "relatedStudies": ["bgp-conceito-prefix-hijacking", "bgp-conceito-route-flapping", "glossario-net-rout"],
+  "technicalReferences": [
+    { "title": "RFC 4364 - BGP/MPLS IP Virtual Private Networks (VPNs)", "url": "https://www.rfc-editor.org/rfc/rfc4364" },
+    { "title": "Cisco - MPLS VPN Configuration Guide", "url": "https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/mp_l3_vpns/configuration/xe-16/mp-l3-vpns-xe-16-book.html" }
+  ]
+}
