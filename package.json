@@ -9,7 +9,12 @@
     "build:release": "next build && tar --dereference -czf .next.tar.gz .next",
     "start": "NODE_ENV=production node server.mjs",
     "lint": "next lint",
-    "clean": "npx -y rimraf .next .next.tar.gz"
+    "clean": "npx -y rimraf .next .next.tar.gz",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.18",
@@ -28,5 +33,13 @@
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
     "tailwindcss": "^4.1.18"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^3.2.4",
+    "mongodb-memory-server": "^10.4.3",
+    "vitest": "^3.2.4"
+  },
+  "mongodbMemoryServer": {
+    "version": "9.0.1"
   }
 }
