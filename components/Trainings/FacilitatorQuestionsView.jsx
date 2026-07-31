@@ -245,7 +245,7 @@ function QuestionCard({ question, questionIndex, roundIndex, responses, totalPar
 					{questionIndex + 1}
 				</span>
 				<div className="flex-1 min-w-0">
-					<p className="text-sm font-medium text-slate-900 break-words whitespace-pre-line line-clamp-2">
+					<p className={`text-sm font-medium text-slate-900 break-words whitespace-pre-line ${isOpen ? '' : 'line-clamp-2'}`}>
 						{questionText(question)}
 					</p>
 				</div>
@@ -257,18 +257,7 @@ function QuestionCard({ question, questionIndex, roundIndex, responses, totalPar
 			</button>
 
 			{isOpen && (
-				<div className="px-4 pb-4 space-y-4 border-t border-slate-100">
-					{/* Full question text, exactly as the participants see it */}
-					<div className="pt-4">
-						<p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-							<FaQuestionCircle className="text-xs" />
-							Enunciado da Pergunta
-						</p>
-						<p className="text-sm text-slate-800 leading-relaxed break-words whitespace-pre-line">
-							{questionText(question)}
-						</p>
-					</div>
-
+				<div className="px-4 pb-4 space-y-4 border-t border-slate-100 pt-4">
 					{/* Correct answer */}
 					<div>
 						<p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-2 flex items-center gap-1.5">

@@ -1,0 +1,245 @@
+{
+	"id": "datacenter-interconnect-fiber-cut",
+	"title": "Rompimento de Fibra Óptica em Enlace de Interconexão entre Datacenters (DCI)",
+	"description": "Simulação tabletop de resposta a rompimento físico de cabo óptico subterrâneo por obras civis e comutação para rota de contingência em anel",
+	"category": {
+		"id": "PHY_L2",
+		"type": "PHY_L2_FIBER_CUT",
+		"title": "Rompimento de Cabo de Fibra Óptica"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-07-31",
+		"author": "Equipe de Resposta a Incidentes",
+		"estimatedDuration": "40-50 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Engenheiros de Fibras/Planta Externa, Analistas de NOC, Gestores de Telecom"
+	},
+	"objectives": [
+		"Validar a localização precisa do ponto de rompimento de fibra utilizando OTDR (Reflectômetro no Domínio do Tempo)",
+		"Avaliar a comutação automática de proteção de anel (ERPS / G.8032 ou DWDM Optical Protection Switch)",
+		"Testar o protocolo de acionamento das equipes de fusão de fibra de emergência"
+	],
+	"scope": [
+		"Exercício tabletop conceitual"
+	],
+	"baseScenario": {
+		"context": "Quarta-feira às 11:30, escavações de obras de saneamento na via pública rompem um cabo óptico de 72 vias contendo a interconexão principal (DCI) entre o Data Center Alpha e o Data Center Beta.",
+		"initialSituation": {
+			"alert": "LINK DOWN ALERT: Interface Te0/0/0/0 (DCI-Alpha-Beta) Operational Status: DOWN (LOS - Loss of Signal)",
+			"affectedSegment": "Cabo Óptico Subterrâneo - Trecho Km 14.2 (Avenida Central)",
+			"timestamp": "11:30:00"
+		},
+		"initialComplaints": [
+			"Sinal óptico zerado no transceptor SFP/XFP da interface principal",
+			"O tráfego de replicação do banco de dados comutou para o enlace reserva com aumento de 8ms na latência"
+		],
+		"availableResources": [
+			"Reflectômetro no Domínio do Tempo Óptico (OTDR)",
+			"Equipes de Planta Externa / Empaladores de Fibra de Plantão",
+			"Sistema de Gerenciamento de Anel DWDM / SDH / ERPS"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Notificação e Diagnóstico de Perda de Sinal",
+			"phase": "Preparação",
+			"description": "Análise do alarme Loss of Signal (LOS) na interface física de rede.",
+			"inject": "Apresentação dos alarmes do sistema de transmissão DWDM.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Localização da Falha via OTDR",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "Execução da medição com OTDR para determinar a distância exata da quebra.",
+			"timeElapsed": "T+15 min",
+			"currentSituation": {
+				"opticalSignal": "-40 dBm (Loss of Signal)",
+				"backupPath": "Proteção ERPS / G.8032 ativa pelo caminho B (Anel rodando com 100% do tráfego)"
+			},
+			"metrics": [
+				{
+					"title": "Resultado do Traço OTDR",
+					"type": "network-analysis",
+					"data": {
+						"wavelength": "1550 nm",
+						"event": "Fresnel Reflection / Total Optical Break",
+						"distanceToFault": "14.250 metros a partir do DCO-Alpha",
+						"observation": "O evento de alta reflexão e atenuação infinita a 14.25 km confirma rompimento total do cabo no Trecho Av. Central próximo ao cruzamento 4."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Qual a função do equipamento OTDR (Reflectômetro no Domínio do Tempo Óptico) no diagnóstico de rompimentos de fibra?",
+					"points": 5,
+					"options": [
+						"Injetar pulsos de luz laser na fibra e medir a retroespalhamento (Rayleigh) e reflexão (Fresnel) para calcular a distância exata em metros até a quebra ou anomalia",
+						"Aumentar a velocidade de transmissão da luz para furar o bloqueio",
+						"Fundir as fibras queimadas à distância via comando remoto",
+						"Trocar o endereço IP do transceptor SFP"
+					],
+					"correctAnswer": 0,
+					"justification": "O OTDR envia pulsos de luz e analisa o retorno do espelhamento para gerar um gráfico de distância x atenuação, apontando exatamente onde o cabo foi cortado."
+				},
+				{
+					"id": "q2",
+					"text": "O protocolo Ethernet Ring Protection Switching (ERPS / ITU-T G.8032) permite comutar o tráfego de um anel óptico em menos de 50 milissegundos após a detecção de um rompimento.",
+					"type": "true-false",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. O padrão ITU-T G.8032 foi projetado para fornecer proteção de anel de camada 2 com tempo de comutação inferior a 50ms."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Reparo de Emergência na Planta Externa",
+			"phase": "Fase 2 - Contenção",
+			"description": "Deslocamento da equipe de campo, escavação e fusão da caixa de emenda emergencial.",
+			"timeElapsed": "T+120 min",
+			"currentSituation": {
+				"fieldTeamOnSite": "Equipe de reparo no local com maquina de fusão e cabo de sobressalente",
+				"splicingInProgress": "Executada a fusão das 72 fibras"
+			},
+			"metrics": [
+				{
+					"title": "Relatório de Fusão por Fibra",
+					"type": "server-status",
+					"data": {
+						"spliceLossAverage": "0.02 dB por fusão",
+						"fibersRestored": "72 de 72 fibras reestabelecidas",
+						"observation": "Fusão concluída dentro dos padrões de qualidade da norma (atenuação < 0.05 dB por evento de emenda)."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "Se o tempo de deslocamento da equipe foi de 45 minutos, a preparação do cabo levou 30 minutos e cada fusão levou 1 minuto (para 72 fibras), qual o tempo total de reparo em minutos?",
+					"points": 5,
+					"correctAnswer": 147,
+					"tolerance": 0,
+					"unit": "minutos",
+					"justification": "45 (deslocamento) + 30 (preparação) + 72 (fusão) = 147 minutos."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Associe os termos de infraestrutura óptica aos seus significados:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "f1", "content": "Reflexão de Fresnel"},
+						{"id": "f2", "content": "Espelhamento Rayleigh"},
+						{"id": "f3", "content": "Caixa de Emenda (CEO)"}
+					],
+					"rightColumn": [
+						{"id": "r1", "content": "Pico de reflexão de luz que ocorre em conectores, conectores abertos ou corte total da fibra"},
+						{"id": "r2", "content": "Atenuação contínua e natural da luz ao longo do comprimento de onda do vidro"},
+						{"id": "r3", "content": "Invólucro hermético para proteção física das fusões de fibra na rede externa"}
+					],
+					"correctMatches": [
+						{"left": "f1", "right": "r1"},
+						{"left": "f2", "right": "r2"},
+						{"left": "f3", "right": "r3"}
+					],
+					"justification": "Fresnel indica cortes/conectores; Rayleigh representa a perda contínua; Caixa de Emenda protege as fusões no campo."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Normalização e Reversão do Anel (Non-Revertive / Revertive)",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "Teste do enlace restaurado e retorno do tráfego principal para o caminho A (WTR - Wait to Restore Timer).",
+			"timeElapsed": "T+180 min",
+			"currentSituation": {
+				"opticalSignalRestored": "-16 dBm (Normal)",
+				"erpsWTR": "Timer de 5 minutos aguardando estabilização antes de retornar o tráfego"
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene os passos para a restauração completa de um link de fibra rompido:",
+					"points": 5,
+					"items": [
+						{"id": "e1", "content": "Confirmar a queda da camada física via alarme LOS (Loss of Signal) e verificar o acionamento da redundância"},
+						{"id": "e2", "content": "Executar a medição no OTDR para determinar a quilometragem exata do ponto de quebra"},
+						{"id": "e3", "content": "Realizar a preparação do cabo e a fusão por arco voltaico na caixa de emenda subterrânea"},
+						{"id": "e4", "content": "Validar os níveis de potência óptica recebida (Rx) e aguardar o timer de restauração (WTR) do anel"}
+					],
+					"correctOrder": ["e1", "e2", "e3", "e4"],
+					"justification": "Alarme LOS -> OTDR -> Fusão física -> Validação de potência Rx / Timer WTR."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Prevenção de Danos à Planta Externa",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Atualização do cadastro das rotas de fibra junto ao cadastro de utilidades da prefeitura/concessionárias.",
+			"timeElapsed": "T+210 min",
+			"currentSituation": {
+				"incidentResolved": true
+			},
+			"questions": [
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Qual a prática de engenharia que reduz drasticamente a probabilidade de indisponibilidade por rompimento de fibra em links críticos de Datacenter?",
+					"points": 5,
+					"options": [
+						"Contratar rotas físicas de fibra verdadeiramente redundantes com diversidade de infraestrutura (caminhos e tubulações 100% distintos/opostos)",
+						"Usar apenas cabos de fibra amarelos em vez de azuis",
+						"Aumentar a potência do laser para 100 Watts",
+						"Desativar a monitoração de alarmes ópticos"
+					],
+					"correctAnswer": 0,
+					"justification": "Verdadeira diversidade de rotas físicas (sem pontos únicos de falha ou compartilhamento de valas/postes) garante sobrevivência total em caso de rompimento de uma das pernas."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 29,
+		"passingScore": 18,
+		"gradingScale": [
+			{
+				"min": 25,
+				"max": 29,
+				"grade": "Excelente",
+				"description": "Excelente domínio de física de fibras ópticas, uso de OTDR e proteção de anéis DCI."
+			},
+			{
+				"min": 18,
+				"max": 24,
+				"grade": "Satisfatório",
+				"description": "Boa compreensão dos sintomas de LOS e etapas de reparo em planta externa."
+			},
+			{
+				"min": 0,
+				"max": 17,
+				"grade": "Insuficiente",
+				"description": "Dificuldades com conceitos de telecomunicações e refletometria."
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Explicar a diferença entre atenuação por reflexão de Fresnel e espelhamento Rayleigh.",
+		"Discutir o papel do timer WTR (Wait to Restore) em redes de anel."
+	],
+	"technicalReferences": [
+		{
+			"title": "ITU-T G.8032 - Ethernet Ring Protection Switching",
+			"url": "https://www.itu.int/rec/T-REC-G.8032"
+		}
+	]
+}

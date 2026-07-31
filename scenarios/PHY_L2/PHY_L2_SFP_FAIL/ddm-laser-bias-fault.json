@@ -1,0 +1,247 @@
+{
+	"id": "ddm-laser-bias-fault",
+	"title": "Falha Prematura de Laser por Corrente de Bias Elevada em Transceptor SFP+",
+	"description": "Simulação tabletop de resposta a falha física de componente óptico (Laser Emitter degradation) detectada via alertas preditivos de DDM/DOM",
+	"category": {
+		"id": "PHY_L2",
+		"type": "PHY_L2_SFP_FAIL",
+		"title": "Falha de Transceptor SFP/SFP+/QSFP"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-07-31",
+		"author": "Equipe de Resposta a Incidentes",
+		"estimatedDuration": "30-40 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Analistas de Hardware, Engenheiros de Redes, Equipes de Datacenter"
+	},
+	"objectives": [
+		"Validar o monitoramento preditivo de falhas em transceptores SFP via telemetria DDM (Digital Diagnostics Monitoring)",
+		"Avaliar os indicadores de degradação do laser emissor (Tx Bias Current e Tx Power)",
+		"Testar a substituição proativa de módulos ópticos sem impacto nos serviços da empresa"
+	],
+	"scope": [
+		"Exercício tabletop conceitual"
+	],
+	"baseScenario": {
+		"context": "Quarta-feira às 08:30, a plataforma de observabilidade emite um alerta de pré-falha de hardware para a interface TenGigE0/1/0/4 do roteador de borda. Os dados de telemetria DDM mostram que a corrente de polarização do laser (Tx Bias Current) subiu de 25 mA para 95 mA (High Alarm threshold).",
+		"initialSituation": {
+			"alert": "TRANSCEIVER PRE-FAIL WARNING: Te0/1/0/4 Tx Bias Current High Alarm (95.2 mA)",
+			"affectedModule": "10GBASE-LR SFP+ (Serial: OPT-987412)",
+			"timestamp": "08:30:00"
+		},
+		"initialComplaints": [
+			"Nenhuma indisponibilidade no momento (Link ainda UP/UP), porém o valor de Tx Bias ultrapassou a margem de segurança do fabricante",
+			"Risco iminente de queima total do diodo laser nas próximas horas"
+		],
+		"availableResources": [
+			"Sistema de monitoramento SNMP / Telemetria gNMI",
+			"Estoque de peças sobressalentes (Spare Parts) com transceptores 10G SFP+ novos",
+			"Enlace redundante ativo via protocolo LACP (Link Aggregation)"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Análise da Telemetria DDM",
+			"phase": "Preparação",
+			"description": "Exame dos parâmetros de saúde do transceptor SFP+.",
+			"inject": "Apresentação dos dados de diagnóstico óptico.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Diagnóstico do Diodo Laser",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "Avaliação do comportamento do componente físico do transceptor.",
+			"timeElapsed": "T+10 min",
+			"currentSituation": {
+				"linkState": "UP/UP (10 Gbps)",
+				"txBiasCurrent": "95.2 mA (Limite Máximo: 90.0 mA)"
+			},
+			"metrics": [
+				{
+					"title": "Dados DDM do Transceptor SFP+ (DOM)",
+					"type": "network-analysis",
+					"data": {
+						"temperature": "68.5 °C (High Warning)",
+						"voltage": "3.28 V (Normal)",
+						"txBiasCurrent": "95.2 mA (HIGH ALARM)",
+						"txPower": "-4.2 dBm (Ainda dentro do limite, mas caindo)",
+						"rxPower": "-3.1 dBm (Normal)",
+						"observation": "O circuito interno do SFP+ está injetando corrente excessiva (Bias Current) para tentar compensar a degradação física do laser e manter o nível de Tx Power, indicando falha iminente."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "O que indica um aumento anormal na corrente de bias do laser (Tx Bias Current) em um transceptor SFP+?",
+					"points": 5,
+					"options": [
+						"Indica que o diodo semicondutor do laser está se desgastando ou superaquecendo, exigindo mais corrente elétrica para emitir a mesma quantidade de luz antes de queimar totalmente",
+						"Indica que a fibra óptica foi cortada",
+						"Indica que o roteador precisa de atualização de software",
+						"Indica que o tráfego do link ultrapassou 100 Gbps"
+					],
+					"correctAnswer": 0,
+					"justification": "O circuito de controle do SFP tenta manter a saída de potência constante aumentando a corrente de polarização (bias). Quando esse valor atinge o limite do alarme, o laser está nos momentos finais de vida útil."
+				},
+				{
+					"id": "q2",
+					"text": "Substituir um transceptor SFP+ que apresenta alarme crítico de DDM de forma preventiva evita quedas não planejadas e perda imprevisível de dados em produção.",
+					"type": "true-false",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. A substituição preditiva baseada em alertas DDM permite agendar a manutenção ou realizar a troca a quente (Hot Swap) sem provocar paradas emergenciais."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Isolamento LACP e Substituição Hot-Swap",
+			"phase": "Fase 2 - Contenção",
+			"description": "Remoção administrativa da interface do Port-Channel e substituição física do módulo SFP+.",
+			"timeElapsed": "T+20 min",
+			"currentSituation": {
+				"interfaceDisabled": "`shutdown` / `lacp out-of-service` aplicado na interface Te0/1/0/4",
+				"trafficFlowing": "100% transitando pelo segundo membro do LACP (Te0/1/0/5)"
+			},
+			"metrics": [
+				{
+					"title": "Status do Port-Channel Durante a Troca",
+					"type": "server-status",
+					"data": {
+						"bundleState": "Degraded (1 de 2 membros ativos)",
+						"packetLoss": "0% (LACP drenou a interface antes da troca física)",
+						"observation": "A drenagem via LACP garantiu zero perda de pacotes durante a remoção do SFP+ defeituoso."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "Se o limite normal da corrente de bias é 30 mA e o valor lido foi de 90 mA, qual o fator de aumento da corrente de polarização em relação ao padrão?",
+					"points": 5,
+					"correctAnswer": 3,
+					"tolerance": 0,
+					"unit": "vezes",
+					"justification": "90 mA / 30 mA = 3 vezes."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Relacione os parâmetros de diagnóstico DDM às suas utilidades na gestão de transceptores:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "t1", "content": "Tx Bias Current"},
+						{"id": "t2", "content": "Rx Optical Power"},
+						{"id": "t3", "content": "Transceiver Temperature"}
+					],
+					"rightColumn": [
+						{"id": "r1", "content": "Mede a corrente de operação do laser de transmissão (indicador primário de saúde do componente)"},
+						{"id": "r2", "content": "Mede a potência da luz recebida do outro lado do enlace (indicador de saúde da fibra/atenuação)"},
+						{"id": "r3", "content": "Mede a temperatura interna do módulo óptico (indicador de ventilação/refrigeração do switch)"}
+					],
+					"correctMatches": [
+						{"left": "t1", "right": "r1"},
+						{"left": "t2", "right": "r2"},
+						{"left": "t3", "right": "r3"}
+					],
+					"justification": "Tx Bias Current = saúde do laser; Rx Power = qualidade do sinal recebido; Temperature = dissipação de calor do conector."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Inserção do Novo SFP+ e Validação",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "Encaixe do novo transceptor 10GBASE-LR e reativação da interface no LACP.",
+			"timeElapsed": "T+35 min",
+			"currentSituation": {
+				"newSFPInstalled": "Instalado SFP+ novo (Serial: OPT-991200)",
+				"ddmStatus": "Tx Bias: 24.8 mA | Tx Power: -2.1 dBm | Rx Power: -2.2 dBm"
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene os passos para realizar a substituição preditiva e segura de um transceptor SFP+ com falha de DDM:",
+					"points": 5,
+					"items": [
+						{"id": "s1", "content": "Identificar o alerta de DDM (Tx Bias High Alarm) no sistema de monitoramento de infraestrutura"},
+						{"id": "s2", "content": "Drenar o tráfego da interface colocando-a fora de serviço administrativamente no LACP/Routing"},
+						{"id": "s3", "content": "Executar a troca a quente (Hot Swap) do módulo SFP+ por uma peça sobressalente nova"},
+						{"id": "s4", "content": "Reativar a interface e validar o retorno dos valores DDM aos patamares nominais de fábrica"}
+					],
+					"correctOrder": ["s1", "s2", "s3", "s4"],
+					"justification": "Alerta DDM -> Drenagem LACP -> Troca Hot Swap -> Reativação e Validação."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Monitoramento Automatizado de DDM",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Configuração de regras de alerta no Zabbix/Prometheus para DDM High Warning.",
+			"timeElapsed": "T+45 min",
+			"currentSituation": {
+				"incidentResolved": true
+			},
+			"questions": [
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Qual a principal vantagem da telemetria DDM/DOM nos transceptores ópticos modernos?",
+					"points": 5,
+					"options": [
+						"Permite a detecção preditiva de degradação de hardware antes que ocorra a queda total do enlace e a perda indevida de dados",
+						"Aumenta a distância da fibra sem precisar de repetidor",
+						"Permite rodar fibra óptica sobre cabo de cobre",
+						"Elimina a necessidade de licenças de software"
+					],
+					"correctAnswer": 0,
+					"justification": "O DDM fornece visibilidade em tempo real sobre parâmetros físicos, permitindo manutenção preditiva proativa."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 29,
+		"passingScore": 18,
+		"gradingScale": [
+			{
+				"min": 25,
+				"max": 29,
+				"grade": "Excelente",
+				"description": "Excelente domínio de física de transceptores, DDM/DOM e manutenção preditiva de hardware."
+			},
+			{
+				"min": 18,
+				"max": 24,
+				"grade": "Satisfatório",
+				"description": "Boa compreensão dos parâmetros de Tx Bias Current e substituição a quente."
+			},
+			{
+				"min": 0,
+				"max": 17,
+				"grade": "Insuficiente",
+				"description": "Dificuldades com diagnósticos de camadas ópticas."
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Explicar a diferença entre os alarmes 'Warning' e 'Alarm' no protocolo SFF-8472.",
+		"Demonstrar a leitura do comando `show interface transceiver` em plataformas Cisco / Juniper."
+	],
+	"technicalReferences": [
+		{
+			"title": "SFF-8472 - Specification for Management Interface for SFP+ Transceivers",
+			"url": "https://www.snia.org/technology-communities/sff/specifications"
+		}
+	]
+}

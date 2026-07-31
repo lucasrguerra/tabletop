@@ -1,0 +1,249 @@
+{
+	"id": "multihomed-customer-route-leak",
+	"title": "Vazamento de Rotas BGP (Route Leak) por Cliente Multihomed de Grande Porte",
+	"description": "Simulação tabletop de resposta a vazamento involuntário de rotas BGP por um cliente multihomed que converteu a rede da organização em trânsito indesejado",
+	"category": {
+		"id": "NET_ROUT",
+		"type": "NET_ROUT_ROUTE_LEAK",
+		"title": "Vazamento de Rotas BGP (Route Leak)"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-07-31",
+		"author": "Equipe de Resposta a Incidentes",
+		"estimatedDuration": "45-55 minutos",
+		"difficulty": "Avançado",
+		"targetAudience": "Engenheiros de Redes BGP, Administradores de AS (Autonomous System)"
+	},
+	"objectives": [
+		"Validar a identificação de Route Leaks BGP causados por falha de filtros de clientes multihomed",
+		"Avaliar procedimentos de contenção através de BGP Route-Maps, comunidades BGP e prefix-lists automatizados",
+		"Testar o uso do atributo RFC 9234 (BGP Roles e OTC - Only to Customer)"
+	],
+	"scope": [
+		"Exercício tabletop conceitual"
+	],
+	"baseScenario": {
+		"context": "Quinta-feira às 10:30, os links de trânsito da organização (AS 64500) atingem 100% de utilização de entrada e saída. A análise da tabela BGP revela que um cliente corporativo multihomed (AS 65200) vazou rotas aprendidas de uma operadora A para a rede da organização, transformando o AS 64500 em um atalho de trânsito entre grandes operadoras.",
+		"initialSituation": {
+			"alert": "Interface Saturation Alert: Transit-Link-01 (10 Gbps) at 99.8% capacity",
+			"affectedAS": "AS 65200 (Cliente Multihomed)",
+			"leakedPrefixes": "~180.000 rotas globais sendo reanunciadas pelo cliente",
+			"timestamp": "10:30:00"
+		},
+		"initialComplaints": [
+			"Congestionamento generalizado no backbone e perda de pacotes para todos os serviços internos",
+			"Alertas de estouro da tabela de memória de roteadores secundários"
+		],
+		"availableResources": [
+			"Roteadores de borda BGP (Cisco / Juniper / Arista)",
+			"Filtros de Prefixo Dinâmicos baseados no IRR (bgpq4 / PeeringDB)",
+			"Comunidades BGP corporativas para controle de anúncio"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Identificação do Congestionamento e Origem",
+			"phase": "Preparação",
+			"description": "Análise da volumetria de tráfego e localização da sessão BGP reanunciando rotas não autorizadas.",
+			"inject": "Apresentação dos dados de NetFlow e tabela BGP.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Análise da Tabela de Anúncios do Cliente",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "Exame das rotas recebidas na sessão eBGP com o cliente AS 65200.",
+			"timeElapsed": "T+15 min",
+			"currentSituation": {
+				"receivedPrefixes": "180.000 rotas recebidas do cliente (Deveria receber no máximo 50 prefixos próprios)",
+				"linkStatus": "Saturado"
+			},
+			"metrics": [
+				{
+					"title": "Saída de `show bgp neighbors 192.0.2.5 routes`",
+					"type": "network-analysis",
+					"data": {
+						"prefixSample": ["8.8.8.0/24 via AS-PATH 65200 15169", "1.1.1.0/24 via AS-PATH 65200 13335"],
+						"maxPrefixLimit": "Não configurado ou configurado com valor excessivamente alto (200.000)",
+						"observation": "O cliente esqueceu de aplicar o filtro de exportação no seu roteador BGP e está repassando toda a sua tabela de trânsito para a nossa rede."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Qual mecanismo de proteção em sessões eBGP de clientes deve ter o acionamento MAIS RÁPIDO para conter o recebimento massivo de rotas vazadas?",
+					"points": 5,
+					"options": [
+						"Configuração de `maximum-prefix` na sessão do cliente com acionamento de `teardown` automático se o limite for ultrapassado",
+						"Reiniciar o roteador de borda inteiro",
+						"Desabilitar o protocolo IP na interface",
+						"Enviar e-mail para a equipe de vendas"
+					],
+					"correctAnswer": 0,
+					"justification": "O parâmetro `maximum-prefix` derruba a sessão BGP imediatamente quando o cliente envia um número de rotas acima do limite contratado/esperado (ex: max 100 prefixos), contendo a saturação."
+				},
+				{
+					"id": "q2",
+					"text": "O atributo BGP 'Only to Customer' (OTC - RFC 9234) serve para detectar e prevenir automaticamente vazamentos de rotas BGP entre peers e providers.",
+					"type": "true-false",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. A RFC 9234 define o BGP Role e o atributo OTC para garantir que uma rota recebida de um Provider/Peer nunca seja reanunciada para outro Provider/Peer."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Contenção e Aplicação de Strict Prefix-List",
+			"phase": "Fase 2 - Contenção",
+			"description": "Derrubada temporária da sessão e restabelecimento com filtro estrito de prefixos.",
+			"timeElapsed": "T+30 min",
+			"currentSituation": {
+				"sessionState": "Idle (Max-prefix teardown disparado)",
+				"trafficLevel": "Normalizado (Tráfego de trânsito zerado nos links de borda)"
+			},
+			"metrics": [
+				{
+					"title": "Status da Tabela BGP Pós-Contenção",
+					"type": "server-status",
+					"data": {
+						"linkUtilisation": "35% (Capacidade normal)",
+						"clientSession": "Derrubada por estouro de `maximum-prefix 100`",
+						"observation": "A derrubada automática da sessão do cliente cessou imediatamente o tráfego pirata e liberou os links de trânsito."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "Se o cliente possui um bloco /22 e autoriza a divisão até sub-redes /24, qual o número MÁXIMO de prefixos /24 que ele pode anunciar legitimamente?",
+					"points": 5,
+					"correctAnswer": 4,
+					"tolerance": 0,
+					"unit": "prefixos",
+					"justification": "Um bloco /22 contém exatamente 4 blocos /24."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Associe os mecanismos de proteção BGP às suas funções:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "r1", "content": "Maximum-Prefix Limit"},
+						{"id": "r2", "content": "IRR Inbound Prefix-List"},
+						{"id": "r3", "content": "BGP Community No-Export"}
+					],
+					"rightColumn": [
+						{"id": "c1", "content": "Derruba a sessão se a quantidade de prefixos recebidos ultrapassar o threshold definido"},
+						{"id": "c2", "content": "Filtra especificamente os prefixos permitidos com base nos registros públicos do AS-SET do cliente"},
+						{"id": "c3", "content": "Instrui o roteador vizinho a não reanunciar o prefixo para fora do seu próprio AS"}
+					],
+					"correctMatches": [
+						{"left": "r1", "right": "c1"},
+						{"left": "r2", "right": "c2"},
+						{"left": "r3", "right": "c3"}
+					],
+					"justification": "Max-prefix limita quantidade de rotas; IRR filtra por lista autorizada; No-export impede a redistribuição externa."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Reabertura da Sessão com Filtros Automatizados",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "Geração de prefix-list via `bgpq4` com base no AS-SET do cliente e restabelecimento controlado.",
+			"timeElapsed": "T+50 min",
+			"currentSituation": {
+				"prefixListApplied": "Gerado filtro estrito permitindo apenas os 12 prefixos cadastrados no IRR do cliente",
+				"sessionReestablished": true
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene os passos para configurar uma sessão BGP eBGP segura com clientes multihomed:",
+					"points": 5,
+					"items": [
+						{"id": "b1", "content": "Solicitar que o cliente cadastre seu AS-SET e objetos 'route' no registro IRR oficial"},
+						{"id": "b2", "content": "Gerar a prefix-list de entrada automaticamente via ferramentas como bgpq4"},
+						{"id": "b3", "content": "Aplicar a prefix-list de entrada e o limite estrito de `maximum-prefix` na sessão eBGP"},
+						{"id": "b4", "content": "Habilitar o monitoramento de alertas para caso a sessão atinja 80% do limite de prefixos"}
+					],
+					"correctOrder": ["b1", "b2", "b3", "b4"],
+					"justification": "Cadastro no IRR -> Geração de filtro dinâmico -> Aplicação de Prefix-list + Max-prefix -> Monitoramento."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Melhoria da Política de Peering e Trânsito",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Revisão dos acordos de nível de serviço com clientes multihomed.",
+			"timeElapsed": "T+75 min",
+			"currentSituation": {
+				"incidentResolved": true
+			},
+			"questions": [
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Qual a principal causa raiz dos vazamentos de rotas BGP (Route Leaks) por clientes multihomed?",
+					"points": 5,
+					"options": [
+						"Falta de filtros de exportação (outbound route-maps) no roteador do cliente combinada com a falta de filtros estritos de entrada (inbound filters) no provedor",
+						"Excesso de velocidade nas fibras ópticas",
+						"Falha no protocolo DNSSEC",
+						"Utilização de endereços IPv6"
+					],
+					"correctAnswer": 0,
+					"justification": "Route leaks ocorrem quando o cliente não filtra o que anuncia e o provedor não valida rigorosamente o que recebe de seus clientes."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 29,
+		"passingScore": 18,
+		"gradingScale": [
+			{
+				"min": 25,
+				"max": 29,
+				"grade": "Excelente",
+				"description": "Excelente conhecimento de filtros BGP, proteção de borda e automação IRR."
+			},
+			{
+				"min": 18,
+				"max": 24,
+				"grade": "Satisfatório",
+				"description": "Boa compreensão do impacto de Route Leaks e uso de Maximum-Prefix."
+			},
+			{
+				"min": 0,
+				"max": 17,
+				"grade": "Insuficiente",
+				"description": "Dificuldades em compreender a mitigação de vazamento de rotas BGP."
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Explicar a diferença entre BGP Hijack (anúncio não autorizado de prefixos alheios) e BGP Route Leak (propagação indevida de rotas legítimas aprendidas).",
+		"Discutir o papel do RFC 9234."
+	],
+	"technicalReferences": [
+		{
+			"title": "RFC 7908 - Problem Statement for BGP Route Leaks",
+			"url": "https://datatracker.ietf.org/doc/html/rfc7908"
+		},
+		{
+			"title": "RFC 9234 - Route Leak Prevention and Detection Using Roles",
+			"url": "https://datatracker.ietf.org/doc/html/rfc9234"
+		}
+	]
+}

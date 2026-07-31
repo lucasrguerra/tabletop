@@ -1,0 +1,246 @@
+{
+	"id": "chargen-ssdp-udp-amplification",
+	"title": "Ataque Combinação de Amplificação UDP (Chargen + SSDP + CLDAP)",
+	"description": "Simulação tabletop de resposta a ataque DDoS volumétrico de amplificação cruzada combinando portas UDP vulneráveis em serviços legados e IoT externos (Ports 19, 1900, 389)",
+	"category": {
+		"id": "NET_VOL",
+		"type": "NET_VOL_UDP_AMP",
+		"title": "Ataque de Amplificação UDP (Chargen/SSDP/CLDAP)"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-07-31",
+		"author": "Equipe de Resposta a Incidentes",
+		"estimatedDuration": "40-50 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Engenheiros de Segurança de Redes, Administradores de Firewall"
+	},
+	"objectives": [
+		"Validar o diagnóstico de ataques de amplificação UDP multi-vetor (Chargen, SSDP, CLDAP)",
+		"Avaliar a eficácia de regras de filtragem de portas por protocolo na borda",
+		"Testar o acionamento de BGP Flowspec e políticas de ACL estáticas em roteadores de borda"
+	],
+	"scope": [
+		"Exercício tabletop conceitual"
+	],
+	"baseScenario": {
+		"context": "Quinta-feira às 20:00, os links de borda da empresa são atingidos por um ataque volumétrico de 60 Gbps. A análise de protocolo indica um vetor misto de pacotes UDP vindos das portas de origem 19 (Chargen), 1900 (SSDP) e 389 (CLDAP).",
+		"initialSituation": {
+			"alert": "VOLUMETRIC ATTACK ALERT: 60 Gbps UDP Flood targeting 198.51.100.50",
+			"affectedTarget": "198.51.100.50 (Portal Web Institucional)",
+			"attackSrcPorts": "UDP 19, 1900, 389",
+			"timestamp": "20:00:00"
+		},
+		"initialComplaints": [
+			"Saturação de downstream da borda (60 Gbps / 8.5 Mpps)",
+			"Lentidão extrema na navegação de todos os funcionários e indisponibilidade do site institucional"
+		],
+		"availableResources": [
+			"Roteadores de borda BGP com suporte a ACL e Flowspec",
+			"Firewall de Borda corporativo",
+			"Sistema de análise NetFlow / IPFIX"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Análise da Mistura de Vetores UDP",
+			"phase": "Preparação",
+			"description": "Inspeção dos protocolos de origem do ataque.",
+			"inject": "Apresentação dos gráficos de portas de origem NetFlow.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Detecção dos Serviços de Amplificação",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "Exame das assinaturas e portas UDP envolvidas no tráfego refletido.",
+			"timeElapsed": "T+15 min",
+			"currentSituation": {
+				"totalVolume": "60 Gbps",
+				"vectorBreakdown": "SSDP 1900 (50%), CLDAP 389 (35%), Chargen 19 (15%)"
+			},
+			"metrics": [
+				{
+					"title": "Análise de Amostras de Fluxo NetFlow",
+					"type": "network-analysis",
+					"data": {
+						"protocol": "UDP",
+						"srcPorts": [19, 1900, 389],
+						"dstPort": "443 / Random High Ports",
+						"observation": "Nenhum desses serviços (Chargen, SSDP, CLDAP) precisa ser acessado pela internet pública por servidores da empresa. As portas de origem maliciosas são bem definidas."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Qual a característica comum entre os ataques de amplificação SSDP (1900), Chargen (19) e CLDAP (389)?",
+					"points": 5,
+					"options": [
+						"Todos utilizam o protocolo UDP sem estado (stateless) para enviar respostas volumétricas amplificadas para o IP forjado da vítima a partir de portas de origem fixas e conhecidas",
+						"Todos exigem o estabelecimento de conexões TCP de 3 vias com senha",
+						"Todos infectam o disco rígido do servidor da vítima",
+						"Todos rodam exclusivamente na porta 80 HTTP"
+					],
+					"correctAnswer": 0,
+					"justification": "Sendo baseados em UDP sem estado, esses serviços respondem a requisições com IPs forjados e possuem portas de origem bem definidas (19, 1900, 389), facilitando a criação de filtros por porta de origem."
+				},
+				{
+					"id": "q2",
+					"text": "Bloquear o tráfego de entrada cuja porta de ORIGEM seja UDP 19 ou UDP 1900 no firewall de borda neutraliza esses vetores sem impactar a navegação web legítima dos usuários.",
+					"type": "true-false",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. Servidores de navegação web e usuários não precisam receber tráfego vindo da porta de origem UDP 19 (Chargen) ou UDP 1900 (SSDP) da internet pública."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Implementação de Filtro por Porta de Origem",
+			"phase": "Fase 2 - Contenção",
+			"description": "Aplicação de regras de descarte para portas de origem maliciosas conhecidas via ACL / BGP Flowspec.",
+			"timeElapsed": "T+30 min",
+			"currentSituation": {
+				"aclRule": "Injetada via BGP Flowspec: `match protocol udp source-port [19, 1900, 389] -> action drop`",
+				"trafficVolume": "Reduzido de 60 Gbps para 1.5 Gbps"
+			},
+			"metrics": [
+				{
+					"title": "Resultado da Injeção do BGP Flowspec",
+					"type": "server-status",
+					"data": {
+						"droppedGbps": "58.5 Gbps descartados na borda da operadora",
+						"linkCapacity": "Voltou a 20% de utilização",
+						"observation": "A filtragem por porta de origem no trânsito eliminou 97.5% do ataque antes de atingir os links da empresa."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "Se o ataque total era de 60 Gbps e o filtro descartou 58.5 Gbps, qual o percentual de redução obtido na banda do enlace de borda?",
+					"points": 5,
+					"correctAnswer": 97.5,
+					"tolerance": 0.5,
+					"unit": "%",
+					"justification": "(58.5 / 60) * 100 = 97.5% de redução."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Associe os serviços de reflexão UDP às suas portas padrão:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "u1", "content": "SSDP (Simple Service Discovery Protocol)"},
+						{"id": "u2", "content": "Chargen (Character Generator Protocol)"},
+						{"id": "u3", "content": "CLDAP (Connectionless LDAP)"}
+					],
+					"rightColumn": [
+						{"id": "r1", "content": "UDP 1900"},
+						{"id": "r2", "content": "UDP 19"},
+						{"id": "r3", "content": "UDP 389"}
+					],
+					"correctMatches": [
+						{"left": "u1", "right": "r1"},
+						{"left": "u2", "right": "r2"},
+						{"left": "u3", "right": "r3"}
+					],
+					"justification": "SSDP = UDP 1900; Chargen = UDP 19; CLDAP = UDP 389."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Validação de Tráfego Limpo",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "Verificação do restabelecimento dos serviços de produção.",
+			"timeElapsed": "T+45 min",
+			"currentSituation": {
+				"serviceAvailable": true,
+				"flowspecActive": true
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene os passos para criar um filtro de contenção contra ataques de amplificação UDP por porta de origem:",
+					"points": 5,
+					"items": [
+						{"id": "a1", "content": "Identificar as portas de origem (source ports) com maior pico de volume no relatório NetFlow"},
+						{"id": "a2", "content": "Verificar se as portas identificadas (ex: 19, 1900, 389) são necessárias para a produção externa"},
+						{"id": "a3", "content": "Elaborar a regra de descarte (drop rule) especificando o protocolo UDP e as portas de origem correspondentes"},
+						{"id": "a4", "content": "Aplicar a regra no Firewall de Borda ou disseminá-la via BGP Flowspec para a operadora"}
+					],
+					"correctOrder": ["a1", "a2", "a3", "a4"],
+					"justification": "Identificação de portas de origem -> Validação de utilidade de produção -> Elaboração de regra -> Aplicação no Firewall/Flowspec."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Prevenção de Abuso de Serviços Internos",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Revisão dos serviços UDP expostos na infraestrutura própria para não servir de refletor contra terceiros.",
+			"timeElapsed": "T+60 min",
+			"currentSituation": {
+				"incidentResolved": true
+			},
+			"questions": [
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Qual o principio fundamental de segurança de rede que impede que servidores da própria empresa sejam usados como refletores contra terceiros?",
+					"points": 5,
+					"options": [
+						"Desativar todos os serviços UDP legados e não essenciais expostos publicamente e aplicar BCP 38 (Ingress Filtering) para bloquear IP Spoofing",
+						"Liberar todas as portas UDP de origem",
+						"Usar senhas de 4 dígitos em servidores web",
+						"Formatar os roteadores semanalmente"
+					],
+					"correctAnswer": 0,
+					"justification": "Desativar serviços UDP desnecessários e implementar a BCP 38 (filtragem contra IP Spoofing) evita que sua rede sirva de refletor de amplificação."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 29,
+		"passingScore": 18,
+		"gradingScale": [
+			{
+				"min": 25,
+				"max": 29,
+				"grade": "Excelente",
+				"description": "Excelente domínio de protocolos UDP, análise de assinaturas e mitigação BGP Flowspec."
+			},
+			{
+				"min": 18,
+				"max": 24,
+				"grade": "Satisfatório",
+				"description": "Boa compreensão do papel das portas de origem em ataques de reflexão."
+			},
+			{
+				"min": 0,
+				"max": 17,
+				"grade": "Insuficiente",
+				"description": "Dificuldades em identificar e filtrar vetores de amplificação UDP."
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Explicar a BCP 38 (RFC 2827) sobre Ingress Filtering para eliminação de IP Spoofing na internet.",
+		"Comparar o fator de amplificação do CLDAP (~70x) com o DNS e NTP."
+	],
+	"technicalReferences": [
+		{
+			"title": "BCP 38 / RFC 2827 - Network Ingress Filtering: Defeating Denial of Service Attacks which employ IP Source Address Spoofing",
+			"url": "https://datatracker.ietf.org/doc/html/rfc2827"
+		}
+	]
+}

@@ -1,0 +1,245 @@
+{
+	"id": "unauthorized-media-repository",
+	"title": "Notificação Extrajudicial de Violação de Direitos Autorais em Servidor de Arquivos",
+	"description": "Simulação tabletop de resposta a notificação extrajudicial (DMCA/Notificação de Infração) por distribuição não autorizada de ativos proprietários em repositório público",
+	"category": {
+		"id": "GOV_LEGAL",
+		"type": "GOV_LEGAL_COPYRIGHT_INFRINGEMENT",
+		"title": "Violação de Direitos Autorais"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-07-31",
+		"author": "Equipe de Resposta a Incidentes",
+		"estimatedDuration": "30-40 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Equipe Jurídica, Administradores de Sistemas, Segurança da Informação"
+	},
+	"objectives": [
+		"Validar fluxo de triagem e preservação de evidências em notificações extrajudiciais de direitos autorais",
+		"Avaliar procedimentos de remoção de conteúdo (Take-down Notice) com base no Marco Civil da Internet e diretrizes legais",
+		"Testar a articulação entre as equipes técnica e jurídica durante investigações internas"
+	],
+	"scope": [
+		"Exercício tabletop de tomada de decisão jurídica e técnica",
+		"Sem execução de comandos destrutivos reais"
+	],
+	"baseScenario": {
+		"context": "Na quarta-feira às 14:00, a equipe jurídica da organização recebe uma notificação extrajudicial de um grande estúdio de software/mídia alegando que um servidor HTTP público da instituição (media.internal.corp) está hospedando e distribuindo arquivos protegidos sem licença.",
+		"initialSituation": {
+			"alert": "Notificação Extrajudicial recebida via e-mail formal do departamento jurídico notificante",
+			"affectedHost": "media.internal.corp (IP 192.168.10.45)",
+			"timestamp": "14:00:00"
+		},
+		"initialComplaints": [
+			"Detecção de downloads públicos de pacotes de dados protegidos por direitos autorais",
+			"Ameaça de ação judicial e pedido de liminar caso o conteúdo não seja removido em 24 horas"
+		],
+		"availableResources": [
+			"Logs de acesso web (Nginx access.log)",
+			"Acesso administrativo ao servidor de arquivos media.internal.corp",
+			"Equipe de assessoria jurídica interna"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Recebimento da notificação jurídica e alinhamento inicial entre TI e Jurídico.",
+			"inject": "Apresentação da notificação extrajudicial aos participantes.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Análise Técnica e Validação",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "Inspeção do servidor para verificar se o conteúdo mencionado na notificação realmente está presente e acessível.",
+			"timeElapsed": "T+15 min",
+			"currentSituation": {
+				"contentStatus": "Confirmada a presença do arquivo 'dataset-proprietary-v2.zip' em pasta pública",
+				"downloadCount": "1.420 downloads nos últimos 7 dias"
+			},
+			"metrics": [
+				{
+					"title": "Análise de Logs Nginx",
+					"type": "server-status",
+					"data": {
+						"file": "/var/www/html/downloads/dataset-proprietary-v2.zip",
+						"size": "4.2 GB",
+						"permissions": "0644 (Read por todos)",
+						"observation": "O arquivo foi subido há 2 semanas por uma conta de estagiário sem verificação de licença de uso."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Qual deve ser a PRIMEIRA ação técnica imediata após a confirmação da presença do material não autorizado?",
+					"points": 5,
+					"options": [
+						"Deletar permanentemente todos os discos do servidor",
+						"Isolar o acesso público ao arquivo e preservar os logs e arquivos para auditoria jurídica",
+						"Ignorar a notificação até a chegada de uma ordem judicial formal",
+						"Enviar e-mail para o notificante acusando-o de invasão de privacidade"
+					],
+					"correctAnswer": 1,
+					"justification": "A resposta adequada exige conter o dano (remover o acesso público) enquanto se preserva as evidências (logs/arquivos) necessárias para a apuração interna e defesa jurídica."
+				},
+				{
+					"id": "q2",
+					"type": "true-false",
+					"text": "Excluir imediatamente os logs de acesso do servidor ajuda a proteger a organização de sanções legais de direitos autorais.",
+					"points": 3,
+					"correctAnswer": false,
+					"justification": "FALSO. A destruição de logs pode ser considerada destruição de provas (obstáculo à justiça) e impede que a organização identifique o responsável interno pelo envio."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Contenção e Resposta Jurídica",
+			"phase": "Fase 2 - Contenção",
+			"description": "Remoção do conteúdo (take-down) e elaboração da resposta formal à notificação.",
+			"timeElapsed": "T+30 min",
+			"currentSituation": {
+				"fileAccess": "Bloqueado (HTTP 404/403)",
+				"evidencePreserved": true
+			},
+			"metrics": [
+				{
+					"title": "Status da Retirada",
+					"type": "security-analysis",
+					"data": {
+						"httpStatus": "404 Not Found",
+						"logBackup": "/backup/evidences/case-2026-0814.tar.gz",
+						"observation": "Conteúdo indisponível publicamente. Cópia forense mantida em storage seguro."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "Se a notificação estipula um prazo limite de 24 horas para o take-down e a equipe respondeu em 3 horas, quantas horas restavam da janela estipulada?",
+					"points": 5,
+					"correctAnswer": 21,
+					"tolerance": 0,
+					"unit": "horas",
+					"justification": "24 horas - 3 horas = 21 horas restantes no prazo."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Relacione os papéis às suas atribuições durante o incidente de infração:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "p1", "content": "Equipe de Segurança"},
+						{"id": "p2", "content": "Assessoria Jurídica"},
+						{"id": "p3", "content": "Administrador de Redes"}
+					],
+					"rightColumn": [
+						{"id": "r1", "content": "Preservar a cadeia de custódia das evidências digitais"},
+						{"id": "r2", "content": "Elaborar a contranotificação ou confirmação formal do take-down"},
+						{"id": "r3", "content": "Aplicar regras de bloqueio de acesso ao arquivo no web server"}
+					],
+					"correctMatches": [
+						{"left": "p1", "right": "r1"},
+						{"left": "p2", "right": "r2"},
+						{"left": "p3", "right": "r3"}
+					],
+					"justification": "Segurança cuida das evidências, Jurídico faz a comunicação institucional e Redes/SysAdmin efetua as mudanças técnicas."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Investigação Interna",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "Identificação da origem do upload e revisão das permissões de publicação.",
+			"timeElapsed": "T+50 min",
+			"currentSituation": {
+				"internalAudit": "Identificada a conta que realizou o upload via SFTP"
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene as ações para a apuração interna do incidente de infração de direitos autorais:",
+					"points": 5,
+					"items": [
+						{"id": "o1", "content": "Filtrar os logs de autenticação SFTP pelo horário de criação do arquivo"},
+						{"id": "o2", "content": "Identificar a conta de usuário associada e o IP interno de origem"},
+						{"id": "o3", "content": "Entrevistar o usuário para entender a origem da licença do arquivo"},
+						{"id": "o4", "content": "Aplicar treinamento de conscientização sobre propriedade intelectual e rever permissões"}
+					],
+					"correctOrder": ["o1", "o2", "o3", "o4"],
+					"justification": "Fluxo investigativo: Análise de logs -> Identificação da conta -> Entrevista -> Ações educativas e corretivas."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Lições Aprendidas e Prevenção",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Implementação de controles de prevenção contra hospedagem não autorizada de mídias.",
+			"timeElapsed": "T+70 min",
+			"currentSituation": {
+				"incidentClosed": true
+			},
+			"questions": [
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Qual medida técnica previne que servidores web públicos sejam utilizados para repositórios não autorizados?",
+					"points": 5,
+					"options": [
+						"Implementar controle de acesso restrito a diretórios de upload e varreduras automáticas de DLP / antivírus de conteúdo",
+						"Liberar acesso SSH root para todos os funcionários",
+						"Bloquear a porta 443 HTTPS em toda a empresa",
+						"Desativar os logs do servidor web"
+					],
+					"correctAnswer": 0,
+					"justification": "Mecanismos de controle de acesso aos diretórios públicos e inspeção de DLP evitam o envio ou exposição indevida de arquivos restritos."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 29,
+		"passingScore": 18,
+		"gradingScale": [
+			{
+				"min": 25,
+				"max": 29,
+				"grade": "Excelente",
+				"description": "Excelente tratamento de conformidade legal e resposta a incidentes de direitos autorais."
+			},
+			{
+				"min": 18,
+				"max": 24,
+				"grade": "Satisfatório",
+				"description": "Boas decisões técnicas e alinhamento com a equipe jurídica."
+			},
+			{
+				"min": 0,
+				"max": 17,
+				"grade": "Insuficiente",
+				"description": "Lacunas no conhecimento sobre preservação de evidências e resposta legal."
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Discutir os artigos relevantes do Marco Civil da Internet sobre responsabilidade de provedores por danos decorrentes de conteúdo gerado por terceiros.",
+		"Destacar a importância da preservação forense de logs antes de deletar arquivos."
+	],
+	"technicalReferences": [
+		{
+			"title": "Lei nº 12.965/2014 (Marco Civil da Internet) - Artigo 19",
+			"url": "http://www.planalto.gov.br/ccivil_03/_ato2011-2014/2014/lei/l12965.htm"
+		}
+	]
+}

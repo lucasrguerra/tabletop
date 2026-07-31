@@ -89,6 +89,20 @@
         "definition": "Norma internacional para Sistemas de Gestão de Segurança da Informação (SGSI). Define requisitos para estabelecer, implementar, manter e melhorar continuamente um SGSI. Certificação demonstra conformidade com práticas de segurança reconhecidas internacionalmente.",
         "seeAlso": ["PSI"],
         "relatedStudyId": "psi-conceito-politica-seguranca"
+      },
+      {
+        "term": "PKI (Public Key Infrastructure)",
+        "acronym": "PKI",
+        "definition": "Conjunto de hardware, software, políticas e procedimentos necessários para criar, gerenciar, distribuir e revogar certificados digitais baseados em criptografia de chave pública.",
+        "seeAlso": ["mTLS", "X.509"],
+        "relatedStudyId": "pki-conceito-gestao-certificados-mtls"
+      },
+      {
+        "term": "mTLS (Mutual TLS)",
+        "acronym": "mTLS",
+        "definition": "Protocolo onde ambos os lados da conexão (cliente e servidor) autenticam mutuamente suas identidades através da troca e verificação de certificados digitais X.509.",
+        "seeAlso": ["PKI", "Zero Trust"],
+        "relatedStudyId": "pki-conceito-gestao-certificados-mtls"
       }
     ]
   },

@@ -1,0 +1,245 @@
+{
+	"id": "dns-bgp-prefix-hijack",
+	"title": "Sequestro BGP de Prefixos de Servidores DNS Autoritários",
+	"description": "Simulação tabletop de resposta a sequestro de prefixo BGP por AS malicioso visando interceptação e envenenamento de tráfego DNS",
+	"category": {
+		"id": "NET_ROUT",
+		"type": "NET_ROUT_BGP_HIJACK",
+		"title": "Sequestro de Prefixo BGP (Prefix Hijacking)"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-07-31",
+		"author": "Equipe de Resposta a Incidentes",
+		"estimatedDuration": "45-60 minutos",
+		"difficulty": "Avançado",
+		"targetAudience": "Engenheiros de Redes BGP, Especialistas em Segurança de Infraestrutura de Internet"
+	},
+	"objectives": [
+		"Validar o processo de identificação de anúncios BGP ilegítimos via Looking Glasses globais e plataformas de monitoramento RPKI",
+		"Avaliar procedimentos de mitigação através da emissão de anúncios mais específicos, comunicação com upstreams e publicação de ROAs",
+		"Testar o protocolo de comunicação com CSIRTs e operadoras para remoção do anúncio fraudulento"
+	],
+	"scope": [
+		"Exercício tabletop conceitual sem anúncios de rotas em roteadores de borda reais"
+	],
+	"baseScenario": {
+		"context": "Quarta-feira às 11:15, ferramentas de monitoramento sintético registram falha na validação DNSSEC de resolução de domínios corporativos em diversos continentes. Análises de rotas BGP indicam que o bloco /24 que hospeda os DNS autoritários (203.0.113.0/24, AS 64500) está sendo anunciado de forma ilegítima por um AS estrangeiro (AS 65530).",
+		"initialSituation": {
+			"alert": "BGP Hijack Alert: Prefix 203.0.113.0/24 originates from unauthorized AS 65530",
+			"affectedPrefix": "203.0.113.0/24",
+			"legitimateAS": "AS 64500",
+			"hijackerAS": "AS 65530",
+			"timestamp": "11:15:00"
+		},
+		"initialComplaints": [
+			"Clientes em diversas regiões reportam que os domínios corporativos estão apontando para IPs falsos (phishing)",
+			"Servidores DNS autoritários legítimos deixaram de receber 70% das requisições globais"
+		],
+		"availableResources": [
+			"Roteadores de borda BGP (Cisco / Juniper / FRR)",
+			"Acesso aos portais de Looking Glass globais (RIPE RIS, RouteViews, Hurricane Electric)",
+			"Conta no Portal do Registro Regional de Internet (IRR / RPKI Dashboard)"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Detecção do Anúncio Fraudulento",
+			"phase": "Preparação",
+			"description": "Recebimento do alerta de desvio de rotas e confirmação da anomalia BGP.",
+			"inject": "Apresentação dos dados de tabelas BGP globais.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Análise da Origem do Sequestro",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "Investigação da propagação da rota pirata e verificação da especificidade do prefixo.",
+			"timeElapsed": "T+15 min",
+			"currentSituation": {
+				"announcedPrefix": "203.0.113.0/24 (Sub-anúncio com mesmo tamanho do bloco legítimo, porém com AS-Path manipulado)",
+				"affectedTraffic": "70% redirecionado para o AS 65530"
+			},
+			"metrics": [
+				{
+					"title": "Consulta BGP em Looking Glass Global",
+					"type": "network-analysis",
+					"data": {
+						"prefix": "203.0.113.0/24",
+						"bestPath": "AS-PATH: 1299 3356 65530 (AS 65530 malicioso)",
+						"rpkiStatus": "NotFound / Invalid (ausência de ROA válida cadastrada préviamente)",
+						"observation": "O sequestrador aproveitou a falta de validação RPKI nos provedores de trânsito intermediários para injetar a rota falsa."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Qual o motivo pelo qual routers BGP em várias partes do mundo preferiram a rota maliciosa do AS 65530?",
+					"points": 5,
+					"options": [
+						"O AS 65530 alterou as métricas OSPF internas",
+						"Se o prefixo anunciado tiver a mesma especificidade (/24), routers BGP selecionam o caminho baseado no AS-Path mais curto ou na preferência local de seus peers de trânsito",
+						"O sequestrador desativou a porta 179 de todos os routers do mundo",
+						"O protocolo BGP exige que o menor número de AS seja sempre o preferido"
+					],
+					"correctAnswer": 1,
+					"justification": "Quando a especificidade da máscara é idêntica (/24), a decisão do BGP recai sobre os atributos padrão como Local Preference, AS-Path curto e política dos peers de trânsito."
+				},
+				{
+					"id": "q2",
+					"text": "Publicar um ROA (Route Origin Authorization) no sistema RPKI especificando o AS de origem correto permite que provedores com validação ativa descartem anúncios não autorizados.",
+					"type": "true-false",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. A validação RPKI (ROV) instrui os roteadores a marcarem rotas não autorizadas como RPKI Invalid e descartá-las (RPKI Drop Invalid)."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Contenção Emergencial e Mitigação",
+			"phase": "Fase 2 - Contenção",
+			"description": "Ações imediatas nos roteadores de borda para recuperar o tráfego.",
+			"timeElapsed": "T+30 min",
+			"currentSituation": {
+				"mitigationPlan": "Injeção de anúncio BGP com maior especificidade (/25 e /25) temporariamente para atrair o tráfego de volta"
+			},
+			"metrics": [
+				{
+					"title": "Status da Tabela BGP de Borda",
+					"type": "server-status",
+					"data": {
+						"announcements": ["203.0.113.0/25 (AS 64500)", "203.0.113.128/25 (AS 64500)"],
+						"observation": "Pela regra de preferência por prefixo mais específico (longest prefix match), o tráfego global retorna imediatamente para o AS 64500 legítimo."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "Se o bloco original sequestrado era um /24 e foi dividido em sub-redes /25 para aplicação de Longest Prefix Match, quantas sub-redes /25 foram anunciadas para cobrir todo o espaço /24?",
+					"points": 5,
+					"correctAnswer": 2,
+					"tolerance": 0,
+					"unit": "sub-redes",
+					"justification": "Um bloco /24 é exatamente dividido em 2 sub-redes /25."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Associe os termos de segurança de roteamento BGP:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "b1", "content": "Longest Prefix Match"},
+						{"id": "b2", "content": "RPKI ROA"},
+						{"id": "b3", "content": "IRR (Internet Routing Registry)"}
+					],
+					"rightColumn": [
+						{"id": "r1", "content": "Regra fundamental de roteamento que prioriza a rota mais específica na tabela de encaminhamento"},
+						{"id": "r2", "content": "Objeto assinado digitalmente que vincula um prefixo IP ao AS autorizado a anunciá-lo"},
+						{"id": "r3", "content": "Base de dados pública para registro de objetos autnum e route para geração de filtros BGP"}
+					],
+					"correctMatches": [
+						{"left": "b1", "right": "r1"},
+						{"left": "b2", "right": "r2"},
+						{"left": "b3", "right": "r3"}
+					],
+					"justification": "Longest Prefix Match prioriza especificidade; RPKI valida a criptografia da origem; IRR armazena os registros de filtros."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Contato com Provedores de Trânsito e CSIRT",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "Solicitação de filtragem no trânsito malicioso e derrubada da sessão do atacante.",
+			"timeElapsed": "T+50 min",
+			"currentSituation": {
+				"trafficRestored": "100% retornado via anúncios /25",
+				"upstreamFiltering": "Solicitado aos provedores Tier-1 a aplicação de filtro blackhole/drop contra o AS 65530"
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene as etapas para resolução definitiva do incidente de BGP Hijacking:",
+					"points": 5,
+					"items": [
+						{"id": "p1", "content": "Dividir o anúncio em prefixos mais específicos (/25) para recuperação imediata do tráfego"},
+						{"id": "p2", "content": "Criar e assinar o ROA no portal RPKI do Registro Regional autorizando o AS legítimo"},
+						{"id": "p3", "content": "Contatar os provedores de trânsito Tier-1 para aplicar filtros de descarte no anúncio do atacante"},
+						{"id": "p4", "content": "Retirar os anúncios /25 e manter apenas o /24 legítimo protegido por RPKI"}
+					],
+					"correctOrder": ["p1", "p2", "p3", "p4"],
+					"justification": "Mitigação emergencial (Longest Prefix Match) -> Criação de ROA -> Contato com Upstreams -> Retorno ao anúncio padrão normalizado."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Fortalecimento de Segurança BGP",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Adoção do MANRS (Mutually Agreed Norms for Routing Security).",
+			"timeElapsed": "T+80 min",
+			"currentSituation": {
+				"incidentResolved": true
+			},
+			"questions": [
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Qual a iniciativa global de segurança em roteamento que estabelece diretrizes contra sequestro de rotas e vazamentos BGP?",
+					"points": 5,
+					"options": [
+						"MANRS (Mutually Agreed Norms for Routing Security)",
+						"W3C Web Standards",
+						"ISO 27001 Annex A",
+						"PCI-DSS Chapter 3"
+					],
+					"correctAnswer": 0,
+					"justification": "MANRS é a iniciativa global promovida pela Internet Society para melhorar a segurança e resiliência do roteamento BGP."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 29,
+		"passingScore": 18,
+		"gradingScale": [
+			{
+				"min": 25,
+				"max": 29,
+				"grade": "Excelente",
+				"description": "Excelente conhecimento de engenharia de tráfego BGP e defesa contra Hijacks."
+			},
+			{
+				"min": 18,
+				"max": 24,
+				"grade": "Satisfatório",
+				"description": "Compreensão dos mecanismos de mitigação por especificidade de rotas."
+			},
+			{
+				"min": 0,
+				"max": 17,
+				"grade": "Insuficiente",
+				"description": "Dificuldades em compreender a dinâmica do protocolo BGP e RPKI."
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Explicar a limitação dos anúncios /25 (visto que /24 é o limite padrão de aceitação global na internet IPv4).",
+		"Abordar o conceito de RPKI Route Origin Validation."
+	],
+	"technicalReferences": [
+		{
+			"title": "RFC 6480 - An Infrastructure to Support Secure Internet Routing",
+			"url": "https://datatracker.ietf.org/doc/html/rfc6480"
+		}
+	]
+}

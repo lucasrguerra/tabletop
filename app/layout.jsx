@@ -22,7 +22,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
     return (
         <html lang="pt-BR">
-            <body className={`${montserrat.className} ${jetbrainsMono.variable} flex flex-col min-h-screen`}>
+            <body className={`${montserrat.className} ${jetbrainsMono.variable} flex flex-col min-h-screen zoom-125`}>
                 <SessionWrapper>
                     <div className="flex-1">
                         {children}

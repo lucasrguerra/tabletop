@@ -157,6 +157,27 @@
         "definition": "Eixo de classificação que determina qual defesa se aplica. Volumétrico (L3): satura a banda do enlace — amplificação DNS/NTP, UDP flood; mitiga-se fora da rede, com scrubbing ou RTBH, porque o enlace já está cheio quando o tráfego chega. Protocolo (L4): esgota tabelas de estado em servidores, firewalls e balanceadores — SYN flood; mitiga-se com SYN cookies e limite de taxa. Aplicação (L7): consome CPU e conexões com requisições válidas — HTTP flood, Slowloris; mitiga-se com WAF, limite por sessão e cache. Confundir a camada leva ao erro mais comum na resposta: acionar scrubbing volumétrico para um ataque L7, que passa incólume por ele.",
         "seeAlso": ["DDoS", "SYN Flood", "Low and Slow", "Scrubbing Center", "RTBH"],
         "relatedStudyId": "dns-procedimento-mitigacao-ddos"
+      },
+      {
+        "term": "Carpet Bombing DDoS",
+        "acronym": "Carpet Bombing",
+        "definition": "Ataque volumétrico pulverizado em que o tráfego malicioso é distribuído por centenas ou milhares de endereços IP de uma sub-rede. Cada IP recebe uma taxa baixa que não dispara limites individuais, mas a soma satura a capacidade do link de acesso.",
+        "seeAlso": ["DDoS", "BGP Flowspec", "RTBH"],
+        "relatedStudyId": "carpet-bombing-conceito-flowspec"
+      },
+      {
+        "term": "BGP Flowspec",
+        "acronym": "Flowspec",
+        "definition": "Extensão do protocolo BGP (RFC 8955) que permite disseminar regras de filtragem de pacotes L3/L4 para roteadores upstream, permitindo descartar ou limitar tráfego malicioso com granularidade sem derrubar o bloco IP inteiro.",
+        "seeAlso": ["BGP", "Carpet Bombing", "RTBH"],
+        "relatedStudyId": "carpet-bombing-conceito-flowspec"
+      },
+      {
+        "term": "Outbound DDoS (DDoS de Saída)",
+        "acronym": null,
+        "definition": "Ataque volumétrico originado de dentro de uma rede de acesso, disparado por dispositivos IoT ou servidores locais comprometidos por botnets, saturando o enlace de upload e arriscando o bloqueio do bloco IP pela operadora.",
+        "seeAlso": ["Botnet", "C2", "BCP38"],
+        "relatedStudyId": "egress-procedimento-botnet-containment"
       }
     ]
   },

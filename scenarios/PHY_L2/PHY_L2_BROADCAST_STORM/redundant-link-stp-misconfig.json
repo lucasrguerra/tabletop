@@ -1,0 +1,245 @@
+{
+	"id": "redundant-link-stp-misconfig",
+	"title": "Tempestade de Broadcast (Broadcast Storm) em Enlace Redundante por Falha de STP",
+	"description": "Simulação tabletop de resposta a colapso de comutação na camada 2 por formação de loop físico devido à desativação acidental do Spanning Tree Protocol (STP)",
+	"category": {
+		"id": "PHY_L2",
+		"type": "PHY_L2_BROADCAST_STORM",
+		"title": "Tempestade de Broadcast (Layer 2 Loop)"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-07-31",
+		"author": "Equipe de Resposta a Incidentes",
+		"estimatedDuration": "35-45 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Engenheiros de Redes, Administradores de Switches de Acesso e Datacenter"
+	},
+	"objectives": [
+		"Validar o diagnóstico de loops de Camada 2 e tempestades de broadcast em switches Ethernet",
+		"Avaliar os sintomas de flapping de MAC address e utilização de CPU a 100% em equipamentos L2",
+		"Testar o uso de recursos de proteção STP como BPDU Guard, Loop Guard e Storm Control"
+	],
+	"scope": [
+		"Exercício tabletop conceitual"
+	],
+	"baseScenario": {
+		"context": "Segunda-feira às 10:15, um técnico de infraestrutura conecta um cabo patch cord sobressalente entre dois switches de acesso (SW-A e SW-B) para criar redundância física. Minutos depois, todos os LEDs das portas de rede passam a piscar freneticamente e a comunicação de rede de todo o andar cai.",
+		"initialSituation": {
+			"alert": "SWITCH CPU CRITICAL: SW-A CPU at 99.9% due to ARP/Broadcast Storm",
+			"affectedSwitches": "SW-A (10.10.0.2) e SW-B (10.10.0.3)",
+			"errorMessage": "%SW_MATM-4-MACFLAP_NOTIF: Host 0011.2233.4455 in vlan 10 is flapping between port Gi0/1 and Gi0/2",
+			"timestamp": "10:15:00"
+		},
+		"initialComplaints": [
+			"Todos os computadores do prédio perderam a conectividade e não conseguem renovar IP via DHCP",
+			"Consoles dos switches respondem com extremo atraso"
+		],
+		"availableResources": [
+			"Acesso via porta Console física (Serial/USB) nos switches",
+			"Documentação da topologia de cabeamento",
+			"Comandos de diagnóstico (`show spanning-tree`, `show mac address-table flapping`, `show interface storm-control`)"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Identificação da Anomalia de Camada 2",
+			"phase": "Preparação",
+			"description": "Análise dos sintomas visuais e logs de flapping nos switches.",
+			"inject": "Apresentação dos logs do switch de acesso.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Diagnóstico do Loop de Switching",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "Inspeção do estado do Spanning Tree e da tabela de endereços MAC.",
+			"timeElapsed": "T+10 min",
+			"currentSituation": {
+				"cpuLoad": "99.9%",
+				"stpStatus": "Desativado (`no spanning-tree vlan 10`) na interface Gi0/2 do SW-B por erro de configuração prévio"
+			},
+			"metrics": [
+				{
+					"title": "Análise de Logs `%SW_MATM-4-MACFLAP_NOTIF`",
+					"type": "network-analysis",
+					"data": {
+						"macFlapRate": "5.000 alterações de porta por segundo para o mesmo endereço MAC",
+						"broadcastTraffic": "98% do tráfego total da interface é composto por frames FF:FF:FF:FF:FF:FF",
+						"observation": "Sem o STP ativo na nova conexão redundante, os quadros de broadcast (como requisições ARP) circularam em loop infinito multiplicando-se até saturar a capacidade do switch."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Por que o Spanning Tree Protocol (STP) é indispensável em topologias com conexões Ethernet redundantes de Camada 2?",
+					"points": 5,
+					"options": [
+						"Porque o protocolo Ethernet não possui um campo Time-to-Live (TTL) nos quadros de Camada 2, fazendo com que quadros de broadcast em malhas fechadas circulem infinitamente até paralisar a rede",
+						"Porque o STP é responsável por atribuir endereços IP por DHCP",
+						"Porque o STP criptografa o tráfego das portas",
+						"Porque o STP aumenta a velocidade da fibra de 1G para 10G"
+					],
+					"correctAnswer": 0,
+					"justification": "Diferente do pacote IP (que possui o campo TTL de Camada 3), o quadro Ethernet de Camada 2 não possui um contador de sobrevivência. Sem o STP para bloquear uma das portas da malha, os broadcasts circulam em loop perpétuo."
+				},
+				{
+					"id": "q2",
+					"text": "O log de 'MAC Flapping' indica que o switch está aprendendo o mesmo endereço MAC em duas ou mais portas alternadas em um intervalo de tempo muito curto, sintoma claro de loop de Camada 2.",
+					"type": "true-false",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. O MAC Flapping ocorre quando os quadros em loop chegam por interfaces diferentes repetidamente, sobrescrevendo a tabela CAM do switch continuamente."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Isolamento Físico e Ativação do STP",
+			"phase": "Fase 2 - Contenção",
+			"description": "Desconexão do cabo redundante e ativação imediata do Spanning Tree (RSTP / MSTP).",
+			"timeElapsed": "T+20 min",
+			"currentSituation": {
+				"cableDisconnected": "Cabo redundante desconectado manualmente da porta Gi0/2",
+				"stpReenabled": "Reativado o Rapid Spanning Tree (`spanning-tree mode rapid-pvst`)"
+			},
+			"metrics": [
+				{
+					"title": "Métricas do Switch Pós-Contenção",
+					"type": "server-status",
+					"data": {
+						"cpuUtilization": "4%",
+						"macFlapping": "Cessado",
+						"stpRole": "Gi0/1: Forwarding | Gi0/2: Blocking (Alternate)",
+						"observation": "Com o cabo desconectado e o RSTP ativo, a tempestade de broadcast cessou instantaneamente e a CPU estabilizou."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "Se o tempo de convergência do Spanning Tree clássico (802.1D) é de 50 segundos e o Rapid Spanning Tree (802.1w - RSTP) converge em 2 segundos, qual a redução de tempo de paralisação em segundos?",
+					"points": 5,
+					"correctAnswer": 48,
+					"tolerance": 0,
+					"unit": "segundos",
+					"justification": "50 segundos - 2 segundos = 48 segundos de redução."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Associe os recursos de proteção de Camada 2 às suas funções:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "s1", "content": "BPDU Guard"},
+						{"id": "s2", "content": "Storm Control"},
+						{"id": "s3", "content": "Root Guard"}
+					],
+					"rightColumn": [
+						{"id": "r1", "content": "Desativa imediatamente (err-disable) portas de acesso de usuários se um pacote BPDU for recebido"},
+						{"id": "r2", "content": "Limita o percentual de tráfego de broadcast/multicast permitido em uma porta antes de descarta-lo"},
+						{"id": "r3", "content": "Impede que switches não autorizados conectados em portas secundárias se tornem o Root Bridge"}
+					],
+					"correctMatches": [
+						{"left": "s1", "right": "r1"},
+						{"left": "s2", "right": "r2"},
+						{"left": "s3", "right": "r3"}
+					],
+					"justification": "BPDU Guard protege portas de usuários; Storm Control limita volume de broadcast; Root Guard protege a hierarquia da Root Bridge."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Validação da Topologia de Spanning Tree",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "Mapeamento da Root Bridge e definição do switch Core como Root principal.",
+			"timeElapsed": "T+35 min",
+			"currentSituation": {
+				"rootBridgeConfigured": "`spanning-tree vlan 1-4094 priority 4096` aplicado no Core-01"
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene os passos para solução e prevenção de Loops de Camada 2 em switches:",
+					"points": 5,
+					"items": [
+						{"id": "l1", "content": "Identificar a porta geradora do loop via mensagens de MAC Flapping ou desconectar o link redundante emergencialmente"},
+						{"id": "l2", "content": "Garantir que o protocolo RSTP/MSTP esteja globalmente habilitado em todas as VLANs"},
+						{"id": "l3", "content": "Configurar o recurso BPDU Guard em todas as portas de acesso conectadas a usuários (PortFast)"},
+						{"id": "l4", "content": "Ativar a funcionalidade de Storm Control nas interfaces para limitar o impacto de eventuais surtos de broadcast"}
+					],
+					"correctOrder": ["l1", "l2", "l3", "l4"],
+					"justification": "Desconexão/Contenção do Loop -> Ativação global do RSTP -> BPDU Guard nas portas de acesso -> Storm Control de proteção."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Padronização de Segurança de Portas",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Atualização das configurações padrão dos switches para a equipe de campo.",
+			"timeElapsed": "T+50 min",
+			"currentSituation": {
+				"incidentResolved": true
+			},
+			"questions": [
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Qual a configuração recomendada para portas de acesso conectadas a estações de trabalho e telefones IP?",
+					"points": 5,
+					"options": [
+						"Ativar `spanning-tree portfast` combinado com `spanning-tree bpduguard enable`",
+						"Desativar o Spanning Tree e permitir BPDUs livres",
+						"Configurar a porta como trunk 802.1Q sem VLAN nativa",
+						"Desativar o aprendizado de endereços MAC"
+					],
+					"correctAnswer": 0,
+					"justification": "PortFast permite transição rápida para estado Forwarding e BPDU Guard garante que se alguém conectar um switch não autorizado na tomada do usuário, a porta é desligada instantaneamente."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 29,
+		"passingScore": 18,
+		"gradingScale": [
+			{
+				"min": 25,
+				"max": 29,
+				"grade": "Excelente",
+				"description": "Excelente conhecimento de comutação L2, Spanning Tree e mitigação de loops."
+			},
+			{
+				"min": 18,
+				"max": 24,
+				"grade": "Satisfatório",
+				"description": "Boa compreensão dos sintomas de tempestade de broadcast e uso de BPDU Guard."
+			},
+			{
+				"min": 0,
+				"max": 17,
+				"grade": "Insuficiente",
+				"description": "Dificuldades em identificar falhas de Camada 2."
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Demonstrar a diferença no formato dos quadros entre Spanning Tree 802.1D e RSTP 802.1w.",
+		"Explicar o comando `show mac address-table notification flapping`."
+	],
+	"technicalReferences": [
+		{
+			"title": "IEEE 802.1w - Rapid Reconfiguration of Spanning Tree",
+			"url": "https://standards.ieee.org/ieee/802.1w/1043/"
+		}
+	]
+}

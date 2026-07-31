@@ -1,0 +1,247 @@
+{
+	"id": "law-enforcement-ip-logs",
+	"title": "Solicitação Judicial de Fornecimento de Logs de Conexão IP e CGNAT",
+	"description": "Simulação tabletop de atendimento a ordem judicial exigindo a identificação de usuário por trás de IP público compartilhado via CGNAT",
+	"category": {
+		"id": "GOV_LEGAL",
+		"type": "GOV_LEGAL_LOG_REQUEST",
+		"title": "Solicitação Judicial de Logs de Acesso"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-07-31",
+		"author": "Equipe de Resposta a Incidentes",
+		"estimatedDuration": "40-50 minutos",
+		"difficulty": "Avançado",
+		"targetAudience": "Engenheiros de Rede, Administradores CGNAT, Encarregado de Proteção de Dados (DPO) e Jurídico"
+	},
+	"objectives": [
+		"Validar o processo de correlação de logs de CGNAT (IP Público + Porta de Origem + Timestamp) para atendimento à justiça",
+		"Avaliar a conformidade com prazos e obrigações de guarda de logs do Marco Civil da Internet (Artigo 13)",
+		"Testar o protocolo de envio seguro e sigiloso de informações de identificação sob segredo de justiça"
+	],
+	"scope": [
+		"Exercício tabletop conceitual",
+		"Não requer consultas a bases reais de clientes ou provedores"
+	],
+	"baseScenario": {
+		"context": "Quinta-feira às 10:00, o DPO da empresa recebe intimação policial acompanhada de mandado judicial. A autoridade investiga um crime cibernético e solicita a qualificação do assinante que utilizava o IP público 200.17.40.10, porta de origem 45123, no dia 15/07/2026 às 14:32:05 UTC.",
+		"initialSituation": {
+			"alert": "Ofício Policial / Ordem Judicial sob Segredo de Justiça com prazo de 5 dias úteis",
+			"queryData": "IP: 200.17.40.10 | Porta Origem: 45123 | Timestamp: 2026-07-15 14:32:05 UTC",
+			"timestamp": "10:00:00"
+		},
+		"initialComplaints": [
+			"Solicitação formal da autoridade requisitando nome completo, CPF/CNPJ e endereço cadastral associado à conexão"
+		],
+		"availableResources": [
+			"Repositório de logs de CGNAT / Syslog Server (Elasticsearch / Logstash / ClickHouse)",
+			"Base de cadastro de clientes / Radius Accounting Logs",
+			"Assessoria jurídica interna e DPO"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Validação Legal",
+			"phase": "Preparação",
+			"description": "Análise dos requisitos formais do mandado e validação da autoridade solicitante.",
+			"inject": "Validação da autenticidade da ordem pelo departamento jurídico.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Análise dos Dados Requisitados",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "Consulta ao sistema de gerenciamento de logs de CGNAT.",
+			"timeElapsed": "T+20 min",
+			"currentSituation": {
+				"cgnatRatio": "1 IP público para 32 IPs privados",
+				"logRetention": "Logs mantidos pelo período legal de 1 ano"
+			},
+			"metrics": [
+				{
+					"title": "Resultado da Busca no Syslog CGNAT",
+					"type": "query-analysis",
+					"data": {
+						"search": "public_ip=200.17.40.10 AND public_port=45123 AND timestamp='2026-07-15T14:32:05Z'",
+						"matchedRecord": "2026-07-15T14:00:01Z CGNAT ALLOCATE: Private 10.64.12.8 -> Public 200.17.40.10:45000-45512",
+						"radiusSession": "Username: user_78412 | MAC: 00:11:22:33:44:55 | Allocated IP: 10.64.12.8",
+						"observation": "Busca efetuada com sucesso. O conjunto IP Público + Porta permitiu isolar de forma inequívoca o IP privado 10.64.12.8 e o usuário cadastral user_78412."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Por que a indicação apenas do IP público (sem a porta de origem) seria INSUFICIENTE em uma infraestrutura CGNAT?",
+					"points": 5,
+					"options": [
+						"Porque o IP público muda a cada requisição HTTP",
+						"Porque múltiplos usuários internos/assinantes compartilham o mesmo IP público simultaneamente, variando apenas os blocos de portas atribuídos",
+						"Porque o CGNAT criptografa os pacotes impede a leitura do IP",
+						"Porque o Marco Civil proíbe o fornecimento de IPs públicos"
+					],
+					"correctAnswer": 1,
+					"justification": "No CGNAT (Carrier-Grade NAT), um único IP público é compartilhado entre dezenas ou centenas de usuários. A porta de origem e a estampa de tempo são cruciais para identificar qual usuário utilizava aquele socket específico."
+				},
+				{
+					"id": "q2",
+					"text": "O Marco Civil da Internet estipula o prazo mínimo de 1 ano para guarda dos registros de conexão pela administração de sistema autônomo.",
+					"type": "true-false",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. O Artigo 13 do Marco Civil da Internet (Lei 12.965/2014) impõe aos administradores de sistema autônomo o dever de manter os registros de conexão sob sigilo por 1 ano."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Extração Cadastral e Proteção de Dados",
+			"phase": "Fase 2 - Contenção",
+			"description": "Mapeamento dos dados do usuário cadastrado respeitando o sigilo das informações e diretrizes da LGPD.",
+			"timeElapsed": "T+40 min",
+			"currentSituation": {
+				"userDataFound": true,
+				"confidentialityLevel": "Segredo de Justiça"
+			},
+			"metrics": [
+				{
+					"title": "Dados Cadastrais Associados",
+					"type": "security-analysis",
+					"data": {
+						"userId": "user_78412",
+						"name": "Cliente Exemplo de Oliveira",
+						"cpf": "***.458.912-**",
+						"address": "Rua Exemplo, 100 - Bairro Central",
+						"observation": "Dados isolados para compor o relatório confidencial com lacre e senha para autoridade judicial."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "Se o prazo de guarda legal de logs de conexão exigido pelo Marco Civil é de 1 ano (365 dias) e os logs analisados possuem 120 dias, quantos dias adicionais a empresa ainda é obrigada por lei a armazenar esse registro?",
+					"points": 5,
+					"correctAnswer": 245,
+					"tolerance": 0,
+					"unit": "dias",
+					"justification": "365 dias - 120 dias = 245 dias de retenção obrigatória restante."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Associe os termos regulatórios à sua definição técnica:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "l1", "content": "Registro de Conexão"},
+						{"id": "l2", "content": "Porta de Origem"},
+						{"id": "l3", "content": "Segredo de Justiça"}
+					],
+					"rightColumn": [
+						{"id": "r1", "content": "Conjunto de informações de hora de início e término de uma conexão de IP/Porta"},
+						{"id": "r2", "content": "Identificador numérico do socket que diferencia conexões simultâneas no CGNAT"},
+						{"id": "r3", "content": "Dever legal de restrição de acesso ao processo e aos documentos nele contidos"}
+					],
+					"correctMatches": [
+						{"left": "l1", "right": "r1"},
+						{"left": "l2", "right": "r2"},
+						{"left": "l3", "right": "r3"}
+					],
+					"justification": "Reg de Conexão é o dado temporal/IP; Porta de origem permite desacoplar o multiplexing do NAT; Segredo de justiça limita quem pode ter acesso."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Envio Seguro do Relatório",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "Criptografia da mídia/relatório entregue ao tribunal.",
+			"timeElapsed": "T+60 min",
+			"currentSituation": {
+				"reportGenerated": true,
+				"encryption": "GPG / PDF Protegido por Senha entregue por canal oficial"
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene os passos do procedimento de resposta a uma ordem judicial de fornecimento de dados:",
+					"points": 5,
+					"items": [
+						{"id": "p1", "content": "Validar a autenticidade e a competência legal da ordem com a equipe jurídica/DPO"},
+						{"id": "p2", "content": "Correlacionar os logs de CGNAT/IP/Porta com a base de dados de autenticação Radius/DHCP"},
+						{"id": "p3", "content": "Gerar o relatório cadastral confidencial e assinar digitalmente"},
+						{"id": "p4", "content": "Transmitir a resposta à autoridade solicitante via canal oficial seguro"}
+					],
+					"correctOrder": ["p1", "p2", "p3", "p4"],
+					"justification": "Validação Legal -> Correlação de Logs -> Elaboração/Assinatura do Relatório -> Envio Seguro."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Auditoria de Retenção",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Verificação das rotinas de backup e retenção de logs da infraestrutura de CGNAT.",
+			"timeElapsed": "T+90 min",
+			"currentSituation": {
+				"auditCompleted": true
+			},
+			"questions": [
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Qual o principal risco de uma empresa que não armazena as portas de origem de suas sessões de CGNAT?",
+					"points": 5,
+					"options": [
+						"Impossibilidade técnica de identificar autores de ilícitos, incorrendo em sanções por descumprimento do Marco Civil e impedimento de investigações judiciais",
+						"Queda no desempenho de roteamento BGP",
+						"Aumento no consumo de energia dos roteadores",
+						"Perda automática da licença do sistema operacional"
+					],
+					"correctAnswer": 0,
+					"justification": "A ausência de portas de origem inviabiliza a correlação no CGNAT, tornando a empresa incapaz de cumprir ordens judiciais de identificação."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 29,
+		"passingScore": 18,
+		"gradingScale": [
+			{
+				"min": 25,
+				"max": 29,
+				"grade": "Excelente",
+				"description": "Excelente conhecimento de regulamentação de logs e engenharia de CGNAT."
+			},
+			{
+				"min": 18,
+				"max": 24,
+				"grade": "Satisfatório",
+				"description": "Compreensão dos requisitos de resposta judicial e preservação de dados."
+			},
+			{
+				"min": 0,
+				"max": 17,
+				"grade": "Insuficiente",
+				"description": "Lacunas graves sobre retenção legal de registros de conexão."
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Explicar a obrigatoriedade da porta de origem no CGNAT.",
+		"Discutir o conflito entre retenção de dados pelo Marco Civil da Internet e minimização de dados pela LGPD."
+	],
+	"technicalReferences": [
+		{
+			"title": "Lei nº 12.965/2014 (Marco Civil da Internet) - Artigo 13",
+			"url": "http://www.planalto.gov.br/ccivil_03/_ato2011-2014/2014/lei/l12965.htm"
+		}
+	]
+}

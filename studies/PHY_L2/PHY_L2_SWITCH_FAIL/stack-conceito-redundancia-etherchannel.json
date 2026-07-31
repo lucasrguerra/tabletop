@@ -1,0 +1,70 @@
+{
+  "id": "stack-conceito-redundancia-etherchannel",
+  "title": "Empilhamento de Switches e Redundância Cross-Stack EtherChannel",
+  "description": "Estudo técnico sobre virtualização de plano de controle em stacks de switches (StackWise/IRF), failover de Master e agregação de links dividida entre membros da pilha.",
+  "content_type": "CONCEITO",
+  "category": {
+    "id": "PHY_L2",
+    "type": "PHY_L2_SWITCH_FAIL",
+    "title": "Redundância L2"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-07-31T10:00:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "12 minutos",
+    "difficulty": "Intermediario",
+    "targetAudience": "Engenheiros de Rede e Administradores de Infraestrutura L2/L3",
+    "prerequisites": ["stp-conceito-spanning-tree"]
+  },
+  "tags": ["Switch Stack", "EtherChannel", "Cross-Stack LACP", "StackWise", "IRF", "High Availability"],
+  "relatedScenarios": ["stack-master-switch-failure"],
+  "relatedStudies": [
+    "stp-conceito-spanning-tree",
+    "vlan-conceito-segmentacao",
+    "glossario-phy-l2"
+  ],
+  "technicalReferences": [
+    { "title": "IEEE 802.1AX - Link Aggregation", "url": "https://standards.ieee.org/ieee/802.1AX/7178/" }
+  ],
+  "content": {
+    "sections": [
+      {
+        "id": "stacking-architecture",
+        "title": "Arquitetura de Empilhamento de Switches",
+        "body": "O empilhamento (Stacking) une múltiplos switches físicos em uma única entidade lógica gerenciável com um único IP de gerenciamento e tabela CAM unificada. Um switch assume o papel de Stack Master (ou Control Plane Master), gerenciando o plano de controle de todos os demais switches da pilha (Slaves/Members). As conexões de empilhamento usam cabos proprietários de alta velocidade em topologia de anel redundante.",
+        "callout": {
+          "type": "info",
+          "text": "Se o cabo do anel de stack for desconectado em um único ponto, o throughput do backplane cai pela metade, mas a pilha permanece operacional em topologia de barramento."
+        },
+        "codeBlock": {
+          "language": "text",
+          "code": "Stack Ring Architecture:\n[Switch 1: Master] <== Stack Cable ==> [Switch 2: Member]\n       ||                                    ||\n       \\======================================/"
+        },
+        "keyPoints": [
+          "Simplifica o gerenciamento centralizando a configuração em um único IP",
+          "Eleição dinâmica de Master baseada em prioridade, hardware e uptime",
+          "Anel duplo de stacking garante continuidade em caso de rompimento de um cabo"
+        ]
+      },
+      {
+        "id": "cross-stack-etherchannel",
+        "title": "Cross-Stack EtherChannel (MEC)",
+        "body": "Multichassis EtherChannel (MEC) permite conectar interfaces de um servidor ou switch downstream divididas entre diferentes membros físicos do stack (ex: Porta 1 no Switch 1 e Porta 2 no Switch 2). Se o Switch 1 falhar completamente, o tráfego continua fluindo pela Porta 2 no Switch 2 sem necessidade de reconvergência do Spanning Tree (STP).",
+        "callout": {
+          "type": "tip",
+          "text": "Utilize sempre o protocolo LACP (IEEE 802.3ad) em vez de modo 'on' estático para garantir a detecção automática de falhas de sinal ou desconexão lógica de portas no MEC."
+        },
+        "codeBlock": {
+          "language": "bash",
+          "code": "# Configuração de Cross-Stack LACP EtherChannel (Cisco IOS)\ninterface GigabitEthernet1/0/1 # Switch 1 do Stack\n channel-group 1 mode active\n!\ninterface GigabitEthernet2/0/1 # Switch 2 do Stack\n channel-group 1 mode active\n!\ninterface Port-channel1\n switchport mode trunk"
+        },
+        "keyPoints": [
+          "Proporciona alta disponibilidade real de camada 2 sem tempo de parada",
+          "Elimina o bloqueio de portas redundantes pelo Spanning Tree Protocol",
+          "Combina largura de banda ativa de múltiplas portas em switches físicos distintos"
+        ]
+      }
+    ]
+  }
+}

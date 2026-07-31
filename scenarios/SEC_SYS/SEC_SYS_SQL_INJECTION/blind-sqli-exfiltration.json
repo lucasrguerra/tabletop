@@ -1,0 +1,244 @@
+{
+	"id": "blind-sqli-exfiltration",
+	"title": "Exfiltração de Banco de Dados por SQL Injection Cego Baseado em Tempo (Time-Based Blind SQLi)",
+	"description": "Simulação tabletop de resposta a exploração de vulnerabilidade de SQL Injection cego em portal web corporativo utilizada para extração automatizada da tabela de hashes de senhas",
+	"category": {
+		"id": "SEC_SYS",
+		"type": "SEC_SYS_SQL_INJECTION",
+		"title": "Ataque de Injeção SQL (SQLi)"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-07-31",
+		"author": "Equipe de Resposta a Incidentes",
+		"estimatedDuration": "40-50 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Desenvolvedores Web, Analistas de AppSec, Engenheiros de WAF"
+	},
+	"objectives": [
+		"Validar o diagnóstico de ataques de SQL Injection Cego baseados em tempo (Time-Based Blind SQLi)",
+		"Avaliar a eficácia de bloqueio via Web Application Firewall (WAF) usando assinaturas OWASP CRS",
+		"Testar a remediação definitiva de vulnerabilidades de SQLi no código-fonte através de Prepared Statements (Consultas Parâmetrizadas)"
+	],
+	"scope": [
+		"Exercício tabletop conceitual"
+	],
+	"baseScenario": {
+		"context": "Terça-feira às 15:00, a equipe de infraestrutura nota que as respostas da busca do portal de clientes (`/api/v1/search?id=`) estão demorando exatamente 5 segundos para retornar para determinados endereços IP externos. O volume de requisições por segundo para esse endpoint subiu 20x.",
+		"initialSituation": {
+			"alert": "WAF ANOMALY: Slow Responses (>5s) and High Request Volumetry on /api/v1/search",
+			"affectedEndpoint": "/api/v1/search?id=123",
+			"timestamp": "15:00:00"
+		},
+		"initialComplaints": [
+			"Consumo de conexões no pool do banco de dados PostgreSQL do portal web em 100%",
+			"Ferramenta automatizada de ataque (SQLMap) identificada nos logs de User-Agent"
+		],
+		"availableResources": [
+			"Logs de Acesso do WAF / Nginx / Apache",
+			"Código-fonte da API em Node.js / Python / PHP",
+			"Acesso ao painel do Web Application Firewall (Cloudflare / ModSecurity / AWS WAF)"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Análise dos Logs de Acesso da API",
+			"phase": "Preparação",
+			"description": "Inspeção das requisições HTTP e payloads enviados no parâmetro `id`.",
+			"inject": "Apresentação dos logs do Nginx.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Diagnóstico da Vulnerabilidade de SQLi Cego",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "Exame dos payloads contendo comandos `pg_sleep()` / `WAITFOR DELAY`.",
+			"timeElapsed": "T+10 min",
+			"currentSituation": {
+				"requestPattern": "`GET /api/v1/search?id=1 AND (SELECT 1 FROM pg_sleep(5))`",
+				"attackerIP": "198.51.100.99"
+			},
+			"metrics": [
+				{
+					"title": "Log de Requisições HTTP Inspecionado",
+					"type": "security-analysis",
+					"data": {
+						"payload": "id=1' UNION SELECT NULL, IF(ASCII(SUBSTRING(password_hash,1,1))=97, pg_sleep(5), 0) FROM users--",
+						"responseTime": "5.04 segundos",
+						"observation": "O atacante está extraindo caractere por caractere das hashes de senha dos usuários testando se o delay de 5 segundos é acionado (Injeção SQL Cega Baseada em Tempo)."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Como funciona um ataque de Injeção SQL Cego Baseado em Tempo (Time-Based Blind SQLi)?",
+					"points": 5,
+					"options": [
+						"O atacante injeta comandos SQL que forçam o banco de dados a aguardar um tempo determinado (ex: `pg_sleep(5)`) se uma condição verdadeira for atendida, deduzindo os dados caractere por caractere com base no tempo de resposta da aplicação",
+						"O atacante rouba a chave privada SSL enviando e-mails",
+						"O atacante insere comandos HTML no navegador do usuário",
+						"O atacante altera a hora do servidor de aplicação via protocolo NTP"
+					],
+					"correctAnswer": 0,
+					"justification": "Em SQLi cego, a aplicação não retorna mensagens de erro ou dados na tela. O atacante usa comandos de atraso (sleep) para inferir o conteúdo do banco observando a demora da resposta HTTP."
+				},
+				{
+					"id": "q2",
+					"text": "O uso exclusivo de sanitização por filtro de palavras-chave (blacklisting) no código-fonte é suficiente para eliminar completamente vulnerabilidades de SQL Injection.",
+					"type": "true-false",
+					"points": 3,
+					"correctAnswer": false,
+					"justification": "FALSO. Filtros por lista negra (blacklisting) podem ser facilmente burlados usando codificações avançadas (HEX, Unicode, comentários SQL inline). A única solução definitiva é o uso de Prepared Statements / Consultas Parametrizadas."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Contenção via WAF e Correção do Código-Fonte",
+			"phase": "Fase 2 - Contenção",
+			"description": "Ativação de regra de bloqueio emergencial no WAF e refatoração do código com Prepared Statements.",
+			"timeElapsed": "T+25 min",
+			"currentSituation": {
+				"wafRuleActive": "Bloqueado o IP 198.51.100.99 e ativada a regra CRS 942100 (SQLi Protection)",
+				"codePatched": "Código refatorado para utilizar consultas parametrizadas"
+			},
+			"metrics": [
+				{
+					"title": "Diff do Código-Fonte Refatorado",
+					"type": "server-status",
+					"data": {
+						"vulnerableCode": "db.query(`SELECT * FROM products WHERE id = ${req.query.id}`)",
+						"secureCode": "db.query('SELECT * FROM products WHERE id = $1', [req.query.id])",
+						"observation": "A consulta parametrizada trata a entrada do usuário estritamente como dado/literal, impedindo a interpretação de comandos SQL maliciosos."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "Se o atacante precisa de 8 testes por caractere e uma hash tem 60 caracteres, quantas requisições HTTP individuais foram enviadas para extrair uma única hash?",
+					"points": 5,
+					"correctAnswer": 480,
+					"tolerance": 0,
+					"unit": "requisições",
+					"justification": "8 testes * 60 caracteres = 480 requisições."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Relacione as técnicas de mitigação de SQLi ao seu impacto:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "q1", "content": "Prepared Statements (Parameterized Queries)"},
+						{"id": "q2", "content": "WAF SQLi Rule Set"},
+						{"id": "q3", "content": "Princípio do Menor Privilégio no DB"}
+					],
+					"rightColumn": [
+						{"id": "r1", "content": "Solução definitiva no código que separa a instrução SQL dos dados do usuário"},
+						{"id": "r2", "content": "Camada de defesa perimetral que inspeciona o tráfego HTTP e descarta payloads maliciosos conhecidos"},
+						{"id": "r3", "content": "Restrição de permissões da conta da aplicação no banco (ex: sem acesso a pg_sleep ou tabelas do sistema)"}
+					],
+					"correctMatches": [
+						{"left": "q1", "right": "r1"},
+						{"left": "q2", "right": "r2"},
+						{"left": "q3", "right": "r3"}
+					],
+					"justification": "Prepared Statements corrige o código; WAF filtra percorrência na borda; Menor privilégio no DB limita o dano de execuções maliciosas."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Análise do Impacto de Vazamento",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "Auditoria de logs do banco para identificar quais tabelas foram consultadas durante o ataque.",
+			"timeElapsed": "T+45 min",
+			"currentSituation": {
+				"auditLogAnalyzed": "Confirmado o vazamento parcial de 15 hashes de senhas de contas de teste",
+				"passwordResetTriggered": true
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene os passos para solução e mitigação de vulnerabilidades de SQL Injection:",
+					"points": 5,
+					"items": [
+						{"id": "s1", "content": "Identificar a tentativa de exploração observando delays anômalos ou erros de sintaxe nos logs de aplicação"},
+						{"id": "s2", "content": "Aplicar regra temporária de bloqueio do payload no Web Application Firewall (WAF)"},
+						{"id": "s3", "content": "Refatorar a consulta vulnerável no código-fonte utilizando Prepared Statements (Consultas Parametrizadas)"},
+						{"id": "s4", "content": "Executar testes de invasão (Pentest) e varreduras DAST para validar a correção da vulnerabilidade"}
+					],
+					"correctOrder": ["s1", "s2", "s3", "s4"],
+					"justification": "Identificação dos Logs -> Bloqueio WAF emergencial -> Correção com Prepared Statements -> Testes Pentest/DAST."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Integração de SAST/DAST na Pipeline CI/CD",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Adição de verificações automatizadas de segurança de código na esteira de desenvolvimento.",
+			"timeElapsed": "T+60 min",
+			"currentSituation": {
+				"incidentResolved": true
+			},
+			"questions": [
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Qual a prática recomendada de desenvolvimento seguro (DevSecOps) para evitar que vulnerabilidades de SQLi sejam publicadas em produção?",
+					"points": 5,
+					"options": [
+						"Integrar ferramentas de Análise Estática de Segurança (SAST) na pipeline de CI/CD para bloquear commits com concatenação direta de SQL",
+						"Pedir aos programadores que não usem a letra 'SQL' nos nomes das variáveis",
+						"Desativar os testes de software",
+						"Rodar a aplicação em modo root"
+					],
+					"correctAnswer": 0,
+					"justification": "Ferramentas SAST analisam o código-fonte antes da compilação/deploy e identificam automaticamente concatenações inseguras de SQL na esteira de CI/CD."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 29,
+		"passingScore": 18,
+		"gradingScale": [
+			{
+				"min": 25,
+				"max": 29,
+				"grade": "Excelente",
+				"description": "Excelente conhecimento de vulnerabilidades web (OWASP Top 10), SQLi, WAF e desenvolvimento seguro."
+			},
+			{
+				"min": 18,
+				"max": 24,
+				"grade": "Satisfatório",
+				"description": "Boa compreensão de Prepared Statements e contenção via WAF."
+			},
+			{
+				"min": 0,
+				"max": 17,
+				"grade": "Insuficiente",
+				"description": "Dificuldades em compreender falhas de injeção de código."
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Demonstrar a diferença entre SQLi Baseado em Erro, Baseado em União e Cego (Time-Based / Boolean-Based).",
+		"Explicar a sintaxe de Prepared Statements em diferentes linguagens (Python, Node.js, Java, PHP)."
+	],
+	"technicalReferences": [
+		{
+			"title": "OWASP SQL Injection Prevention Cheat Sheet",
+			"url": "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html"
+		}
+	]
+}

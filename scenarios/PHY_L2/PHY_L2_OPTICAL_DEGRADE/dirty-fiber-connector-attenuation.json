@@ -1,0 +1,249 @@
+{
+	"id": "dirty-fiber-connector-attenuation",
+	"title": "Degradação Gradual de Sinal Óptico por Sujeira em Conectores de Fibra",
+	"description": "Simulação tabletop de resposta a erro intermitente e perda de pacotes em enlace de 100Gbps provocado por contaminação de poeira na face terminal do conector LC/MPO",
+	"category": {
+		"id": "PHY_L2",
+		"type": "PHY_L2_OPTICAL_DEGRADE",
+		"title": "Degradação de Sinal Óptico (High BER)"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-07-31",
+		"author": "Equipe de Resposta a Incidentes",
+		"estimatedDuration": "35-45 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Técnicos de Datacenter, Engenheiros de Redes, Suporte de Infraestrutura"
+	},
+	"objectives": [
+		"Validar a interpretação de dados DDM/DOM (Digital Diagnostics Monitoring) em módulos SFP+/QSFP28",
+		"Avaliar a correlação entre níveis de atenuação óptica (dBm) e a taxa de erros de bits (BER / Frame CRC Errors)",
+		"Testar o procedimento padrão de inspeção com microscópio óptico e limpeza de conectores de fibra"
+	],
+	"scope": [
+		"Exercício tabletop conceitual"
+	],
+	"baseScenario": {
+		"context": "Terça-feira às 14:00, o sistema de monitoramento registra acúmulo de erros de CRC e descarte de quadros (Input Errors / CRC Drop) no enlace QSFP28 de 100Gbps entre os switches Core-01 e Spined-02.",
+		"initialSituation": {
+			"alert": "INTERFACE ETH1/1 WARNING: High Bit Error Rate (BER) & CRC Errors > 10.000/min",
+			"affectedInterface": "Ethernet1/1 (QSFP28 100G SR4)",
+			"timestamp": "14:00:00"
+		},
+		"initialComplaints": [
+			"Retransmissões TCP lentas e queda inesperada de vazão em transferências de dados pesadas",
+			"A interface permanece com o estado físico UP/UP, porém apresenta perda intermitente de pacotes (1% a 3%)"
+		],
+		"availableResources": [
+			"Comandos de Diagnóstico DDM/DOM no switch (`show interface transceiver details`)",
+			"Caneta de Limpeza de Fibra (One-Click Cleaner) e Kit Isopropílico/Cassete",
+			"Microscópio de Inspeção de Conector de Fibra Óptica (VPM / Fiber Scope)"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Detecção de Erros de CRC e BER",
+			"phase": "Preparação",
+			"description": "Análise dos contadores de erro na interface Ethernet de 100G.",
+			"inject": "Apresentação dos relatórios estatísticos da interface física.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Diagnóstico dos Níveis de Potência DDM/DOM",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "Consulta aos valores de Rx Power (Potência Óptica Recebida) de cada uma das 4 vias do QSFP28.",
+			"timeElapsed": "T+10 min",
+			"currentSituation": {
+				"interfaceState": "UP/UP",
+				"crcErrors": "14.500 erros CRC por minuto"
+			},
+			"metrics": [
+				{
+					"title": "Saída de `show interface Ethernet1/1 transceiver details`",
+					"type": "network-analysis",
+					"data": {
+						"lane1RxPower": "-2.5 dBm (Normal)",
+						"lane2RxPower": "-2.8 dBm (Normal)",
+						"lane3RxPower": "-14.2 dBm (LOW ALARM - Sensitivity Limit -11 dBm)",
+						"lane4RxPower": "-2.6 dBm (Normal)",
+						"observation": "Apenas a Lane 3 apresenta queda severa na potência óptica de recepção (-14.2 dBm), ultrapassando a sensibilidade do receptor e gerando a degradação de BER."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Com base na leitura DDM onde apenas uma das 4 lanes do transceptor 100G QSFP28 apresenta atenuação crítica (-14.2 dBm), qual a causa mais provável?",
+					"points": 5,
+					"options": [
+						"Contaminação por sujeira/poeira na ponta da fibra correspondente ao pino/lane 3 do conector MPO/MTP ou conector LC",
+						"O switch sofreu uma invasão hacker que alterou a luz do laser",
+						"O protocolo Spanning Tree bloqueou a lane 3",
+						"A tensão elétrica da tomada caiu 50%"
+					],
+					"correctAnswer": 0,
+					"justification": "Poeira, gordura ou detritos depositados na ponta do ferrolho da fibra provocam atenuação localizada e refração de luz, reduzindo drasticamente a potência óptica recebida (Rx) naquela via específica."
+				},
+				{
+					"id": "q2",
+					"text": "Conectar um cabo de fibra óptico sem realizar a inspeção visual prévia e a limpeza apropriada é uma das principais causas de danos permanentes e contaminação em transceptores de datacenter.",
+					"type": "true-false",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. Partículas de sujeira pressionadas durante o acoplamento mecânico podem arranhar a fibra de quartzo ou queimar com a potência do laser, gerando danos irreversíveis."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Inspeção e Limpeza do Conector",
+			"phase": "Fase 2 - Contenção",
+			"description": "Procedimento de desconexão, inspeção com microscópio óptico e limpeza limpa (dry/wet cleaning).",
+			"timeElapsed": "T+25 min",
+			"currentSituation": {
+				"inspectionCompleted": "Confirmado ponto de poeira sobre o núcleo da fibra da Lane 3 no microscópio",
+				"cleaningPerformed": "Limpeza executada com caneta One-Click Cleaner MPO"
+			},
+			"metrics": [
+				{
+					"title": "Leitura DDM Pós-Limpeza",
+					"type": "server-status",
+					"data": {
+						"lane1RxPower": "-2.5 dBm",
+						"lane2RxPower": "-2.7 dBm",
+						"lane3RxPower": "-2.6 dBm (RECUPERADO)",
+						"lane4RxPower": "-2.5 dBm",
+						"crcErrors": "0 erros CRC",
+						"observation": "Após a limpeza, a potência da Lane 3 retornou ao valor normal de -2.6 dBm e o acúmulo de erros CRC zerou."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "Se a potência do sinal na Lane 3 era de -14.2 dBm e subiu para -2.6 dBm após a limpeza, de quantos dB foi a melhoria de ganho do sinal óptico?",
+					"points": 5,
+					"correctAnswer": 11.6,
+					"tolerance": 0.1,
+					"unit": "dB",
+					"justification": "-2.6 dBm - (-14.2 dBm) = 11.6 dB de melhoria."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Relacione os termos de diagnóstico óptico às suas definições:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "d1", "content": "DDM / DOM"},
+						{"id": "d2", "content": "Rx Power (dBm)"},
+						{"id": "d3", "content": "Tx Bias Current (mA)"}
+					],
+					"rightColumn": [
+						{"id": "r1", "content": "Monitoramento digital de parâmetros internos do transceptor (Temperatura, Tensão, Rx/Tx Power)"},
+						{"id": "r2", "content": "Medida em decibéis-miliwatts da potência do sinal óptico que chega ao receptor"},
+						{"id": "r3", "content": "Corrente elétrica aplicada ao laser para geração de luz (indica envelhecimento do componente)"}
+					],
+					"correctMatches": [
+						{"left": "d1", "right": "r1"},
+						{"left": "d2", "right": "r2"},
+						{"left": "d3", "right": "r3"}
+					],
+					"justification": "DDM monitora dados do transceptor; Rx Power mede sinal recebido; Tx Bias mede corrente do laser."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Validação de Estabilidade do Enlace",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "Monitoramento da taxa de erros de CRC durante 15 minutos em carga máxima.",
+			"timeElapsed": "T+40 min",
+			"currentSituation": {
+				"linkPerformance": "100 Gbps sustentados sem perda de pacotes",
+				"berStatus": "Pass"
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene os passos para solução de degradação de sinal por sujeira em fibras ópticas:",
+					"points": 5,
+					"items": [
+						{"id": "c1", "content": "Consultar os valores de Rx Power e alarmes DDM nas interfaces que registram erros de CRC"},
+						{"id": "c2", "content": "Desconectar a fibra com segurança e inspecionar a face do conector com microscópio óptico"},
+						{"id": "c3", "content": "Realizar a limpeza do ferrolho utilizando canetas ou cassetes de limpeza adequados"},
+						{"id": "c4", "content": "Reconectar o cabo e validar a recuperação dos níveis de potência (dBm) e zeramento dos erros"}
+					],
+					"correctOrder": ["c1", "c2", "c3", "c4"],
+					"justification": "Consulta DDM -> Inspeção via Microscópio -> Limpeza -> Reconexão e Validação DDM."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Boas Práticas de Manuseio de Fibras",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Inclusão da obrigatoriedade do protocolo 'Inspect Before You Connect' na rotina da equipe de datacenter.",
+			"timeElapsed": "T+55 min",
+			"currentSituation": {
+				"incidentResolved": true
+			},
+			"questions": [
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Qual a orientação padrão recomendada pela norma IEC 61300-3-35 para conexões de fibra em datacenters?",
+					"points": 5,
+					"options": [
+						"Inspecionar a ponta do conector com microscópio e limpar SEMPRE antes de realizar qualquer conexão (Inspect Before You Connect)",
+						"Assoprar com a boca a ponta da fibra para tirar a poeira",
+						"Limpar os conectores na roupa antes de encaixar",
+						"Deixar os conectores sem capas de proteção em cima dos racks"
+					],
+					"correctAnswer": 0,
+					"justification": "A norma e a metodologia 'Inspect Before You Connect' exigem inspeção óptica visual e limpeza com produtos adequados antes de qualquer acoplamento."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 29,
+		"passingScore": 18,
+		"gradingScale": [
+			{
+				"min": 25,
+				"max": 29,
+				"grade": "Excelente",
+				"description": "Excelente conhecimento de diagnósticos DDM, física de conectores e mitigação de atenuação."
+			},
+			{
+				"min": 18,
+				"max": 24,
+				"grade": "Satisfatório",
+				"description": "Boa compreensão dos parâmetros de potência Rx e procedimentos de limpeza."
+			},
+			{
+				"min": 0,
+				"max": 17,
+				"grade": "Insuficiente",
+				"description": "Dificuldades em correlacionar erros CRC a problemas físicos de camada ópticos."
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Explicar como converter valores em dBm e a relação de escala logarítmica (3dB = metade/dobro da potência).",
+		"Demonstrar imagens de conectores contaminados em microscópio."
+	],
+	"technicalReferences": [
+		{
+			"title": "IEC 61300-3-35 - Fiber Optic Interconnecting Devices Inspection Standard",
+			"url": "https://webstore.iec.ch/publication/5144"
+		}
+	]
+}

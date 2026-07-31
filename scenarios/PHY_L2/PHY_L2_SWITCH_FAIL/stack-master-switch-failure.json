@@ -1,0 +1,247 @@
+{
+	"id": "stack-master-switch-failure",
+	"title": "Queda Crítica do Switch Master em Empilhamento de Acesso (Stacking Failure)",
+	"description": "Simulação tabletop de resposta a falha catastrófica de hardware no nó Master de um empilhamento de switches (Stack) e eleição do nó Standby sem perda de plano de controle",
+	"category": {
+		"id": "PHY_L2",
+		"type": "PHY_L2_SWITCH_FAIL",
+		"title": "Falha de Switch / Empilhamento (Stack Failure)"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-07-31",
+		"author": "Equipe de Resposta a Incidentes",
+		"estimatedDuration": "40-50 minutos",
+		"difficulty": "Avançado",
+		"targetAudience": "Engenheiros de Redes, Administradores de Switches de Acesso e Datacenter"
+	},
+	"objectives": [
+		"Validar o processo de failover de plano de controle em empilhamentos de switches (Cisco StackWise / Juniper Virtual Chassis / Aruba VSF)",
+		"Avaliar os efeitos da eleição de novo nó Master e o comportamento dos links de Cross-Stack EtherChannel",
+		"Testar o diagnóstico de cabos de empilhamento danificados e prevenção do efeito Dual-Active (Split-Brain)"
+	],
+	"scope": [
+		"Exercício tabletop conceitual"
+	],
+	"baseScenario": {
+		"context": "Terça-feira às 11:00, o switch Master (Switch 1) de um empilhamento de 4 membros no Core-Acesso sofre uma falha fatal de placa mãe/fonte e desliga abruptamente. O empilhamento precisa reeleger o nó Standby (Switch 2) sem causar a perda de configuração ou desconexão dos servidores conectados via EtherChannel distribuído.",
+		"initialSituation": {
+			"alert": "STACK MEMBER DOWN: Switch 1 (Master) lost connection to stack ring",
+			"affectedStack": "Stack-Core-Building-A (4 switches empilhados)",
+			"timestamp": "11:00:00"
+		},
+		"initialComplaints": [
+			"Desconexão temporária das estações de trabalho conectadas diretamente às portas físicas do Switch 1",
+			"Logs de reconvergência do plano de gerenciamento do empilhamento"
+		],
+		"availableResources": [
+			"Console Serial de Gerenciamento do Switch 2 (Standby)",
+			"Cabos de empilhamento StackWise / VSF dedicados",
+			"Mecanismos de detecção Dual-Active (Fast-Hello / PagP Dual-Active Detection)"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Recebimento do Alerta de Perda do Nó Master",
+			"phase": "Preparação",
+			"description": "Análise dos alarmes de alteração de topologia do empilhamento.",
+			"inject": "Apresentação dos logs do syslog do empilhamento.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Análise do Failover de Plano de Controle",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "Inspeção do processo de eleição do novo nó Master e estado das portas físicas.",
+			"timeElapsed": "T+10 min",
+			"currentSituation": {
+				"stackStatus": "Switch 2 assumiu como Master (Role: Active Master)",
+				"switch1State": "REMOVED / UNREACHABLE",
+				"activeMembers": "Switch 2, Switch 3, Switch 4"
+			},
+			"metrics": [
+				{
+					"title": "Saída de `show switch` no Novo Master",
+					"type": "server-status",
+					"data": {
+						"switch1": "1 | Member | Disabled | Mac: 0011.2200.0001 (OFFLINE)",
+						"switch2": "2 | Master | Ready    | Mac: 0011.2200.0002 (ACTIVE)",
+						"switch3": "3 | Member | Ready    | Mac: 0011.2200.0003 (STANDBY)",
+						"switch4": "4 | Member | Ready    | Mac: 0011.2200.0004 (MEMBER)",
+						"observation": "O Switch 2 assumiu o papel de Master. As configurações de IP de gerência e rotas foram preservadas. O tráfego dos servidores dual-homed continua fluindo pelas portas dos switches 2, 3 e 4."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Qual o benefício da arquitetura de EtherChannel Distribuído (Cross-Stack EtherChannel) durante a queda física do Switch Master do empilhamento?",
+					"points": 5,
+					"options": [
+						"Permite que os servidores conectados com links agregados distribuídos entre diferentes switches da pilha continuem transmitindo dados pelos membros remanescentes sem qualquer interrupção de conectividade",
+						"Aumenta a memória RAM do switch que queimou",
+						"Permite que o switch continue funcionando sem energia",
+						"Reduz a taxa de transmissão do link para 10 Mbps"
+					],
+					"correctAnswer": 0,
+					"justification": "Ao distribuir os links de um LACP/EtherChannel entre diferentes switches físicos da pilha (Cross-Stack), a morte completa de um nó não derruba o tráfego do servidor, que continua fluindo pelas portas dos outros nós."
+				},
+				{
+					"id": "q2",
+					"text": "O cenário de 'Split-Brain' ou 'Dual-Active' ocorre quando o anel de empilhamento se rompe e dois switches passam a responder com o mesmo endereço IP de gerenciamento simultaneamente.",
+					"type": "true-false",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. Se a comunicação entre os membros for totalmente cortada enquanto ambos estão ligados, ambos tentarão virar Master gerando um conflito grave de IP e MAC (Dual-Active)."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Substituição do Hardware e Reintegração na Pilha",
+			"phase": "Fase 2 - Contenção",
+			"description": "Substituição física da unidade defeituosa (Switch 1) e reconexão dos cabos de empilhamento.",
+			"timeElapsed": "T+30 min",
+			"currentSituation": {
+				"replacementUnit": "Instalado novo Switch 1 sobressalente de mesmo modelo e versão de firmware",
+				"stackRing": "Cabos de empilhamento reconectados formando o anel fechado (Stack Ring Redundant)"
+			},
+			"metrics": [
+				{
+					"title": "Métricas da Topologia de Empilhamento",
+					"type": "server-status",
+					"data": {
+						"stackRingSpeed": "480 Gbps (Full Ring)",
+						"switch1Provisioned": "Ingressou como 'Member' sem roubar a liderança do Switch 2",
+						"observation": "A prioridade do Switch 2 como Master atual foi mantida, e o novo Switch 1 recebeu a configuração salva sincronizada automaticamente."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "Se o empilhamento possuía 4 switches e 1 queimou, qual o percentual de nós da pilha que permaneceu operacional durante o incidente?",
+					"points": 5,
+					"correctAnswer": 75,
+					"tolerance": 0,
+					"unit": "%",
+					"justification": "(3 / 4) * 100 = 75%."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Relacione as proteções e funções de empilhamento aos seus conceitos:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "k1", "content": "Stack Master / Active"},
+						{"id": "k2", "content": "Stack Member / Standby"},
+						{"id": "k3", "content": "Dual-Active Detection"}
+					],
+					"rightColumn": [
+						{"id": "r1", "content": "Nó responsável pelo gerenciamento do plano de controle e console centralizada da pilha"},
+						{"id": "r2", "content": "Nó preparado para assumir a liderança da pilha imediatamente caso o Master falhe"},
+						{"id": "r3", "content": "Mecanismo que desativa as portas de um nó em caso de fragmentação do anel para evitar conflito de IP"}
+					],
+					"correctMatches": [
+						{"left": "k1", "right": "r1"},
+						{"left": "k2", "right": "r2"},
+						{"left": "k3", "right": "r3"}
+					],
+					"justification": "Master gerencia; Standby assume em failover; Dual-Active Detection evita conflitos de Split-Brain."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Sincronização de Software e Licenciamento",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "Verificação do alinhamento da versão do sistema operacional no novo nó.",
+			"timeElapsed": "T+50 min",
+			"currentSituation": {
+				"softwareVersion": "OS V16.12.05 sincronizada em todos os 4 switches",
+				"stackHealthy": true
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene os passos para a substituição segura de um nó defeituoso em um empilhamento:",
+					"points": 5,
+					"items": [
+						{"id": "c1", "content": "Verificar se o novo Master (Standby) assumiu a operação e dreno o tráfego do nó quebrado"},
+						{"id": "c2", "content": "Desligar fisicamente a unidade danificada e desconectar seus cabos de empilhamento e rede"},
+						{"id": "c3", "content": "Garantir que a nova unidade sobressalente possua a mesma versão de sistema operacional (IOS/JunOS)"},
+						{"id": "c4", "content": "Conectar os cabos de empilhamento no novo switch e ligá-lo para sincronização automática da configuração"}
+					],
+					"correctOrder": ["c1", "c2", "c3", "c4"],
+					"justification": "Validação de Failover -> Remoção do hardware danificado -> Igualação de Firmware -> Conexão e Auto-sync."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Melhorias de Arquitetura de Empilhamento",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Configuração da prioridade de Master (Priority) e ativação do Dual-Active Fast-Hello.",
+			"timeElapsed": "T+65 min",
+			"currentSituation": {
+				"incidentResolved": true
+			},
+			"questions": [
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Qual o comando/prática recomendada para garantir que um determinado switch seja sempre a PRIMEIRA escolha para assumir a liderança do empilhamento?",
+					"points": 5,
+					"options": [
+						"Configurar um valor de prioridade de empilhamento mais alto (ex: `switch 1 priority 15`) no nó desejado",
+						"Trocar a cor do cabo de console",
+						"Deixar o valor de prioridade em 1 em todos os nós",
+						"Desligar os outros switches toda vez que o Master for ligado"
+					],
+					"correctAnswer": 0,
+					"justification": "O parâmetro de prioridade (Priority) define a preferência na eleição da Stack Master. O switch com maior valor numérico de prioridade vence a eleição."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 29,
+		"passingScore": 18,
+		"gradingScale": [
+			{
+				"min": 25,
+				"max": 29,
+				"grade": "Excelente",
+				"description": "Excelente conhecimento de arquiteturas de empilhamento de switches e alta disponibilidade L2."
+			},
+			{
+				"min": 18,
+				"max": 24,
+				"grade": "Satisfatório",
+				"description": "Boa compreensão dos papéis Master/Standby e agregação Cross-Stack."
+			},
+			{
+				"min": 0,
+				"max": 17,
+				"grade": "Insuficiente",
+				"description": "Dificuldades em compreender o funcionamento de pilhas de comutação."
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Explicar a diferença entre empilhamento por cabo dedicado (StackWise/Virtual Chassis) e empilhamento por portas de rede (VSF/MLAG).",
+		"Discutir o mecanismo de auto-upgrade de imagem em pilhas de switches."
+	],
+	"technicalReferences": [
+		{
+			"title": "Cisco StackWise Architecture Whitepaper",
+			"url": "https://www.cisco.com/c/en/us/products/collateral/switches/catalyst-9300-series-switches/white-paper-c11-741489.html"
+		}
+	]
+}

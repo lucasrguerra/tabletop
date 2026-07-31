@@ -1,0 +1,244 @@
+{
+	"id": "ats-failure-dual-feed",
+	"title": "Falha na Chave de Transferência Automática (ATS) e Desarme de Disjuntor em Datacenter",
+	"description": "Simulação tabletop de resposta a desligamento parcial de racks de servidores por falha mecânica/elétrica na Chave de Transferência Automática (ATS) durante transição para gerador",
+	"category": {
+		"id": "PHY_L2",
+		"type": "PHY_L2_POWER_OUTAGE",
+		"title": "Falha no Sistema de Energia / Nobreak / ATS"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-07-31",
+		"author": "Equipe de Resposta a Incidentes",
+		"estimatedDuration": "40-50 minutos",
+		"difficulty": "Avançado",
+		"targetAudience": "Engenheiros de Facilidades/Infraestrutura, Administradores de Datacenter e SysAdmins"
+	},
+	"objectives": [
+		"Validar a resposta a falhas de redundância de energia (Alimentação A+B / Dual Feed) em racks de alta densidade",
+		"Avaliar os procedimentos de restabelecimento seguro de cargas elétricas evitando picos de Inrush Current",
+		"Testar o protocolo de failover e priorização de ligamento de equipamentos de rede e armazenamento"
+	],
+	"scope": [
+		"Exercício tabletop conceitual"
+	],
+	"baseScenario": {
+		"context": "Segunda-feira às 15:30, ocorre um pico na rede elétrica da concessionária. O sistema de No-Break (UPS) assume o Datacenter e os grupos geradores iniciam. Porém, a Chave de Transferência Automática (ATS) do Rack 12 a 15 trava em neutro, desalimentando todos os equipamentos de fonte simples (Single Power Supply) e derrubando metade das PDU A dos servidores Dual-Feed.",
+		"initialSituation": {
+			"alert": "CRITICAL POWER LOSS: ATS-Rack-04 Transfer Failed / PDU-A Mains Offline",
+			"affectedRacks": "Racks 12, 13, 14, 15",
+			"timestamp": "15:30:00"
+		},
+		"initialComplaints": [
+			"Desligamento imediato de 18 servidores de aplicações legadas (Single Corded)",
+			"Servidores Dual-Corded reportam perda do feeder A e aumento de consumo na PDU B"
+		],
+		"availableResources": [
+			"Chave de Transferência Estática / Automática (ATS / STS)",
+			"Nobreaks / UPS Principais e Grupos Geradores a Diesel",
+			"Bypass Manual de Manutenção do Quadro Elétrico (QTD)"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Notificação de Queda de Energia no Rack",
+			"phase": "Preparação",
+			"description": "Análise dos alarmes de telemetria das PDUs e chaves ATS.",
+			"inject": "Apresentação dos alarmes do sistema BMS (Building Management System).",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Diagnóstico do Comportamento da Chave ATS",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "Inspeção do estado físico e elétrico do quadro de distribuição dos Racks 12-15.",
+			"timeElapsed": "T+15 min",
+			"currentSituation": {
+				"atsState": "FAULT / Neutral Position (Não comutou da concessionária para o gerador)",
+				"affectedEquipment": "18 servidores Single-Corded desligados totalmente; 40 servidores Dual-Corded operando apenas na PDU B"
+			},
+			"metrics": [
+				{
+					"title": "Métricas da PDU-B (Feed de Contingência)",
+					"type": "server-status",
+					"data": {
+						"pduBCurrent": "28.5 Amperes (Limite do disjuntor 32A - Risco iminente de desarme por sobrecarga)",
+						"voltage": "220V",
+						"observation": "Com a perda do Feed A, toda a carga do rack migrou instantaneamente para a PDU B. A PDU B está operando a 89% da capacidade do disjuntor."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Por que a perda de uma das alimentações em um ambiente de servidores Dual-Feed pode causar o desarmamento em cadeia da alimentação remanescente (PDU B)?",
+					"points": 5,
+					"options": [
+						"Porque se os racks estivessem operando com mais de 50% de carga no total acumulado, a consolidação de toda a corrente elétrica em apenas uma PDU ultrapassa a capacidade do disjuntor, causando o desarme térmico/magnético",
+						"Porque a PDU B é desligada automaticamente pelo sistema operacional Linux",
+						"Porque o sinal de rede para de funcionar sem a PDU A",
+						"Porque as fontes de alimentacao explodem se perderem a fase"
+					],
+					"correctAnswer": 0,
+					"justification": "Para garantir redundância N+1 ou 2N efetiva, nenhum feeder (A ou B) deve operar com carga superior a 50%. Caso contrário, a falha de um canal causará a sobrecarga e desarme da PDU remanescente."
+				},
+				{
+					"id": "q2",
+					"text": "Equipamentos com apenas uma fonte de alimentação (Single-Corded) devem ser conectados a chaves de transferência ATS de rack para garantir redundância a partir de duas PDUs independentes.",
+					"type": "true-false",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. A chave ATS de rack recebe entrada da PDU A e da PDU B e entrega uma saída única comutável para equipamentos Single-Corded."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Comutação para Bypass Manual de Manutenção",
+			"phase": "Fase 2 - Contenção",
+			"description": "Isolamento da ATS defeituosa e manobra para chave de Bypass manual.",
+			"timeElapsed": "T+30 min",
+			"currentSituation": {
+				"bypassActivated": "Bypass manual acionado alimentando a PDU A diretamente do gerador",
+				"voltageRestored": "220V restabelecido na PDU A"
+			},
+			"metrics": [
+				{
+					"title": "Status Elétrico dos Racks Pós-Bypass",
+					"type": "server-status",
+					"data": {
+						"pduACurrent": "14.2 A",
+						"pduBCurrent": "14.3 A",
+						"observation": "Carga dividida com sucesso em 50% para cada PDU, eliminando o risco de sobrecarga."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "Se a PDU A consumia 14 Amperes e a PDU B consumia 14 Amperes antes da falha, qual a corrente total em Amperes que ficou concentrada na PDU B durante o período de colapso do Feed A?",
+					"points": 5,
+					"correctAnswer": 28,
+					"tolerance": 0,
+					"unit": "Amperes",
+					"justification": "14A + 14A = 28 Amperes."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Associe os componentes da arquitetura de energia de datacenter aos seus papéis:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "e1", "content": "ATS / STS"},
+						{"id": "e2", "content": "PDU de Rack"},
+						{"id": "e3", "content": "Inrush Current"}
+					],
+					"rightColumn": [
+						{"id": "r1", "content": "Chave que alterna ultrarrapidamente a alimentação entre duas fontes independentes"},
+						{"id": "r2", "content": "Régua de distribuição de energia interna do rack de TI com medição de corrente"},
+						{"id": "r3", "content": "Pico inicial de corrente elétrica exigido por equipamentos ao serem ligados simultaneamente"}
+					],
+					"correctMatches": [
+						{"left": "e1", "right": "r1"},
+						{"left": "e2", "right": "r2"},
+						{"left": "e3", "right": "r3"}
+					],
+					"justification": "ATS comuta fontes; PDU distribui no rack; Inrush Current é o surto inicial de partida dos equipamentos."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Procedimento de Religamento Sequencial de Servidores",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "Religamento controlado das máquinas Single-Corded para evitar surto de Inrush Current.",
+			"timeElapsed": "T+50 min",
+			"currentSituation": {
+				"sequentialPowerOn": "Religados 3 servidores a cada 2 minutos via gerência IPMI/iDRAC",
+				"inrushMitigated": true
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene os passos para a religação segura de equipamentos de TI após uma queda de energia no rack:",
+					"points": 5,
+					"items": [
+						{"id": "p1", "content": "Isolar a chave ATS defeituosa e estabilizar as tensões nas PDUs A e B"},
+						{"id": "p2", "content": "Religar primeiramente os switches de rede e armazenamento (SAN/NAS)"},
+						{"id": "p3", "content": "Religar sequencialmente os servidores em lotes espaçados para evitar picos de Inrush Current"},
+						{"id": "p4", "content": "Validar a inicialização das aplicações e bancos de dados"}
+					],
+					"correctOrder": ["p1", "p2", "p3", "p4"],
+					"justification": "Estabilização de Energia -> Rede/Storage -> Servidores em Lotes -> Aplicações."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Melhoria de Redundância e Dimensionamento",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Revisão dos limites de carga de 50% por PDU em todos os racks do datacenter.",
+			"timeElapsed": "T+75 min",
+			"currentSituation": {
+				"incidentResolved": true
+			},
+			"questions": [
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Qual a regra fundamental de dimensionamento de carga elétrica para garantir que um rack Dual-Feed não sofra queda se a PDU A falhar?",
+					"points": 5,
+					"options": [
+						"A soma total da corrente consumida no rack jamais deve ultrapassar 50% da capacidade nominal de uma única PDU/Disjuntor",
+						"Manter a carga total em 95% em ambas as PDUs",
+						"Desativar as fontes redundantes dos servidores para economizar energia",
+						"Conectar todas as fontes na mesma tomada sem disjuntor"
+					],
+					"correctAnswer": 0,
+					"justification": "Garantir no máximo 50% de uso por PDU assegura que se um lado cair, o outro lado absorverá 100% da carga sem desarmar o disjuntor."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 29,
+		"passingScore": 18,
+		"gradingScale": [
+			{
+				"min": 25,
+				"max": 29,
+				"grade": "Excelente",
+				"description": "Excelente conhecimento de engenharia elétrica de datacenters, ATS e gerenciamento de carga."
+			},
+			{
+				"min": 18,
+				"max": 24,
+				"grade": "Satisfatório",
+				"description": "Boa compreensão dos limites de carga de PDUs e religamento sequencial."
+			},
+			{
+				"min": 0,
+				"max": 17,
+				"grade": "Insuficiente",
+				"description": "Dificuldades com conceitos de redundância de energia Dual-Feed."
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Explicar o fenômeno do Inrush Current quando centenas de fontes de alimentação iniciam os capacitores simultaneamente.",
+		"Discutir a diferença entre ATS (Automatic Transfer Switch - eletromecânico) e STS (Static Transfer Switch - semicondutor ultrarrápido)."
+	],
+	"technicalReferences": [
+		{
+			"title": "TIA-942 - Telecommunications Infrastructure Standard for Data Centers",
+			"url": "https://tiaonline.org/standards/tia-942/"
+		}
+	]
+}

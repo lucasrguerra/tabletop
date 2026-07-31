@@ -1,0 +1,71 @@
+{
+  "id": "pki-conceito-gestao-certificados-mtls",
+  "title": "Gestão de Certificados Digitais PKI, CAs Internas e mTLS",
+  "description": "Estudo sobre infraestrutura de chaves públicas (PKI), automação do ciclo de vida de certificados X.509 via protocolo ACME e autenticação mTLS em microsserviços.",
+  "content_type": "CONCEITO",
+  "category": {
+    "id": "GOV_LEGAL",
+    "type": "GOV_LEGAL_CERT_EXPIRY",
+    "title": "Governança e PKI"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-07-31T10:00:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "13 minutos",
+    "difficulty": "Intermediario",
+    "targetAudience": "Analistas de Governança, Arquitetos de Segurança e Engenheiros DevOps",
+    "prerequisites": ["lgpd-conceito-notificacao"]
+  },
+  "tags": ["PKI", "Certificados", "X.509", "mTLS", "ACME", "Cert-Manager", "Governança"],
+  "relatedScenarios": ["internal-api-ca-expiry"],
+  "relatedStudies": [
+    "lgpd-conceito-notificacao",
+    "psi-conceito-politica-seguranca",
+    "glossario-gov-legal"
+  ],
+  "technicalReferences": [
+    { "title": "RFC 5280 - Internet X.509 Public Key Infrastructure", "url": "https://www.rfc-editor.org/rfc/rfc5280" },
+    { "title": "RFC 8555 - Automatic Certificate Management Environment (ACME)", "url": "https://www.rfc-editor.org/rfc/rfc8555" }
+  ],
+  "content": {
+    "sections": [
+      {
+        "id": "pki-lifecycle",
+        "title": "Ciclo de Vida de Certificados e o Perigo da Expiração Manual",
+        "body": "A infraestrutura de chaves públicas (PKI) estabelece confiança em redes por meio de certificados X.509 emitidos por Autoridades Certificadoras (CAs). O esquecimento da renovação de um certificado de CA Raiz ou Intermediária causa a interrupção em cadeia de todos os serviços de API, VPNs e portais internos. Controlar a validade via planilhas manuais é a principal causa de outage não planejado em governança de TI.",
+        "callout": {
+          "type": "danger",
+          "text": "Quando um certificado de CA Intermediária expira, a cadeia de confiança inteira é quebrada e todos os certificados de servidor derivados tornam-se inválidos simultaneamente."
+        },
+        "codeBlock": {
+          "language": "bash",
+          "code": "# Verificar validade de um certificado X.509 via OpenSSL\nopenssl x509 -in /etc/ssl/certs/api-ca.crt -noout -dates -issuer -subject\n\n# Verificar se a chave corresponde ao certificado\nopenssl x509 -noout -modulus -in cert.crt | md5sum\nopenssl rsa -noout -modulus -in cert.key | md5sum"
+        },
+        "keyPoints": [
+          "Certificados X.509 exigem monitoria ativa da data de expiração (notAfter)",
+          "Planilhas manuais de controle são altamente falhas e incompatíveis com DevOps",
+          "A expiração da CA intermediária revoga a confiança de todos os serviços clientes"
+        ]
+      },
+      {
+        "id": "mtls-acme-automation",
+        "title": "Autenticação Mutua (mTLS) e Automação ACME/Cert-Manager",
+        "body": "Em mTLS (Mutual TLS), tanto o servidor quanto o cliente apresentam certificados X.509 válidos para estabelecer a sessão cifrada, garantindo forte autenticação de identidade em arquiteturas de microsserviços e Zero Trust. Para gerenciar a alta rotatividade de certificados de vida curta, adota-se o protocolo ACME (RFC 8555) com utilitários como Cert-Manager em clusters Kubernetes ou Smallstep PKI.",
+        "callout": {
+          "type": "tip",
+          "text": "Reduzir o tempo de vida dos certificados para 90 dias ou menos força a automação completa do ciclo de emissão e renovação, eliminando falhas humanas."
+        },
+        "codeBlock": {
+          "language": "yaml",
+          "code": "# Exemplo de recurso Issuer do cert-manager no Kubernetes\napiVersion: cert-manager.io/v1\nkind: ClusterIssuer\nmetadata:\n  name: internal-ca-issuer\nspec:\n  ca:\n    secretName: internal-ca-key-pair"
+        },
+        "keyPoints": [
+          "mTLS exige validação de certificado em ambas as pontas da conexão",
+          "Protocolo ACME automatiza a solicitação, validação e instalação de certificados",
+          "Cert-Manager e vault-pki fornecem renovação automática transparente sem downtime"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,266 @@
+{
+	"id": "internal-api-ca-expiry",
+	"title": "Expiração de Certificado Intermediário da CA Interna em Gateway de APIs",
+	"description": "Simulação de resposta a incidente derivado da expiração da autoridade certificadora intermediária interna que assina certificados mTLS de microserviços corporativos",
+	"category": {
+		"id": "GOV_LEGAL",
+		"type": "GOV_LEGAL_CERT_EXPIRY",
+		"title": "Expiração de Certificado Digital"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-07-31",
+		"author": "Equipe de Resposta a Incidentes",
+		"estimatedDuration": "40-50 minutos",
+		"difficulty": "Avançado",
+		"targetAudience": "Engenheiros de DevSecOps, Administradores de Infraestrutura, Analistas de Segurança e Governança"
+	},
+	"objectives": [
+		"Validar procedimentos de substituição emergencial de Certificados Intermediários (Sub-CA) em ambiente mTLS",
+		"Avaliar o impacto de falhas na cadeia de confiança de PKI em arquiteturas de microserviços",
+		"Testar protocolos de governança e rastreabilidade de certificados internos",
+		"Identificar mecanismos automáticos de distribuição de cadeias de certificados confiáveis"
+	],
+	"scope": [
+		"Exercício tabletop conceitual sem execução em ambientes de produção",
+		"Foco no processo decisório, gestão de riscos operacionais e auditoria de PKI",
+		"Análise de governança em cadeias de confiança mTLS"
+	],
+	"baseScenario": {
+		"context": "Na terça-feira às 07:45, sistemas de monitoramento indicam falha total de comunicação mTLS entre o API Gateway principal (api.internal.corp) e os microserviços de pagamento e autenticação. Nenhuma transação externa está sendo processada.",
+		"initialSituation": {
+			"alert": "ALERT: mTLS Handshake Failure Rate > 99% - API Gateway to Backend Services",
+			"affectedServices": "Gateway de Pagamentos e Autenticação (api.internal.corp)",
+			"errorMessage": "SSL_ERROR_UNKNOWN_CA_ISSUER / X509_V_ERR_CERT_HAS_EXPIRED",
+			"timestamp": "07:45:10"
+		},
+		"initialComplaints": [
+			"Aplicações móveis e parceiros reportam erro HTTP 502 Bad Gateway",
+			"Logs do API Gateway indicam que os certificados dos backend foram rejeitados por falha na verificação da cadeia",
+			"Equipe de suporte relata impossibilidade de autenticação de usuários em sistemas legados"
+		],
+		"availableResources": [
+			"Acesso administrativo ao servidor HSM / PKI Interna (HashiCorp Vault / OpenSSL Root)",
+			"Console do API Gateway e gerenciador de malha de serviços (Istio / Nginx Envoy)",
+			"Inventário de ativos e certificados (parcialmente desatualizado)"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Apresentação do incidente base. A equipe analisa a arquitetura mTLS do API Gateway e a estrutura da PKI interna.",
+			"inject": "Início da sessão tabletop. Revisão dos diagramas de fluxo de comunicação mTLS.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Detecção e Diagnóstico da Cadeia de Confiança",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "Investigação da falha de verificação SSL/TLS no Gateway de APIs.",
+			"timeElapsed": "T+10 min",
+			"currentSituation": {
+				"gatewayStatus": "Operacional, mas rejeitando chamadas upstream",
+				"failureRate": "100% nas rotas protegidas por mTLS",
+				"impact": "Paralisação de faturamento digital"
+			},
+			"metrics": [
+				{
+					"title": "Verificação OpenSSL no Endpoint de Pagamentos",
+					"type": "certificate-analysis",
+					"data": {
+						"command": "openssl s_client -connect payment.internal.corp:8443 -showcerts",
+						"verifyReturnCode": "21 (unable to verify the first certificate)",
+						"issuer": "CN=Corp Internal Sub-CA 2023, O=Internal Corp, C=BR",
+						"subCaValidity": "Valid To: Jul 31 07:30:00 2026 UTC (EXPIRADO HÁ 25 MINUTOS)",
+						"rootCaValidity": "Valid To: Dec 31 23:59:59 2035 UTC (VÁLIDO)",
+						"observation": "O certificado folha do microserviço ainda está válido por 6 meses, porém o certificado da autoridade intermediária (Sub-CA 2023) expirou hoje às 07:30."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Com base na análise do erro OpenSSL, qual é a causa imediata do colapso no mTLS?",
+					"points": 5,
+					"options": [
+						"A chave privada do Root CA foi revogada por vazamento de credencial",
+						"O certificado da Sub-CA intermediária expirou, invalidando toda a cadeia abaixo dela",
+						"Os certificados folha dos microserviços expiraram simultaneamente",
+						"O API Gateway perdeu a conexão de rede com o servidor OCSP"
+					],
+					"correctAnswer": 1,
+					"justification": "A verificação indica que a Sub-CA 2023 expirou às 07:30:00 UTC. Embora os certificados folhas das aplicações sejam válidos, uma CA intermediária expirada impede que o cliente (API Gateway) monte a cadeia de confiança até o Root CA."
+				},
+				{
+					"id": "q2",
+					"text": "Certificados intermediários expirados podem ser validados se o certificado folha e o Root CA estiverem dentro do prazo de validade.",
+					"type": "true-false",
+					"points": 3,
+					"correctAnswer": false,
+					"justification": "FALSO. A validação X.509 exige que TODOS os elos da cadeia (Root, Intermediárias e Folha) estejam estritamente dentro da sua janela de validade."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Estratégia de Contenção e Renovação",
+			"phase": "Fase 2 - Contenção",
+			"description": "Definição do plano para restaurar a cadeia mTLS sem expor o ambiente a conexões inseguras.",
+			"timeElapsed": "T+25 min",
+			"currentSituation": {
+				"subCaStatus": "Renovação em andamento no Vault PKI",
+				"distributionChallenge": "Necessidade de atualizar o truststore em 120 pods de microserviços"
+			},
+			"metrics": [
+				{
+					"title": "Métricas do Vault PKI Engine",
+					"type": "server-status",
+					"data": {
+						"vaultStatus": "Unsealed / Active",
+						"pkiPath": "pki_internal_sub_v2",
+						"newSubCaStatus": "Gerada nova Sub-CA 2026 assinada pelo Root CA",
+						"observation": "A nova Sub-CA foi gerada com validade de 3 anos, mas necessita ser propagada para os truststores de todos os clientes mTLS."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "Se a equipe leva 4 minutos por lote para atualizar e reiniciar os pods do API Gateway e a infraestrutura possui 5 lotes, qual o tempo total de reativação em minutos?",
+					"points": 5,
+					"correctAnswer": 20,
+					"tolerance": 0,
+					"unit": "minutos",
+					"justification": "5 lotes * 4 minutos por lote = 20 minutos de tempo total de rollout."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Associe os componentes de infraestrutura de PKI às suas funções no incidente:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "c1", "content": "Root CA"},
+						{"id": "c2", "content": "Sub-CA Intermediária"},
+						{"id": "c3", "content": "Truststore do API Gateway"}
+					],
+					"rightColumn": [
+						{"id": "r1", "content": "Âncora de confiança raiz, mantida offline em HSM"},
+						{"id": "r2", "content": "Emite e assina os certificados operacionais mTLS dos microserviços"},
+						{"id": "r3", "content": "Repositório local de certificados de CA confiados para validação de clientes"}
+					],
+					"correctMatches": [
+						{"left": "c1", "right": "r1"},
+						{"left": "c2", "right": "r2"},
+						{"left": "c3", "right": "r3"}
+					],
+					"justification": "Root CA é mantida offline para proteção da chave mestra; Sub-CA gerencia a emissão do dia a dia; o Truststore armazena a lista de CAs confiadas para validação."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Recuperação e Propagação de CAs",
+			"phase": "Fase 3 - Erradicação e Recuperação",
+			"description": "Atualização das bundle de CAs confiadas e reemissão de certificados com a nova Sub-CA.",
+			"timeElapsed": "T+45 min",
+			"currentSituation": {
+				"truststoreUpdate": "Concluído via Service Mesh / Kubernetes ConfigMap",
+				"mTLSStatus": "Restabelecido com sucesso em 100% dos microserviços"
+			},
+			"metrics": [
+				{
+					"title": "Logs de Auditoria de mTLS",
+					"type": "security-analysis",
+					"data": {
+						"successfulHandshakes": "1450 req/sec",
+						"failedHandshakes": "0 req/sec",
+						"observation": "Cadeia de certificados totalmente validada após distribuição da nova Sub-CA 2026."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene os passos corretos para a recuperação segura da infraestrutura de PKI mTLS:",
+					"points": 5,
+					"items": [
+						{"id": "s1", "content": "Gerar nova solicitação de certificado da Sub-CA no gerenciador de PKI"},
+						{"id": "s2", "content": "Assinar a nova Sub-CA com a chave privada do Root CA seguro"},
+						{"id": "s3", "content": "Atualizar os pacotes de CA confiados (truststores) no API Gateway e microsserviços"},
+						{"id": "s4", "content": "Validar os handshakes mTLS em ambiente de teste/canary antes da liberação total"}
+					],
+					"correctOrder": ["s1", "s2", "s3", "s4"],
+					"justification": "Sequência lógica: 1. Criar solicitação de Sub-CA -> 2. Assinar pelo Root CA -> 3. Distribuir a nova CA nos truststores -> 4. Validar o funcionamento."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Análise Pós-Incidente e Governança",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Revisão das políticas de ciclo de vida de certificados e implementação de alertas automáticos.",
+			"timeElapsed": "T+60 min",
+			"currentSituation": {
+				"incidentResolved": true,
+				"postMortemScheduled": true
+			},
+			"questions": [
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Qual medida de governança previne de forma mais eficaz a recorrência da expiração não detectada de CAs intermediárias?",
+					"points": 5,
+					"options": [
+						"Aumentar o prazo de validade das Sub-CAs para 50 anos",
+						"Implementar rotinas automáticas de monitoramento de expiração de certificados integradas ao Prometheus/Grafana com alertas para T-60 dias",
+						"Desativar a validação de datas no API Gateway",
+						"Armazenar as chaves privadas em planilhas compartilhadas"
+					],
+					"correctAnswer": 1,
+					"justification": "Automação do monitoramento de ciclo de vida (metodologia Cert-Manager / Prometheus) garante visibilidade com antecedência adequada (ex: 60 dias) para renovação sem impacto."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 29,
+		"passingScore": 18,
+		"gradingScale": [
+			{
+				"min": 25,
+				"max": 29,
+				"grade": "Excelente",
+				"description": "Domínio avançado sobre PKI, mTLS e arquitetura de segurança de microserviços."
+			},
+			{
+				"min": 18,
+				"max": 24,
+				"grade": "Satisfatório",
+				"description": "Conhecimento adequado dos fluxos de resposta e validação X.509."
+			},
+			{
+				"min": 0,
+				"max": 17,
+				"grade": "Insuficiente",
+				"description": "Necessita capacitação em infraestrutura de chaves públicas e mTLS."
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Explicar a diferença entre o prazo de validade do certificado folha e dos certificados intermediários da cadeia.",
+		"Discutir a importância da automação de PKI usando ferramentas como HashiCorp Vault ou Cert-Manager em Kubernetes."
+	],
+	"technicalReferences": [
+		{
+			"title": "RFC 5280 - Internet X.509 Public Key Infrastructure Certificate Profile",
+			"url": "https://datatracker.ietf.org/doc/html/rfc5280"
+		}
+	]
+}

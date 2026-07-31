@@ -124,6 +124,20 @@
         "definition": "Técnica de mitigação que usa BGP para propagar uma rota /32 (ou /128 IPv6) que descarta todo tráfego destinado a um IP específico. Acionada por community BGP especial combinada com upstream providers. Sacrifica o IP alvo para proteger o restante da rede.",
         "seeAlso": ["BGP", "DDoS"],
         "relatedStudyId": "dns-procedimento-mitigacao-ddos"
+      },
+      {
+        "term": "Route Leak (Vazamento de Rota BGP)",
+        "acronym": null,
+        "definition": "Propagation não autorizada de anúncios BGP além do seu escopo pretendido (ex: cliente reanunciando rotas de um provedor para outro), convertendo o cliente em trânsito involuntário. Mitigado pela RFC 9234.",
+        "seeAlso": ["BGP", "OTC", "AS_PATH"],
+        "relatedStudyId": "bgp-conceito-route-leak-otc"
+      },
+      {
+        "term": "OTC (Only to Customer)",
+        "acronym": "OTC",
+        "definition": "Atributo BGP introduzido pela RFC 9234 para prevenir vazamentos de rota. Sinaliza que um anúncio passado de um Provider/Peer para um Customer não deve ser retransmitido para outro Provider/Peer.",
+        "seeAlso": ["Route Leak", "BGP Roles"],
+        "relatedStudyId": "bgp-conceito-route-leak-otc"
       }
     ]
   },

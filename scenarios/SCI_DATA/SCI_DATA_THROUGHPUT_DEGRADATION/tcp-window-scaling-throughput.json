@@ -1,0 +1,246 @@
+{
+	"id": "tcp-window-scaling-throughput",
+	"title": "Degradação Severa de Vazão por Desativação de TCP Window Scaling em Middleboxes",
+	"description": "Simulação tabletop de resposta à limitação abrupta de taxa de transferência de dados de pesquisas astronômicas por remoção indevida do campo TCP Window Scale em firewall/middlebox intermediário",
+	"category": {
+		"id": "SCI_DATA",
+		"type": "SCI_DATA_THROUGHPUT_DEGRADATION",
+		"title": "Degradação de Vazão (Throughput Degradation)"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-07-31",
+		"author": "Equipe de Resposta a Incidentes",
+		"estimatedDuration": "35-45 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Engenheiros de Redes e Segurança, Administradores de Middleboxes/Firewalls"
+	},
+	"objectives": [
+		"Validar o diagnóstico de remoção de opções TCP (Option 3 - Window Scale) por middleboxes / firewalls legados",
+		"Avaliar a limitação física da janela de recepção TCP de 64 KB sem o fator de escala (Window Scaling Factor)",
+		"Testar o uso de capturas de pacotes (tcpdump / Wireshark) para identificação da stripping de opções de cabeçalho"
+	],
+	"scope": [
+		"Exercício tabletop conceitual"
+	],
+	"baseScenario": {
+		"context": "Segunda-feira às 11:00, após a substituição de um firewall de borda por uma nova caixa de inspeção profunda (WAF/IPS), a velocidade de sincronização de arquivos entre o servidor de armazenamento de dados científicos e a nuvem internacional despenca de 9.5 Gbps para apenas 15 Mbps por conexão.",
+		"initialSituation": {
+			"alert": "PERFORMANCE DEGRADATION: Storage transfer rates dropped by 99.8%",
+			"affectedEndpoints": "Storage-DTN-01 (10.100.0.50) -> Cloud-Storage-EU (195.201.10.20)",
+			"timestamp": "11:00:00"
+		},
+		"initialComplaints": [
+			"A velocidade de transferência travou exatamente no teto de 15 a 17 Mbps por thread",
+			"O link de 10 Gbps permanece 99% ocioso enquanto as tarefas de sincronismo acumulam fila"
+		],
+		"availableResources": [
+			"Analizador de pacotes Wireshark / tshark / tcpdump",
+			"Acesso administrativo ao novo Firewall de Borda (IPS/Middlebox)",
+			"Servidor DTN Linux com ferramentas de rede"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Análise da Limitação de Vazão",
+			"phase": "Preparação",
+			"description": "Exame das conexões TCP ativas e coleta de capturas pcap.",
+			"inject": "Apresentação da captura de pacotes no handshake TCP.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Análise da Stripping da Opção Window Scale",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "Inspeção do cabeçalho do pacote SYN enviado e do SYN-ACK retornado através do Firewall.",
+			"timeElapsed": "T+15 min",
+			"currentSituation": {
+				"rtt": "35 ms",
+				"measuredSpeed": "15.0 Mbps (Teto cravado)",
+				"firewallPolicy": "Inspeção estrita ativada (`strip-tcp-options` / `clear-tcp-window-scale`)"
+			},
+			"metrics": [
+				{
+					"title": "Inspeção Wireshark do Pacote SYN-ACK",
+					"type": "network-analysis",
+					"data": {
+						"synPacketSent": "Window: 64240, Option: Window Scale 7 (Multiply by 128 -> Effective Window 8MB)",
+						"synAckReceived": "Window: 65535, Option: NONE (Removido pelo Firewall)",
+						"negotiatedWindow": "65.535 bytes (Máximo permitido pelo protocolo TCP sem Window Scale - 64 KB)",
+						"observation": "O novo firewall está removendo (stripping) a opção TCP Window Scale dos pacotes SYN/SYN-ACK por uma regra de segurança mal configurada. Sem a opção, a janela TCP fica limitada ao teto legado de 65.535 bytes (64KB)."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Por que a remoção da opção TCP Window Scale (RFC 1323) limita a velocidade máxima a cerca de 15 Mbps em um link com RTT de 35ms?",
+					"points": 5,
+					"options": [
+						"Porque o campo de tamanho de janela no cabeçalho TCP padrão sem a opção de escala possui apenas 16 bits, limitando a janela de recepção a no máximo 65.535 bytes (64 KB); dividindo 64 KB por 35ms obtém-se o teto exato de ~15 Mbps",
+						"Porque 15 Mbps é a velocidade máxima do cabo UTP",
+						"Porque o protocolo TCP exige a presença de um servidor de licenças para ultrapassar 15 Mbps",
+						"Porque o firewall desliga o processador se a janela for maior que 64 KB"
+					],
+					"correctAnswer": 0,
+					"justification": "O campo `Window Size` original do TCP possui 16 bits (máximo 65.535 bytes). A RFC 1323 criou a opção Window Scale para multiplicar esse valor por até 2^14 (1GB). Sem a escala, o teto físico é `65.535 bytes / 0.035s = 15 Mbps`."
+				},
+				{
+					"id": "q2",
+					"text": "Middleboxes (como firewalls e IPSs) que alteram ou removem opções estendidas do cabeçalho TCP (como SACK, Timestamps e Window Scale) são causas frequentes de degradação catastrófica de desempenho em transferências de dados pesados.",
+					"type": "true-false",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. Limpar opções TCP em middleboxes destrói as otimizações negociadas entre os sistemas operacionais modernos."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Reconfiguração da Política do Firewall",
+			"phase": "Fase 2 - Contenção",
+			"description": "Desativação da funcionalidade de remoção de opções TCP (Preserve TCP Options / Bypass para a VLAN DTN).",
+			"timeElapsed": "T+30 min",
+			"currentSituation": {
+				"firewallPolicyUpdated": "Desativado `strip-tcp-options` e ativado bypass de inspeção profunda para o tráfego da rede DTN ScienceDMZ",
+				"tcpOptionsPreserved": true
+			},
+			"metrics": [
+				{
+					"title": "Inspeção Wireshark Pós-Ajuste no Firewall",
+					"type": "server-status",
+					"data": {
+						"negotiatedWindowScale": "Shift count 7 (Factor 128 -> Janela efetiva de 8.3 MBytes)",
+						"measuredThroughput": "9.4 Gbps (Recuperação total da velocidade de transferência)",
+						"observation": "Com o TCP Window Scale preservado, a janela negociada expandiu para 8.3 MB, preenchendo 9.4 Gbps do link."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "Se a vazão limitada sem Window Scale era de 15 Mbps e com o recurso ativado subiu para 9600 Mbps (9.6 Gbps), por qual fator a velocidade foi multiplicada?",
+					"points": 5,
+					"correctAnswer": 640,
+					"tolerance": 0,
+					"unit": "vezes",
+					"justification": "9600 Mbps / 15 Mbps = 640 vezes."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Relacione as opções do cabeçalho TCP às suas funções de desempenho:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "w1", "content": "TCP Window Scale (Option 3)"},
+						{"id": "w2", "content": "SACK - Selective ACK (Option 5)"},
+						{"id": "w3", "content": "TCP Timestamps (Option 8)"}
+					],
+					"rightColumn": [
+						{"id": "r1", "content": "Multiplica o valor do campo Window Size de 16 bits para permitir janelas de dados de até 1 Gigabyte"},
+						{"id": "r2", "content": "Permite que o receptor confirme segmentos recebidos fora de ordem sem exigir retransmissão de toda a janela"},
+						{"id": "r3", "content": "Ajuda a medir o RTT exato de cada pacote e protege contra reuso de números de sequência em links rápidos (PAWS)"}
+					],
+					"correctMatches": [
+						{"left": "w1", "right": "r1"},
+						{"left": "w2", "right": "r2"},
+						{"left": "w3", "right": "r3"}
+					],
+					"justification": "Window Scale expande tamanho da janela; SACK evita retransmissão completa da janela; Timestamps mede RTT preciso e previne PAWS."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Validação de Transferências em Lote",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "Verificação do tempo de cópia de um arquivo de teste de 100 GB.",
+			"timeElapsed": "T+45 min",
+			"currentSituation": {
+				"transferTime": "86 segundos (Anteriormente levaria mais de 15 horas)",
+				"status": "PASS"
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene os passos para solução de problemas de degradação de vazão por stripping de opções TCP:",
+					"points": 5,
+					"items": [
+						{"id": "t1", "content": "Identificar a limitação de velocidade cravada em patamares baixos apesar da ausência de congestão de banda"},
+						{"id": "t2", "content": "Realizar captura de pacotes (tcpdump) nos endpoints e comparar o pacote SYN enviado com o SYN-ACK retornado"},
+						{"id": "t3", "content": "Identificar se middleboxes/firewalls no caminho removeram a opção 'Window Scale' ou 'SACK'"},
+						{"id": "t4", "content": "Reconfigurar a política de segurança do firewall para autorizar a preservação integral das opções TCP estendidas"}
+					],
+					"correctOrder": ["t1", "t2", "t3", "t4"],
+					"justification": "Identificação do sintoma -> Captura de pacotes -> Verificação de perda de opções TCP -> Reconfiguração do Firewall."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Governança de Dispositivos de Borda",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Inclusão de testes de conformidade RFC 1323 / RFC 7323 no plano de aceitação de novos equipamentos de segurança.",
+			"timeElapsed": "T+60 min",
+			"currentSituation": {
+				"incidentResolved": true
+			},
+			"questions": [
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Qual a RFC oficial que padroniza as extensões TCP para conexões de alto desempenho (Window Scale e Timestamps)?",
+					"points": 5,
+					"options": [
+						"RFC 7323 (Atualização da RFC 1323)",
+						"RFC 791 (IPv4 Spec)",
+						"RFC 826 (ARP)",
+						"RFC 1918 (Endereço Privado)"
+					],
+					"correctAnswer": 0,
+					"justification": "A RFC 7323 (que sucedeu a RFC 1323) define formalmente as extensões TCP para alto desempenho (TCP Extensions for High Performance)."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 29,
+		"passingScore": 18,
+		"gradingScale": [
+			{
+				"min": 25,
+				"max": 29,
+				"grade": "Excelente",
+				"description": "Excelente conhecimento de engenharia de cabeçalho TCP, RFC 7323 e diagnostico em middleboxes."
+			},
+			{
+				"min": 18,
+				"max": 24,
+				"grade": "Satisfatório",
+				"description": "Compreensão dos efeitos da remoção de opções TCP na janela de recepção."
+			},
+			{
+				"min": 0,
+				"max": 17,
+				"grade": "Insuficiente",
+				"description": "Dificuldades em identificar falhas de protocolo na camada de transporte."
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Explicar como calcular a vazão teórica máxima usando a fórmula de Mathis.",
+		"Demonstrar a leitura dos campos de opções TCP no pacote SYN via Wireshark."
+	],
+	"technicalReferences": [
+		{
+			"title": "RFC 7323 - TCP Extensions for High Performance",
+			"url": "https://datatracker.ietf.org/doc/html/rfc7323"
+		}
+	]
+}

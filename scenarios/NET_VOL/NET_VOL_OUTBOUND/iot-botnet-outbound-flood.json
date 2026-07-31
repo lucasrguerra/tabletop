@@ -1,0 +1,246 @@
+{
+	"id": "iot-botnet-outbound-flood",
+	"title": "Inundações de Tráfego de Saída Geradas por Botnet de Dispositivos IoT Comprometidos",
+	"description": "Simulação tabletop de resposta a ataque DDoS de saída (Outbound Flood) disparado a partir de dispositivos IoT infectados na rede corporativa contra alvos externos",
+	"category": {
+		"id": "NET_VOL",
+		"type": "NET_VOL_OUTBOUND",
+		"title": "Ataque Volumétrico de Saída (Outbound DDoS)"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-07-31",
+		"author": "Equipe de Resposta a Incidentes",
+		"estimatedDuration": "40-50 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Analistas de SOC, Engenheiros de Segurança de Redes, Administradores de IoT"
+	},
+	"objectives": [
+		"Validar o diagnóstico de ataques de saída (Outbound DDoS) gerados por bots internos",
+		"Avaliar procedimentos de isolamento de VLANs de IoT e limitação de tráfego de saída",
+		"Testar o uso de regras de Firewall de borda para conter rajadas UDP/TCP maliciosas"
+	],
+	"scope": [
+		"Exercício tabletop conceitual"
+	],
+	"baseScenario": {
+		"context": "Quarta-feira às 16:20, a empresa recebe alertas de saturação total no link de upload (10 Gbps). Ao mesmo tempo, um provedor parceiro notifica que mais de 300 câmeras IP e sensores prediais da empresa estão disparando rajadas SYN e UDP Flood contra alvos na nuvem.",
+		"initialSituation": {
+			"alert": "OUTBOUND TRAFFIC ANOMALY: Uplink 10 Gbps saturated with UDP/SYN Flood",
+			"affectedSubnet": "VLAN 50 - IoT e Automação Predial (10.50.0.0/22)",
+			"compromisedDevices": "Câmeras de Segurança e Controladores de Acesso",
+			"timestamp": "16:20:00"
+		},
+		"initialComplaints": [
+			"Saturação de upload paralisando os backups e chamadas VoIP de toda a organização",
+			"Operadora de telecomunicações ameaça suspender o contrato por emissão de tráfego malicioso"
+		],
+		"availableResources": [
+			"Switches de Acesso Gerenciados (VLANs / Port Security)",
+			"Firewall de Borda corporativo",
+			"Servidor de Gerenciamento de Câmeras (NVR)"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Detecção do Tráfego Anômalo de Saída",
+			"phase": "Preparação",
+			"description": "Análise da origem do upload massivo e identificação das sub-redes emissoras.",
+			"inject": "Apresentação dos gráficos do firewall de borda divididos por IP interno.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Análise do Comprometimento da VLAN de IoT",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "Inspeção do comportamento dos dispositivos IoT na VLAN 50.",
+			"timeElapsed": "T+15 min",
+			"currentSituation": {
+				"uploadRate": "9.8 Gbps",
+				"deviceCount": "320 câmeras IP transmitindo tráfego malicioso em portas altas"
+			},
+			"metrics": [
+				{
+					"title": "Análise de Tráfego por Host (NetFlow)",
+					"type": "network-analysis",
+					"data": {
+						"sourceVLAN": "VLAN 50 (10.50.0.0/22)",
+						"malwareFamily": "Variante Mirai / Gafgyt",
+						"destinationPorts": "80, 443, 8080 externas",
+						"observation": "Dispositivos IoT com credenciais padrão (admin/admin) expostos na rede foram infectados e convertidos em um botnet de ataque de saída."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Qual a PRIMEIRA ação de contenção emergencial para impedir que a botnet continue paralisando o link de upload da empresa?",
+					"points": 5,
+					"options": [
+						"Bloquear temporariamente o tráfego de saída da VLAN 50 de IoT no Firewall de borda",
+						"Desligar o gerador de energia da empresa",
+						"Deletar as regras de NAT",
+						"Reiniciar os servidores de e-mail"
+					],
+					"correctAnswer": 0,
+					"justification": "Bloquear a saída da VLAN de IoT isola os bots maliciosos sem afetar o tráfego legítimo de produção de outras VLANs da empresa."
+				},
+				{
+					"id": "q2",
+					"text": "Permitir que dispositivos IoT acessem diretamente a internet sem restrições de porta de saída aumenta drasticamente o risco de participação em ataques de botnet.",
+					"type": "true-false",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. Dispositivos de IoT exigem regras estritas de egress filtering (permitindo apenas os IPs/portas necessários para atualizações ou comunicação de controle)."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Isolamento e Limpeza dos Dispositivos",
+			"phase": "Fase 2 - Contenção",
+			"description": "Bloqueio no firewall de borda e reinicialização/redefinição de senhas das câmeras.",
+			"timeElapsed": "T+30 min",
+			"currentSituation": {
+				"egressFilterApplied": "VLAN 50 bloqueada para destinos externos não autorizados",
+				"linkUpload": "Normalizado em 450 Mbps"
+			},
+			"metrics": [
+				{
+					"title": "Métricas do Link de Upload Pós-Filtro",
+					"type": "server-status",
+					"data": {
+						"uploadUsage": "450 Mbps (Operação normal dos demais setores)",
+						"botnetActivity": "Bloqueada no Firewall",
+						"observation": "Saturação cessou imediatamente após a aplicação da regra de Egress Filtering."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "Se havia 320 câmeras infectadas e a equipe conseguiu atualizar e redefinir a senha de 80 câmeras por hora, quantas horas serão necessárias para sanar toda a frota de câmeras?",
+					"points": 5,
+					"correctAnswer": 4,
+					"tolerance": 0,
+					"unit": "horas",
+					"justification": "320 câmeras / 80 câmeras por hora = 4 horas."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Relacione os termos de segurança em IoT ao seu papel na mitigação:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "i1", "content": "Egress Filtering"},
+						{"id": "i2", "content": "Segregação de VLAN"},
+						{"id": "i3", "content": "Hardening de Credenciais"}
+					],
+					"rightColumn": [
+						{"id": "r1", "content": "Restrição do tráfego de saída da rede interna para a internet"},
+						{"id": "r2", "content": "Isolamento físico/lógico da rede de IoT separada dos usuários de TI"},
+						{"id": "r3", "content": "Substituição de senhas de fábrica padrão por senhas fortes e exclusivas"}
+					],
+					"correctMatches": [
+						{"left": "i1", "right": "r1"},
+						{"left": "i2", "right": "r2"},
+						{"left": "i3", "right": "r3"}
+					],
+					"justification": "Egress filtering controla saída; VLAN segrega tráfego interno; Hardening altera senhas padrão para evitar contaminação."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Remediação e Atualização de Firmware",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "Remoção do malware de memória (reboot) e aplicação de patches nos firmware dos fabricantes.",
+			"timeElapsed": "T+60 min",
+			"currentSituation": {
+				"firmwareUpdated": true,
+				"passwordsChanged": true
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene as ações para contensão e erradicação de infecção de botnet IoT:",
+					"points": 5,
+					"items": [
+						{"id": "o1", "content": "Aplicar regra de Egress Filtering no Firewall de borda para interromper o tráfego malicioso de saída"},
+						{"id": "o2", "content": "Isolar a VLAN de IoT permitindo apenas o tráfego para os servidores de gerenciamento locais (NVR)"},
+						{"id": "o3", "content": "Reiniciar os dispositivos IoT para expurgar a variante do malware (residente em memória RAM)"},
+						{"id": "o4", "content": "Atualizar o firmware dos dispositivos e alterar todas as credenciais de acesso padrão"}
+					],
+					"correctOrder": ["o1", "o2", "o3", "o4"],
+					"justification": "Bloqueio no Firewall de Borda -> Isolamento da VLAN -> Reboot de expurgo em RAM -> Patch/Troca de senhas."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Políticas Permanentes de IoT Security",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Implementação da arquitetura Zero Trust para dispositivos IoT.",
+			"timeElapsed": "T+90 min",
+			"currentSituation": {
+				"incidentResolved": true
+			},
+			"questions": [
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Qual a melhoria de arquitetura de rede que previne que dispositivos IoT façam requisições não autorizadas à internet?",
+					"points": 5,
+					"options": [
+						"Implementar políticas de Zero Trust / Default Deny para tráfego de saída da VLAN de IoT, liberando apenas o destino dos servidores de sincronismo/firmware autorizados",
+						"Permitir acesso total sem restrições de firewall",
+						"Desativar o backup do sistema de câmeras",
+						"Trocar todos os cabos de rede de IoT"
+					],
+					"correctAnswer": 0,
+					"justification": "Politicas de Default Deny no Egress Filtering garantem que os dispositivos IoT não possam se comunicar com IPs ou servidores C2 externos não homologados."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 29,
+		"passingScore": 18,
+		"gradingScale": [
+			{
+				"min": 25,
+				"max": 29,
+				"grade": "Excelente",
+				"description": "Excelente tratamento de incidentes com botnets IoT e políticas de Egress Filtering."
+			},
+			{
+				"min": 18,
+				"max": 24,
+				"grade": "Satisfatório",
+				"description": "Compreensão adequada das etapas de isolamento e remediação."
+			},
+			{
+				"min": 0,
+				"max": 17,
+				"grade": "Insuficiente",
+				"description": "Falha na contenção rápida de tráfego malicioso de saída."
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Ressaltar que a maioria dos malwares de IoT (ex: Mirai) residem apenas em memória RAM, sendo temporariamente removidos com um simples reboot.",
+		"Discutir a importância da troca de credenciais padrão antes da reconexão à rede."
+	],
+	"technicalReferences": [
+		{
+			"title": "NIST SP 800-213 - IoT Device Cybersecurity Guidance for Federal Organizations",
+			"url": "https://csrc.nist.gov/publications/detail/sp/800-213/final"
+		}
+	]
+}

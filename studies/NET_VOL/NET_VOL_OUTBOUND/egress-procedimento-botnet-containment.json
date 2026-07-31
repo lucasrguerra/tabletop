@@ -1,0 +1,56 @@
+{
+  "id": "egress-procedimento-botnet-containment",
+  "title": "Procedimento de Contenção de Tráfego Outbound e Botnets em Redes de Acesso",
+  "description": "Guia passo a passo para identificar, isolar e conter rajadas de tráfego malicioso de saída (outbound DDoS) originadas por dispositivos comprometidos em redes internas.",
+  "content_type": "PROCEDIMENTO",
+  "category": {
+    "id": "NET_VOL",
+    "type": "NET_VOL_OUTBOUND",
+    "title": "Ataques Outbound"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-07-31T10:00:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "15 minutos",
+    "difficulty": "Intermediario",
+    "targetAudience": "Equipes de Resposta a Incidentes (CSIRT), Administradores de Rede e SOC",
+    "prerequisites": ["dns-procedimento-mitigacao-ddos"]
+  },
+  "tags": ["Outbound DDoS", "Botnet", "Contenção", "ACL", "NetFlow", "Firewall"],
+  "relatedScenarios": ["iot-botnet-outbound-flood"],
+  "relatedStudies": [
+    "dns-procedimento-mitigacao-ddos",
+    "tcpdump-ferramenta-ddos-analise",
+    "glossario-net-vol"
+  ],
+  "technicalReferences": [
+    { "title": "BCP 38 - Network Ingress Filtering", "url": "https://www.rfc-editor.org/rfc/rfc2827" }
+  ],
+  "content": {
+    "context": "Quando servidores ou dispositivos IoT internos são infectados e passam a participar de uma botnet, o volume de tráfego de saída pode saturar o link da organização e provocar o bloqueio do bloco IP por ASNs vizinhos. Este procedimento orienta a identificação e isolamento dos hosts infectados.",
+    "steps": [
+      {
+        "id": "1",
+        "title": "Identificar IPs de origem internos geradores de alto volume",
+        "description": "Utilize amostragem NetFlow/IPFIX ou capturas de pacotes no gateway para listar as top origens internas por pacotes por segundo (pps).",
+        "expectedResult": "Identificação exata do IP interno contaminado e do protocolo/porta de destino utilizado no ataque.",
+        "rollbackAction": "Remover a regra de captura temporária ou espelhamento de porta no switch de borda."
+      },
+      {
+        "id": "2",
+        "title": "Aplicar ACL de bloqueio temporário de saída no gateway",
+        "description": "Configure uma ACL de borda que bloqueie o tráfego de saída vindo do IP contaminado para o destino do ataque ou bloqueie portas de amplificação conhecidas.",
+        "expectedResult": "Cessação imediata do envio de tráfego de ataque para a Internet e estabilização da utilização do link.",
+        "rollbackAction": "no access-list OUTBOUND_CONTAINMENT seq 10 no roteador de borda."
+      },
+      {
+        "id": "3",
+        "title": "Isolar a VLAN do dispositivo afetado e iniciar erradicação",
+        "description": "Mova a porta do switch onde o host infectado está conectado para uma Quarantine VLAN sem acesso à rede externa e acione a equipe de resposta para forense e limpeza.",
+        "expectedResult": "Host isolado em ambiente controlado sem capacidade de comunicar-se com a botnet C2 nem atacar alvos externos.",
+        "rollbackAction": "Restaurar a porta do switch para a VLAN de produção original após a formatação ou higienização do sistema."
+      }
+    ]
+  }
+}

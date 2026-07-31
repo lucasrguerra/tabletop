@@ -1,0 +1,70 @@
+{
+  "id": "carpet-bombing-conceito-flowspec",
+  "title": "Ataques DDoS Carpet Bombing e Mitigação via BGP Flowspec",
+  "description": "Explica o conceito de ataques Carpet Bombing (DDoS pulverizado em sub-redes) e como o BGP Flowspec (RFC 8955) permite mitigar o tráfego malicioso sem descarregar blocos inteiros via RTBH.",
+  "content_type": "CONCEITO",
+  "category": {
+    "id": "NET_VOL",
+    "type": "NET_VOL_CARPET_BOMBING",
+    "title": "Carpet Bombing DDoS"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-07-31T10:00:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "12 minutos",
+    "difficulty": "Avancado",
+    "targetAudience": "Engenheiros de Redes, Analistas de SOC e Operadores de AS",
+    "prerequisites": ["dns-conceito-amplificacao"]
+  },
+  "tags": ["DDoS", "Carpet Bombing", "BGP Flowspec", "RTBH", "RFC 8955", "Scrubbing"],
+  "relatedScenarios": ["carpet-bombing-cloud-subnet"],
+  "relatedStudies": [
+    "dns-conceito-amplificacao",
+    "dns-procedimento-mitigacao-ddos",
+    "glossario-net-vol"
+  ],
+  "technicalReferences": [
+    { "title": "RFC 8955 - Dissemination of Flow Specification Rules", "url": "https://www.rfc-editor.org/rfc/rfc8955" }
+  ],
+  "content": {
+    "sections": [
+      {
+        "id": "conceito-carpet-bombing",
+        "title": "O que é Carpet Bombing e por que o RTBH falha",
+        "body": "Em um ataque DDoS tradicional, a botnet direciona dezenas de Gbps a um único endereço IP alvo (Host Target). O Remote Triggered Black Hole (RTBH) resolve isso descartando todo o tráfego para esse IP. No Carpet Bombing, o atacante distribui pequenas frações de tráfego por centenas ou milhares de endereços IP de um bloco /24 ou /22 simultaneamente. Cada IP individual recebe apenas alguns Megabits por segundo, sem disparar alertas de limite de IP (threshold), mas o somatório satura completamente o link de acesso da organização. Usar RTBH nesse cenário significaria desligar a sub-rede inteira da empresa.",
+        "callout": {
+          "type": "warning",
+          "text": "O Carpet Bombing é desenhado especificamente para burlar sistemas de detecção que monitoram rajadas por IP único, forçando a vítima a escolher entre indisponibilidade total (descartando a sub-rede) ou saturação do enlace."
+        },
+        "codeBlock": {
+          "language": "text",
+          "code": "Ataque Tradicional vs. Carpet Bombing:\n\nTRADICIONAL: [Atacante] ---> 50 Gbps ---> IP 200.130.1.5 (Dispara RTBH p/ IP 200.130.1.5)\nCARPET BOMBING: [Atacante] ---> 200 Mbps por IP x 256 IPs = 51.2 Gbps no Bloco /24\n               Nenhum IP estoura o alarme individual de 1 Gbps, mas a borda cai."
+        },
+        "keyPoints": [
+          "Pulveriza o volume de ataque entre centenas de alvos na mesma sub-rede",
+          "Torna o RTBH por host ineficaz ou desastroso (exige descartar a rede inteira)",
+          "Bula sistemas de mitigação baseados em limites rígidos por IP de destino"
+        ]
+      },
+      {
+        "id": "bgp-flowspec",
+        "title": "Mitigação Granular com BGP Flowspec (RFC 8955)",
+        "body": "O BGP Flowspec (NLRI Type 133) estende o protocolo BGP para transmitir regras de firewall em camada 3 e 4 para roteadores upstream. Em vez de descartar todo o tráfego de um IP como no RTBH, o Flowspec permite combinar múltiplos critérios (IP de origem, IP de destino, porta de origem/destino, protocolo IP, tamanho de pacote, flags TCP) e aplicar ações como descartar (drop), limitar taxa (rate-limit) ou redirecionar para scrubbing.",
+        "callout": {
+          "type": "tip",
+          "text": "Regras de BGP Flowspec são injetadas em tempo real nos roteadores da operadora upstream, filtrando o tráfego malicioso na borda do provedor antes que ele consuma a banda do link de acesso."
+        },
+        "codeBlock": {
+          "language": "bash",
+          "code": "# Exemplo de regra Flowspec injetada via BGP (BIRD / GoBGP)\nflowspec v4 {\n    match {\n        destination 200.130.1.0/24;\n        protocol udp;\n        source-port 1900; # Bloqueia apenas amplificação SSDP para a sub-rede\n    }\n    then {\n        action drop;\n    }\n}"
+        },
+        "keyPoints": [
+          "Permite filtragem granular de tráfego L3/L4 via BGP",
+          "Preserva a conectividade dos hosts legítimos na sub-rede afetada",
+          "Suporta ações como Drop, Rate-Limit, Remark DSCP e Redirect to VRF/Scrubbing"
+        ]
+      }
+    ]
+  }
+}

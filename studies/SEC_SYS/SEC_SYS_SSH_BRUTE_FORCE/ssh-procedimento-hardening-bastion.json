@@ -1,0 +1,56 @@
+{
+  "id": "ssh-procedimento-hardening-bastion",
+  "title": "Procedimento de Hardening do OpenSSH e Proteção de Jump Servers",
+  "description": "Guia prático para endurecer a configuração do servidor OpenSSH, implementar autenticação exclusiva por chave pública, banimento automático com Fail2ban e MFA.",
+  "content_type": "PROCEDIMENTO",
+  "category": {
+    "id": "SEC_SYS",
+    "type": "SEC_SYS_SSH_BRUTE_FORCE",
+    "title": "Segurança de Acesso SSH"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-07-31T10:00:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "15 minutos",
+    "difficulty": "Intermediario",
+    "targetAudience": "Administradores de Sistemas Linux, Analistas de Segurança e SysAdmins",
+    "prerequisites": ["psi-conceito-politica-seguranca"]
+  },
+  "tags": ["SSH", "Hardening", "OpenSSH", "Fail2ban", "Bastion", "MFA", "Segurança"],
+  "relatedScenarios": ["ssh-credential-stuffing-bastion"],
+  "relatedStudies": [
+    "psi-conceito-politica-seguranca",
+    "elastic-ferramenta-siem",
+    "glossario-sec-sys"
+  ],
+  "technicalReferences": [
+    { "title": "OpenSSH Security Guidelines (Mozilla)", "url": "https://infosec.mozilla.org/guidelines/openssh" }
+  ],
+  "content": {
+    "context": "Servidores SSH expostos diretamente à Internet sofrem tentativas contínuas de ataque de força bruta e credential stuffing. Este procedimento consolida as práticas de hardening no arquivo sshd_config e no utilitário Fail2ban.",
+    "steps": [
+      {
+        "id": "1",
+        "title": "Desabilitar login de root e autenticação por senha no OpenSSH",
+        "description": "Edite o arquivo `/etc/ssh/sshd_config` ajustando `PermitRootLogin no`, `PasswordAuthentication no` e `PubkeyAuthentication yes` para forçar o uso exclusivo de chaves assimétricas SSH.",
+        "expectedResult": "Tentativas de login usando senhas simples ou usuário root são rejeitadas imediatamente na negociação inicial.",
+        "rollbackAction": "Restaurar as diretivas originais em /etc/ssh/sshd_config e reiniciar o serviço sshd."
+      },
+      {
+        "id": "2",
+        "title": "Restringir algoritmos de criptografia e trocas de chaves fracas",
+        "description": "Configure as diretivas KexAlgorithms, Ciphers e MACs para aceitar apenas algoritmos modernos e seguros como `curve25519-sha256` e `chacha20-poly1305@openssh.com`.",
+        "expectedResult": "Conexões oriundas de clientes legados com cifras vulneráveis (ex: DES, RC4, MD5) são descontinuadas.",
+        "rollbackAction": "Remover o bloco de cifras restritas do sshd_config e executar systemctl reload sshd."
+      },
+      {
+        "id": "3",
+        "title": "Configurar Fail2ban para bloqueio automático de IPs maliciosos",
+        "description": "Crie o arquivo `/etc/fail2ban/jail.local` habilitando o jail `[sshd]` com limite de 3 tentativas malsucedidas (`maxretry = 3`) e tempo de banimento de 24 horas (`bantime = 86400`).",
+        "expectedResult": "IPs remotos que falham 3 logins consecutivos em 10 minutos são automaticamente bloqueados na tabela iptables/nftables.",
+        "rollbackAction": "fail2ban-client unban --all && systemctl stop fail2ban."
+      }
+    ]
+  }
+}

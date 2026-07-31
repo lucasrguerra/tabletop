@@ -1,0 +1,246 @@
+{
+	"id": "dns-authoritative-reflection",
+	"title": "Ataque de Amplificação DNS por Servidores Autoritários Expostos",
+	"description": "Simulação tabletop de resposta a ataque volumétrico de amplificação DNS explorando queries do tipo TXT e ANY com IP forjado da vítima",
+	"category": {
+		"id": "NET_VOL",
+		"type": "NET_VOL_DNS_REFLECTION",
+		"title": "Ataque de Amplificação DNS (ANY Query)"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-07-31",
+		"author": "Equipe de Resposta a Incidentes",
+		"estimatedDuration": "35-45 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Administradores de Servidores DNS, Operadores de SOC e Segurança"
+	},
+	"objectives": [
+		"Validar o diagnóstico de ataques de amplificação DNS por reflexão",
+		"Avaliar a eficácia de mecanismos de Response Rate Limiting (RRL) nos servidores BIND/PowerDNS",
+		"Testar o bloqueio de requisições maliciosas via firewall com inspeção de protocolo DNS"
+	],
+	"scope": [
+		"Exercício tabletop conceitual"
+	],
+	"baseScenario": {
+		"context": "Terça-feira às 11:00, os servidores DNS autoritários da organização (dns-auth-01.corp.internal) registram pico de tráfego de saída de 45 Gbps. O volume de requisições DNS recebidas com o tipo 'ANY' e 'TXT' disparou 500x em relação ao baseline.",
+		"initialSituation": {
+			"alert": "HIGH OUTBOUND TRAFFIC ALERT: dns-auth-01 transmitting 45 Gbps UDP/53",
+			"affectedHost": "dns-auth-01.corp.internal (192.168.1.53)",
+			"queryType": "ANY / TXT para o domínio protegido com chave DNSSEC grande",
+			"timestamp": "11:00:00"
+		},
+		"initialComplaints": [
+			"Saturação da banda de saída do Data Center principal",
+			"Notificação enviada por provedores terceiros reclamando que a organização está participando de um ataque de reflexão contra uma vítima externa"
+		],
+		"availableResources": [
+			"Servidores DNS BIND 9 / PowerDNS / NSD",
+			"Logs de consultas DNS (querylog)",
+			"Firewall com módulo de inspeção DNS (iptables string matching / nftables / Palo Alto)"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Análise da Saturação DNS",
+			"phase": "Preparação",
+			"description": "Exame das métricas de requisições por segundo e fator de amplificação.",
+			"inject": "Apresentação das estatísticas de pacotes do servidor DNS.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Diagnóstico do Fator de Amplificação",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "Inspeção do tamanho das requisições recebidas versus respostas enviadas.",
+			"timeElapsed": "T+10 min",
+			"currentSituation": {
+				"queryRate": "850.000 qps",
+				"amplificationFactor": "50x (Requisição 60 bytes -> Resposta 3.000 bytes em virtude de DNSSEC + registros TXT/ANY)"
+			},
+			"metrics": [
+				{
+					"title": "Captura de Pacotes de Requisição DNS",
+					"type": "query-analysis",
+					"data": {
+						"clientIP": "203.0.113.88 (IP vitima forjado via IP Spoofing)",
+						"query": "corp.internal IN ANY (EDNS0 bufsize 4096)",
+						"responseSize": "3072 bytes (contém todos os registros da zona + assinaturas RRSIG)",
+						"observation": "Atacantes estão enviando queries com IP forjado da vítima. O servidor DNS responde com pacotes massivos de 3KB direcionados para a vítima."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Por que requisições DNS do tipo ANY com suporte a EDNS0 são frequentemente exploradas em ataques de amplificação?",
+					"points": 5,
+					"options": [
+						"Porque a consulta ANY exige que o servidor retorne TODOS os registros existentes na zona; junto com EDNS0 e DNSSEC, gera uma resposta até 50x maior que a requisição original",
+						"Porque a consulta ANY desativa a senha do servidor DNS",
+						"Porque o tipo ANY apaga os logs de acesso",
+						"Porque o protocolo DNS ANY roda sobre TCP sem handshake"
+					],
+					"correctAnswer": 0,
+					"justification": "Consultas ANY retornam todos os registros da zona (A, AAAA, MX, TXT, DNSKEY, RRSIG). Quando combinadas com EDNS0 (que permite pacotes UDP de até 4096 bytes), obtém-se o maior fator de amplificação possível."
+				},
+				{
+					"id": "q2",
+					"text": "O mecanismo de Response Rate Limiting (RRL) no BIND/PowerDNS limita a taxa de respostas idênticas enviadas para o mesmo IP de destino, mitigando ataques de reflexão.",
+					"type": "true-false",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. O RRL monitora o volume de respostas similares por segundo para o mesmo cliente IP e descarta ou trunca as respostas excessivas, neutralizando o abuso como refletor."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Aplicação de RRL e Desativação de Respostas ANY",
+			"phase": "Fase 2 - Contenção",
+			"description": "Ativação do RRL no BIND 9 e bloqueio de respostas para consultas ANY públicas.",
+			"timeElapsed": "T+25 min",
+			"currentSituation": {
+				"rrlStatus": "Ativado (`responses-per-second 5; window 5;`)",
+				"anyQueryStatus": "Rejeitado ou respondido com HINFO (RFC 8482)"
+			},
+			"metrics": [
+				{
+					"title": "Métricas do Servidor DNS Pós-RRL",
+					"type": "server-status",
+					"data": {
+						"outboundTraffic": "1.2 Gbps (Redução de 97%)",
+						"droppedResponses": "820.000 responses/sec (RRL Dropped)",
+						"observation": "O tráfego de saída retornou a níveis normais. O RRL descartou as respostas amplificadas para o IP da vítima."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "Se um pacote de requisição tem 60 bytes e a resposta amplificada tem 3000 bytes, qual o fator exato de amplificação obtido pelo atacante?",
+					"points": 5,
+					"correctAnswer": 50,
+					"tolerance": 0,
+					"unit": "vezes",
+					"justification": "3000 bytes / 60 bytes = 50x."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Relacione os termos de mitigação DNS:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "r1", "content": "Response Rate Limiting (RRL)"},
+						{"id": "r2", "content": "RFC 8482 (Providing Minimal Responses to ANY)"},
+						{"id": "r3", "content": "EDNS0 Buffer Size Clamping"}
+					],
+					"rightColumn": [
+						{"id": "c1", "content": "Mecanismo que limita a quantidade de respostas por segundo para o mesmo destino"},
+						{"id": "c2", "content": "Padronização que substitui o resultado completo de consultas ANY por uma resposta mínima ou nula"},
+						{"id": "c3", "content": "Restrição do tamanho máximo de payload aceito em respostas UDP para evitar grandes amplificações"}
+					],
+					"correctMatches": [
+						{"left": "r1", "right": "c1"},
+						{"left": "r2", "right": "c2"},
+						{"left": "r3", "right": "c3"}
+					],
+					"justification": "RRL limita respostas por destino; RFC 8482 minimiza respostas ANY; EDNS0 clamping restringe tamanho de pacote UDP."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Validação de Resposta Legítima",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "Garantia de que consultas legítimas do tipo A/AAAA continuam operando normalmente.",
+			"timeElapsed": "T+40 min",
+			"currentSituation": {
+				"legitimateResolution": "100% operacional",
+				"reflectionAbuse": "Zerado"
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene os passos para proteger um servidor DNS autoritário contra uso em ataques de amplificação:",
+					"points": 5,
+					"items": [
+						{"id": "d1", "content": "Identificar a anomalia de tráfego de saída elevado via portas UDP 53"},
+						{"id": "d2", "content": "Ativar a política de Response Rate Limiting (RRL) nas configurações do software DNS"},
+						{"id": "d3", "content": "Configurar o servidor para responder com pacotes mínimos a consultas do tipo ANY (RFC 8482)"},
+						{"id": "d4", "content": "Verificar se as consultas de resolução normais (A, AAAA, MX) continuam respondendo com sucesso"}
+					],
+					"correctOrder": ["d1", "d2", "d3", "d4"],
+					"justification": "Identificação do abuso -> Ativação do RRL -> Aplicação da RFC 8482 para ANY -> Teste de resolução legítima."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Hardening de Infraestrutura DNS",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Revisão dos modelos de configuração de todos os servidores DNS autoritários.",
+			"timeElapsed": "T+60 min",
+			"currentSituation": {
+				"incidentResolved": true
+			},
+			"questions": [
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Qual a configuração recomendada para servidores DNS recursivos em relação ao acesso externo?",
+					"points": 5,
+					"options": [
+						"Restringir a recursão exclusivamente para os blocos de IP internos da organização (Open Resolver desativado)",
+						"Permitir que qualquer IP do mundo faça consultas recursivas livremente",
+						"Desativar a resposta para o tipo A",
+						"Ativar a porta 53 para protocolo FTP"
+					],
+					"correctAnswer": 0,
+					"justification": "Servidores DNS recursivos jamais devem ser abertos ao mundo (Open Resolvers), pois são os principais vetores de amplificação em ataques DDoS."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 29,
+		"passingScore": 18,
+		"gradingScale": [
+			{
+				"min": 25,
+				"max": 29,
+				"grade": "Excelente",
+				"description": "Excelente conhecimento de protocolos DNS e mitigação de amplificação por reflexão."
+			},
+			{
+				"min": 18,
+				"max": 24,
+				"grade": "Satisfatório",
+				"description": "Compreensão adequada sobre RRL e mitigação de consultas ANY."
+			},
+			{
+				"min": 0,
+				"max": 17,
+				"grade": "Insuficiente",
+				"description": "Dificuldades em compreender o vetor de ataque de reflexão DNS."
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Explicar a diferença entre servidor DNS Autoritário e Servidor DNS Recursivo (Open Resolver).",
+		"Mencionar a RFC 8482 sobre a resposta mínima para ANY."
+	],
+	"technicalReferences": [
+		{
+			"title": "RFC 8482 - Providing Minimal Responses to DNS Queries of Type ANY",
+			"url": "https://datatracker.ietf.org/doc/html/rfc8482"
+		}
+	]
+}

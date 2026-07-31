@@ -1,0 +1,70 @@
+{
+  "id": "tcp-conceito-window-scaling-bbr",
+  "title": "Otimização TCP em Enlaces LFN: Window Scaling, BDP e Algoritmo BBR",
+  "description": "Explica o produto Banda x Atraso (Bandwidth-Delay Product), o impacto da opção Window Scaling (RFC 7323) e o desempenho do algoritmo de controle de congestão BBR em conexões de alta latência.",
+  "content_type": "CONCEITO",
+  "category": {
+    "id": "SCI_DATA",
+    "type": "SCI_DATA_HIGH_LATENCY",
+    "title": "Desempenho de Redes de Alta Latência"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-07-31T10:00:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "14 minutos",
+    "difficulty": "Avancado",
+    "targetAudience": "Engenheiros de Redes Acadêmicas, Cientistas de Dados e Administradores de Sistemas HPC",
+    "prerequisites": ["iperf3-ferramenta-throughput"]
+  },
+  "tags": ["TCP", "Window Scaling", "BDP", "BBR", "CUBIC", "LFN", "High Latency"],
+  "relatedScenarios": ["intercontinental-lightpath-latency", "tcp-window-scaling-throughput"],
+  "relatedStudies": [
+    "iperf3-ferramenta-throughput",
+    "perfsonar-ferramenta-medicao",
+    "glossario-sci-data"
+  ],
+  "technicalReferences": [
+    { "title": "RFC 7323 - TCP Extensions for High Performance", "url": "https://www.rfc-editor.org/rfc/rfc7323" }
+  ],
+  "content": {
+    "sections": [
+      {
+        "id": "bdp-window-scaling",
+        "title": "Bandwidth-Delay Product (BDP) e a Limitação da Janela TCP Standard",
+        "body": "Em redes Long Fat Networks (LFN) — conexões com alta largura de banda e alta latência RTT —, a quantidade de dados que precisa estar 'em trânsito' para preencher o enlace é calculada pelo Bandwidth-Delay Product (BDP = Banda x RTT). Sem a opção TCP Window Scale (WS), o tamanho máximo do buffer de recepção TCP é de apenas 64 KB (65.535 bytes). Em um enlace de 10 Gbps com 150ms RTT (BDP ~187.5 MB), o throughput fica limitado a pífios 3.4 Mbps sem o Window Scaling.",
+        "callout": {
+          "type": "danger",
+          "text": "Se um dispositivo intermediário (como um firewall legado ou middlebox de inspeção) remover o cabeçalho TCP Option 3 (Window Scale), o desempenho desaba de 10 Gbps para menos de 5 Mbps."
+        },
+        "codeBlock": {
+          "language": "text",
+          "code": "Cálculo de Throughput Máximo Sem Window Scale:\nThroughput = Window Size / RTT\nThroughput = 65,535 bytes / 0.150s = 436,900 bytes/s ≈ 3.49 Mbps\n\nCom Window Scale (Factor 8 - 16 MB Window):\nThroughput = 16,777,216 bytes / 0.150s ≈ 894 Mbps por fluxo único"
+        },
+        "keyPoints": [
+          "BDP define o tamanho mínimo de buffer necessário para saturar o enlace",
+          "TCP Window Scale expande o campo Window Size de 16 bits para até 1 Gigabyte",
+          "Middleboxes que removem opções TCP causam estrangulamento severo de vazão"
+        ]
+      },
+      {
+        "id": "tcp-bbr-vs-cubic",
+        "title": "Controle de Congestão: BBR vs. CUBIC/Reno",
+        "body": "Algoritmos clássicos baseados em perda de pacote (como CUBIC e Reno) interpretam qualquer perda como sinal de congestão e reduzem a janela pela metade. Em enlaces transoceanicos com perdas aleatórias mínimas de fibra, o CUBIC desmorona. O Google BBR (Bottleneck Bandwidth and RTT) mede continuamente a taxa de entrega e o RTT mínimo, estimando a capacidade real sem depender da perda de pacotes.",
+        "callout": {
+          "type": "tip",
+          "text": "Habilitar `net.ipv4.tcp_congestion_control = bbr` no Linux melhora dramaticamente o throughput de transferências científicas em enlaces continentais."
+        },
+        "codeBlock": {
+          "language": "bash",
+          "code": "# Ativar BBR no kernel Linux (sysctl.conf)\nnet.core.default_qdisc = fq\nnet.ipv4.tcp_congestion_control = bbr\n\n# Aplicar e verificar\nsysctl -p\nsysctl net.ipv4.tcp_congestion_control"
+        },
+        "keyPoints": [
+          "CUBIC reduz o envio drasticamente ao detectar qualquer perda de pacote",
+          "BBR otimiza a vazão com base no modelo físico do gargalo (RTT e largura de banda)",
+          "BBR exige o discipilador de filas fq (Fair Queueing) no Linux"
+        ]
+      }
+    ]
+  }
+}

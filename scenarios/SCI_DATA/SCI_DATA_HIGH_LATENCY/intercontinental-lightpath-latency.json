@@ -1,0 +1,253 @@
+{
+	"id": "intercontinental-lightpath-latency",
+	"title": "Aumento Crítico de RTT em Canal Óptico Intercontinental de Pesquisa",
+	"description": "Simulação tabletop de resposta à degradação severa de vazão de dados em experimentos científicos distribuídos causada por comutação imprevista de rota óptica submarina",
+	"category": {
+		"id": "SCI_DATA",
+		"type": "SCI_DATA_HIGH_LATENCY",
+		"title": "Alta Latência e RTT Excessivo"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-07-31",
+		"author": "Equipe de Resposta a Incidentes",
+		"estimatedDuration": "40-50 minutos",
+		"difficulty": "Avançado",
+		"targetAudience": "Engenheiros de Redes Internacionais, Administradores de Infraestrutura de HPC"
+	},
+	"objectives": [
+		"Validar o diagnóstico de degradação de vazão TCP devido ao aumento do RTT (Round Trip Time) em enlaces transoceânicos",
+		"Avaliar a relação entre o produto Banda-Atraso (Bandwidth-Delay Product - BDP) e os parâmetros do buffer TCP",
+		"Testar a transição para algoritmos de controle de congestão baseados em BBR (Bottleneck Bandwidth and RTT)"
+	],
+	"scope": [
+		"Exercício tabletop conceitual"
+	],
+	"baseScenario": {
+		"context": "Quinta-feira às 03:00, o canal óptico dedicado (Lightpath 100G) entre o observatório astronômico e o centro de processamento europeu sofre uma desativação não programada na rota submarina direta. A proteção BGP redireciona o tráfego por uma rota terrestre transcontinental alternativa, aumentando o RTT de 60ms para 280ms.",
+		"initialSituation": {
+			"alert": "LATENCY ALARM: RTT increased from 60ms to 280ms on Transatlantic Path",
+			"affectedService": "Transferência de Imagens de Astronomia em Tempo Real",
+			"throughputDrop": "Vazão desabou de 40 Gbps para 1.2 Gbps por sessão TCP",
+			"timestamp": "03:00:00"
+		},
+		"initialComplaints": [
+			"Os dados dos radiotelescópios estão acumulando nos discos locais e ameaçando estourar a capacidade de armazenamento",
+			"Pesquisadores relatam que a velocidade de transferência caiu em 97% mesmo com o link de 100G desocupado"
+		],
+		"availableResources": [
+			"Roteadores de borda BGP com suporte a BBR (Linux/FRR/Arista)",
+			"Ferramentas iPerf3 / perfSONAR para diagnóstico de RTT e BDP",
+			"Parâmetros de ajuste TCP do kernel (`net.ipv4.tcp_window_scaling`, `tcp_wmem`, `tcp_rmem`)"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Detecção do Aumento de RTT",
+			"phase": "Preparação",
+			"description": "Análise do salto de latência de ida e volta nos testes contínuos do perfSONAR.",
+			"inject": "Apresentação do gráfico de RTT e vazão TCP.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Cálculo do Produto Banda-Atraso (BDP)",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "Análise do motivo pelo qual a velocidade caiu drasticamente com a latência alta.",
+			"timeElapsed": "T+15 min",
+			"currentSituation": {
+				"rtt": "280 ms",
+				"loss": "0%",
+				"currentTCPCongestion": "CUBIC (Janela travando por estresse de buffer)"
+			},
+			"metrics": [
+				{
+					"title": "Métricas iPerf3 no Servidor de Transferência",
+					"type": "network-analysis",
+					"data": {
+						"command": "iperf3 -c 192.168.200.1 -t 30",
+						"windowSize": "4 MBytes (Padrão do SO)",
+						"achievedBitrate": "1.14 Gbps",
+						"calculatedBDP": "100 Gbps * 0.280s = 3.5 Gigabytes de buffer necessários",
+						"observation": "Com RTT de 280ms, a janela TCP padrão do sistema operacional de 4MB só consegue preencher 1.14 Gbps de banda. O restante do link fica subutilizado."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Por que um aumento de RTT (latência de ida e volta) reduz drasticamente a vazão máxima de uma única sessão TCP tradicional com tamanho de janela fixo?",
+					"points": 5,
+					"options": [
+						"Porque o emissor precisa aguardar o recebimento das confirmações (ACKs) viajando pelo RTT mais longo antes de enviar novos pacotes; se a janela TCP for menor que o Produto Banda-Atraso (BDP), o emissor fica ocioso",
+						"Porque os pacotes ficam mais pesados ao viajar por rotas mais longas",
+						"Porque a fibra terrestre usa luz mais lenta que a fibra submarina",
+						"Porque o protocolo BGP limita a velocidade em rotas com mais de 5 saltos"
+					],
+					"correctAnswer": 0,
+					"justification": "A fórmula `Max Throughput = Window Size / RTT` demonstra que se o RTT aumenta e a Janela TCP do SO permanece limitada, a vazão cai proporcionalmente ao aumento da latência."
+				},
+				{
+					"id": "q2",
+					"text": "O algoritmo de controle de congestão TCP BBR (Bottleneck Bandwidth and RTT) desenvolvido pelo Google é mais eficiente que o CUBIC em redes com alto RTT pois não interpreta a variação de RTT como congestão imediata.",
+					"type": "true-false",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. O BBR mede a largura de banda do gargalo e o RTT mínimo real em vez de depender apenas do descarte de pacotes como o CUBIC/Reno."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Ajuste de Buffers do Kernel e Ativação do BBR",
+			"phase": "Fase 2 - Contenção",
+			"description": "Ativação do `sysctl net.ipv4.tcp_congestion_control = bbr` e aumento das janelas de rmem/wmem.",
+			"timeElapsed": "T+30 min",
+			"currentSituation": {
+				"bbrEnabled": true,
+				"tcpBufferExpanded": "janelas rmem/wmem aumentadas para 128 MB"
+			},
+			"metrics": [
+				{
+					"title": "Teste iPerf3 Pós-Ajuste de BBR e Buffer",
+					"type": "server-status",
+					"data": {
+						"command": "iperf3 -c 192.168.200.1 -P 8",
+						"achievedBitrate": "38.5 Gbps (Recuperação de 3300% na vazão)",
+						"rtt": "280 ms",
+						"observation": "A expansão das janelas de socket TCP e a ativação do algoritmo BBR preencheram o cano de alta latência, recuperando a vazão de dados."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "Se o BDP exige um buffer de 3.5 Gigabytes para 100 Gbps a 280ms RTT e o sistema tinha apenas 0.5 Gigabytes configurados, quantos Gigabytes de buffer faltavam para atingir a capacidade total?",
+					"points": 5,
+					"correctAnswer": 3,
+					"tolerance": 0,
+					"unit": "Gigabytes",
+					"justification": "3.5 GB - 0.5 GB = 3 Gigabytes."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Relacione os termos de engenharia de transporte TCP aos seus conceitos:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "t1", "content": "BDP (Bandwidth-Delay Product)"},
+						{"id": "t2", "content": "TCP Window Scaling (RFC 1323)"},
+						{"id": "t3", "content": "BBR Congestion Control"}
+					],
+					"rightColumn": [
+						{"id": "r1", "content": "Quantidade máxima de dados em trânsito 'no cano' (Banda x RTT) necessária para lotar o link"},
+						{"id": "r2", "content": "Opção no cabeçalho TCP que permite janelas de recepção maiores que 64 KB (até 1 GB)"},
+						{"id": "r3", "content": "Algoritmo que otimiza a vazão estimando continuamente a taxa de transmissão sem zerar a janela"}
+					],
+					"correctMatches": [
+						{"left": "t1", "right": "r1"},
+						{"left": "t2", "right": "r2"},
+						{"left": "t3", "right": "r3"}
+					],
+					"justification": "BDP indica volume de dados em trânsito; Window Scaling expande tamanho de janela acima de 64KB; BBR otimiza fluxo baseado no gargalo real."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Restauração da Rota Submarina",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "Retorno da rota de menor latência após conclusão do reparo no cabo submarino.",
+			"timeElapsed": "T+60 min",
+			"currentSituation": {
+				"rttRestored": "60 ms",
+				"throughput": "92 Gbps sustentados"
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene os passos para otimizar servidores Linux de transferência de dados em redes com alta latência:",
+					"points": 5,
+					"items": [
+						{"id": "o1", "content": "Calcular o Produto Banda-Atraso (BDP = Banda * RTT) para o pior cenário de latência da rede"},
+						{"id": "o2", "content": "Habilitar a opção `net.ipv4.tcp_window_scaling = 1` no `/etc/sysctl.conf`"},
+						{"id": "o3", "content": "Aumentar os limites máximos de memória de leitura e escrita do TCP (`tcp_rmem` e `tcp_wmem`)"},
+						{"id": "o4", "content": "Ativar o algoritmo de controle de congestão `bbr` e utilizar fluxos paralelos em transferências pesadas"}
+					],
+					"correctOrder": ["o1", "o2", "o3", "o4"],
+					"justification": "Cálculo de BDP -> Ativação de Window Scaling -> Expansão de Buffers sysctl -> Ativação de BBR e Streams Paralelos."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Padronização de Perfis de DTN",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Distribuição dos templates de tuning sysctl para todos os Data Transfer Nodes da instituição.",
+			"timeElapsed": "T+80 min",
+			"currentSituation": {
+				"incidentResolved": true
+			},
+			"questions": [
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Qual o comando para verificar qual algoritmo de controle de congestão TCP está sendo utilizado no sistema Linux?",
+					"points": 5,
+					"options": [
+						"`sysctl net.ipv4.tcp_congestion_control`",
+						"`ping 127.0.0.1`",
+						"`ifconfig -a`",
+						"`traceroute google.com`"
+					],
+					"correctAnswer": 0,
+					"justification": "O comando `sysctl net.ipv4.tcp_congestion_control` exibe a variável de kernel que define o algoritmo ativo (ex: bbr, cubic, reno)."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 29,
+		"passingScore": 18,
+		"gradingScale": [
+			{
+				"min": 25,
+				"max": 29,
+				"grade": "Excelente",
+				"description": "Excelente conhecimento de sintonia TCP, BDP, algoritmos de congestão BBR e WANs de alto desempenho."
+			},
+			{
+				"min": 18,
+				"max": 24,
+				"grade": "Satisfatório",
+				"description": "Boa compreensão do impacto de RTT na vazão TCP e otimização de buffers."
+			},
+			{
+				"min": 0,
+				"max": 17,
+				"grade": "Insuficiente",
+				"description": "Dificuldades em associar latência à degradação de vazão em redes IP."
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Explicar a matemática do BDP (`BDP (bits) = Bandwidth (bits/s) * RTT (s)`).",
+		"Comparar o comportamento do TCP CUBIC vs. TCP BBR sob perdas e alta latência."
+	],
+	"technicalReferences": [
+		{
+			"title": "RFC 1323 - TCP Extensions for High Performance",
+			"url": "https://datatracker.ietf.org/doc/html/rfc1323"
+		},
+		{
+			"title": "BBR: Congestion-Based Congestion Control (ACM Queue)",
+			"url": "https://queue.acm.org/detail.cfm?id=3022184"
+		}
+	]
+}

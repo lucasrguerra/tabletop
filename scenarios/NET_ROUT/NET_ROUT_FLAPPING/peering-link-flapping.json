@@ -1,0 +1,247 @@
+{
+	"id": "peering-link-flapping",
+	"title": "Instabilidade Severa de Sessão BGP Peering por MTU Mismatch",
+	"description": "Simulação tabletop de resposta a instabilidade recorrente (flapping) em sessões BGP de eBGP Peering provocada por fragmentação de pacotes e incompatibilidade de MTU em enlaces de transporte",
+	"category": {
+		"id": "NET_ROUT",
+		"type": "NET_ROUT_FLAPPING",
+		"title": "Instabilidade de Rotas BGP (Route Flapping)"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-07-31",
+		"author": "Equipe de Resposta a Incidentes",
+		"estimatedDuration": "40-50 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Engenheiros de Redes e Telecomunicações"
+	},
+	"objectives": [
+		"Validar o procedimento de diagnósticos de instabilidade em sessões BGP eBGP/iBGP",
+		"Avaliar o impacto de pacotes Keepalive vs. pacotes UPDATE grandes em enlaces com restrição de MTU",
+		"Testar o uso de BGP Route Dampening e ajuste de Path MTU Discovery"
+	],
+	"scope": [
+		"Exercício tabletop conceitual",
+		"Foco no troubleshooting de camada 3 / BGP"
+	],
+	"baseScenario": {
+		"context": "Sexta-feira às 14:00, os roteadores de borda (AS 64500) começam a apresentar quedas recorrentes na sessão eBGP com um grande Ponto de Troca de Tráfego (IXP). A sessão estabelece, troca algumas rotas e cai após 60 segundos com o erro BGP Hold Timer Expired.",
+		"initialSituation": {
+			"alert": "BGP Session State Changed: ESTABLISHED -> ACTIVE -> IDLE (Flapping)",
+			"affectedPeer": "198.51.100.1 (AS 65000)",
+			"errorLog": "%BGP-3-NOTIFICATION: sent to neighbor 198.51.100.1 4/0 (hold time expired)",
+			"timestamp": "14:00:00"
+		},
+		"initialComplaints": [
+			"Perda intermitente de conectividade com serviços hospedados em membros do IXP",
+			"Consumo elevado de CPU nos roteadores de borda devido à constantes reconvergências de rotas"
+		],
+		"availableResources": [
+			"Terminal CLI dos roteadores de borda (Cisco IOS-XR / Juniper JunOS)",
+			"Ferramenta de captura de pacotes (tcpdump / Wireshark no espelhamento de porta)",
+			"Métricas de tráfego de interface e MTU"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Análise dos Logs da Sessão BGP",
+			"phase": "Preparação",
+			"description": "Exame dos logs do sistema para identificar a frequência das descidas da sessão.",
+			"inject": "Apresentação dos registros de log do roteador de borda.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Diagnóstico do Comportamento dos Pacotes BGP",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "Identificação do motivo pelo qual pacotes pequenos de Keepalive passam, mas a sessão cai ao enviar grandes atualizações de rotas.",
+			"timeElapsed": "T+15 min",
+			"currentSituation": {
+				"sessionBehavior": "Handshake TCP porta 179 completa com sucesso. Mensagem OPEN negociada. Sessão cai no momento de enviar a tabela UPDATE."
+			},
+			"metrics": [
+				{
+					"title": "Inspeção de Pacotes TCP/BGP (tcpdump)",
+					"type": "network-analysis",
+					"data": {
+						"keepalivePacket": "Length: 19 bytes (IP Total Length: 59 bytes) -> PASS",
+						"updatePacket": "Length: 4096 bytes -> ICMP Need to Frag (DF set) or Dropped by Link MTU 1500",
+						"interfaceMTU": "Roteador Local: 9000 bytes (Jumbo Frame) | Enlace Transporte Intermediate: 1500 bytes",
+						"observation": "O roteador envia um pacote UPDATE acumulado de 4096 bytes com a flag Don't Fragment (DF) ativada. O enlace do provedor intermediário possui MTU de 1500 e descarta o pacote sem retornar ICMP."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Por que a sessão BGP mantinha o estado ESTABLISHED por alguns segundos e depois caía por 'Hold Time Expired'?",
+					"points": 5,
+					"options": [
+						"Porque o protocolo BGP exige autenticação MD5 obrigatória a cada 60s",
+						"Porque o pacote UPDATE grande excedia a MTU do caminho e era descartado silenciosemente, impedindo a chegada da atualização e travando a fila TCP até o estouro do Hold Timer",
+						"Porque o cabo de fibra estava com atenuação variável",
+						"Porque o provedor de trânsito bloqueou o IP 127.0.0.1"
+					],
+					"correctAnswer": 1,
+					"justification": "Pacotes Keepalive pequenos passavam sem problemas, mantendo o handshake inicial; porém, o pacote UPDATE de tamanho grande era descartado devido ao descompasso de MTU (MTU Mismatch) e à falta de fragmentação, estourando o Hold Timer."
+				},
+				{
+					"id": "q2",
+					"text": "O comando 'path-mtu-discovery' no BGP ajuda o roteador a descobrir a menor MTU do caminho para ajustar o tamanho máximo do segmento (MSS) TCP.",
+					"type": "true-false",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. O Path MTU Discovery (PMTUD) usa mensagens ICMP Type 3 Code 4 para ajustar dinamicamente o MSS das conexões TCP BGP."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Ajuste e Normalização da MTU",
+			"phase": "Fase 2 - Contenção",
+			"description": "Ajuste na interface do roteador local e na configuração BGP TCP MSS.",
+			"timeElapsed": "T+30 min",
+			"currentSituation": {
+				"mtuConfigured": "Ajustada a MTU da interface para 1500 e ativado o MSS clamping para 1460 bytes"
+			},
+			"metrics": [
+				{
+					"title": "Status da Sessão BGP Pós-Ajuste",
+					"type": "server-status",
+					"data": {
+						"neighbor": "198.51.100.1",
+						"bgpState": "Established",
+						"upTime": "00:15:32 (Sem quedas)",
+						"prefixesReceived": "14.500 rotas",
+						"observation": "Ajuste de MTU/MSS estabilizou totalmente a transmissão dos pacotes UPDATE."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "Se o cabeçalho IP tem 20 bytes e o cabeçalho TCP tem 20 bytes, qual deve ser o valor máximo de MSS (Max Segment Size) configurado para uma MTU de 1500 bytes?",
+					"points": 5,
+					"correctAnswer": 1460,
+					"tolerance": 0,
+					"unit": "bytes",
+					"justification": "1500 (MTU) - 20 (IP) - 20 (TCP) = 1460 bytes de MSS."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Relacione os conceitos de instabilidade BGP aos seus remédios técnicos:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "t1", "content": "BGP Route Dampening"},
+						{"id": "t2", "content": "PMTUD (Path MTU Discovery)"},
+						{"id": "t3", "content": "BGP Hold Time"}
+					],
+					"rightColumn": [
+						{"id": "r1", "content": "Mecanismo para suprimir temporariamente rotas que oscilam com muita frequência"},
+						{"id": "r2", "content": "Técnica para detectar automaticamente o menor MTU ao longo da rota IP"},
+						{"id": "r3", "content": "Timer limite de espera sem receber mensagens Keepalive/UPDATE antes de derrubar a sessão"}
+					],
+					"correctMatches": [
+						{"left": "t1", "right": "r1"},
+						{"left": "t2", "right": "r2"},
+						{"left": "t3", "right": "r3"}
+					],
+					"justification": "Dampening suprime rotas oscilantes; PMTUD descobre MTU do caminho; Hold Time monitora a vivacidade da sessão."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Análise Avançada e Monitoramento de Flapping",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "Verificação do impacto das oscilações anteriores nos peers vizinhos.",
+			"timeElapsed": "T+50 min",
+			"currentSituation": {
+				"stableSession": true,
+				"cpuLoad": "Normalizada (5%)"
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene os passos para solução de problemas de BGP Flapping por MTU:",
+					"points": 5,
+					"items": [
+						{"id": "s1", "content": "Observar nos logs a oscilação constante da sessão apontando 'Hold Time Expired'"},
+						{"id": "s2", "content": "Executar testes de PING com pacotes de tamanhos variáveis e flag DF ativada"},
+						{"id": "s3", "content": "Identificar o tamanho limite onde ocorre o descarte de pacotes no enlace"},
+						{"id": "s4", "content": "Configurar o MTU/MSS adequado na interface e reativar a sessão BGP"}
+					],
+					"correctOrder": ["s1", "s2", "s3", "s4"],
+					"justification": "Identificação do erro -> Teste de Ping Sweep com DF -> Descoberta da MTU limite -> Ajuste final de MTU/MSS."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Padronização de Engenharia de Redes",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Definição de template de configuração padrão para sessões Peering de borda.",
+			"timeElapsed": "T+70 min",
+			"currentSituation": {
+				"standardUpdated": true
+			},
+			"questions": [
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Qual o comando/prática recomendada para prevenir que discrepâncias de MTU derrubem sessões BGP em enlaces de peering?",
+					"points": 5,
+					"options": [
+						"Configurar 'ip tcp adjust-mss' / 'path-mtu-discovery' no template BGP de todos os vizinhos eBGP",
+						"Aumentar o Hold Time para 24 horas",
+						"Desativar o protocolo TCP e rodar BGP sobre UDP",
+						"Forçar o envio de pacotes de 64 bytes exclusivamente"
+					],
+					"correctAnswer": 0,
+					"justification": "Ajustar o MSS TCP no template BGP previne que qualquer pacote BGP exceda a capacidade de transporte do link."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 29,
+		"passingScore": 18,
+		"gradingScale": [
+			{
+				"min": 25,
+				"max": 29,
+				"grade": "Excelente",
+				"description": "Excelente diagnóstico de Camada 3 e engenharia de protocolos BGP/TCP."
+			},
+			{
+				"min": 18,
+				"max": 24,
+				"grade": "Satisfatório",
+				"description": "Boa compreensão sobre o impacto de MTU e MSS na estabilidade de rotas."
+			},
+			{
+				"min": 0,
+				"max": 17,
+				"grade": "Insuficiente",
+				"description": "Dificuldades em associar problemas de fragmentação de pacotes ao BGP."
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Explicar por que pings normais (pequenos) funcionam mesmo quando a sessão BGP de grandes tabelas cai.",
+		"Demonstrar a sintaxe de ping com DF set (`ping -s 1472 -M do 198.51.100.1`)."
+	],
+	"technicalReferences": [
+		{
+			"title": "RFC 2918 - Route Refresh Capability for BGP-4",
+			"url": "https://datatracker.ietf.org/doc/html/rfc2918"
+		}
+	]
+}

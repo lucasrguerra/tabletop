@@ -1,0 +1,70 @@
+{
+  "id": "energia-conceito-ats-redundancia",
+  "title": "Sistemas de Energia Redundante: Chaves ATS e Gerenciamento de Inrush Current",
+  "description": "Estudo técnico sobre arquitetura de alimentação dual-feed em Data Centers, funcionamento de Automatic Transfer Switches (ATS) e mitigação de picos de corrente na energização.",
+  "content_type": "CONCEITO",
+  "category": {
+    "id": "PHY_L2",
+    "type": "PHY_L2_POWER_OUTAGE",
+    "title": "Infraestrutura de Energia"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-07-31T10:00:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "10 minutos",
+    "difficulty": "Intermediario",
+    "targetAudience": "Engenheiros de Data Center, Administradores de Infraestrutura e Telecom",
+    "prerequisites": ["sfp-ferramenta-dom-ddm"]
+  },
+  "tags": ["Energia", "ATS", "Dual-Feed", "UPS", "Inrush Current", "Data Center"],
+  "relatedScenarios": ["ats-failure-dual-feed"],
+  "relatedStudies": [
+    "sfp-ferramenta-dom-ddm",
+    "switch-ferramenta-diagnostico",
+    "glossario-phy-l2"
+  ],
+  "technicalReferences": [
+    { "title": "ANSI/TIA-942 - Telecommunications Infrastructure Standard for Data Centers", "url": "https://tiaonline.org/" }
+  ],
+  "content": {
+    "sections": [
+      {
+        "id": "dual-feed-ats",
+        "title": "Arquitetura Dual-Feed e Chaves de Transferência Automática (ATS)",
+        "body": "Equipamentos de missão crítica possuem fontes redundantes (PSU A e PSU B) alimentadas por linhas elétricas independentes (Feed A e Feed B). Equipamentos legados de fonte única requerem uma Automatic Transfer Switch (ATS) de rack. A ATS monitora ambas as entradas e chaveia a alimentação em menos de 10-16 milissegundos em caso de falha de uma das fontes, tempo menor que o hold-up time das fontes ATX/Server para evitar reinicializações.",
+        "callout": {
+          "type": "danger",
+          "text": "Se a chave ATS falhar em modo travado ou se ambas as fontes compartilharem o mesmo disjuntor de PDU, a redundância é puramente ilusória e o equipamento desligará durante a manutenção."
+        },
+        "codeBlock": {
+          "language": "text",
+          "code": "Esquema Dual-Feed:\n[UPS A (Feed A)] ---> [PSU A (Servidor)] \\\n                                        ---> Operação Normal Sem Interrupção\n[UPS B (Feed B)] ---> [PSU B (Servidor)] /"
+        },
+        "keyPoints": [
+          "Mantém equipamentos ativos durante queda ou manutenção de uma das linhas de UPS",
+          "Tempo de chaveamento da ATS deve ser inferior a 16ms",
+          "Exige dimensionamento correto de disjuntores e balanceamento de fase"
+        ]
+      },
+      {
+        "id": "inrush-current",
+        "title": "Surto de Energização (Inrush Current) e Sequenciamento de PDU",
+        "body": "Quando múltiplos servidores e switches são energizados simultaneamente após o retorno da energia, os capacitores das fontes absorvem uma corrente inicial significativamente maior que a corrente nominal de operação (Inrush Current). Sem um sequenciamento de ligamento por PDU gerenciável (Power Sequencing Delay), esse surto dispara os disjuntores magnéticos da PDU de borda.",
+        "callout": {
+          "type": "tip",
+          "text": "Configure atrasos graduais de ligamento (ex: 2 a 5 segundos entre saídas da PDU) para evitar que o Inrush Current desative a proteção de sobrecorrente."
+        },
+        "codeBlock": {
+          "language": "bash",
+          "code": "# Exemplo de configuração de atraso na PDU APC / Raritan (CLI)\nconfig pdu outlet 1 power-on-delay 0\nconfig pdu outlet 2 power-on-delay 5\nconfig pdu outlet 3 power-on-delay 10"
+        },
+        "keyPoints": [
+          "Inrush current pode ser até 10 a 20 vezes maior que a corrente contínua nominal",
+          "Power sequencing evita o desligamento em cadeia por disjuntores de rack",
+          "PDUs inteligentes permitem agendamento de startup individual por tomada"
+        ]
+      }
+    ]
+  }
+}

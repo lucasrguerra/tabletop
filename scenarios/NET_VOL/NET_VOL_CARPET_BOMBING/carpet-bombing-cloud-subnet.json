@@ -1,0 +1,248 @@
+{
+	"id": "carpet-bombing-cloud-subnet",
+	"title": "Ataque DDoS Volumétrico Carpet Bombing contra Sub-rede de Nuvem Privada",
+	"description": "Simulação tabletop de resposta a ataque DDoS difuso (Carpet Bombing) espalhado por centenas de endereços IP de uma sub-rede /24, inviabilizando mitigação por IP único",
+	"category": {
+		"id": "NET_VOL",
+		"type": "NET_VOL_CARPET_BOMBING",
+		"title": "Carpet Bombing - Ataque Difuso Multi-Alvo"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-07-31",
+		"author": "Equipe de Resposta a Incidentes",
+		"estimatedDuration": "40-50 minutos",
+		"difficulty": "Avançado",
+		"targetAudience": "Engenheiros de Mitigação DDoS, Administradores de SOC e Redes"
+	},
+	"objectives": [
+		"Validar o diagnóstico de ataques DDoS volumétricos do tipo Carpet Bombing (difusos)",
+		"Avaliar a limitação de filtros por IP único (/32 Blackholing) frente a ataques pulverizados em sub-redes /24",
+		"Testar o acionamento de Scrubbing Centers e políticas de mitigação por assinaturas de pacotes"
+	],
+	"scope": [
+		"Exercício tabletop conceitual sem envio real de tráfego volumétrico"
+	],
+	"baseScenario": {
+		"context": "Sábado às 14:00, os links de borda da organização atingem 100% de ocupação (80 Gbps). O sistema de detecção tradicional acusa ataque contra a sub-rede 198.51.100.0/24, porém nenhum IP individual ultrapassa 500 Mbps, inviabilizando o descarte de IPs específicos.",
+		"initialSituation": {
+			"alert": "DDoS Alert: Subnet 198.51.100.0/24 experiencing Carpet Bombing Attack (Total 80 Gbps)",
+			"affectedSubnet": "198.51.100.0/24 (254 hosts ativos)",
+			"attackVector": "UDP Flood pulverizado entre portas aleatórias e IPs aleatórios do bloco",
+			"timestamp": "14:00:00"
+		},
+		"initialComplaints": [
+			"Degradação total nos links de borda afetando inclusive clientes de outros blocos de IP",
+			"O sistema automático de Blackhole BGP (RTBH) não foi ativado pois nenhum IP sozinho atingiu o threshold de 5 Gbps"
+		],
+		"availableResources": [
+			"Sistema de Detecção de Anomalias de Fluxo (FastNetMon / Kentik)",
+			"Sessão BGP Flowspec com os Provedores de Trânsito",
+			"Contrato de Scrubbing Center Nuvem (Mitigação On-Demand)"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Identificação do Padrão Carpet Bombing",
+			"phase": "Preparação",
+			"description": "Análise da distribuição do tráfego malicioso pelos hosts da sub-rede.",
+			"inject": "Apresentação dos gráficos de tráfego divididos por IP destino.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Análise das Limitações da Mitigação Tradicional",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "Exame das assinaturas de pacotes e avaliação do impacto do envio de Blackhole de todo o bloco.",
+			"timeElapsed": "T+15 min",
+			"currentSituation": {
+				"totalVolume": "80 Gbps / 12 Mpps",
+				"ipDistribution": "250 IPs recebendo entre 200 Mbps e 400 Mbps cada"
+			},
+			"metrics": [
+				{
+					"title": "Análise de Amostras de NetFlow",
+					"type": "network-analysis",
+					"data": {
+						"protocol": "UDP",
+						"srcPort": "123 / 53 / 1900 / random",
+						"dstPort": "Aleatórias (1024-65535)",
+						"packetSize": "1400 bytes",
+						"observation": "O atacante distribui pequenos volumes contra centenas de alvos para contornar o acionamento de Blackholing por IP (/32)."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Por que o acionamento de BGP Remotely Triggered Blackhole (RTBH) tradicional para um único IP (/32) Ineficiente em ataques Carpet Bombing?",
+					"points": 5,
+					"options": [
+						"Porque o ataque não foca em um único IP, mas sim em centenas de IPs da sub-rede; aplicar RTBH em um IP não reduz significativamente o volume do ataque",
+						"Porque o RTBH aumenta o tráfego do ataque",
+						"Porque o RTBH funciona apenas para protocolo TCP",
+						"Porque os roteadores de borda não suportam a tabela BGP"
+					],
+					"correctAnswer": 0,
+					"justification": "Como o Carpet Bombing espalha o tráfego por toda a sub-rede /24, aplicar Blackhole em um único IP tira apenas um pequeno percentual do ataque e derruba serviços legítimos daquele IP."
+				},
+				{
+					"id": "q2",
+					"text": "Aplicar Blackhole BGP (RTBH) na sub-rede /24 inteira elimina o tráfego malicioso da borda, porém causa indisponibilidade total de todos os serviços legítimos daquela sub-rede.",
+					"type": "true-false",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. O RTBH descarta todo o tráfego destinado ao bloco na borda da operadora, atingindo o objetivo de proteger o link, mas gerando negação de serviço para a sub-rede."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Redirecionamento para Scrubbing Center Nuvem",
+			"phase": "Fase 2 - Contenção",
+			"description": "Anúncio do prefixo /24 via BGP para o centro de mitigação (Scrubbing Center).",
+			"timeElapsed": "T+30 min",
+			"currentSituation": {
+				"scrubbingActive": "Anúncio BGP redirecionado para a nuvem de mitigação",
+				"cleanTraffic": "Tráfego limpo retornado via túnel GRE / BGP"
+			},
+			"metrics": [
+				{
+					"title": "Métricas do Scrubbing Center",
+					"type": "server-status",
+					"data": {
+						"injectedTraffic": "82 Gbps",
+						"mitigatedTraffic": "78.5 Gbps (Descarte de pacotes maliciosos)",
+						"passedTraffic": "3.5 Gbps (Tráfego limpo de produção)",
+						"observation": "O Scrubbing Center inspecionou as assinaturas de pacotes e limpou o volume sem necessitar derrubar os IPs do bloco."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "Se o tráfego total recebido no Scrubbing Center foi de 82 Gbps e o tráfego limpo devolvido para a empresa foi de 3.5 Gbps, quantos Gbps de tráfego malicioso foram filtrados?",
+					"points": 5,
+					"correctAnswer": 78.5,
+					"tolerance": 0.1,
+					"unit": "Gbps",
+					"justification": "82 Gbps - 3.5 Gbps = 78.5 Gbps filtrados."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Relacione os mecanismos de defesa contra DDoS à sua aplicação em ataques volumétricos:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "d1", "content": "BGP Flowspec"},
+						{"id": "d2", "content": "Scrubbing Center"},
+						{"id": "d3", "content": "RTBH (/32 Blackhole)"}
+					],
+					"rightColumn": [
+						{"id": "r1", "content": "Permite injetar regras granulares (protocolo, tamanho, porta) diretamente nos roteadores da operadora"},
+						{"id": "r2", "content": "Infraestrutura dedicada que atrai o tráfego, limpa as anomalias e devolve o tráfego legítimo"},
+						{"id": "r3", "content": "Mecanismo emergencial que descarta todo o tráfego de um IP específico para salvar o link físico"}
+					],
+					"correctMatches": [
+						{"left": "d1", "right": "r1"},
+						{"left": "d2", "right": "r2"},
+						{"left": "d3", "right": "r3"}
+					],
+					"justification": "Flowspec aplica regras granulares nos roteadores; Scrubbing limpa o tráfego em nuvem; RTBH descarta o tráfego de um IP."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Ajuste de Regras de BGP Flowspec",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "Criação de regra Flowspec para descartar pacotes UDP com payload característico na borda dos trânsitos.",
+			"timeElapsed": "T+50 min",
+			"currentSituation": {
+				"flowspecRule": "Injetada: matching UDP destination-port 1024-65535 packet-length 1400 -> action drop",
+				"mitigationOffloaded": true
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene os passos para mitigação de ataque DDoS Carpet Bombing:",
+					"points": 5,
+					"items": [
+						{"id": "c1", "content": "Detectar a anomalia difusa pulverizada pela sub-rede através de análise de NetFlow/sFlow"},
+						{"id": "c2", "content": "Redirecionar o bloco /24 para o Scrubbing Center via anúncio BGP mais específico ou BGP Community"},
+						{"id": "c3", "content": "Analisar as características comuns dos pacotes maliciosos para montar regras de assinatura"},
+						{"id": "c4", "content": "Disseminar regras BGP Flowspec para os provedores de trânsito para descarte na borda externa"}
+					],
+					"correctOrder": ["c1", "c2", "c3", "c4"],
+					"justification": "Detecção do padrão Carpet Bombing -> Redirecionamento para Scrubbing -> Análise de assinatura -> Injeção de Flowspec."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Resiliência contra Ataques Difusos",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Revisão dos limiares de alarme no sistema de detecção de anomalias (TMS/FastNetMon).",
+			"timeElapsed": "T+75 min",
+			"currentSituation": {
+				"incidentResolved": true
+			},
+			"questions": [
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Qual a melhoria de monitoramento necessária para identificar precocemente um ataque de Carpet Bombing?",
+					"points": 5,
+					"options": [
+						"Configurar alarme por volume agregado de sub-rede (/24) além dos alarmes por IP individual (/32)",
+						"Desativar os alertas de tráfego nos finais de semana",
+						"Aumentar o limite de acionamento do RTBH para 100 Gbps",
+						"Bloquear a porta ICMP de todos os hosts"
+					],
+					"correctAnswer": 0,
+					"justification": "Configurar limiares de detecção agregados no nível da sub-rede (/24) garante que ataques pulverizados sejam detectados imediatamente."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 29,
+		"passingScore": 18,
+		"gradingScale": [
+			{
+				"min": 25,
+				"max": 29,
+				"grade": "Excelente",
+				"description": "Excelente conhecimento de mitigação DDoS avançada e arquiteturas de Scrubbing."
+			},
+			{
+				"min": 18,
+				"max": 24,
+				"grade": "Satisfatório",
+				"description": "Boa compreensão sobre as limitações do RTBH e uso do BGP Flowspec."
+			},
+			{
+				"min": 0,
+				"max": 17,
+				"grade": "Insuficiente",
+				"description": "Dificuldades em diferenciar ataques focados de ataques difusos."
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Explicar por que os atacantes migraram para o Carpet Bombing (para burlar mitigações automatizadas por IP).",
+		"Discutir o custo-benefício de Scrubbing Centers ativos permanentemente (Always-On) vs. sob demanda (On-Demand)."
+	],
+	"technicalReferences": [
+		{
+			"title": "RFC 8955 - Dissemination of Flow Specification Rules (BGP Flowspec)",
+			"url": "https://datatracker.ietf.org/doc/html/rfc8955"
+		}
+	]
+}

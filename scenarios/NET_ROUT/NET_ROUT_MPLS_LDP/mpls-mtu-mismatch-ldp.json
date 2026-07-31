@@ -1,0 +1,249 @@
+{
+	"id": "mpls-mtu-mismatch-ldp",
+	"title": "Queda de Túneis L2VPN por Incompatibilidade de MTU no Core MPLS",
+	"description": "Simulação tabletop de resposta a falha de sinalização LDP e queda de pseudowires MPLS causada por incompatibilidade de MTU na rede de transporte",
+	"category": {
+		"id": "NET_ROUT",
+		"type": "NET_ROUT_MPLS_LDP",
+		"title": "Falha de Sinalização MPLS/LDP (Label Distribution Protocol)"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-07-31",
+		"author": "Equipe de Resposta a Incidentes",
+		"estimatedDuration": "45-55 minutos",
+		"difficulty": "Avançado",
+		"targetAudience": "Engenheiros de Backbone MPLS, Especialistas de Redes de Telecom"
+	},
+	"objectives": [
+		"Validar procedimentos de solução de problemas em adjacências LDP (Label Distribution Protocol)",
+		"Avaliar o impacto de overhead de rótulos MPLS (Label Stack) na MTU efetiva das interfaces",
+		"Testar o diagnóstico de sinalização de pseudowires L2VPN (EoMPLS / VPLS)"
+	],
+	"scope": [
+		"Exercício tabletop conceitual sem equipamentos físicos MPLS"
+	],
+	"baseScenario": {
+		"context": "Terça-feira às 15:30, após uma manutenção de substituição de switch no backbone, todos os serviços de L2VPN (circuitos transparentes Ethernet) entre o PoP-Centro e o PoP-Sul ficam indisponíveis. As sessões BGP VPNv4 permanecem UP, mas os pacotes de dados não atravessam.",
+		"initialSituation": {
+			"alert": "L2VPN Pseudowire Status: DOWN (Local MTU Mismatch / LDP Label Bindings Incomplete)",
+			"affectedPeers": "PE-Rtr-01 (10.0.0.1) e PE-Rtr-02 (10.0.0.2)",
+			"errorMessage": "%L2VPN-3-PW_STATUS: Pseudowire 100 status changed to DOWN (MTU mismatch)",
+			"timestamp": "15:30:00"
+		},
+		"initialComplaints": [
+			"Clientes corporativos com circuitos dedicados ponto-a-ponto relatam perda total de link (down)",
+			"Interfaces de pseudowire apresentam status 'Down/Down' no comando show mpls l2transport vc"
+		],
+		"availableResources": [
+			"Roteadores de Borda MPLS (PE Routers - Cisco / Huawei / Nokia)",
+			"Comandos de diagnóstico MPLS (show mpls ldp neighbor, show mpls l2transport vc, ping mpls)",
+			"Supervisão de links de transmissão"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Inspeção Inicial do Backbone MPLS",
+			"phase": "Preparação",
+			"description": "Análise da topologia de rotas de transporte (IGP/OSPF) e estado das sessões LDP.",
+			"inject": "Apresentação dos comandos de verificação de adjacência LDP.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Diagnóstico do Pseudowire L2VPN",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "Investigação da troca de rótulos (labels) via LDP entre os roteadores PE.",
+			"timeElapsed": "T+15 min",
+			"currentSituation": {
+				"ldpAdjacency": "Adjacência LDP TCP 646 está UP entre PE-01 e PE-02",
+				"pwStatus": "Pseudowire 100 está DOWN por 'MTU Mismatch'"
+			},
+			"metrics": [
+				{
+					"title": "Comando `show mpls l2transport vc 100 detail`",
+					"type": "network-analysis",
+					"data": {
+						"vcId": "100",
+						"localMTU": "9000 bytes",
+						"remoteMTU": "1500 bytes",
+						"localLabel": "16023",
+						"remoteLabel": "24012",
+						"observation": "A manutenção no switch intermediário redefiniu a MTU da porta de transporte para 1500 bytes por padrão, enquanto o PE local continuou configurado com 9000 bytes (Jumbo Frame)."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Por que a divergência de MTU entre os dois extremos do Pseudowire L2VPN impede o seu estabelecimento?",
+					"points": 5,
+					"options": [
+						"Porque o protocolo LDP exige estritamente que a MTU sinalizada nos parâmetros de controle seja idêntica em ambos os PEs para garantir que pacotes não sejam descartados silenciosamente na malha",
+						"Porque o MPLS não funciona em taxas menores que 10 Gbps",
+						"Porque o OSPF desativa as portas do roteador automaticamente",
+						"Porque o protocolo LDP usa a porta UDP 53 por padrão"
+					],
+					"correctAnswer": 0,
+					"justification": "O LDP sinaliza a MTU do circuito nos TLVs de controle. Se houver divergência entre Local MTU e Remote MTU, o pseudowire permanece em estado DOWN por prevenção de fragmentação."
+				},
+				{
+					"id": "q2",
+					"text": "Cada rótulo MPLS adicione um overhead de 4 bytes no cabeçalho do pacote Ethernet.",
+					"type": "true-false",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. O cabeçalho (Label) MPLS tem exatamente 32 bits (4 bytes). Um pacote com pilha de 2 rótulos adiciona 8 bytes ao MTU físico."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Reconfiguração e Ajuste de MTU MPLS",
+			"phase": "Fase 2 - Contenção",
+			"description": "Padronização do Jumbo Frame no switch intermediário e interfaces dos PEs.",
+			"timeElapsed": "T+35 min",
+			"currentSituation": {
+				"switchMTU": "Corrigida para 9216 bytes no switch de backbone",
+				"ldpSignaling": "Pseudowire reconvergindo"
+			},
+			"metrics": [
+				{
+					"title": "Validação com `ping mpls ipv4`",
+					"type": "server-status",
+					"data": {
+						"command": "ping mpls ipv4 10.0.0.2/32 size 8900",
+						"result": "Success rate is 100 percent (5/5), round-trip min/avg/max = 2/3/4 ms",
+						"pwStatus": "UP / OPERATIONAL",
+						"observation": "Com a correção da MTU no caminho físico, os pacotes rotulados transitam sem descarte."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "Se a payload do cliente é de 1500 bytes, o cabeçalho Ethernet tem 18 bytes, e o cabeçalho MPLS possui 2 rótulos (8 bytes), qual o tamanho total em bytes do pacote na camada física?",
+					"points": 5,
+					"correctAnswer": 1526,
+					"tolerance": 0,
+					"unit": "bytes",
+					"justification": "1500 (payload) + 18 (Ethernet) + 8 (MPLS) = 1526 bytes."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Relacione os componentes da arquitetura MPLS aos seus papéis:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "m1", "content": "LDP (Label Distribution Protocol)"},
+						{"id": "m2", "content": "Transport Label (LSP)"},
+						{"id": "m3", "content": "Service Label (VC Label)"}
+					],
+					"rightColumn": [
+						{"id": "r1", "content": "Protocolo responsável por distribuir e mapear rótulos entre roteadores da malha"},
+						{"id": "r2", "content": "Rótulo externo usado para encaminhar o pacote através do core de roteamento IP"},
+						{"id": "r3", "content": "Rótulo interno que identifica a VPN ou Pseudowire do cliente específico no PE remoto"}
+					],
+					"correctMatches": [
+						{"left": "m1", "right": "r1"},
+						{"left": "m2", "right": "r2"},
+						{"left": "m3", "right": "r3"}
+					],
+					"justification": "LDP sinaliza; Transport Label roteia no core; Service Label identifica a VPN do cliente no destino."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Validação de Circuitos de Clientes",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "Testes de tráfego de dados de ponta a ponta nos VC L2VPN.",
+			"timeElapsed": "T+55 min",
+			"currentSituation": {
+				"vcStatus": "UP/UP para todos os circuitos",
+				"packetLoss": "0%"
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene os passos para solução de falhas de sinalização de Pseudowire MPLS:",
+					"points": 5,
+					"items": [
+						{"id": "p1", "content": "Verificar se a adjacência LDP e a rota IGP (OSPF/IS-IS) entre os PEs estão ativas"},
+						{"id": "p2", "content": "Checar o estado do pseudowire e comparar as MTUs local e remota sinalizadas"},
+						{"id": "p3", "content": "Ajustar o MTU físico do backbone para suportar Jumbo Frames e o overhead de rótulos MPLS"},
+						{"id": "p4", "content": "Executar testes de ping MPLS com tamanho de pacote expandido para confirmar a operacionalidade"}
+					],
+					"correctOrder": ["p1", "p2", "p3", "p4"],
+					"justification": "Verificação de IGP/LDP -> Análise dos parâmetros do Pseudowire -> Correção da MTU física -> Teste de Ping MPLS."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Lições Aprendidas de Engenharia MPLS",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Atualização das auditorias automáticas de configuração de switches de backbone.",
+			"timeElapsed": "T+75 min",
+			"currentSituation": {
+				"incidentResolved": true
+			},
+			"questions": [
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Qual a melhor prática para evitar quedas em pseudowires por divergência acidental de MTU após trocas de hardware no backbone?",
+					"points": 5,
+					"options": [
+						"Padronizar a MTU de todas as interfaces do backbone MPLS em 9000+ bytes e validar alterações via scripts de auditoria em CI/CD",
+						"Desativar o protocolo LDP e usar apenas rotas estáticas sem rótulos",
+						"Diminuir a MTU de todos os clientes corporativos para 1200 bytes",
+						"Remover a autenticação das sessões BGP"
+					],
+					"correctAnswer": 0,
+					"justification": "A padronização de Jumbo Frames (ex: 9000 ou 9216 bytes) em todo o core do backbone garante folga para qualquer empilhamento de rótulos MPLS."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 29,
+		"passingScore": 18,
+		"gradingScale": [
+			{
+				"min": 25,
+				"max": 29,
+				"grade": "Excelente",
+				"description": "Excelente conhecimento de sinalização LDP e arquiteturas MPLS L2VPN."
+			},
+			{
+				"min": 18,
+				"max": 24,
+				"grade": "Satisfatório",
+				"description": "Boa compreensão do impacto de MTU e empilhamento de rótulos."
+			},
+			{
+				"min": 0,
+				"max": 17,
+				"grade": "Insuficiente",
+				"description": "Necessita revisão sobre conceitos de LDP e transporte de pseudowire."
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Explicar a diferença entre `mpls mtu` e `mtu` da interface física no Cisco IOS.",
+		"Demonstrar o uso do comando `ping mpls ipv4`."
+	],
+	"technicalReferences": [
+		{
+			"title": "RFC 5036 - LDP Specification",
+			"url": "https://datatracker.ietf.org/doc/html/rfc5036"
+		}
+	]
+}
