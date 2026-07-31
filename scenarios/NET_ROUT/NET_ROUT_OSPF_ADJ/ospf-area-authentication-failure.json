@@ -1,0 +1,247 @@
+{
+	"id": "ospf-area-authentication-failure",
+	"title": "Perda de Adjacência OSPF por Incompatibilidade de Autenticação em Área de Backbone",
+	"description": "Simulação tabletop de resposta a isolamento de roteadores internos (IGP) causado por erro de chave de autenticação HMAC-SHA256 no OSPFv2/OSPFv3",
+	"category": {
+		"id": "NET_ROUT",
+		"type": "NET_ROUT_OSPF_ADJ",
+		"title": "Queda de Adjacência OSPF (Neighbor Flapping)"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-07-31",
+		"author": "Equipe de Resposta a Incidentes",
+		"estimatedDuration": "35-45 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Analistas de Redes, Administradores de Infraestrutura de Roteamento Interno"
+	},
+	"objectives": [
+		"Validar a identificação de causas de perda de adjacência OSPF em áreas de backbone (Area 0)",
+		"Avaliar a depuração de erros de mismatch em timers, MTU, áreas e autenticação de vizinhos OSPF",
+		"Testar o protocolo de mudança segura de chaves criptográficas em IGP"
+	],
+	"scope": [
+		"Exercício tabletop conceitual sem execução em roteadores operacionais"
+	],
+	"baseScenario": {
+		"context": "Segunda-feira às 22:00, durante uma janela de manutenção programada para atualização de chaves de segurança da rede interna, a equipe aplica uma nova chave HMAC-SHA256 na Area 0 do OSPF. Imediatamente após a aplicação no Roteador Core-01, a adjacência com o Core-02 desaba.",
+		"initialSituation": {
+			"alert": "OSPF-5-ADJCHG: Process 1, Nbr 10.255.0.2 on GigabitEthernet0/0/0 from FULL to DOWN, Neighbor Down: Dead timer expired",
+			"affectedInterface": "GigabitEthernet0/0/0 (Core-01 para Core-02)",
+			"timestamp": "22:05:00"
+		},
+		"initialComplaints": [
+			"Tabela de rotas internas (RIB) perdeu mais de 450 rotas OSPF da Area 0",
+			"Sistemas internos de monitoramento perderam a comunicação com o segmento Sul"
+		],
+		"availableResources": [
+			"Acesso aos roteadores Core via porta de console / Out-of-Band Management",
+			"Comandos de diagnóstico (`show ip ospf neighbor`, `show ip ospf interface`, `debug ip ospf adj`)"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Verificação do Estado dos Vizinhos OSPF",
+			"phase": "Preparação",
+			"description": "Análise da tabela de vizinhos e verificação de timers de Hello/Dead.",
+			"inject": "Apresentação da saída dos comandos de verificação de vizinhos.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Análise das Causas de Mismatch",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "Depuração dos pacotes Hello OSPF trocados na interface entre os roteadores Core.",
+			"timeElapsed": "T+10 min",
+			"currentSituation": {
+				"neighborState": "INIT / EXSTART / DOWN (Flapping constante)",
+				"helloPackets": "Recebidos mas rejeitados"
+			},
+			"metrics": [
+				{
+					"title": "Saída de `debug ip ospf adj`",
+					"type": "network-analysis",
+					"data": {
+						"logEntry1": "OSPF-2-ERROR: Mismatch authentication type or Key-ID from 10.0.0.2",
+						"logEntry2": "Received Key-ID 2, Expected Key-ID 1",
+						"observation": "O Roteador Core-01 foi atualizado para utilizar o Key-ID 2 com a nova senha, enquanto o Core-02 ainda está configurado com o Key-ID 1 anterior."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Por que a divergência no Key-ID da chave de autenticação OSPF faz a adjacência cair imediatamente?",
+					"points": 5,
+					"options": [
+						"Porque o OSPF descarta pacotes Hello/DBD que não correspondam exatamente ao Key-ID e digest esperados na interface, impedindo a formação do estado FULL",
+						"Porque o OSPF desliga a placa de rede física se a chave for inválida",
+						"Porque a senha do OSPF altera o endereço IP do roteador",
+						"Porque o OSPF utiliza BGP por baixo para enviar senhas"
+					],
+					"correctAnswer": 0,
+					"justification": "Se o Key-ID ou o hash HMAC não baterem com a configuração local da interface, os pacotes Hello/DBD são descartados e o vizinho estoura o Dead Timer."
+				},
+				{
+					"id": "q2",
+					"text": "Divergências nos timers de Hello e Dead entre dois roteadores OSPF também impedem a formação de adjacência.",
+					"type": "true-false",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. Os timers de Hello e Dead são transmitidos nos cabeçalhos dos pacotes Hello OSPF e DEVEM ser rigorosamente idênticos em ambos os lados."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Mitigação e Migração Suave de Chaves",
+			"phase": "Fase 2 - Contenção",
+			"description": "Aplicação de configuração multi-key temporária para transição sem perda de pacotes.",
+			"timeElapsed": "T+25 min",
+			"currentSituation": {
+				"keyTransition": "Configurados ambos os Key-IDs (1 e 2) na interface do Core-02"
+			},
+			"metrics": [
+				{
+					"title": "Status do Vizinho OSPF Pós-Ajuste",
+					"type": "server-status",
+					"data": {
+						"neighborID": "10.255.0.2",
+						"state": "FULL/DR",
+						"deadTime": "00:00:36",
+						"observation": "Com a adição do novo Key-ID 2 no Core-02, a adjacência foi restabelecida com sucesso em estado FULL."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "Se o timer de Hello padrão em um enlace Ethernet é de 10 segundos e o Dead Timer é de 4 vezes o Hello, qual o valor em segundos do Dead Timer?",
+					"points": 5,
+					"correctAnswer": 40,
+					"tolerance": 0,
+					"unit": "segundos",
+					"justification": "10 segundos * 4 = 40 segundos de Dead Timer."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Relacione as condições necessárias para o fechamento de adjacência OSPF:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "o1", "content": "Area ID"},
+						{"id": "o2", "content": "Hello e Dead Timers"},
+						{"id": "o3", "content": "Authentication Digest / Key"}
+					],
+					"rightColumn": [
+						{"id": "r1", "content": "Deve ser idêntica na interface conectada (ex: ambos na Area 0)"},
+						{"id": "r2", "content": "Valores numéricos de intervalo que precisam ser exatamente iguais em ambos os lados"},
+						{"id": "r3", "content": "Algoritmo (ex: HMAC-SHA256) e chave que devem bater para validação do pacote"}
+					],
+					"correctMatches": [
+						{"left": "o1", "right": "r1"},
+						{"left": "o2", "right": "r2"},
+						{"left": "o3", "right": "r3"}
+					],
+					"justification": "Area ID alinha a topologia; Timers alinham o tempo de vivacidade; Digest valida a integridade/autenticidade."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Remoção da Chave Antiga",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "Conclusão do ciclo de rotação de senhas com a desativação segura da chave legada.",
+			"timeElapsed": "T+40 min",
+			"currentSituation": {
+				"oldKeyRemoved": "Key-ID 1 removido de todos os roteadores",
+				"topologyStable": true
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene os passos para realizar uma rotação de chaves OSPF sem indisponibilidade:",
+					"points": 5,
+					"items": [
+						{"id": "k1", "content": "Adicionar o novo Key-ID (com a nova senha) em TODOS os roteadores da área sem remover a chave atual"},
+						{"id": "k2", "content": "Verificar se as adjacências permanecem no estado FULL negociando a nova chave"},
+						{"id": "k3", "content": "Alterar a chave de transmissão ativa para o novo Key-ID"},
+						{"id": "k4", "content": "Remover o Key-ID antigo após a confirmação de estabilidade da malha"}
+					],
+					"correctOrder": ["k1", "k2", "k3", "k4"],
+					"justification": "Adição da chave secundária -> Verificação -> Mudança da chave ativa -> Remoção da chave antiga (Graceful Key Rollover)."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Padronização de Mudanças de Rede",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Inclusão do procedimento de Graceful Key Rollover nas MOPs (Method of Procedure).",
+			"timeElapsed": "T+60 min",
+			"currentSituation": {
+				"mopUpdated": true
+			},
+			"questions": [
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Qual o principal erro cometido na janela de manutenção que causou a queda da adjacência OSPF?",
+					"points": 5,
+					"options": [
+						"Substituir diretamente a chave ativa sem utilizar a funcionalidade de chave secundária/dupla em ambos os roteadores antes da transição",
+						"Usar senhas com mais de 8 caracteres",
+						"Configurar a interface como passive-interface",
+						"Ativar o protocolo OSPFv3 junto com o OSPFv2"
+					],
+					"correctAnswer": 0,
+					"justification": "A alteração direta do Key-ID/Senha em apenas um nó interrompe a comunicação. A rotação gradual (Graceful Rollover) previne essa falha."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 29,
+		"passingScore": 18,
+		"gradingScale": [
+			{
+				"min": 25,
+				"max": 29,
+				"grade": "Excelente",
+				"description": "Excelente conhecimento de roteamento OSPF interno e gerenciamento de chaves."
+			},
+			{
+				"min": 18,
+				"max": 24,
+				"grade": "Satisfatório",
+				"description": "Boa compreensão das causas de queda de adjacência IGP."
+			},
+			{
+				"min": 0,
+				"max": 17,
+				"grade": "Insuficiente",
+				"description": "Dificuldades com parâmetros de formação de vizinhança OSPF."
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Destacar que no OSPF as chaves podem coexistir usando múltiplos Key-IDs.",
+		"Revisar o conceito de DR (Designated Router) e BDR em redes Broadcast."
+	],
+	"technicalReferences": [
+		{
+			"title": "RFC 2328 - OSPF Version 2",
+			"url": "https://datatracker.ietf.org/doc/html/rfc2328"
+		},
+		{
+			"title": "RFC 5709 - OSPFv2 HMAC-SHA Cryptographic Authentication",
+			"url": "https://datatracker.ietf.org/doc/html/rfc5709"
+		}
+	]
+}

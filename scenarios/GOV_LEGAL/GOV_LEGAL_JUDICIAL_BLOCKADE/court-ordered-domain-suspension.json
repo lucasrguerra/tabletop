@@ -1,0 +1,246 @@
+{
+	"id": "court-ordered-domain-suspension",
+	"title": "Cumprimento de Ordem Judicial de Bloqueio de Domínio e Conteúdo",
+	"description": "Simulação tabletop de atendimento a mandato judicial emergencial para bloqueio de domínio e serviços web por ordem de autoridade competente",
+	"category": {
+		"id": "GOV_LEGAL",
+		"type": "GOV_LEGAL_JUDICIAL_BLOCKADE",
+		"title": "Bloqueio Judicial de Conteúdo"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-07-31",
+		"author": "Equipe de Resposta a Incidentes",
+		"estimatedDuration": "35-45 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Engenheiros de Rede, Administradores DNS, Assessoria Jurídica e Oficial de Cibersegurança"
+	},
+	"objectives": [
+		"Validar o procedimento de conformidade célere frente a ordens judiciais de bloqueio de DNS/IP",
+		"Avaliar as técnicas de bloqueio sem afetar serviços não envolvidos na ordem judiciária",
+		"Testar o protocolo de comunicação formal e registro de logs de atendimento judicial"
+	],
+	"scope": [
+		"Exercício de simulação tabletop",
+		"Sem alterações de roteamento BGP ou DNS em produção"
+	],
+	"baseScenario": {
+		"context": "Sexta-feira às 16:30, o departamento de conformidade jurídica recebe uma notificação judicial oficial com determinação de bloqueio em até 4 horas de um subdomínio específico (phishing-target.corp.org) associado a fraudes financeiras de terceiros.",
+		"initialSituation": {
+			"alert": "Notificação de Mandado Judicial com multa horária em caso de descumprimento",
+			"affectedHost": "phishing-target.corp.org (10.200.5.99)",
+			"timestamp": "16:30:00"
+		},
+		"initialComplaints": [
+			"Determinação expressa para impedimento de resolução DNS e tráfego IP para a URL mencionada"
+		],
+		"availableResources": [
+			"Servidores DNS autoritários e recursivos (BIND / Unbound)",
+			"Firewall de Borda (Palo Alto / Fortinet)",
+			"Modelos de resposta formal do departamento jurídico"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Preparação e Contextualização",
+			"phase": "Preparação",
+			"description": "Análise dos termos exatos da ordem judicial pela equipe técnica e jurídica.",
+			"inject": "Leitura da notificação judicial e identificação do escopo do bloqueio.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Validação da Identidade do Alvo",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "Mapeamento dos ativos afetados e verificação de interdependências técnico-operacionais.",
+			"timeElapsed": "T+20 min",
+			"currentSituation": {
+				"targetDomain": "phishing-target.corp.org",
+				"targetIP": "10.200.5.99",
+				"sharedServices": "O IP 10.200.5.99 hospeda também 3 outros portais legítimos"
+			},
+			"metrics": [
+				{
+					"title": "Mapeamento de Virtual Hosts HTTP/DNS",
+					"type": "network-analysis",
+					"data": {
+						"ip": "10.200.5.99",
+						"vhosts": ["phishing-target.corp.org", "service-a.corp.org", "service-b.corp.org"],
+						"observation": "Bloquear o IP inteiro derrubará serviços legítimos da organização. O bloqueio deve ser aplicado na camada de aplicação (HTTP Host Header) e no DNS."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Considerando que o servidor compartilha o mesmo IP com serviços legítimos, qual a melhor estratégia técnica de bloqueio?",
+					"points": 5,
+					"options": [
+						"Remover a rota BGP de todo o bloco /24",
+						"Configurar a zona DNS para responder com Response Rate Limiting",
+						"Aplicar bloqueio de DNS (Sinkhole / Response Policy Zone - RPZ) e filtro de URL por Host Header no proxy/firewall",
+						"Desligar fisicamente os disjuntores do Data Center"
+					],
+					"correctAnswer": 2,
+					"justification": "Usar DNS RPZ (Response Policy Zone) e inspeção de Host Header no proxy atinge com precisão o subdomínio alvo sem derrubar outros serviços legítimos no mesmo IP."
+				},
+				{
+					"id": "q2",
+					"text": "Bloquear um bloco IP inteiro em virtude de uma ordem para um único subdomínio é considerado uma boa prática de resposta jurídica e técnica.",
+					"type": "true-false",
+					"points": 3,
+					"correctAnswer": false,
+					"justification": "FALSO. Bloqueios colaterais desproporcionais causam indisponibilidade de serviços terceiros legítimos e podem acarretar prejuízos e responsabilidade civil."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Execução do Bloqueio Granular",
+			"phase": "Fase 2 - Contenção",
+			"description": "Implementação das políticas no servidor DNS e Firewall de borda.",
+			"timeElapsed": "T+45 min",
+			"currentSituation": {
+				"dnsRPZ": "Aplicado - direcionando phishing-target.corp.org para 127.0.0.1",
+				"httpFilter": "Regra no Proxy configurada para retornar HTTP 451 Unavailable For Legal Reasons"
+			},
+			"metrics": [
+				{
+					"title": "Validação de Resolução DNS",
+					"type": "query-analysis",
+					"data": {
+						"query": "dig @localhost phishing-target.corp.org",
+						"status": "NOERROR",
+						"answer": "127.0.0.1 (Sinkhole)",
+						"observation": "Resolução redirecionada com sucesso para o sinkhole interno de aviso legal."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "Se a ordem judicial estipulou 240 minutos de prazo e a implementação foi concluída em 50 minutos, qual o tempo de margem de segurança obtido em minutos?",
+					"points": 5,
+					"correctAnswer": 190,
+					"tolerance": 0,
+					"unit": "minutos",
+					"justification": "240 minutos - 50 minutos = 190 minutos de margem."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Associe os códigos/mecanismos ao seu papel no bloqueio judicial:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "m1", "content": "HTTP 451"},
+						{"id": "m2", "content": "DNS RPZ"},
+						{"id": "m3", "content": "Certidão de Cumprimento"}
+					],
+					"rightColumn": [
+						{"id": "r1", "content": "Código de status HTTP oficial para indicação de indisponibilidade por motivos legais"},
+						{"id": "r2", "content": "Zona de política de resposta no servidor DNS para sobrescrever a resolução do domínio"},
+						{"id": "r3", "content": "Documento assinado enviado ao juiz com evidências da execução da ordem"}
+					],
+					"correctMatches": [
+						{"left": "m1", "right": "r1"},
+						{"left": "m2", "right": "r2"},
+						{"left": "m3", "right": "r3"}
+					],
+					"justification": "HTTP 451 é o padrão IETF para indisponibilidade legal; DNS RPZ é a tecnologia de sobrescrita DNS; a certidão oficial de cumprimento finaliza a exigência judiciária."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Documentação e Notificação ao Juízo",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "Coleta das evidências técnicas de bloqueio para composição do relatório de petição.",
+			"timeElapsed": "T+80 min",
+			"currentSituation": {
+				"evidenceGathered": true,
+				"legalFiling": "Em preparação para envio ao tribunal"
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene os passos para a finalização do processo de cumprimento de mandado:",
+					"points": 5,
+					"items": [
+						{"id": "t1", "content": "Executar o bloqueio técnico no DNS e Proxy da organização"},
+						{"id": "t2", "content": "Coletar evidências (capturas de tela, logs de dig e curls provando HTTP 451)"},
+						{"id": "t3", "content": "Elaborar minuta de parecer técnico-jurídico assinado"},
+						{"id": "t4", "content": "Protocolar a resposta do cumprimento no sistema do tribunal antes do fim do prazo"}
+					],
+					"correctOrder": ["t1", "t2", "t3", "t4"],
+					"justification": "Execução -> Coleta de Provas de Cumprimento -> Elaboração do documento -> Protocolo Judicial."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Revisão de Processos",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Avaliação do fluxo de atendimento de urgências judiciais.",
+			"timeElapsed": "T+120 min",
+			"currentSituation": {
+				"caseClosed": true
+			},
+			"questions": [
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Qual canal institucional garante o recebimento ágil de ordens judiciais 24/7 sem depender de e-mails individuais de funcionários?",
+					"points": 5,
+					"options": [
+						"Caixa postal institucional monitorada por escala de plantão jurídico/segurança",
+						"Mensagens diretas nas redes sociais dos diretores",
+						"Caixa de comentários do blog da empresa",
+						"Painel público de tickets de suporte de TI"
+					],
+					"correctAnswer": 0,
+					"justification": "Uma caixa postal de plantão com procedimento formal de triagem previne a perda de prazos de intimações judiciais."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 29,
+		"passingScore": 18,
+		"gradingScale": [
+			{
+				"min": 25,
+				"max": 29,
+				"grade": "Excelente",
+				"description": "Excelente precisão técnica e rigor no cumprimento de prazos judiciais."
+			},
+			{
+				"min": 18,
+				"max": 24,
+				"grade": "Satisfatório",
+				"description": "Conhecimento adequado sobre técnicas de bloqueio e documentação."
+			},
+			{
+				"min": 0,
+				"max": 17,
+				"grade": "Insuficiente",
+				"description": "Risco de descumprimento por falta de procedimentos granulares."
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Ressaltar o uso do código HTTP 451 (RFC 7725).",
+		"Debater como evitar danos colaterais a outros clientes ou serviços ao aplicar bloqueios."
+	],
+	"technicalReferences": [
+		{
+			"title": "RFC 7725 - An HTTP Status Code to Report Legal Obstacles",
+			"url": "https://datatracker.ietf.org/doc/html/rfc7725"
+		}
+	]
+}

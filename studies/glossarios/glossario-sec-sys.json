@@ -110,6 +110,27 @@
         "definition": "Vulnerabilidade de aplicação web onde entrada do usuário é inserida diretamente em consultas SQL sem sanitização adequada. Permite ao atacante ler, modificar ou deletar dados do banco, executar comandos no SO (via xp_cmdshell em MSSQL) ou bypassar autenticação. Prevenção: prepared statements/parameterized queries.",
         "seeAlso": ["OWASP"],
         "relatedStudyId": "sql-conceito-injection"
+      },
+      {
+        "term": "Fail2ban",
+        "acronym": null,
+        "definition": "Ferramenta de prevenção contra intrusão em sistemas Linux que analisa arquivos de log (ex: /var/log/auth.log) e bloqueia temporariamente na tabela iptables/nftables os endereços IP que excederem o limite de falhas de autenticação.",
+        "seeAlso": ["SSH", "Hardening"],
+        "relatedStudyId": "ssh-procedimento-hardening-bastion"
+      },
+      {
+        "term": "Webshell",
+        "acronym": null,
+        "definition": "Script malicioso (em PHP, ASP, JSP, etc.) carregado em um servidor web vulnerável que fornece uma interface de terminal web remota para o atacante executar comandos arbitrários no sistema operacional.",
+        "seeAlso": ["Defacement", "FIM", "WAF"],
+        "relatedStudyId": "web-procedimento-defacement-webshell"
+      },
+      {
+        "term": "FIM (File Integrity Monitoring)",
+        "acronym": "FIM",
+        "definition": "Mecanismo de segurança que monitora e alerta sobre alterações não autorizadas em arquivos de sistema, configurações e diretórios de código-fonte web por meio da comparação periódica de hashes criptográficos.",
+        "seeAlso": ["Webshell", "Defacement"],
+        "relatedStudyId": "web-procedimento-defacement-webshell"
       }
     ]
   },

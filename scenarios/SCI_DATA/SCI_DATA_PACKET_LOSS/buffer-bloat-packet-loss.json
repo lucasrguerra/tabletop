@@ -1,0 +1,250 @@
+{
+	"id": "buffer-bloat-packet-loss",
+	"title": "Degradação de Vazão por Bufferbloat e Perda Estocástica de Pacotes em Redes de HPC",
+	"description": "Simulação tabletop de resposta a colapso no rendimento de rotinas de computação de alto desempenho (HPC) causado por perda de pacotes devido ao fenômeno Bufferbloat em switches de borda",
+	"category": {
+		"id": "SCI_DATA",
+		"type": "SCI_DATA_PACKET_LOSS",
+		"title": "Perda de Pacotes e Bufferbloat em Redes de Dados"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-07-31",
+		"author": "Equipe de Resposta a Incidentes",
+		"estimatedDuration": "35-45 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Engenheiros de Redes de Datacenter/HPC, Administradores de Storage e Clusters"
+	},
+	"objectives": [
+		"Validar o diagnóstico do fenômeno Bufferbloat e descarte de pacotes por enfileiramento excessivo (Tail Drop)",
+		"Avaliar a eficácia da implementação de Active Queue Management (AQM / FQ-CoDel / CAKE)",
+		"Testar o uso de Explicit Congestion Notification (ECN) em ambientes de rede de alto desempenho"
+	],
+	"scope": [
+		"Exercício tabletop conceitual"
+	],
+	"baseScenario": {
+		"context": "Terça-feira às 10:00, os trabalhos de simulação de mecânica dos fluidos rodando no cluster HPC começam a falhar com erro de timeout MPI. O monitoramento indica que conexões cruzadas entre nós no switch de agregação sofrem uma perda aparente de apenas 0.5% dos pacotes, suficiente para desabar a vazão TCP em 80%.",
+		"initialSituation": {
+			"alert": "PACKET LOSS DETECTED: 0.5% loss on Aggregation-Switch-01 (Port-Channel 1)",
+			"affectedCluster": "Cluster HPC (128 nós de cálculo)",
+			"timestamp": "10:00:00"
+		},
+		"initialComplaints": [
+			"Tarefas MPI (Message Passing Interface) abortando com erro de sincronismo",
+			"Disparada na latência de pacotes pequenos devido ao acúmulo de buffers gigantes (Bufferbloat) no switch"
+		],
+		"availableResources": [
+			"Switches de Datacenter com suporte a ECN e CoDel/FQ-CoDel",
+			"Métricas de interface via SNMP/gNMI (`show interface buffers`, `show qos queue`)",
+			"Ferramenta de medição `flent` / `ping` / `tc`"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Análise da Perda de Pacotes e Latência",
+			"phase": "Preparação",
+			"description": "Exame das filas de buffer dos switches de agregação.",
+			"inject": "Apresentação dos gráficos de profundidade de fila (Queue Depth).",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Diagnóstico do Bufferbloat e Tail Drop",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "Inspeção do comportamento dos buffers FIFO no switch durante picos de carga.",
+			"timeElapsed": "T+10 min",
+			"currentSituation": {
+				"queueDepth": "100% ocupada (Buffers gigantes retendo pacotes por mais de 400ms antes do descarte)",
+				"packetLoss": "0.5% (Tail Drop descartando novos pacotes quando a fila enche)"
+			},
+			"metrics": [
+				{
+					"title": "Saída de `show policy-map interface` no Switch",
+					"type": "network-analysis",
+					"data": {
+						"queueType": "FIFO (Tail Drop por padrão)",
+						"currentBufferBytes": "12 MBytes (Totalmente cheio)",
+						"latencyUnderLoad": "420 ms (Latência inflada por retenção em buffer)",
+						"observation": "O excesso de buffer (Bufferbloat) retém pacotes antigos por centenas de milissegundos. Quando o buffer enche, ocorre o descarte brusco (Tail Drop), forçando múltiplas sessões TCP a reduzirem suas janelas simultaneamente (Sincronização Global TCP)."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "O que é o fenômeno 'Bufferbloat' em equipamentos de rede?",
+					"points": 5,
+					"options": [
+						"A presença de buffers excessivamente grandes e mal gerenciados nos equipamentos de rede, que acumulam pacotes em filas profundas gerando latência astronômica e travamento antes do descarte",
+						"O inchaço físico da placa de circuito do switch por calor",
+						"A infecção de um roteador por vírus de computador",
+						"A perda de credenciais de acesso por falta de uso"
+					],
+					"correctAnswer": 0,
+					"justification": "Bufferbloat ocorre quando buffers gigantes retêm pacotes excessivos em fila em vez de descartá-los precocemente para sinalizar congestão ao TCP, destruindo o desempenho de aplicações de baixa latência."
+				},
+				{
+					"id": "q2",
+					"text": "Uma perda aparentemente pequena de pacotes (ex: 0.5% a 1%) em redes de alta velocidade (10G/100G) pode causar uma queda devastadora na vazão útil (Goodput) do protocolo TCP.",
+					"type": "true-false",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. Em conexões TCP tradicionais (CUBIC/Reno), qualquer descarte obriga o algoritmo a cortar a janela de transmissão pela metade, gerando queda drástica na vazão efetiva."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Ativação de AQM (FQ-CoDel) e ECN",
+			"phase": "Fase 2 - Contenção",
+			"description": "Ativação de gestão ativa de fila (AQM) e sinalização ECN no switch e nos hosts.",
+			"timeElapsed": "T+25 min",
+			"currentSituation": {
+				"aqmEnabled": "Ativado FQ-CoDel no controle de filas dos switches e servidores",
+				"ecnEnabled": "`net.ipv4.tcp_ecn = 1` habilitado nas pilhas dos nós do cluster"
+			},
+			"metrics": [
+				{
+					"title": "Métricas de Latência Sob Carga Pós-AQM",
+					"type": "server-status",
+					"data": {
+						"queueDepth": "Manuseada de forma dinâmica (Fila mantida < 5ms)",
+						"latencyUnderLoad": "3.8 ms (Redução de 99% no atraso de enfileiramento)",
+						"ecnMarkedPackets": "1.200 pacotes marcados com CE (Congestion Experienced) sem descarte físico",
+						"observation": "Com ECN e FQ-CoDel, o switch avisa os nós sobre a congestão alterando bits no cabeçalho IP antes que o buffer encha, eliminando perdas de pacotes e travamentos."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "Se a latência sob carga caiu de 420 ms para 4 ms após a implementação do algoritmo FQ-CoDel/AQM, qual foi o fator de redução do atraso na fila?",
+					"points": 5,
+					"correctAnswer": 105,
+					"tolerance": 0,
+					"unit": "vezes",
+					"justification": "420 ms / 4 ms = 105 vezes."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Associe as tecnologias de gerenciamento de filas e congestão às suas funções:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "b1", "content": "FQ-CoDel (Fair Queueing Controlled Delay)"},
+						{"id": "b2", "content": "ECN (Explicit Congestion Notification)"},
+						{"id": "b3", "content": "Tail Drop"}
+					],
+					"rightColumn": [
+						{"id": "r1", "content": "Algoritmo AQM que separa o tráfego em múltiplas filas e controla o tempo de permanência do pacote para evitar bufferbloat"},
+						{"id": "r2", "content": "Recurso que permite que o switch avise os endpoints sobre congestão no cabeçalho IP/TCP sem precisar descartar o pacote"},
+						{"id": "r3", "content": "Comportamento padrão simples que descarta qualquer pacote novo ao atingir o limite físico do buffer"}
+					],
+					"correctMatches": [
+						{"left": "b1", "right": "r1"},
+						{"left": "b2", "right": "r2"},
+						{"left": "b3", "right": "r3"}
+					],
+					"justification": "FQ-CoDel combate o bufferbloat; ECN notifica congestão sem descarte; Tail Drop é o descarte mecânico por estouro de fila."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Validação da Execução de Trabalhos HPC",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "Reexecução dos benchmarks MPI no cluster.",
+			"timeElapsed": "T+40 min",
+			"currentSituation": {
+				"mpiStatus": "Pass (0 erros de timeout)",
+				"clusterThroughput": "98% da capacidade nominal"
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene os passos para erradicar o Bufferbloat e sanar perda de pacotes em redes de dados:",
+					"points": 5,
+					"items": [
+						{"id": "q1", "content": "Identificar picos de latência sob carga e descartes por Tail Drop nas estatísticas de interface"},
+						{"id": "q2", "content": "Substituir a disciplina de fila tradicional (FIFO) por um algoritmo AQM moderno (FQ-CoDel / CAKE / WRED)"},
+						{"id": "q3", "content": "Habilitar a marcação de Notificação Explícita de Congestão (ECN) nos switches e nós operacionais"},
+						{"id": "q4", "content": "Validar a redução na profundidade das filas e a estabilidade da vazão TCP sob estresse"}
+					],
+					"correctOrder": ["q1", "q2", "q3", "q4"],
+					"justification": "Diagnóstico de latência/descarte -> Ativação de AQM -> Habilitação do ECN -> Validação sob estresse."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Hardening de QoS e Buffering em Datacenter",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Ajuste do tamanho de buffers dinâmicos nos switches da camada de agregação.",
+			"timeElapsed": "T+55 min",
+			"currentSituation": {
+				"incidentResolved": true
+			},
+			"questions": [
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Qual a principal vantagem da ativação do ECN (Explicit Congestion Notification) em redes de alta velocidade (10G/100G)?",
+					"points": 5,
+					"options": [
+						"Evita o descarte desnecessário de pacotes ao sinalizar a congestão diretamente nos cabeçalhos IP/TCP, mantendo a janela de transmissão em fluxo constante sem retransmissões",
+						"Aumenta a velocidade do processador do servidor",
+						"Permite rodar redes sem cabos de energia",
+						"Elimina a necessidade de switches de rede"
+					],
+					"correctAnswer": 0,
+					"justification": "O ECN substitui o descarte violento de pacotes por marcações de aviso nos cabeçalhos, permitindo que a origem diminua a taxa de envio de forma suave sem causar retransmissões."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 29,
+		"passingScore": 18,
+		"gradingScale": [
+			{
+				"min": 25,
+				"max": 29,
+				"grade": "Excelente",
+				"description": "Excelente conhecimento de AQM, controle de congestão, ECN e otimização de buffers em redes HPC."
+			},
+			{
+				"min": 18,
+				"max": 24,
+				"grade": "Satisfatório",
+				"description": "Boa compreensão dos conceitos de Bufferbloat e uso de ECN."
+			},
+			{
+				"min": 0,
+				"max": 17,
+				"grade": "Insuficiente",
+				"description": "Dificuldades em identificar as causas da degradação por enfileiramento."
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Demonstrar a medição de bufferbloat com a ferramenta `flent` (Flexible Network Tester).",
+		"Explicar como o ECN usa os dois últimos bits do campo Differentiated Services (DS) no cabeçalho IPv4/IPv6."
+	],
+	"technicalReferences": [
+		{
+			"title": "RFC 3168 - The Addition of Explicit Congestion Notification (ECN) to IP",
+			"url": "https://datatracker.ietf.org/doc/html/rfc3168"
+		},
+		{
+			"title": "RFC 8290 - The FQ-CoDel Fast Queue Controlled Delay Algorithm",
+			"url": "https://datatracker.ietf.org/doc/html/rfc8290"
+		}
+	]
+}

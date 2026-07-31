@@ -6,6 +6,7 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import {
     FaGraduationCap, FaCheckCircle, FaEye, FaFolderOpen, FaSpinner,
     FaExclamationTriangle, FaSearch, FaTimes, FaSortAmountDown,
+    FaLayerGroup, FaFilter, FaTrashAlt
 } from 'react-icons/fa';
 import StudyCard from '@/components/Studies/StudyCard';
 import StudyCategoryPanel from '@/components/Studies/StudyCategoryPanel';
@@ -225,76 +226,156 @@ function StudiesPageContent() {
             <div className="flex flex-col xl:flex-row gap-6">
                 <div className="flex-1 min-w-0">
                     {/* ── Search + filters ── */}
-                    <div className="bg-white rounded-2xl border border-slate-200 p-4 mb-5 shadow-sm space-y-4">
-                        <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="bg-white rounded-2xl border border-slate-200/80 p-5 mb-5 shadow-xs space-y-4">
+                        {/* 1. Main Bar: Search Input + Sorting Dropdown */}
+                        <div className="flex flex-col md:flex-row gap-3">
                             <div className="relative flex-1">
                                 <FaSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none" />
                                 <input
                                     type="search"
                                     value={searchDraft}
                                     onChange={(e) => setSearchDraft(e.target.value)}
-                                    placeholder="Buscar por título, descrição ou tag…"
+                                    placeholder="Buscar por título, conteúdo, tag ou termo…"
                                     aria-label="Buscar artigos"
-                                    className="w-full pl-10 pr-9 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-500"
+                                    className="w-full pl-10 pr-9 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-3 focus:ring-blue-500/10 transition-all"
                                 />
                                 {searchDraft && (
                                     <button
                                         onClick={() => setSearchDraft('')}
                                         aria-label="Limpar busca"
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-md transition-colors"
                                     >
                                         <FaTimes className="text-xs" />
                                     </button>
                                 )}
                             </div>
 
-                            <div className="relative sm:w-60">
+                            <div className="relative md:w-64">
                                 <FaSortAmountDown className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none" />
                                 <select
                                     value={sort}
                                     onChange={(e) => updateParams({ sort: e.target.value === 'relevance' ? null : e.target.value })}
                                     aria-label="Ordenar artigos"
-                                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-700 bg-white focus:outline-none focus:border-blue-500 appearance-none cursor-pointer"
+                                    className="w-full pl-9 pr-8 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-700 bg-slate-50/50 hover:bg-slate-50 focus:bg-white focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-500/10 appearance-none cursor-pointer font-medium transition-all"
                                 >
                                     {Object.entries(SORT_LABELS).map(([value, label]) => (
                                         <option key={value} value={value}>{label}</option>
                                     ))}
                                 </select>
+                                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">
+                                    ▼
+                                </div>
                             </div>
                         </div>
 
-                        <StudyCategoryPanel
-                            activeCategory={category}
-                            onChange={(value) => updateParams({ category: value })}
-                            counts={facets.categories}
-                        />
-
-                        <div className="border-t border-slate-100 pt-3 flex flex-wrap items-center gap-x-5 gap-y-3">
-                            <StudyTypeFilter
-                                activeType={contentType}
-                                onChange={(value) => updateParams({ content_type: value })}
+                        {/* 2. Category Filter Section */}
+                        <div>
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                                    <FaLayerGroup className="text-blue-500 text-xs" />
+                                    Categorias de Estudo
+                                </span>
+                            </div>
+                            <StudyCategoryPanel
+                                activeCategory={category}
+                                onChange={(value) => updateParams({ category: value })}
+                                counts={facets.categories}
                             />
+                        </div>
 
-                            <div className="flex items-center gap-1.5">
-                                {DIFFICULTIES.map(level => {
-                                    const active = difficulty === level;
-                                    return (
-                                        <button
-                                            key={level}
-                                            onClick={() => updateParams({ difficulty: active ? null : level })}
-                                            aria-pressed={active}
-                                            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
-                                                active
-                                                    ? 'bg-slate-800 text-white'
-                                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                            }`}
-                                        >
-                                            {DIFFICULTY_LABELS[level]}
-                                        </button>
-                                    );
-                                })}
+                        {/* 3. Secondary Filters: Content Type & Difficulty */}
+                        <div className="pt-3 border-t border-slate-100 grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
+                            <div className="lg:col-span-7">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
+                                    Tipo de Conteúdo
+                                </span>
+                                <StudyTypeFilter
+                                    activeType={contentType}
+                                    onChange={(value) => updateParams({ content_type: value })}
+                                />
+                            </div>
+
+                            <div className="lg:col-span-5">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
+                                    Nível de Dificuldade
+                                </span>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                    {DIFFICULTIES.map(level => {
+                                        const active = difficulty === level;
+                                        const activeClass = level === 'Basico'
+                                            ? 'border-2 border-emerald-500 bg-emerald-50 text-emerald-700 font-bold shadow-xs'
+                                            : level === 'Intermediario'
+                                            ? 'border-2 border-amber-500 bg-amber-50 text-amber-700 font-bold shadow-xs'
+                                            : 'border-2 border-purple-500 bg-purple-50 text-purple-700 font-bold shadow-xs';
+                                        return (
+                                            <button
+                                                key={level}
+                                                onClick={() => updateParams({ difficulty: active ? null : level })}
+                                                aria-pressed={active}
+                                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
+                                                    active
+                                                        ? activeClass
+                                                        : 'bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-slate-200/80'
+                                                }`}
+                                            >
+                                                {DIFFICULTY_LABELS[level]}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         </div>
+
+                        {/* 4. Active Filter Chips & Clear Action */}
+                        {hasFilters && (
+                            <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 bg-slate-50/70 p-3 rounded-xl">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
+                                        <FaFilter className="text-[10px] text-blue-500" /> Filtros ativos:
+                                    </span>
+                                    {search && (
+                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white border border-slate-200 text-xs font-medium text-slate-700 shadow-2xs">
+                                            Busca: <strong className="text-blue-600">"{search}"</strong>
+                                            <button onClick={() => setSearchDraft('')} className="ml-1 text-slate-400 hover:text-slate-600">
+                                                <FaTimes className="text-[10px]" />
+                                            </button>
+                                        </span>
+                                    )}
+                                    {category && (
+                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white border border-slate-200 text-xs font-medium text-slate-700 shadow-2xs">
+                                            Categoria: <strong className="text-purple-600">{CATEGORY_CONFIG[category]?.label || category}</strong>
+                                            <button onClick={() => updateParams({ category: null })} className="ml-1 text-slate-400 hover:text-slate-600">
+                                                <FaTimes className="text-[10px]" />
+                                            </button>
+                                        </span>
+                                    )}
+                                    {contentType && (
+                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white border border-slate-200 text-xs font-medium text-slate-700 shadow-2xs">
+                                            Tipo: <strong className="text-indigo-600">{contentType}</strong>
+                                            <button onClick={() => updateParams({ content_type: null })} className="ml-1 text-slate-400 hover:text-slate-600">
+                                                <FaTimes className="text-[10px]" />
+                                            </button>
+                                        </span>
+                                    )}
+                                    {difficulty && (
+                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white border border-slate-200 text-xs font-medium text-slate-700 shadow-2xs">
+                                            Dificuldade: <strong className="text-emerald-600">{DIFFICULTY_LABELS[difficulty]}</strong>
+                                            <button onClick={() => updateParams({ difficulty: null })} className="ml-1 text-slate-400 hover:text-slate-600">
+                                                <FaTimes className="text-[10px]" />
+                                            </button>
+                                        </span>
+                                    )}
+                                </div>
+
+                                <button
+                                    onClick={() => updateParams({ category: null, content_type: null, difficulty: null, search: null })}
+                                    className="text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 font-semibold px-2.5 py-1 rounded-md transition-colors flex items-center gap-1.5 cursor-pointer ml-auto"
+                                >
+                                    <FaTrashAlt className="text-[10px]" />
+                                    Limpar todos
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     {/* ── Result count ── */}
@@ -302,25 +383,16 @@ function StudiesPageContent() {
                         <p className="text-sm text-slate-500">
                             {refreshing ? (
                                 <span className="inline-flex items-center gap-2">
-                                    <FaSpinner className="animate-spin text-xs" /> Atualizando…
+                                    <FaSpinner className="animate-spin text-xs text-blue-500" /> Atualizando…
                                 </span>
                             ) : hasFilters ? (
                                 <>
-                                    <span className="font-medium text-slate-700 tabular-nums">{pagination?.total ?? 0}</span>
-                                    {' '}de {libraryTotal} artigos
+                                    Exibindo <span className="font-semibold text-slate-800 tabular-nums">{pagination?.total ?? 0}</span> de <span className="font-semibold text-slate-800 tabular-nums">{libraryTotal}</span> artigos
                                 </>
                             ) : (
-                                <><span className="font-medium text-slate-700 tabular-nums">{libraryTotal}</span> artigos</>
+                                <>Total de <span className="font-semibold text-slate-800 tabular-nums">{libraryTotal}</span> artigos disponíveis</>
                             )}
                         </p>
-                        {hasFilters && (
-                            <button
-                                onClick={() => updateParams({ category: null, content_type: null, difficulty: null, search: null })}
-                                className="text-xs text-blue-600 hover:underline font-medium"
-                            >
-                                Limpar filtros
-                            </button>
-                        )}
                     </div>
 
                     {/* ── Results ── */}

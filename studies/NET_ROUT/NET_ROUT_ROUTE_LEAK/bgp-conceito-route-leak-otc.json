@@ -1,0 +1,71 @@
+{
+  "id": "bgp-conceito-route-leak-otc",
+  "title": "Vazamentos de Rota BGP (Route Leaks) e Prevenção via RFC 9234 OTC",
+  "description": "Estudo sobre vazamentos de rota BGP entre ASNs multihomed, a diferença entre Hijack e Route Leak, e os mecanismos de prevenção com comunidades BGP e Only to Customer (OTC).",
+  "content_type": "CONCEITO",
+  "category": {
+    "id": "NET_ROUT",
+    "type": "NET_ROUT_ROUTE_LEAK",
+    "title": "Roteamento e BGP"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-07-31T10:00:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "14 minutos",
+    "difficulty": "Avancado",
+    "targetAudience": "Engenheiros de Tráfego BGP, Operadores de Sistema Autônomo (ASN) e NOC",
+    "prerequisites": ["bgp-conceito-route-flapping"]
+  },
+  "tags": ["BGP", "Route Leak", "RFC 9234", "OTC", "AS-PATH", "Roteamento", "MANRS"],
+  "relatedScenarios": ["multihomed-customer-route-leak"],
+  "relatedStudies": [
+    "bgp-conceito-route-flapping",
+    "bgp-procedimento-resposta-hijack",
+    "glossario-net-rout"
+  ],
+  "technicalReferences": [
+    { "title": "RFC 9234 - Route Leak Prevention and Detection Using Roles in BGP", "url": "https://www.rfc-editor.org/rfc/rfc9234" },
+    { "title": "MANRS - Mutually Agreed Norms for Routing Security", "url": "https://www.manrs.org/" }
+  ],
+  "content": {
+    "sections": [
+      {
+        "id": "route-leak-definition",
+        "title": "Definição de BGP Route Leak vs. BGP Hijack",
+        "body": "Diferente de um BGP Hijack (onde um AS anuncia ilegitimamente um prefixo que não lhe pertence), um Route Leak ocorre quando um AS recebe rotas legítimas de um provedor upstream (Upstream A) e acidentalmente as reanuncia para outro provedor upstream (Upstream B) ou Peer. Isso transforma a rede do cliente em um sistema de trânsito involuntário entre duas grandes operadoras, sobrecarregando seus enlaces de acesso e desviando tráfego global.",
+        "callout": {
+          "type": "warning",
+          "text": "Um Route Leak não exige má-fé: basta uma falha de configuração na export-policy BGP de um cliente multihomed para atrair Gigabits de tráfego de trânsito internacional."
+        },
+        "codeBlock": {
+          "language": "text",
+          "code": "Cenário de Route Leak:\n[Upstream A (Operadora 1)] ---> Anuncia 8.8.8.0/24 ---> [Cliente Multihomed]\n                                                              | (Vazamento acidental)\n[Upstream B (Operadora 2)] <--- Reanuncia 8.8.8.0/24 <--------/\nResultado: Tráfego da Operadora 2 para a Operadora 1 passa pelo link do Cliente!"
+        },
+        "keyPoints": [
+          "Route Leak é a retransmissão violando os acordos de trânsito/peer de exportação",
+          "Sobrecarrega enlaces de acesso e provoca degradação global de desempenho",
+          "Mitigado por políticas estritas de filtro de saída por AS-PATH e BGP Roles"
+        ]
+      },
+      {
+        "id": "rfc9234-otc",
+        "title": "Mecanismo Only to Customer (OTC) da RFC 9234",
+        "body": "A RFC 9234 introduz BGP Roles (Provider, Customer, Peer, RS, RS-Client) e o atributo BGP OTC (Only to Customer). Quando uma rota é transmitida de um Provider para um Customer ou entre Peers, o atributo OTC é anexado contendo o ASN de quem enviou. Se essa rota for posteriormente anunciada para outro Provider ou Peer, a presença do atributo OTC indica violação de política e o anúncio é sumariamente rejeitado pelo receptor.",
+        "callout": {
+          "type": "tip",
+          "text": "A implementação de BGP Open Policy / Roles (RFC 9234) nos roteadores de borda impede automaticamente que vazamentos de rota propaguem-se pela Internet."
+        },
+        "codeBlock": {
+          "language": "bash",
+          "code": "# Exemplo de configuração de BGP Role no BIRD / FRRouting\nrouter bgp 65001\n neighbor 192.0.2.1 remote-as 65002\n neighbor 192.0.2.1 local-role customer # Define papel BGP e ativa validação OTC"
+        },
+        "keyPoints": [
+          "RFC 9234 define papéis explícitos de relacionamento BGP entre vizinhos",
+          "Atributo OTC (Attribute 35) sinaliza que a rota não pode subir para outro Provider/Peer",
+          "Rejeição automática de anúncios que contêm OTC vindo de conexões Customer"
+        ]
+      }
+    ]
+  }
+}

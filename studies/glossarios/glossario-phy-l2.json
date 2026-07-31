@@ -96,6 +96,27 @@
         "definition": "Protocolo IEEE 802.3ad que agrega múltiplos links físicos em um único link lógico (LAG/bond), aumentando largura de banda e fornecendo redundância. Negociação dinâmica entre os dois lados. Alternativa estática: Port-channel sem LACP.",
         "seeAlso": ["LAG"],
         "relatedStudyId": "switch-ferramenta-diagnostico"
+      },
+      {
+        "term": "ATS (Automatic Transfer Switch)",
+        "acronym": "ATS",
+        "definition": "Dispositivo de transferência automática de alimentação elétrica para equipamentos com fonte única. Monitora duas entradas de energia (A e B) e chaveia em milissegundos sem causar reinicialização do equipamento.",
+        "seeAlso": ["Dual-Feed", "Inrush Current"],
+        "relatedStudyId": "energia-conceito-ats-redundancia"
+      },
+      {
+        "term": "Inrush Current (Surto de Energização)",
+        "acronym": null,
+        "definition": "Pico de corrente elétrica absorvido por fontes de alimentação no momento da ligação inicial para carregar capacitores. Pode ser até 20x a corrente nominal e exige sequenciamento de PDU para não disparar disjuntores.",
+        "seeAlso": ["ATS", "PDU"],
+        "relatedStudyId": "energia-conceito-ats-redundancia"
+      },
+      {
+        "term": "Cross-Stack EtherChannel (MEC)",
+        "acronym": "MEC",
+        "definition": "Agregação de links (EtherChannel) onde as portas físicas de uma mesma interface lógica são distribuídas entre diferentes switches de uma pilha (stack), garantindo alta disponibilidade sem parada se um switch físico falhar.",
+        "seeAlso": ["LACP", "Stack"],
+        "relatedStudyId": "stack-conceito-redundancia-etherchannel"
       }
     ]
   },

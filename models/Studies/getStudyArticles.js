@@ -51,11 +51,39 @@ function normalise(value) {
 		.toLowerCase();
 }
 
+/** Recursively extracts all string values from the article content for indexing. */
+function extractTextFromObject(obj, acc = []) {
+	if (!obj) return acc;
+	if (typeof obj === 'string') {
+		acc.push(obj);
+		return acc;
+	}
+	if (typeof obj === 'number' || typeof obj === 'boolean') {
+		return acc;
+	}
+	if (Array.isArray(obj)) {
+		for (const item of obj) {
+			extractTextFromObject(item, acc);
+		}
+		return acc;
+	}
+	if (typeof obj === 'object') {
+		for (const key of Object.keys(obj)) {
+			extractTextFromObject(obj[key], acc);
+		}
+	}
+	return acc;
+}
+
 /** Everything a free-text query should be able to match. */
 function searchableText(article) {
+	if (article._searchableText) {
+		return article._searchableText;
+	}
 	return normalise([
 		article.title,
 		article.description,
+		article.category?.title,
 		article.category?.name,
 		(article.tags || []).join(' '),
 	].join(' '));
@@ -89,7 +117,7 @@ export const SORT_OPTIONS = Object.keys(SORTERS);
  * @param {string} [filters.category] - Category ID (e.g. 'NET_ROUT')
  * @param {string} [filters.content_type] - 'CONCEITO'|'PROCEDIMENTO'|'FERRAMENTA'|'GLOSSARIO'
  * @param {string} [filters.difficulty] - 'Basico'|'Intermediario'|'Avancado'
- * @param {string} [filters.search] - Free text over title, description, tags and category
+ * @param {string} [filters.search] - Free text over title, description, tags, category and content
  * @param {string} [filters.sort] - relevance | title | difficulty | readTime | recent
  * @param {number} [filters.page] - 1-based page number
  * @param {number} [filters.limit] - Page size (capped at MAX_PAGE_SIZE)
@@ -134,9 +162,13 @@ export default async function getStudyArticles(filters = {}) {
 		const page = clampPage(filters.page, total_pages);
 		const start = (page - 1) * limit;
 
+		const paginatedArticles = filtered
+			.slice(start, start + limit)
+			.map(({ _searchableText, ...item }) => item);
+
 		return {
 			success: true,
-			articles: filtered.slice(start, start + limit),
+			articles: paginatedArticles,
 			pagination: {
 				page,
 				limit,
@@ -218,7 +250,21 @@ function collectArticles(dir, base_dir, articles) {
 
 				// Return metadata only — exclude the heavy 'content' field
 				const { content, ...metadata } = data;
-				articles.push(metadata);
+
+				const contentStrings = extractTextFromObject(content);
+				const _searchableText = normalise([
+					metadata.title,
+					metadata.description,
+					metadata.category?.title,
+					metadata.category?.name,
+					(metadata.tags || []).join(' '),
+					...contentStrings,
+				].join(' '));
+
+				articles.push({
+					...metadata,
+					_searchableText,
+				});
 			} catch (e) {
 				console.warn(`Failed to parse study file: ${resolved}`, e.message);
 			}

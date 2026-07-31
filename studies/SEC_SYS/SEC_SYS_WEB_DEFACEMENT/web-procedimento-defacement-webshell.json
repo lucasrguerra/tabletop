@@ -1,0 +1,56 @@
+{
+  "id": "web-procedimento-defacement-webshell",
+  "title": "Procedimento de Resposta a Web Defacement e Erradicação de Webshells",
+  "description": "Roteiro operacional de resposta a incidentes de desfiguração de sítios web (Defacement), varredura e eliminação de webshells em aplicações PHP/CMS.",
+  "content_type": "PROCEDIMENTO",
+  "category": {
+    "id": "SEC_SYS",
+    "type": "SEC_SYS_WEB_DEFACEMENT",
+    "title": "Segurança de Aplicações Web"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-07-31T10:00:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "16 minutos",
+    "difficulty": "Intermediario",
+    "targetAudience": "Analistas de Incidentes, Engenheiros de Segurança Web e Administradores de Servidores Web",
+    "prerequisites": ["sql-procedimento-hardening"]
+  },
+  "tags": ["Defacement", "Webshell", "PHP", "FIM", "WAF", "Forensic", "CMS"],
+  "relatedScenarios": ["cms-vulnerability-web-defacement"],
+  "relatedStudies": [
+    "sql-procedimento-hardening",
+    "elastic-ferramenta-siem",
+    "glossario-sec-sys"
+  ],
+  "technicalReferences": [
+    { "title": "OWASP Top Ten - Web Application Security Risks", "url": "https://owasp.org/www-project-top-ten/" }
+  ],
+  "content": {
+    "context": "Quando um portal web sofre alteração não autorizada de conteúdo (Defacement) por exploração de vulnerabilidade em CMS ou upload de arquivo malicioso (Webshell), é necessário colocar a aplicação em manutenção, preservar evidências e erradicar o código persistente.",
+    "steps": [
+      {
+        "id": "1",
+        "title": "Colocar a aplicação em modo de manutenção e ativar WAF em modo de bloqueio",
+        "description": "Redirecione o tráfego HTTP/HTTPS do portal para uma página estática de manutenção de emergência no proxy/WAF para impedir novos acessos e ações do atacante.",
+        "expectedResult": "Portal exibe página neutra de manutenção e novas requisições maliciosas são bloqueadas pelo WAF.",
+        "rollbackAction": "Desativar o modo de manutenção no WAF e restaurar a rota principal do pool de aplicação."
+      },
+      {
+        "id": "2",
+        "title": "Executar varredura por arquivos alterados e webshells PHP no diretório web",
+        "description": "Utilize comandos de busca por timestamp (`find /var/www -mtime -1`) e ferramentas de análise estática como `yara` ou `grep` procurando por funções perigosas (`eval`, `base64_decode`, `system`, `passthru`).",
+        "expectedResult": "Localização exata de arquivos modificados e scripts maliciosos ocultos em diretórios de uploads.",
+        "rollbackAction": "Preservar a cópia forense dos arquivos maliciosos em /tmp/forensics antes de removê-los do diretório web."
+      },
+      {
+        "id": "3",
+        "title": "Restaurar o conteúdo íntegro a partir de backup assinado e validar hashes FIM",
+        "description": "Remova a estrutura comprometida e restaure a árvore de arquivos limpa a partir do último backup validado. Reative a monitoria de File Integrity Monitoring (FIM).",
+        "expectedResult": "Código da aplicação restaurado ao estado íntegro original com monitoramento de integridade ativo.",
+        "rollbackAction": "Sem rollback necessário após a confirmação do backup limpo."
+      }
+    ]
+  }
+}

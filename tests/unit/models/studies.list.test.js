@@ -146,6 +146,17 @@ describe('getStudyArticles', () => {
 			expect(dois.count).toBe(0)
 		})
 
+		it('encontra por termo presente no conteúdo do glossário (ex: RDDoS)', async () => {
+			const res = await getStudyArticles({ search: 'RDDoS', limit: MAX_PAGE_SIZE })
+			expect(res.count).toBeGreaterThan(0)
+			expect(res.articles.some(a => a.id === 'glossario-net-vol')).toBe(true)
+		})
+
+		it('encontra por termo dentro das seções/conteúdo de artigos de conceito', async () => {
+			const res = await getStudyArticles({ search: 'Slowloris', limit: MAX_PAGE_SIZE })
+			expect(res.count).toBeGreaterThan(0)
+		})
+
 		it('busca vazia ou só espaços não filtra nada', async () => {
 			const base = await getStudyArticles({ limit: MAX_PAGE_SIZE })
 			for (const q of ['', '   ', null, undefined]) {

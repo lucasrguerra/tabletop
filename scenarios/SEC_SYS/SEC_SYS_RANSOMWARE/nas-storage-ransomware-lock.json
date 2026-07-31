@@ -1,0 +1,248 @@
+{
+	"id": "nas-storage-ransomware-lock",
+	"title": "Ataque de Ransomware com Criptografia Massiva em Servidores de Arquivo NAS/SMB",
+	"description": "Simulação tabletop de resposta a ataque de ransomware corporativo em andamento executando criptografia acelerada nos volumes compartilhados NFS/SMB do storage central",
+	"category": {
+		"id": "SEC_SYS",
+		"type": "SEC_SYS_RANSOMWARE",
+		"title": "Ataque de Ransomware / Destruição de Dados"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-07-31",
+		"author": "Equipe de Resposta a Incidentes",
+		"estimatedDuration": "45-60 minutos",
+		"difficulty": "Avançado",
+		"targetAudience": "Equipe de Resposta a Incidentes (CSIRT), Administradores de Storage e Active Directory"
+	},
+	"objectives": [
+		"Validar o isolamento emergencial de rajadas de alteração de extensões de arquivos em volumes SMB/NFS",
+		"Avaliar a integridade dos snapshots Imutáveis (WORM - Write Once Read Many) e backups offline",
+		"Testar os protocolos de contenção de credenciais de Active Directory comprometidas"
+	],
+	"scope": [
+		"Exercício tabletop conceitual"
+	],
+	"baseScenario": {
+		"context": "Sexta-feira às 23:00, o alarme de segurança do Storage central (nas-main.corp.internal) dispara informando uma taxa anômala de 80.000 operações de modificação/renomeação de arquivos por minuto no compartilhamento de dados corporativo (`\\\\nas-main\\vendas`), adicionando a extensão `.locked` nos arquivos.",
+		"initialSituation": {
+			"alert": "STORAGE ANOMALY: Mass File Rename/Encryption Detected on Share \\\\nas-main\\vendas",
+			"affectedTarget": "NAS Storage Central (192.168.5.100)",
+			"timestamp": "23:00:00"
+		},
+		"initialComplaints": [
+			"Arquivos PDF, DOCX e XLSX substituídos por arquivos `.locked` acompanhados do arquivo `README_RECOVERY.txt`",
+			"Usuários de plantão relatam mensagens de erro de permissão ao tentar abrir planilhas"
+		],
+		"availableResources": [
+			"Console do NAS Storage com suporte a Snapshots em nível de bloco",
+			"Sistema de EDR nos endpoints e servidores de arquivos",
+			"Backups imutáveis em Nuvem / Fita LTO offline"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Confirmação do Ataque de Ransomware em Andamento",
+			"phase": "Preparação",
+			"description": "Análise da taxa de IOPS de escrita e identificação do IP de origem da criptografia.",
+			"inject": "Apresentação do log de auditoria de sessões SMB ativas no NAS.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Identificação do Host Comprometido e Sessão SMB",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "Inspeção dos IPs internos enviando comandos de modificação em massa.",
+			"timeElapsed": "T+10 min",
+			"currentSituation": {
+				"encryptionRate": "80.000 arquivos/minuto",
+				"activeSMBUser": "corp\\adm-silva (Credencial administrativa comprometida)",
+				"sourceIP": "10.20.4.15 (Estação de trabalho do setor financeiro)"
+			},
+			"metrics": [
+				{
+					"title": "Auditoria de Conexões SMB no NAS",
+					"type": "security-analysis",
+					"data": {
+						"clientIP": "10.20.4.15",
+						"authenticatedUser": "corp\\adm-silva",
+						"openHandles": "14.200 conexões abertas para arquivos no volume /vendas",
+						"observation": "O ransomware rodando na estação 10.20.4.15 está utilizando os privilégios administrativos da conta `adm-silva` para criptografar os dados do NAS através da rede via protocolo SMB2/SMB3."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Qual a PRIMEIRA ação de contenção emergencial para interromper a destruição contínua de arquivos no storage NAS?",
+					"points": 5,
+					"options": [
+						"Derrubar imediatamente as sessões SMB do IP atacante (10.20.4.15), revogar as credenciais da conta comprometida e isolar o host da rede",
+						"Pagar o resgate em criptomoedas imediatamente",
+						"Reiniciar o Storage NAS principal",
+						"Enviar um e-mail para todos os funcionários pedindo que não abram arquivos"
+					],
+					"correctAnswer": 0,
+					"justification": "Derrubar as sessões SMB ativas e isolar o host emissor encerra o acesso do malware aos compartilhamentos do NAS, estancando a criptografia dos dados imediatamente."
+				},
+				{
+					"id": "q2",
+					"text": "Snapshots imutáveis (WORM - Write Once Read Many) configurados no NAS protegem os pontos de restauração contra deleção ou criptografia mesmo se o atacante obtiver credenciais de Administrador do Domínio.",
+					"type": "true-false",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. A imutabilidade por política de hardware/firmware impede qualquer modificação ou apagamento dos snapshots por um período pré-determinado, garantindo a recuperação integral sem pagamento de resgate."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Isolamento e Reversão via Snapshots Imutáveis",
+			"phase": "Fase 2 - Contenção",
+			"description": "Desativação da conta afetada no AD, isolamento do host 10.20.4.15 via EDR e rollback do volume do NAS.",
+			"timeElapsed": "T+25 min",
+			"currentSituation": {
+				"userDisabled": "Conta `corp\\adm-silva` desativada no Active Directory",
+				"hostIsolated": "Estação 10.20.4.15 desconectada da rede via EDR",
+				"snapshotRollback": "Iniciada a reversão para o Snapshot Imutável de 22:30 (30 minutos antes do ataque)"
+			},
+			"metrics": [
+				{
+					"title": "Status da Recuperação do Volume NAS",
+					"type": "server-status",
+					"data": {
+						"snapshotTimestamp": "22:30:00 (Imutável WORM)",
+						"restorationStatus": "100% concluído (Rollback de ponteiros de bloco executado em 45 segundos)",
+						"encryptedFilesRemaining": "0",
+						"observation": "A restauração via Snapshot em nível de bloco reverteu instantaneamente terabytes de dados sem necessidade de cópia lenta de backup."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "Se o ransomware criptografou dados durante 20 minutos a uma taxa de 80.000 arquivos por minuto, quantos arquivos foram afetados e restaurados pelo snapshot?",
+					"points": 5,
+					"correctAnswer": 1600000,
+					"tolerance": 0,
+					"unit": "arquivos",
+					"justification": "20 minutos * 80.000 arquivos/min = 1.600.000 arquivos."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Relacione os termos de proteção contra ransomware às suas funções:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "r1", "content": "Snapshots WORM Imutáveis"},
+						{"id": "r2", "content": "Arquitetura 3-2-1 de Backup"},
+						{"id": "r3", "content": "Canary Files / Honeypots"}
+					],
+					"rightColumn": [
+						{"id": "c1", "content": "Bloqueia qualquer tentativa de alteração ou apagamento de pontos de restauração por período fixo"},
+						{"id": "c2", "content": "Regra que exige 3 cópias dos dados, em 2 mídias diferentes, sendo 1 cópia mantida totalmente offline/air-gapped"},
+						{"id": "c3", "content": "Arquivos armadilha monitorados cuja alteração dispara alertas e bloqueio imediato de sessões SMB"}
+					],
+					"correctMatches": [
+						{"left": "r1", "right": "c1"},
+						{"left": "r2", "right": "c2"},
+						{"left": "r3", "right": "c3"}
+					],
+					"justification": "WORM garante imutabilidade; 3-2-1 garante redundância física/offline; Canary Files disparam alertas precoces de criptografia."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Análise da Cadeia de Infecção (Root Cause Analysis)",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "Análise forense do vetor de entrada na estação de trabalho 10.20.4.15.",
+			"timeElapsed": "T+50 min",
+			"currentSituation": {
+				"vectorIdentified": "Phishing por e-mail com anexo malicioso ISO/LNK que executou um ladrão de credenciais (Stealer)",
+				"lateralMovement": "Movimentação lateral travada"
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene os passos para resposta e recuperação de um ataque de Ransomware em ambiente corporativo:",
+					"points": 5,
+					"items": [
+						{"id": "a1", "content": "Desconectar o host atacante da rede e encerrar sessões SMB/NFS ativas de escrita no NAS"},
+						{"id": "a2", "content": "Resetar imediatamente as credenciais das contas de usuário/administrador comprometidas"},
+						{"id": "a3", "content": "Validar a integridade do último Snapshot Imutável (WORM) ou backup offline air-gapped"},
+						{"id": "a4", "content": "Executar o rollback do volume no NAS e liberar o acesso dos usuários somente após a limpeza dos hosts"}
+					],
+					"correctOrder": ["a1", "a2", "a3", "a4"],
+					"justification": "Dreno de conexões/Isolamento -> Reset de credenciais -> Validação de Snapshots Imutáveis -> Rollback e Liberação."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Hardening de Compartilhamento e Privilégios",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Revisão dos privilégios de escrita nos compartilhamentos de rede e implementação de FSRM / NAS Anti-Ransomware.",
+			"timeElapsed": "T+80 min",
+			"currentSituation": {
+				"incidentResolved": true
+			},
+			"questions": [
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Qual o principio de arquitetura de TI que impede que um ransomware rodando na estação de um usuário comum criptografe todo o storage da empresa?",
+					"points": 5,
+					"options": [
+						"Princípio do Menor Privilégio (PoLP) e segregação rigorosa entre contas de usuário comum e contas administrativas corporativas",
+						"Permitir que todos os funcionários sejam administradores do domínio",
+						"Desativar a senha dos servidores de arquivos",
+						"Usar apenas conexões Wi-Fi sem senha"
+					],
+					"correctAnswer": 0,
+					"justification": "O Princípio do Menor Privilégio garante que usuários comuns só tenham acesso de escrita às suas próprias pastas necessárias, limitando o raio de destruição (Blast Radius) de qualquer contaminação."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 29,
+		"passingScore": 18,
+		"gradingScale": [
+			{
+				"min": 25,
+				"max": 29,
+				"grade": "Excelente",
+				"description": "Excelente atuação em resposta a Ransomware, gestão de Snapshots Imutáveis e contenção de privilégios."
+			},
+			{
+				"min": 18,
+				"max": 24,
+				"grade": "Satisfatório",
+				"description": "Boa compreensão dos passos de isolamento SMB e recuperação de backups."
+			},
+			{
+				"min": 0,
+				"max": 17,
+				"grade": "Insuficiente",
+				"description": "Dificuldades em conter incidentes de destruição massiva de dados."
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Ressaltar a importância de nunca pagar o resgate e focar na capacidade de recuperação via backups/snapshots imutáveis.",
+		"Discutir o uso do recurso File Server Resource Manager (FSRM) no Windows Server para bloqueio de extensões conhecidas de ransomware."
+	],
+	"technicalReferences": [
+		{
+			"title": "NIST Computer Security Incident Handling Guide (SP 800-61 Rev. 2)",
+			"url": "https://csrc.nist.gov/publications/detail/sp/800-61/rev-2/final"
+		}
+	]
+}

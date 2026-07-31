@@ -1,0 +1,246 @@
+{
+	"id": "syn-flood-database-cluster",
+	"title": "Ataque SYN Flood de Alta Volumetria contra Balancador de Carga do Cluster de Banco de Dados",
+	"description": "Simulação tabletop de resposta a ataque DDoS de estado (Protocol Attack) via TCP SYN Flood focado no esgotamento da tabela de conexões SYN Queue de balancadores de carga corporativos",
+	"category": {
+		"id": "NET_VOL",
+		"type": "NET_VOL_SYN_FLOOD",
+		"title": "Ataque SYN Flood (Exaustão de Recursos TCP)"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-07-31",
+		"author": "Equipe de Resposta a Incidentes",
+		"estimatedDuration": "40-50 minutos",
+		"difficulty": "Avançado",
+		"targetAudience": "Engenheiros de Infraestrutura Linux, Administradores de Balancador de Carga, Analistas de SOC"
+	},
+	"objectives": [
+		"Validar a identificação de ataques TCP SYN Flood e esgotamento da fila backlog de conexões (SYN Queue)",
+		"Avaliar a eficácia de mecanismos de defesa no nível do kernel Linux (SYN Cookies, TCP Half-Open limit)",
+		"Testar o uso de proxies de mitigação e mitigação via hardware/firewall (SYN Proxy)"
+	],
+	"scope": [
+		"Exercício tabletop conceitual"
+	],
+	"baseScenario": {
+		"context": "Sexta-feira às 18:00, o portal principal da empresa fica inacessível. O balanceador de carga (lb-prod.corp.internal) para de aceitar novas conexões TCP na porta 443, emitindo alertas de estouro de memória da tabela de conexões TCP Half-Open.",
+		"initialSituation": {
+			"alert": "KERNEL ALERT: TCP: request_sock_TCP: Possible SYN flooding on port 443. Sending cookies.",
+			"affectedHost": "lb-prod.corp.internal (192.168.1.10)",
+			"synRate": "2.500.000 pps (Packets Per Second) de pacotes TCP SYN",
+			"timestamp": "18:00:00"
+		},
+		"initialComplaints": [
+			"Clientes recebem tempo limite de conexão esgotado (Connection Timed Out)",
+			"Serviço HTTP/HTTPS indisponível nos testes externos"
+		],
+		"availableResources": [
+			"Acesso SSH ao balanceador de carga (HAProxy / Nginx / F5 Big-IP)",
+			"Parâmetros de Sysctl do Kernel Linux (`/etc/sysctl.conf`)",
+			"Módulo de Firewall iptables / nftables (SYNPROXY)"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Diagnóstico do Estado das Conexões TCP",
+			"phase": "Preparação",
+			"description": "Análise da tabela de sockets do sistema operacional.",
+			"inject": "Apresentação do resultado de `netstat -n -p TCP`.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Análise do Esgotamento do SYN Queue",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "Inspeção do número de conexões no estado SYN_RECV.",
+			"timeElapsed": "T+15 min",
+			"currentSituation": {
+				"synRecvCount": "262.144 conexões em SYN_RECV (Tabela lotada)",
+				"establishedCount": "120 conexões legítimas"
+			},
+			"metrics": [
+				{
+					"title": "Saída de `ss -s` no Balanceador",
+					"type": "server-status",
+					"data": {
+						"totalTCP": "265.000",
+						"synRecv": "262.144 (LimitReached)",
+						"droppedPackets": "1.800.000 pacotes SYN descartados por segundo",
+						"observation": "Os atacantes estão enviando pacotes SYN com IPs de origem forjados e nunca respondem com o ACK final, mantendo os sockets presos na memória em estado Half-Open."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Qual a consequência técnica de manter uma tabela SYN Queue esgotada por pacotes SYN com IP de origem forjado?",
+					"points": 5,
+					"options": [
+						"O servidor fica sem espaço na memória de sockets para processar novas conexões legítimas, descartando todas as tentativas de handshake de novos usuários",
+						"O disco rígido do servidor é formatado",
+						"O protocolo DNS para de responder em UDP",
+						"As conexões já estabelecidas são criptografadas com chave inválida"
+					],
+					"correctAnswer": 0,
+					"justification": "O SYN Flood consome os slots da fila de conexões pendentes (SYN Queue). Quando a fila enche, o SO descarta novos pacotes SYN, impedindo novos clientes de conectar."
+				},
+				{
+					"id": "q2",
+					"text": "A ativação de `net.ipv4.tcp_syncookies = 1` permite que o kernel Linux aceite conexões TCP sem alocar memória na SYN Queue até que o ACK final seja recebido.",
+					"type": "true-false",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. Os SYN Cookies codificam a sequência do handshake dentro do número de sequência (ISN) do SYN-ACK, eliminando a necessidade de armazenar estado no servidor enquanto aguarda o ACK."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Mitigação via TCP SYN Cookies e SYNPROXY",
+			"phase": "Fase 2 - Contenção",
+			"description": "Ativação de SYN Cookies e configuração do módulo SYNPROXY no iptables.",
+			"timeElapsed": "T+30 min",
+			"currentSituation": {
+				"sysctlApplied": "`net.ipv4.tcp_syncookies = 1` e `net.ipv4.tcp_max_syn_backlog = 65536`",
+				"synproxyEnabled": true
+			},
+			"metrics": [
+				{
+					"title": "Métricas de Handshake Pós-Mitigação",
+					"type": "security-analysis",
+					"data": {
+						"legitimateHandshakes": "1.200 conexões completadas com sucesso",
+						"synCookieValidations": "1.200 pass / 2.498.800 failed (Spoofed SYNs descartados)",
+						"observation": "Com SYN Cookies ativos, as conexões maliciosas forjadas morrem no ar pois nunca enviam o ACK válido contendo o cookie."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "Se o backlog original da SYN Queue era de 4096 conexões e foi expandido no sysctl para 65536, quantas vezes a capacidade da fila foi multiplicada?",
+					"points": 5,
+					"correctAnswer": 16,
+					"tolerance": 0,
+					"unit": "vezes",
+					"justification": "65536 / 4096 = 16x."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Relacione os parâmetros do kernel Linux aos seus papéis na defesa contra SYN Flood:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "s1", "content": "tcp_syncookies"},
+						{"id": "s2", "content": "tcp_max_syn_backlog"},
+						{"id": "s3", "content": "tcp_synack_retries"}
+					],
+					"rightColumn": [
+						{"id": "r1", "content": "Permite conexões sem estado até que o handshake TCP de 3 vias seja concluído"},
+						{"id": "r2", "content": "Define a quantidade máxima de conexões Half-Open permitidas na fila de memória"},
+						{"id": "r3", "content": "Define o número de retransmissões do pacote SYN-ACK enviadas pelo servidor antes de desistir"}
+					],
+					"correctMatches": [
+						{"left": "s1", "right": "r1"},
+						{"left": "s2", "right": "r2"},
+						{"left": "s3", "right": "r3"}
+					],
+					"justification": "Syncookies elimina alocação inicial de estado; max_syn_backlog define tamanho da fila; synack_retries ajusta descarte de retentativas."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Validação de Performance e CPU",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "Verificação do impacto do processamento de SYN Cookies na CPU do servidor.",
+			"timeElapsed": "T+50 min",
+			"currentSituation": {
+				"cpuUtilization": "35%",
+				"serviceAvailable": true
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene os passos para remediação de um ataque de SYN Flood em um servidor web/load balancer:",
+					"points": 5,
+					"items": [
+						{"id": "f1", "content": "Identificar o acúmulo de conexões no estado SYN_RECV via comando `ss -s` ou `netstat`"},
+						{"id": "f2", "content": "Habilitar o parâmetro `net.ipv4.tcp_syncookies = 1` no `/etc/sysctl.conf` e aplicar com `sysctl -p`"},
+						{"id": "f3", "content": "Aumentar o `net.ipv4.tcp_max_syn_backlog` para suportar surtos de conexões legítimas"},
+						{"id": "f4", "content": "Ativar o módulo de hardware/firewall SYNPROXY para descarregar o processamento do kernel"}
+					],
+					"correctOrder": ["f1", "f2", "f3", "f4"],
+					"justification": "Detecção de estado SYN_RECV -> Ativação de tcp_syncookies -> Expansão de backlog -> Ofload via SYNPROXY."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Hardening Permanente do Kernel",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Padronização do perfil sysctl em todos os servidores expostos à internet.",
+			"timeElapsed": "T+70 min",
+			"currentSituation": {
+				"incidentResolved": true
+			},
+			"questions": [
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Qual a vantagem de utilizar o recurso SYNPROXY do iptables/nftables em relação a apenas ativar SYN Cookies no SO?",
+					"points": 5,
+					"options": [
+						"O SYNPROXY completa o handshake de 3 vias com o cliente na camada de firewall antes mesmo de encaminhar qualquer pacote para a aplicação, protegendo totalmente a pilha TCP do sistema operacional",
+						"O SYNPROXY desativa o protocolo TCP",
+						"O SYNPROXY altera o IP público do servidor",
+						"O SYNPROXY bloqueia o protocolo UDP"
+					],
+					"correctAnswer": 0,
+					"justification": "O SYNPROXY intercepta o handshake na camada do netfilter, garantindo que o servidor web/balanceador receba apenas conexões 100% estabelecidas e legítimas."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 29,
+		"passingScore": 18,
+		"gradingScale": [
+			{
+				"min": 25,
+				"max": 29,
+				"grade": "Excelente",
+				"description": "Excelente conhecimento de pilha TCP/IP, otimização de kernel e defesa contra SYN Flood."
+			},
+			{
+				"min": 18,
+				"max": 24,
+				"grade": "Satisfatório",
+				"description": "Compreensão adequada sobre SYN Cookies e ajuste de backlog."
+			},
+			{
+				"min": 0,
+				"max": 17,
+				"grade": "Insuficiente",
+				"description": "Dificuldades em solucionar exaustão de estado TCP."
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Explicar as 3 etapas do Handshake TCP (SYN, SYN-ACK, ACK) e por que o descarte do ACK é crítico no SYN Flood.",
+		"Discutir as desvantagens dos SYN Cookies (ex: perda de certas opções TCP como Window Scale se o cliente não suportar ECN)."
+	],
+	"technicalReferences": [
+		{
+			"title": "RFC 4987 - TCP SYN Flooding Attacks and Common Mitigations",
+			"url": "https://datatracker.ietf.org/doc/html/rfc4987"
+		}
+	]
+}

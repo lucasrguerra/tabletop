@@ -1,0 +1,248 @@
+{
+	"id": "dns-tunneling-c2-beacon",
+	"title": "Exfiltração de Dados e Canal C2 via DNS Tunneling em Servidor Interno",
+	"description": "Simulação tabletop de resposta a incidente de segurança envolvendo malware residente que utiliza o protocolo DNS (consultas TXT/TXT codificadas em Base64) como canal de comando e controle (C2) e exfiltração stealth",
+	"category": {
+		"id": "SEC_SYS",
+		"type": "SEC_SYS_C2_BEACON",
+		"title": "Beacon C2 / Tunneling Malicioso"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-07-31",
+		"author": "Equipe de Resposta a Incidentes",
+		"estimatedDuration": "45-60 minutos",
+		"difficulty": "Avançado",
+		"targetAudience": "Analistas de SOC, Engenheiros de Detecção, Resposta a Incidentes de Cibersegurança"
+	},
+	"objectives": [
+		"Validar a detecção de canais C2 (Command and Control) camuflados em requisições DNS legítimas",
+		"Avaliar a análise de entropia de subdomínios, volumetria de queries TXT/NULL e frequência de beacons",
+		"Testar procedimentos de contenção via DNS RPZ, isolamento de host e bloqueio de DNS externo direto"
+	],
+	"scope": [
+		"Exercício tabletop conceitual"
+	],
+	"baseScenario": {
+		"context": "Quarta-feira às 14:00, o SIEM corporativo emite um alerta de alta severidade reportando um comportamento anômalo no servidor de banco de dados interno (db-app-02.corp.internal). O servidor está gerando mais de 150.000 consultas DNS por hora para subdomínios aleatórios de um domínio recém-registrado (ex: a7f89d.c2-exfil-domain.net).",
+		"initialSituation": {
+			"alert": "SIEM ALERT: High Entropy DNS Query Rate / Potential DNS Tunneling from 192.168.10.88",
+			"affectedHost": "db-app-02.corp.internal (192.168.10.88)",
+			"destinationDomain": "c2-exfil-domain.net",
+			"timestamp": "14:00:00"
+		},
+		"initialComplaints": [
+			"Nenhuma alteração aparente no desempenho do sistema operacional",
+			"Logs do DNS recursivo interno mostram rajadas constantes de requisições TXT a cada 5 segundos contendo strings codificadas em Base64"
+		],
+		"availableResources": [
+			"Logs de DNS Recursivo (BIND / Unbound / Active Directory DNS)",
+			"Ferramenta de EDR / Agente de Segurança instalado no endpoint",
+			"Firewall com módulo de inspeção de aplicação / DNS Security"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Detecção da Anomalia de Tráfego DNS",
+			"phase": "Preparação",
+			"description": "Análise da volumetria de requisições DNS e cálculo de entropia de subdomínios.",
+			"inject": "Apresentação da amostra dos logs do servidor DNS.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Análise da Carga Útil e Frequência do Beacon",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "Decodificação das strings codificadas e identificação do processo responsável no host.",
+			"timeElapsed": "T+15 min",
+			"currentSituation": {
+				"queryRate": "45 requisições/segundo",
+				"queryType": "TXT",
+				"averageEntropy": "4.8 (Alta entropia - indicativo de dados criptografados/codificados)"
+			},
+			"metrics": [
+				{
+					"title": "Amostra de Logs de Consulta DNS (Syslog)",
+					"type": "security-analysis",
+					"data": {
+						"query1": "v1.dXNlcm5hbWU9YWRtaW4mY21kPXdobyBhbWk=.c2-exfil-domain.net IN TXT",
+						"decodedBase64": "username=admin&cmd=who am i",
+						"query2": "v1.cGFzc3dkX2hhc2g9JDJhJDEwJEV4YW1wbGU=.c2-exfil-domain.net IN TXT",
+						"decodedBase64": "passwd_hash=$2a$10$Example",
+						"observation": "O malware está fracionando dados confidenciais e transmitindo-os codificados em Base64 no nome do subdomínio para os servidores autoritários do atacante."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Por que invasores utilizam o protocolo DNS (DNS Tunneling) para exfiltrar dados e manter canais C2 em ambientes corporativos protegidos?",
+					"points": 5,
+					"options": [
+						"Porque a porta UDP 53 para servidores DNS confiados raramente é bloqueada ou inspecionada em profundidade no tráfego de saída das empresas, permitindo burlar firewalls tradicionais",
+						"Porque o DNS é um protocolo que roda apenas em supercomputadores",
+						"Porque o DNS apaga o sistema operacional da vítima",
+						"Porque o DNS é o único protocolo com suporte a criptografia quântica"
+					],
+					"correctAnswer": 0,
+					"justification": "Como a resolução de nomes é essencial para o funcionamento de qualquer rede, o tráfego DNS costuma ter permissão de saída liberada, sendo explorado por invasores para camuflar dados em requisições legitimas."
+				},
+				{
+					"id": "q2",
+					"text": "Subdomínios gerados para tunelamento de dados geralmente possuem alta entropia de caracteres (strings aparentemente aleatórias e longas), servindo como indicador de comprometimento (IoC).",
+					"type": "true-false",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. A entropia de Shannon mede o grau de aleatoriedade do texto. Nomes de domínios humanos possuem baixa entropia, enquanto payloads codificados (Base64/Base32) apresentam alta entropia."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Contenção do Canal C2 e Isolamento do Endpoint",
+			"phase": "Fase 2 - Contenção",
+			"description": "Inclusão do domínio malicioso no DNS Sinkhole / RPZ e isolamento do host afetado via EDR.",
+			"timeElapsed": "T+30 min",
+			"currentSituation": {
+				"dnsSinkhole": "Domínio `c2-exfil-domain.net` adicionado à zona RPZ (Response Policy Zone) retornando 0.0.0.0",
+				"hostIsolated": "Servidor db-app-02 isolado da rede via EDR"
+			},
+			"metrics": [
+				{
+					"title": "Métricas do EDR / DNS Sinkhole",
+					"type": "server-status",
+					"data": {
+						"c2Traffic": "BLOCKED (0 requisições enviadas ao IP externo)",
+						"processKilled": "PID 4812 (processo malicioso `svcnet.exe` suspenso)",
+						"observation": "A comunicação de C2 foi interrompida com sucesso. O host foi isolado para análise forense de memória."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "Se o malware transmitia 45 requisições por segundo e cada requisição transportava 64 bytes de payload exfiltrado, quantos Kilobytes de dados confidenciais eram exfiltrados por minuto?",
+					"points": 5,
+					"correctAnswer": 172.8,
+					"tolerance": 0.5,
+					"unit": "KB/min",
+					"justification": "(45 req/s * 64 bytes * 60 s) / 1024 = 172.8 KB por minuto."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Associe os conceitos de análise e defesa DNS aos seus papéis:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "c1", "content": "Entropia de Shannon"},
+						{"id": "c2", "content": "DNS RPZ / Sinkhole"},
+						{"id": "c3", "content": "DGA (Domain Generation Algorithm)"}
+					],
+					"rightColumn": [
+						{"id": "r1", "content": "Métrica matemática usada para medir a aleatoriedade de nomes de subdomínios"},
+						{"id": "r2", "content": "Mecanismo para redirecionar ou bloquear consultas DNS para domínios maliciosos conhecidos"},
+						{"id": "r3", "content": "Técnica utilizada por malwares para gerar dinamicamente centenas de nomes de domínios C2 diariamente"}
+					],
+					"correctMatches": [
+						{"left": "c1", "right": "r1"},
+						{"left": "c2", "right": "r2"},
+						{"left": "c3", "right": "r3"}
+					],
+					"justification": "Entropia mede aleatoriedade; RPZ/Sinkhole bloqueia a resolução maliciosa; DGA gera nomes aleatórios dinâmicos."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Análise Forense e Erradicação do Malware",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "Extração da imagem de memória (dump) do processo `svcnet.exe` e remoção da persistência no registro.",
+			"timeElapsed": "T+50 min",
+			"currentSituation": {
+				"forensicsComplete": "Identificado o vetor de infecção primário (Script PowerShell executado via vulnerabilidade em aplicação web)",
+				"malwareErradicated": true
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene os passos para a resposta a um incidente de DNS Tunneling / C2:",
+					"points": 5,
+					"items": [
+						{"id": "d1", "content": "Identificar a anomalia de volumetria e alta entropia nas consultas DNS enviadas por um host interno"},
+						{"id": "d2", "content": "Bloquear o domínio malicioso no DNS recursivo interno via RPZ / Sinkhole"},
+						{"id": "d3", "content": "Isolar o host comprometido da rede através do agente de EDR"},
+						{"id": "d4", "content": "Realizar a análise forense no endpoint para remover o processo malicioso e os mecanismos de persistência"}
+					],
+					"correctOrder": ["d1", "d2", "d3", "d4"],
+					"justification": "Detecção de anomalia DNS -> Bloqueio via RPZ Sinkhole -> Isolamento do Host -> Análise Forense e Erradicação."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Hardening de Arquitetura DNS Corporativa",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Bloqueio no firewall de borda para impedir que qualquer host interno consulte servidores DNS externos diretos (ex: 8.8.8.8 / 1.1.1.1).",
+			"timeElapsed": "T+75 min",
+			"currentSituation": {
+				"incidentResolved": true
+			},
+			"questions": [
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Qual a regra de firewall de borda fundamental para garantir que todas as consultas DNS passem obrigatoriamente pelos servidores DNS internos inspecionados com RPZ?",
+					"points": 5,
+					"options": [
+						"Bloquear todo o tráfego de saída na porta UDP/TCP 53 vindo de hosts comuns/servidores, permitindo o tráfego DNS de saída EXCLUSIVAMENTE para os IPs dos servidores DNS recursivos autorizados da empresa",
+						"Permitir que qualquer computador consulte qualquer IP na internet na porta 53",
+						"Desativar as portas de rede dos servidores de banco de dados",
+						"Deixar o protocolo DNS desativado"
+					],
+					"correctAnswer": 0,
+					"justification": "Bloquear consultas DNS diretas de estações/servidores para a internet impede que malwares ignorem o DNS interno e consultem servidores C2 externos não filtrados."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 29,
+		"passingScore": 18,
+		"gradingScale": [
+			{
+				"min": 25,
+				"max": 29,
+				"grade": "Excelente",
+				"description": "Excelente conhecimento de análise de protocolos de aplicação, detecção de C2 e forense de rede."
+			},
+			{
+				"min": 18,
+				"max": 24,
+				"grade": "Satisfatório",
+				"description": "Boa compreensão dos conceitos de DNS Tunneling e uso de RPZ/Sinkhole."
+			},
+			{
+				"min": 0,
+				"max": 17,
+				"grade": "Insuficiente",
+				"description": "Dificuldades em identificar exfiltração em protocolos de camada de aplicação."
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Demonstrar ferramentas comuns de DNS Tunneling (ex: dnscat2, iodine).",
+		"Explicar a importância da inspeção de tráfego DNS via EDR / DNS Security em firewalls de nova geração (NGFW)."
+	],
+	"technicalReferences": [
+		{
+			"title": "MITRE ATT&CK Technique T1071.004 - Application Layer Protocol: DNS",
+			"url": "https://attack.mitre.org/techniques/T1071/004/"
+		}
+	]
+}

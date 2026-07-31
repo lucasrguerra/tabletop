@@ -1,0 +1,71 @@
+{
+  "id": "aqm-conceito-bufferbloat-ecn",
+  "title": "Bufferbloat, Gerenciamento Ativo de Filas (AQM) e Notificação ECN",
+  "description": "Estudo sobre latência induzida por buffers excessivos em equipamentos de rede (Bufferbloat) e mitigação via algoritmos AQM (FQ-CoDel/CAKE) e Explicit Congestion Notification (ECN).",
+  "content_type": "CONCEITO",
+  "category": {
+    "id": "SCI_DATA",
+    "type": "SCI_DATA_PACKET_LOSS",
+    "title": "Diagnóstico de Perda de Pacotes"
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastUpdate": "2026-07-31T10:00:00.000Z",
+    "author": "Lucas Rayan Guerra",
+    "estimatedReadTime": "11 minutos",
+    "difficulty": "Intermediario",
+    "targetAudience": "Engenheiros de Performance, Administradores de Redes HPC e Provedores",
+    "prerequisites": ["packet-loss-procedimento-diagnostico"]
+  },
+  "tags": ["Bufferbloat", "AQM", "FQ-CoDel", "CAKE", "ECN", "QoS", "Latência"],
+  "relatedScenarios": ["buffer-bloat-packet-loss"],
+  "relatedStudies": [
+    "packet-loss-procedimento-diagnostico",
+    "perfsonar-ferramenta-medicao",
+    "glossario-sci-data"
+  ],
+  "technicalReferences": [
+    { "title": "RFC 8290 - Fair Queueing and Controlled Delay (FQ-CoDel)", "url": "https://www.rfc-editor.org/rfc/rfc8290" },
+    { "title": "RFC 3168 - The Addition of Explicit Congestion Notification (ECN) to IP", "url": "https://www.rfc-editor.org/rfc/rfc3168" }
+  ],
+  "content": {
+    "sections": [
+      {
+        "id": "bufferbloat-problem",
+        "title": "O Fenômeno do Bufferbloat",
+        "body": "Bufferbloat ocorre quando buffers FIFO excessivamente grandes em roteadores e switches acumulam pacotes durante momentos de saturação de banda. Em vez de descartar pacotes no momento certo para sinalizar congestão ao TCP, a fila gigantesca armazena os pacotes, fazendo a latência de ping saltar de 10ms para 1.000ms ou mais. Isso destrói o desempenho de aplicações interativas e fluxos de tempo real.",
+        "callout": {
+          "type": "warning",
+          "text": "Aumentar buffers sem controle em switches de borda não evita perdas — apenas substitui perdas limpas por latência catastrófica e jitter."
+        },
+        "codeBlock": {
+          "language": "text",
+          "code": "Efeito do Bufferbloat em Rajadas de Tráfego:\nFila FIFO Tradicional: [Pacote 1][Pacote 2]...[Pacote 5000] -> Latência RTT sobe de 5ms para 1500ms!\nFila FQ-CoDel:       Mantém a fila curta dropando ou marcando ECN proativamente."
+        },
+        "keyPoints": [
+          "Buffers excessivamente grandes aumentam a latência sob carga a níveis inaceitáveis",
+          "Cria o paradoxo: banda alta com navegação e respostas extremamente lentas",
+          "Dificulta a diferenciação entre problemas físicos e gargalos de enfileiramento"
+        ]
+      },
+      {
+        "id": "aqm-ecn-solutions",
+        "title": "Soluções com FQ-CoDel, CAKE e ECN",
+        "body": "Active Queue Management (AQM) substitui o descarte ingênuo Drop-Tail por mecanismos inteligentes. O FQ-CoDel separa os fluxos em sub-filas e monitora o tempo que o pacote permanece na fila. Se o tempo exceder o limiar (target delay), o CoDel descarta o pacote ou marca os bits ECN (Explicit Congestion Notification - RFC 3168) no cabeçalho IP, informando o remetente para desacelerar sem necessidade de descartar o pacote.",
+        "callout": {
+          "type": "tip",
+          "text": "Ativar FQ-CoDel ou CAKE nas interfaces de borda elimina o Bufferbloat e garante baixa latência constante mesmo com 100% de utilização de banda."
+        },
+        "codeBlock": {
+          "language": "bash",
+          "code": "# Ativar FQ-CoDel no Linux tc (Traffic Control)\ntc qdisc add dev eth0 root fq_codel target 5ms interval 100ms\n\n# Ativar suporte a ECN no kernel\nsysctl -w net.ipv4.tcp_ecn=1"
+        },
+        "keyPoints": [
+          "FQ-CoDel isola fluxos pesados dos fluxos interativos de baixa latência",
+          "ECN avisa sobre congestão alterando bits no cabeçalho IP em vez de dropar o pacote",
+          "Melhora drasticamente a estabilidade de fluxos TCP em redes de alto desempenho"
+        ]
+      }
+    ]
+  }
+}

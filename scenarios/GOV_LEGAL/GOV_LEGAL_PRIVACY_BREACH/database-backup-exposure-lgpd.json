@@ -1,0 +1,245 @@
+{
+	"id": "database-backup-exposure-lgpd",
+	"title": "Vazamento de Backup de Banco de Dados Contendo Dados Pessoais Sensíveis",
+	"description": "Simulação tabletop de resposta a incidente de segurança envolvendo exposição pública de bucket S3 com dados pessoais e comunicação à ANPD sob a LGPD",
+	"category": {
+		"id": "GOV_LEGAL",
+		"type": "GOV_LEGAL_PRIVACY_BREACH",
+		"title": "Violação de Privacidade de Dados"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-07-31",
+		"author": "Equipe de Resposta a Incidentes",
+		"estimatedDuration": "45-60 minutos",
+		"difficulty": "Avançado",
+		"targetAudience": "DPO / Encarregado LGPD, Equipe Jurídica, Analistas de Cibersegurança e Comunicação"
+	},
+	"objectives": [
+		"Validar o fluxo de resposta a incidente de vazamento de dados pessoais (Data Breach) conforme exigido pela LGPD (Artigo 48)",
+		"Avaliar a matriz de risco e severidade do vazamento para determinar a necessidade de notificação à ANPD e aos titulares",
+		"Testar o plano de contenção técnica e erradicação em repositórios em nuvem misconfigurados"
+	],
+	"scope": [
+		"Exercício tabletop conceitual",
+		"Não envolve vazamento ou manipulação real de dados pessoais de indivíduos reais"
+	],
+	"baseScenario": {
+		"context": "Segunda-feira às 09:00, a equipe de segurança é alertada por um pesquisador independente de segurança sobre um bucket Cloud Storage (s3-backup-prod.corp.internal) configurado acidentalmente com permissão de leitura pública. O bucket contém arquivos .sql de backup de banco de dados com 450.000 registros contendo CPF, nome, e-mail, telefone e histórico de compras.",
+		"initialSituation": {
+			"alert": "Notificação Externa de Responsabilidade Social (Responsible Disclosure)",
+			"affectedAsset": "Bucket s3-backup-prod.corp.internal",
+			"exposedRecords": "~450.000 titulares afetados",
+			"timestamp": "09:00:00"
+		},
+		"initialComplaints": [
+			"Confirmação de que o arquivo backup-dump-2026-07.sql está totalmente baixável sem necessidade de credenciais"
+		],
+		"availableResources": [
+			"Console da Nuvem (AWS / GCP / Azure)",
+			"Ferramentas de análise de logs de acesso do Cloud Storage (CloudTrail / Access Logs)",
+			"Comitê de Crise e Comitê de Privacidade LGPD"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Mobilização do Comitê de Privacidade",
+			"phase": "Preparação",
+			"description": "Notificação do DPO e convocação emergencial do Comitê de Gestão de Crise de Dados.",
+			"inject": "Abertura do incidente de segurança grave e início da contagem regressiva para avaliação legal.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Contenção Imediata e Análise da Exposição",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "Revogação da permissão pública do bucket e apuração dos logs de acesso para medir o alcance do vazamento.",
+			"timeElapsed": "T+15 min",
+			"currentSituation": {
+				"bucketStatus": "Permissão alterada para Privado (Bloqueio Total de Acesso Público)",
+				"exposureDuration": "14 dias (desde o último deploy de infraestrutura via Terraform)"
+			},
+			"metrics": [
+				{
+					"title": "Análise de Access Logs do Storage",
+					"type": "security-analysis",
+					"data": {
+						"totalDownloads": "42 IPs externos distintos baixaram o arquivo backup-dump-2026-07.sql",
+						"knownCrawlers": "Inclui motores de busca como Shodan e Censys",
+						"dataSensitivity": "Nomes, CPFs, hashes de senha (bcrypt), telefones e endereços",
+						"observation": "Vazamento confirmado. Houve exfiltração efetiva do arquivo por terceiros não autorizados durante a janela de exposição."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Com base na LGPD e no regulamento da ANPD, qual a orientação sobre a comunicação do incidente à autoridade nacional?",
+					"points": 5,
+					"options": [
+						"O incidente deve ser comunicado à ANPD e aos titulares afetados em prazo razoável (conforme regulamentação de 3 dias úteis), pois pode acarretar risco ou dano relevante aos titulares",
+						"A comunicação é proibida para não afetar a imagem da empresa",
+						"Deve-se notificar a ANPD apenas se houver vazamento de dados financeiros diretos de cartão de crédito com CVV",
+						"Não há necessidade de notificação se o bucket já foi fechado"
+					],
+					"correctAnswer": 0,
+					"justification": "A LGPD determina que o controlador deve comunicar à ANPD e ao titular a ocorrência de incidente de segurança que possa acarretar risco ou dano relevante aos titulares."
+				},
+				{
+					"id": "q2",
+					"text": "CPFs, nomes completos e números de telefone são classificados como dados pessoais sob a LGPD.",
+					"type": "true-false",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. Qualquer informação relacionada a pessoa natural identificada ou identificável é dada como dado pessoal nos termos do Artigo 5º da LGPD."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Notificação Oficial e Remediação",
+			"phase": "Fase 2 - Contenção",
+			"description": "Elaboração do relatório de impacto à privacidade e minuta de comunicação pública.",
+			"timeElapsed": "T+45 min",
+			"currentSituation": {
+				"dpoAssessment": "Classificado como Incidente Relevante de Alto Risco",
+				"remediation": "Forçar redefinição de senhas para todos os usuários cujas credenciais estavam na base"
+			},
+			"metrics": [
+				{
+					"title": "Ações de Proteção Aos Titulares",
+					"type": "server-status",
+					"data": {
+						"passwordResetTokens": "450.000 tokens de redefinição gerados",
+						"mfaStatus": "Incentivo obrigatorio para ativação de MFA no próximo login",
+						"observation": "Ação preventiva implementada para evitar que os hashes vazados sejam explorados por ataques de dicionário."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "Se o prazo regulamentar recomendado para notificação à ANPD é de 3 dias úteis (72 horas úteis) e a equipe encaminhou o relatório final em 24 horas, quantas horas de margem antes do limite de 72h foram garantidas?",
+					"points": 5,
+					"correctAnswer": 48,
+					"tolerance": 0,
+					"unit": "horas",
+					"justification": "72 horas - 24 horas = 48 horas de margem."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Correlacione as atribuições de governança de dados no incidente:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "d1", "content": "Controlador (Empresa)"},
+						{"id": "d2", "content": "DPO / Encarregado"},
+						{"id": "d3", "content": "ANPD"}
+					],
+					"rightColumn": [
+						{"id": "r1", "content": "Pessoa jurídica responsável por tomar as decisões referentes ao tratamento de dados pessoais"},
+						{"id": "r2", "content": "Canal de comunicação entre o controlador, os titulares e a autoridade nacional"},
+						{"id": "r3", "content": "Órgão da administração pública responsável por zelar, implementar e fiscalizar a lei"}
+					],
+					"correctMatches": [
+						{"left": "d1", "right": "r1"},
+						{"left": "d2", "right": "r2"},
+						{"left": "d3", "right": "r3"}
+					],
+					"justification": "Controlador toma decisões; DPO é a ponte/canal de comunicação; ANPD fiscaliza e regula."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Apuração de Causa Raiz e Terraform",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "Investigação da falha de infraestrutura como código (IaC) que tornou o bucket público.",
+			"timeElapsed": "T+90 min",
+			"currentSituation": {
+				"rootCauseIdentified": "Alteração no script Terraform `acl = 'public-read'` enviada em merge sem revisão de segurança"
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene as ações de resposta ao incidente conforme as boas práticas de gestão de privacidade:",
+					"points": 5,
+					"items": [
+						{"id": "a1", "content": "Bloquear imediatamente o acesso público ao bucket S3 exposed"},
+						{"id": "a2", "content": "Analisar os logs de auditoria para mensurar os acessos e exfiltrações ocorridas"},
+						{"id": "a3", "content": "Elaborar o relatório de impacto e notificar a ANPD e os titulares afetados"},
+						{"id": "a4", "content": "Implementar políticas de SCP (Service Control Policy) que impedem por padrão buckets públicos na conta cloud"}
+					],
+					"correctOrder": ["a1", "a2", "a3", "a4"],
+					"justification": "Contenção do Vazamento -> Avaliação de Impacto e Logs -> Comunicação Legal (ANPD/Titulares) -> Hardening de Infraestrutura."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Melhorias Contínuas de Governança de Dados",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Implementação de guardrails de segurança na nuvem para proteção de dados.",
+			"timeElapsed": "T+120 min",
+			"currentSituation": {
+				"incidentClosed": true
+			},
+			"questions": [
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Qual controle técnico previne de forma definitiva a exposição acidental de dados pessoais em backups em nuvem?",
+					"points": 5,
+					"options": [
+						"Criptografia compulsória em repouso (KMS com chave gerenciada), restrição de buckets públicos no nível da organização (Block Public Access) e verificação de CI/CD via checkov/tfsec",
+						"Enviar o backup por e-mail para todos da empresa",
+						"Desativar o backup automático",
+						"Mudar a porta do servidor de banco de dados para 9999"
+					],
+					"correctAnswer": 0,
+					"justification": "Bloqueio de acesso público a nível de conta, criptografia de chaves (KMS) e análise de segurança estática no pipeline IaC impedem a criação de buckets vulneráveis."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 29,
+		"passingScore": 18,
+		"gradingScale": [
+			{
+				"min": 25,
+				"max": 29,
+				"grade": "Excelente",
+				"description": "Excelente gestão de crise de privacidade e conformidade com a LGPD."
+			},
+			{
+				"min": 18,
+				"max": 24,
+				"grade": "Satisfatório",
+				"description": "Compreensão dos procedimentos de contenção e dever de notificação."
+			},
+			{
+				"min": 0,
+				"max": 17,
+				"grade": "Insuficiente",
+				"description": "Risco de sanções graves por descumprimento dos requisitos de notificação."
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Debater a responsabilidade do DPO e o papel do Comitê de Crise de Privacidade.",
+		"Discutir a diferença entre dados pessoais simples e dados pessoais sensíveis perante a LGPD."
+	],
+	"technicalReferences": [
+		{
+			"title": "Lei nº 13.709/2018 (Lei Geral de Proteção de Dados Pessoais - LGPD)",
+			"url": "http://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm"
+		}
+	]
+}

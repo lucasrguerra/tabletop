@@ -1,0 +1,252 @@
+{
+	"id": "rpki-max-length-mismatch",
+	"title": "Bloqueio de Prefixos Legítimos por Incompatibilidade de MaxLength no RPKI",
+	"description": "Simulação tabletop de resposta à perda de alcançabilidade de sub-redes corporativas causada por ROA RPKI configurado com MaxLength incorreto",
+	"category": {
+		"id": "NET_ROUT",
+		"type": "NET_ROUT_RPKI_INVALID",
+		"title": "Bloqueio de Rotas por RPKI Inválido"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-07-31",
+		"author": "Equipe de Resposta a Incidentes",
+		"estimatedDuration": "35-45 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Engenheiros de Redes BGP, Gestores de Recursos de Numeração IP (NIR/RIR)"
+	},
+	"objectives": [
+		"Validar o diagnóstico de estado de validação RPKI (Valid, Invalid, NotFound)",
+		"Avaliar o impacto da configuração do parâmetro MaxLength na publicação de objetos ROA",
+		"Testar o processo de correção emergencial de registros RPKI e propagação RTR (RPKI-to-Router)"
+	],
+	"scope": [
+		"Exercício tabletop conceitual"
+	],
+	"baseScenario": {
+		"context": "Quarta-feira às 09:00, após a divisão de um bloco de rede /20 corporativo em sub-redes /24 para balanceamento de carga de tráfego BGP, diversos provedores mundiais que aplicam descarte de RPKI Inválido (Drop Invalid) passam a bloquear o tráfego destinado aos novos sub-anúncios /24.",
+		"initialSituation": {
+			"alert": "Reachability Degradation: 198.51.100.0/24 flagged as RPKI INVALID",
+			"affectedPrefix": "198.51.100.0/24 (Sub-anúncio derivado do bloco /20)",
+			"roaMaxLen": "MaxLength configurado no ROA: /20 | Anúncio BGP: /24",
+			"timestamp": "09:00:00"
+		},
+		"initialComplaints": [
+			"Clientes de operadoras que implementam RPKI ROV não conseguem acessar os portais corporativos nos novos IPs /24",
+			"Looking Glasses Globais marcam o prefixo como 'RPKI State: INVALID_MAX_LENGTH'"
+		],
+		"availableResources": [
+			"Painel de Gerenciamento RPKI no Portal do Registro Regional (LACNIC / RIPE / ARIN)",
+			"Servidor de validação RPKI local (Routinator / Fort Validator)",
+			"Roteadores de borda BGP com suporte a RTR"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Identificação do Status RPKI",
+			"phase": "Preparação",
+			"description": "Análise da falha de alcançabilidade dos novos prefixos /24.",
+			"inject": "Apresentação da consulta ao validador RPKI.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Análise da Causa da Invalidade RPKI",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "Exame do objeto ROA existente e comparação com os anúncios BGP ativos.",
+			"timeElapsed": "T+10 min",
+			"currentSituation": {
+				"roaState": "ASN: 64500 | Prefix: 198.51.96.0/20 | MaxLength: 20",
+				"bgpAnnouncement": "ASN: 64500 | Prefix: 198.51.100.0/24",
+				"validationResult": "INVALID (Prefix match, ASN match, mas máscara /24 excede MaxLength /20)"
+			},
+			"metrics": [
+				{
+					"title": "Resultado do Validador Routinator",
+					"type": "network-analysis",
+					"data": {
+						"prefix": "198.51.100.0/24",
+						"as": "AS64500",
+						"status": "Invalid",
+						"reason": "maxLengthExceeded (ROA cobre 198.51.96.0/20 max-len 20, mas o anúncio é /24)",
+						"observation": "O ROA autorizava a origem pelo AS 64500, porém restringiu a máscara máxima para /20. Ao anunciar /24, a rota tornou-se Inválida."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Por que o anúncio BGP do prefixo /24 foi considerado INVALID pelo RPKI mesmo tendo sido originado pelo AS correto (AS 64500)?",
+					"points": 5,
+					"options": [
+						"Porque o MaxLength definido no ROA era /20, o que proíbe explicitamente qualquer sub-anúncio mais específico do que /20",
+						"Porque a chave pública do roteador foi revogada",
+						"Porque o protocolo BGP não aceita máscaras /24",
+						"Porque o servidor DNS autoritário estava offline"
+					],
+					"correctAnswer": 0,
+					"justification": "No RPKI, se um anúncio for mais específico que o `maxLength` autorizado no ROA, o estado de validação torna-se INVALID, fazendo com que redes que aplicam 'Drop Invalid' descartem a rota."
+				},
+				{
+					"id": "q2",
+					"text": "Se o estado de validação RPKI de uma rota for 'NotFound' (ausência de ROA), a maioria das operadoras a descarta por padrão.",
+					"type": "true-false",
+					"points": 3,
+					"correctAnswer": false,
+					"justification": "FALSO. O estado 'NotFound' significa que não há ROA criado. A recomendação internacional é aceitar rotas 'NotFound' e descartar APENAS as rotas 'Invalid'."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Atualização do Objeto ROA no Portal RPKI",
+			"phase": "Fase 2 - Contenção",
+			"description": "Edição do ROA para alterar o MaxLength para /24 ou inclusão dos novos prefixos.",
+			"timeElapsed": "T+25 min",
+			"currentSituation": {
+				"roaUpdated": "Novo ROA assinado: 198.51.96.0/20 com MaxLength: 24",
+				"propagationStatus": "Aguardando sincronização dos validadores RPKI globais (RTR cache refresh)"
+			},
+			"metrics": [
+				{
+					"title": "Status da Propagação RPKI RTR",
+					"type": "server-status",
+					"data": {
+						"rtrRefreshInterval": "300 a 900 segundos (5 a 15 minutos)",
+						"updatedStatus": "VALID em 85% dos caches globais",
+						"observation": "A atualização do ROA no portal do Registro Regional está sendo propagada para os validadores mundiais."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "Se o tempo médio de atualização de cache dos validadores RPKI mundiais é de 15 minutos e a correção do ROA foi concluída às 09:30, a qual horário estimado em minutos (partindo das 09:00) a rota estará 'VALID' em nível global?",
+					"points": 5,
+					"correctAnswer": 45,
+					"tolerance": 0,
+					"unit": "minutos",
+					"justification": "30 minutos decorridos até a edição + 15 minutos de propagação = 45 minutos totais a partir do início."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Associe os três estados de Validação RPKI (ROV) aos seus significados:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "v1", "content": "RPKI Valid"},
+						{"id": "v2", "content": "RPKI Invalid"},
+						{"id": "v3", "content": "RPKI NotFound / Unknown"}
+					],
+					"rightColumn": [
+						{"id": "r1", "content": "Existe ROA assinado correspondente e o anúncio BGP bate em AS de Origem e MaxLength"},
+						{"id": "r2", "content": "Existe ROA assinado para o prefixo, mas o anúncio BGP viola o AS de Origem ou o MaxLength"},
+						{"id": "r3", "content": "Não existe nenhum ROA publicado para o bloco de rede analisado"}
+					],
+					"correctMatches": [
+						{"left": "v1", "right": "r1"},
+						{"left": "v2", "right": "r2"},
+						{"left": "v3", "right": "r3"}
+					],
+					"justification": "Valid = bate com ROA; Invalid = viola o ROA assinado; NotFound = ausência de declaração de ROA."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Validação da Restauração do Tráfego",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "Verificação de rotas BGP em Looking Glasses com RPKI ROV habilitado.",
+			"timeElapsed": "T+45 min",
+			"currentSituation": {
+				"trafficRestored": "100% restabelecido",
+				"validationState": "VALID mundialmente"
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene os passos para criar e publicar um ROA RPKI com segurança:",
+					"points": 5,
+					"items": [
+						{"id": "r1", "content": "Mapear a lista de prefixos BGP efetivamente anunciados e suas respectivas máscaras"},
+						{"id": "r2", "content": "Acessar o portal do Registro de Internet (IRR/RPKI) com autenticação forte (MFA)"},
+						{"id": "r3", "content": "Configurar o ASN de origem e definir o MaxLength exatamente compatível com os anúncios planejados"},
+						{"id": "r4", "content": "Validar a rota em Looking Glasses externos após a janela de publicação do ROA"}
+					],
+					"correctOrder": ["r1", "r2", "r3", "r4"],
+					"justification": "Mapeamento prévio -> Acesso ao Portal RPKI -> Configuração de ASN/MaxLength -> Validação Externa."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Melhores Práticas de Publicação RPKI",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Adoção da recomendação RFC 9319 para evitar MaxLength excessivamente permissivo.",
+			"timeElapsed": "T+60 min",
+			"currentSituation": {
+				"incidentResolved": true
+			},
+			"questions": [
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Qual a recomendação atual da RFC 9319 quanto à definição do atributo MaxLength em objetos ROA?",
+					"points": 5,
+					"options": [
+						"Evitar o uso de MaxLength genéricos (ex: /24 para blocos /16) e criar ROAs específicos para cada prefixo efetivamente anunciado, minimizando o risco de Forge-Origin Hijacks",
+						"Configurar sempre MaxLength /32 para todas as redes IPv4",
+						"Não utilizar RPKI sob nenhuma hipótese",
+						"Deixar o campo MaxLength em branco em todos os registros"
+					],
+					"correctAnswer": 0,
+					"justification": "A RFC 9319 recomenda evitar o uso de MaxLength abrangente sem necessidade, preferindo publicar ROAs individuais para cada comprimento de prefixo anunciado."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 29,
+		"passingScore": 18,
+		"gradingScale": [
+			{
+				"min": 25,
+				"max": 29,
+				"grade": "Excelente",
+				"description": "Excelente domínio de RPKI, ROA e mecanismos de validação de origem BGP."
+			},
+			{
+				"min": 18,
+				"max": 24,
+				"grade": "Satisfatório",
+				"description": "Compreensão dos estados de validação RPKI e do impacto do MaxLength."
+			},
+			{
+				"min": 0,
+				"max": 17,
+				"grade": "Insuficiente",
+				"description": "Dificuldades em compreender o funcionamento da infraestrutura de chaves RPKI."
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Explicar a diferença entre ter um ROA e a validação de origem (ROV) pelos roteadores de borda.",
+		"Discutir o conceito de Forged-Origin Hijack quando MaxLength é muito aberto."
+	],
+	"technicalReferences": [
+		{
+			"title": "RFC 6483 - RPKI Route Origin Validation Resolved to Routes",
+			"url": "https://datatracker.ietf.org/doc/html/rfc6483"
+		},
+		{
+			"title": "RFC 9319 - RPKI Best Practices for MaxLength",
+			"url": "https://datatracker.ietf.org/doc/html/rfc9319"
+		}
+	]
+}

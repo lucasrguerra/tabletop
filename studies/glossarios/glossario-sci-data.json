@@ -89,6 +89,34 @@
         "definition": "Variação no atraso de entrega entre pacotes consecutivos de um mesmo fluxo. Crítico para aplicações em tempo real (VoIP, videoconferência). Causado por filas variáveis nos roteadores (congestionamento). Medido em ms; acima de 30-50ms impacta perceptivamente chamadas de voz.",
         "seeAlso": ["RTT", "QoS"],
         "relatedStudyId": "perfsonar-ferramenta-medicao"
+      },
+      {
+        "term": "BDP (Bandwidth-Delay Product)",
+        "acronym": "BDP",
+        "definition": "Volume máximo de dados em trânsito que pode preencher uma conexão de rede (Banda x RTT). Define o tamanho de buffer necessário para evitar o estrangulamento da janela TCP.",
+        "seeAlso": ["RTT", "Window Scale"],
+        "relatedStudyId": "tcp-conceito-window-scaling-bbr"
+      },
+      {
+        "term": "BBR (Bottleneck Bandwidth and RTT)",
+        "acronym": "BBR",
+        "definition": "Algoritmo moderno de controle de congestão TCP desenvolvido pelo Google que ajusta a taxa de envio com base na capacidade física do enlace e no RTT mínimo, sem entrar em colapso com perdas aleatórias de pacote.",
+        "seeAlso": ["CUBIC", "BDP"],
+        "relatedStudyId": "tcp-conceito-window-scaling-bbr"
+      },
+      {
+        "term": "Bufferbloat",
+        "acronym": null,
+        "definition": "Aumento excessivo e danoso da latência (RTT) provocado por filas FIFO superdimensionadas em roteadores sob carga. Mitigado com algoritmos de Gerenciamento Ativo de Filas (AQM) como FQ-CoDel.",
+        "seeAlso": ["AQM", "FQ-CoDel", "ECN"],
+        "relatedStudyId": "aqm-conceito-bufferbloat-ecn"
+      },
+      {
+        "term": "ECN (Explicit Congestion Notification)",
+        "acronym": "ECN",
+        "definition": "Mecanismo (RFC 3168) que permite a roteadores intermediários notificar os hosts sobre congestão iminente marcando bits no cabeçalho IP, reduzindo a taxa de envio antes que haja descarte de pacotes.",
+        "seeAlso": ["AQM", "Bufferbloat"],
+        "relatedStudyId": "aqm-conceito-bufferbloat-ecn"
       }
     ]
   },

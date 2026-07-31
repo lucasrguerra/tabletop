@@ -1,0 +1,246 @@
+{
+	"id": "ntp-reflection-datacenter",
+	"title": "Ataque de Amplificação NTP via Comando MONLIST em Servidor Legado",
+	"description": "Simulação tabletop de resposta a incidente onde servidores NTP legados na rede interna são abusados como refletores para ataques DDoS massivos",
+	"category": {
+		"id": "NET_VOL",
+		"type": "NET_VOL_NTP_MONLIST",
+		"title": "Ataque de Amplificação NTP via MONLIST"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-07-31",
+		"author": "Equipe de Resposta a Incidentes",
+		"estimatedDuration": "35-45 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Administradores de Sistemas Linux/Unix, Especialistas de Segurança de Rede"
+	},
+	"objectives": [
+		"Validar a identificação de servidores NTP vulneráveis ao comando monlist (CVE-2013-5211)",
+		"Avaliar o fator de amplificação gerado por requisições Mode 7 em instâncias NTP sem noquery",
+		"Testar o processo de hardening e atualização da configuração ntp.conf"
+	],
+	"scope": [
+		"Exercício tabletop conceitual"
+	],
+	"baseScenario": {
+		"context": "Segunda-feira às 15:00, o CSIRT nacional notifica a organização de que um servidor NTP interno (ntp-legacy.corp.internal) está enviando rajadas contínuas de pacotes UDP/123 para o IP de uma instituição parceira, gerando um ataque de negação de serviço de 35 Gbps.",
+		"initialSituation": {
+			"alert": "CSIRT Abuse Report: Internal host 192.168.5.123 participating in NTP Amplification Attack",
+			"affectedHost": "ntp-legacy.corp.internal (192.168.5.123)",
+			"exploitVector": "NTP Mode 7 monlist request (CVE-2013-5211)",
+			"timestamp": "15:00:00"
+		},
+		"initialComplaints": [
+			"Notificação de abuso e risco de bloqueio da faixa de IP da empresa por operadoras de trânsito",
+			"Consumo de 100% de upload da interface física do servidor atingido"
+		],
+		"availableResources": [
+			"Acesso SSH ao servidor ntp-legacy.corp.internal",
+			"Arquivo de configuração `/etc/ntp.conf`",
+			"Ferramenta de teste de sincronismo de tempo (ntpq / ntpdc)"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Investigação da Notificação de Abuso",
+			"phase": "Preparação",
+			"description": "Análise do tráfego do servidor NTP apontado na notificação.",
+			"inject": "Apresentação dos logs do firewall e amostras de tráfego UDP/123.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Confirmação da Vulnerabilidade MONLIST",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "Teste do serviço NTP local para verificar a resposta ao comando monlist.",
+			"timeElapsed": "T+10 min",
+			"currentSituation": {
+				"serviceStatus": "ntpd versão 4.2.6 (Vulnerável)",
+				"trafficSent": "35 Gbps UDP outbound"
+			},
+			"metrics": [
+				{
+					"title": "Execução do Comando `ntpdc -c monlist 192.168.5.123`",
+					"type": "network-analysis",
+					"data": {
+						"requestSize": "48 bytes",
+						"responsePackets": "100 pacotes de 480 bytes cada",
+						"totalResponseSize": "26.880 bytes (Fator de amplificação ~556x)",
+						"observation": "O comando monlist retornou os últimos 600 clientes que sincronizaram com o servidor, gerando uma resposta massiva de 26KB a partir de uma única requisição de 48 bytes."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "Qual é o mecanismo que permite que atacantes utilizem servidores NTP vulneráveis para realizar ataques de amplificação?",
+					"points": 5,
+					"options": [
+						"O envio de requisições UDP com IP de origem forjado (spoofed) para um servidor NTP vulnerável ao comando 'monlist', fazendo o servidor enviar uma resposta até 556x maior para a vítima",
+						"A invasão do servidor através da porta SSH com senha padrão",
+						"O sequestro da chave de criptografia SSL do servidor web",
+						"O estouro de memória RAM por envio de arquivos ZIP"
+					],
+					"correctAnswer": 0,
+					"justification": "O comando monlist faz o daemon ntpd responder com a lista dos últimos 600 clientes em múltiplos pacotes UDP, permitindo amplificação gigante quando o IP da requisição é forjado."
+				},
+				{
+					"id": "q2",
+					"text": "Adicionar a diretiva `restrict default noquery` no arquivo `/etc/ntp.conf` impede a execução do comando monlist sem afetar a sincronização de horário de clientes legítimos.",
+					"type": "true-false",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. A opção `noquery` impede que clientes externos realizem consultas de status (como monlist e ntpq), mas mantém a permissão de sincronismo de tempo (queries NTP normais)."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Mitigação e Hardening no /etc/ntp.conf",
+			"phase": "Fase 2 - Contenção",
+			"description": "Edição das políticas de restrição do arquivo de configuração e restart do serviço.",
+			"timeElapsed": "T+25 min",
+			"currentSituation": {
+				"ntpConfUpdated": "Adicionadas as regras `restrict default kod nomodify notrap nopeer noquery`",
+				"serviceRestarted": true
+			},
+			"metrics": [
+				{
+					"title": "Teste de Validação Pós-Hardening",
+					"type": "server-status",
+					"data": {
+						"command": "ntpdc -c monlist 192.168.5.123",
+						"result": "192.168.5.123: timed out, nothing received",
+						"outboundTraffic": "< 1 Mbps",
+						"observation": "A diretiva noquery bloqueou a resposta de consultas monlist, neutralizando a amplificação."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "Se a requisição monlist tem 48 bytes e o servidor responde com 26.880 bytes, qual o fator exato de amplificação obtido?",
+					"points": 5,
+					"correctAnswer": 560,
+					"tolerance": 5,
+					"unit": "vezes",
+					"justification": "26880 bytes / 48 bytes = 560x de amplificação."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Relacione os parâmetros de restrição do `ntp.conf` às suas ações:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "n1", "content": "noquery"},
+						{"id": "n2", "content": "nomodify"},
+						{"id": "n3", "content": "notrap"}
+					],
+					"rightColumn": [
+						{"id": "r1", "content": "Impede consultas de status e estatísticas (como monlist e ntpq)"},
+						{"id": "r2", "content": "Impede que o cliente altere as configurações de tempo do servidor"},
+						{"id": "r3", "content": "Desativa o serviço de registro de evento remoto (trap logging)"}
+					],
+					"correctMatches": [
+						{"left": "n1", "right": "r1"},
+						{"left": "n2", "right": "r2"},
+						{"left": "n3", "right": "r3"}
+					],
+					"justification": "Noquery bloqueia consultas de status; nomodify protege a config; notrap desativa logging remoto."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Migração para Chrony ou NTPd Atualizado",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "Atualização dos pacotes e substituição de versões antigas pelo daemon Chrony.",
+			"timeElapsed": "T+45 min",
+			"currentSituation": {
+				"daemonUpdated": "Migrado de ntpd 4.2.6 para Chrony 4.3"
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene os passos para remediação de um servidor NTP vulnerável ao monlist:",
+					"points": 5,
+					"items": [
+						{"id": "m1", "content": "Confirmar a vulnerabilidade executando a consulta `ntpdc -c monlist` contra o IP do servidor"},
+						{"id": "m2", "content": "Editar a configuração `/etc/ntp.conf` adicionando a diretiva `restrict default noquery`"},
+						{"id": "m3", "content": "Reiniciar o serviço NTP local (systemctl restart ntp)"},
+						{"id": "m4", "content": "Reexecutar a consulta de teste para garantir que a resposta foi recusada ou descartada"}
+					],
+					"correctOrder": ["m1", "m2", "m3", "m4"],
+					"justification": "Teste inicial de vulnerabilidade -> Edição do arquivo ntp.conf -> Restart do serviço -> Validação final."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Varredura de Vulnerabilidades Internas",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Execução de auditorias para garantir que nenhum outro servidor NTP exposto contenha monlist ativo.",
+			"timeElapsed": "T+60 min",
+			"currentSituation": {
+				"incidentResolved": true
+			},
+			"questions": [
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Por que o daemon moderno `chrony` é preferível ao `ntpd` legado em termos de segurança contra amplificação?",
+					"points": 5,
+					"options": [
+						"Porque o `chrony` não implementa o protocolo de controle Mode 7 (monlist), sendo imune nativamente a este vetor de amplificação",
+						"Porque o `chrony` não usa a porta UDP 123",
+						"Porque o `chrony` exige licença paga",
+						"Porque o `chrony` roda apenas em sistemas Windows"
+					],
+					"correctAnswer": 0,
+					"justification": "O Chrony foi projetado sem a implementação dos comandos de controle legados como monlist, eliminando esse vetor de amplificação por design."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 29,
+		"passingScore": 18,
+		"gradingScale": [
+			{
+				"min": 25,
+				"max": 29,
+				"grade": "Excelente",
+				"description": "Excelente conhecimento de hardening de serviços de tempo e mitigação de amplificação."
+			},
+			{
+				"min": 18,
+				"max": 24,
+				"grade": "Satisfatório",
+				"description": "Compreensão dos parâmetros de restrição do NTP e diagnóstico."
+			},
+			{
+				"min": 0,
+				"max": 17,
+				"grade": "Insuficiente",
+				"description": "Dificuldades em identificar e solucionar o abuso por monlist."
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Discutir o conceito de IP Spoofing na camada 3 como elemento obrigatório para ataques de reflexão UDP.",
+		"Demonstrar a sintaxe do comando `ntpdc -c monlist`."
+	],
+	"technicalReferences": [
+		{
+			"title": "CVE-2013-5211 - NTP monlist Amplification Vulnerability",
+			"url": "https://nvd.nist.gov/vuln/detail/CVE-2013-5211"
+		}
+	]
+}

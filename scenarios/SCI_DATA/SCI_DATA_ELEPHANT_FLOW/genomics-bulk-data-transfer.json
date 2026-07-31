@@ -1,0 +1,246 @@
+{
+	"id": "genomics-bulk-data-transfer",
+	"title": "Impacto de Fluxo Elefante (Elephant Flow) em Transferência de Dados Genômicos",
+	"description": "Simulação tabletop de resposta à degradação de tráfego interativo por saturação de buffers e enlaces causada por transferência massiva não limitada (Elephant Flow) em rede acadêmica/científica",
+	"category": {
+		"id": "SCI_DATA",
+		"type": "SCI_DATA_ELEPHANT_FLOW",
+		"title": "Fluxos Elefante em Transferências Científicas"
+	},
+	"metadata": {
+		"version": "1.0",
+		"lastUpdate": "2026-07-31",
+		"author": "Equipe de Resposta a Incidentes",
+		"estimatedDuration": "35-45 minutos",
+		"difficulty": "Intermediário",
+		"targetAudience": "Engenheiros de Redes de Pesquisa (ScienceDMZ), Administradores de HPC e Grid Computing"
+	},
+	"objectives": [
+		"Validar a identificação de Fluxos Elefante (Elephant Flows) vs. Fluxos Rato (Mice Flows) em redes de alto desempenho",
+		"Avaliar a arquitetura ScienceDMZ para isolamento de dados de grande escala usando GridFTP / Globus Online",
+		"Testar o uso de políticas de QoS, BGP Flowspec e roteamento orientado a fluxos (SDN / B4)"
+	],
+	"scope": [
+		"Exercício tabletop conceitual"
+	],
+	"baseScenario": {
+		"context": "Quarta-feira às 14:00, os pesquisadores do laboratório de bioinformática iniciam a transferência de um dataset de sequenciamento genômico de 50 Terabytes para o supercomputador nacional via protocolo GridFTP. A transferência consome 9.8 Gbps de um link corporativo de 10 Gbps, travando todas as chamadas de videoconferência e o tráfego web do campus.",
+		"initialSituation": {
+			"alert": "HIGH BANDWIDTH USAGE: Single TCP Session (10.20.100.5 -> 200.17.80.12) consuming 9.8 Gbps",
+			"affectedLink": "Link Principal de Saída do Campus (10 Gbps)",
+			"timestamp": "14:00:00"
+		},
+		"initialComplaints": [
+			"Latência do tráfego web e SSH interativo subiu de 5ms para 850ms com perda de 12% de pacotes",
+			"Sessões de videoconferência de aulas e reuniões administrativas desconectando"
+		],
+		"availableResources": [
+			"Switches e Roteadores com suporte a sFlow / IPFIX",
+			"Arquitetura de rede de pesquisa ScienceDMZ (Data Transfer Nodes - DTN)",
+			"Plataforma de orquestração de rede / QoS (Traffic Shaping / Policing)"
+		]
+	},
+	"rounds": [
+		{
+			"id": 1,
+			"title": "Identificação do Fluxo Elefante",
+			"phase": "Preparação",
+			"description": "Análise da distribuição do consumo de banda por sessão IP.",
+			"inject": "Apresentação dos dados de NetFlow/sFlow da borda.",
+			"questions": []
+		},
+		{
+			"id": 2,
+			"title": "Análise do Padrão do Tráfego Científico",
+			"phase": "Fase 1 - Detecção e Análise",
+			"description": "Diferenciação entre o tráfego interativo de baixa latência e a transferência massiva em lote.",
+			"timeElapsed": "T+10 min",
+			"currentSituation": {
+				"totalLinkCapacity": "10 Gbps",
+				"elephantFlowUsage": "9.8 Gbps (98% da banda consumida por um único par de IPs)"
+			},
+			"metrics": [
+				{
+					"title": "Análise de Seta de SFlow",
+					"type": "network-analysis",
+					"data": {
+						"srcIP": "10.20.100.5 (Nó DTN-Genomics)",
+						"dstIP": "200.17.80.12 (HPC Target)",
+						"protocol": "TCP (Port 2811 / GridFTP)",
+						"tcpWindow": "Expanding / BBR Congestion Control",
+						"observation": "Uma única sessão de transferência em lote de arquivos pesados (Elephant Flow) monopolizou a fila de saída do roteador de borda corporativo."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q1",
+					"type": "multiple-choice",
+					"text": "O que caracteriza um 'Fluxo Elefante' (Elephant Flow) em redes de computadores?",
+					"points": 5,
+					"options": [
+						"Uma sessão de comunicação de longa duração e alta taxa de transferência contínua que transporta um volume massivo de dados acumulados",
+						"Um ataque de vírus que infecta 100 computadores simultaneamente",
+						"Um pacote IP corrompido com mais de 65535 bytes",
+						"Um tipo de cabo de rede com blindagem de borracha"
+					],
+					"correctAnswer": 0,
+					"justification": "Fluxos Elefante são transferências volumétricas contínuas de grande porte (ex: cópia de datasets científicos de Terabytes), em contraste com os 'Fluxos Rato' (Mice Flows), que são pequenos e curtos (ex: HTTP, SSH, DNS)."
+				},
+				{
+					"id": "q2",
+					"text": "A arquitetura ScienceDMZ recomenda desviar transferências massivas de dados de pesquisa para nós DTN (Data Transfer Nodes) em um segmento de rede dedicado, sem passar por firewalls estáticos com inspeção profunda de pacotes.",
+					"type": "true-false",
+					"points": 3,
+					"correctAnswer": true,
+					"justification": "VERDADEIRO. O modelo ScienceDMZ do ESnet separa o tráfego científico de alto desempenho do tráfego corporativo, evitando que transferências pesadas degradem o firewall e a rede comum."
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "Redirecionamento para a ScienceDMZ e QoS",
+			"phase": "Fase 2 - Contenção",
+			"description": "Desvio da transferência para a rota dedicada de pesquisa e aplicação de QoS de saída.",
+			"timeElapsed": "T+25 min",
+			"currentSituation": {
+				"dtnRouteActive": "Transferência migrada para a VLAN dedicada ScienceDMZ (100G RNP/Rede Clara)",
+				"qosPolicy": "Configurada fila de prioridade estrita (Strict Priority Queue) para tráfego interativo/VoIP no roteador corporativo"
+			},
+			"metrics": [
+				{
+					"title": "Métricas de Latência Pós-Desvio",
+					"type": "server-status",
+					"data": {
+						"campusLinkLatency": "4.2 ms (Retornou ao normal)",
+						"dtnThroughput": "40 Gbps (Transferência genômica 4x mais rápida na ScienceDMZ)",
+						"observation": "O isolamento do tráfego genômico na ScienceDMZ liberou o link corporativo e acelerou a conclusão da pesquisa."
+					}
+				}
+			],
+			"questions": [
+				{
+					"id": "q3",
+					"type": "numeric",
+					"text": "Se o dataset genômico tem 45 Terabytes (45.000 Gigabytes) e a velocidade na ScienceDMZ subiu para 5 Gigabytes por segundo, em quantos segundos a transferência será concluída?",
+					"points": 5,
+					"correctAnswer": 9000,
+					"tolerance": 0,
+					"unit": "segundos",
+					"justification": "45000 Gigabytes / 5 Gigabytes/s = 9000 segundos (2.5 horas)."
+				},
+				{
+					"id": "q4",
+					"type": "matching",
+					"text": "Associe os termos da arquitetura ScienceDMZ às suas atribuições:",
+					"points": 6,
+					"partialCredit": true,
+					"pointsPerMatch": 2,
+					"leftColumn": [
+						{"id": "s1", "content": "DTN (Data Transfer Node)"},
+						{"id": "s2", "content": "perfSONAR"},
+						{"id": "s3", "content": "ScienceDMZ Boundary"}
+					],
+					"rightColumn": [
+						{"id": "r1", "content": "Servidor otimizado de alta performance para movimentação de arquivos pesados sem gargalos no SO"},
+						{"id": "r2", "content": "Plataforma de medição e teste contínuo de latência, perda de pacotes e vazão em redes de pesquisa"},
+						{"id": "r3", "content": "Enclave de rede sem firewall corporativo com inspeção profunda, protegido por ACLs de borda rígidas"}
+					],
+					"correctMatches": [
+						{"left": "s1", "right": "r1"},
+						{"left": "s2", "right": "r2"},
+						{"left": "s3", "right": "r3"}
+					],
+					"justification": "DTN realiza transferências pesadas; perfSONAR mede desempenho de rede; ScienceDMZ Boundary fornece a infraestrutura física isolada."
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Validação com perfSONAR",
+			"phase": "Fase 3 - Análise Avançada",
+			"description": "Execução de testes de vazão de baseline na rede acadêmica.",
+			"timeElapsed": "T+40 min",
+			"currentSituation": {
+				"perfsonarStatus": "Throughput 95 Gbps em enlace de 100G | Loss: 0%",
+				"campusNetwork": "100% estável"
+			},
+			"questions": [
+				{
+					"id": "q5",
+					"type": "ordering",
+					"text": "Ordene os passos para implementar a gestão de Fluxos Elefante em redes de pesquisa:",
+					"points": 5,
+					"items": [
+						{"id": "p1", "content": "Identificar a presença de Fluxos Elefante via amostragem de sFlow/NetFlow"},
+						{"id": "p2", "content": "Configurar regras de QoS para garantir prioridade de banda e baixa latência ao tráfego interativo (Mice Flows)"},
+						{"id": "p3", "content": "Direcionar os nós de transferência de dados (DTNs) para uma VLAN/arquitetura ScienceDMZ isolada"},
+						{"id": "p4", "content": "Utilizar ferramentas como perfSONAR para monitorar e auditar continuamente o desempenho das rotas científicas"}
+					],
+					"correctOrder": ["p1", "p2", "p3", "p4"],
+					"justification": "Identificação de Fluxos -> QoS para tráfego interativo -> Isolamento em ScienceDMZ -> Monitoramento via perfSONAR."
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "Políticas de Engenharia de Redes de Pesquisa",
+			"phase": "Fase 4 - Pós-Incidente",
+			"description": "Adoção formal das diretrizes da ESnet / RNP para tráfego científico.",
+			"timeElapsed": "T+55 min",
+			"currentSituation": {
+				"incidentResolved": true
+			},
+			"questions": [
+				{
+					"id": "q6",
+					"type": "multiple-choice",
+					"text": "Por que firewalls corporativos tradicionais com inspeção de estado (Stateful Inspection) tornam-se um gargalo em transferências de dados de pesquisa de 100Gbps?",
+					"points": 5,
+					"options": [
+						"Porque a CPU do firewall não consegue processar tabelas de estado de milhões de conexões a 100Gbps, causando perda de pacotes, estouro de buffer e queda dramática na vazão TCP",
+						"Porque firewalls não aceitam cabos de fibra óptica",
+						"Porque o tráfego científico é criptografado com chave de 8 bits",
+						"Porque o protocolo IP é incompatível com firewalls"
+					],
+					"correctAnswer": 0,
+					"justification": "A inspeção profunda de estado em taxas de 100Gbps exige alto poder computacional no firewall. A arquitetura ScienceDMZ contorna isso usando roteadores com ACLs estáticas de hardware."
+				}
+			]
+		}
+	],
+	"evaluation": {
+		"totalPoints": 29,
+		"passingScore": 18,
+		"gradingScale": [
+			{
+				"min": 25,
+				"max": 29,
+				"grade": "Excelente",
+				"description": "Excelente conhecimento de redes de alto desempenho, ScienceDMZ e gestão de Fluxos Elefante."
+			},
+			{
+				"min": 18,
+				"max": 24,
+				"grade": "Satisfatório",
+				"description": "Boa compreensão das diferenças entre tráfego de pesquisa e tráfego corporativo."
+			},
+			{
+				"min": 0,
+				"max": 17,
+				"grade": "Insuficiente",
+				"description": "Dificuldades em compreender arquiteturas de alto desempenho."
+			}
+		]
+	},
+	"facilitatorNotes": [
+		"Explicar a arquitetura ScienceDMZ desenvolvida pelo ESnet (Department of Energy - USA).",
+		"Demonstrar a diferença entre QoS de limitação (Policing) e conformação (Shaping)."
+	],
+	"technicalReferences": [
+		{
+			"title": "ESnet ScienceDMZ Design Guide",
+			"url": "https://fasterdata.es.net/science-dmz/"
+		}
+	]
+}
