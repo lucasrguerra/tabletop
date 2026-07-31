@@ -25,14 +25,14 @@
         "acronym": "IOC",
         "definition": "Artefato observado em rede ou sistema que indica com alta probabilidade que ele foi comprometido. Exemplos: hash MD5 de arquivo malicioso, endereço IP de servidor C2, domínio de phishing, chave de registro específica. Usado para detecção e threat hunting.",
         "seeAlso": ["TTP", "MITRE ATT&CK"],
-        "relatedStudyId": null
+        "relatedStudyId": "c2-conceito-beacon-ioc"
       },
       {
         "term": "TTP (Tactics, Techniques and Procedures)",
         "acronym": "TTP",
         "definition": "No contexto de segurança ofensiva/defensiva: Táticas são os objetivos de alto nível do atacante (ex: Persistência), Técnicas são os meios usados (ex: T1053 - Scheduled Task), Procedimentos são as implementações específicas observadas. TTPs são mais estáveis que IOCs e mais difíceis de mudar para o atacante.",
         "seeAlso": ["IOC", "MITRE ATT&CK"],
-        "relatedStudyId": null
+        "relatedStudyId": "ransomware-conceito-taxonomia"
       },
       {
         "term": "MITRE ATT&CK",
@@ -53,28 +53,28 @@
         "acronym": "RaaS",
         "definition": "Modelo de negócio criminoso onde um grupo desenvolve o ransomware e a infraestrutura de pagamento e aluga para 'afiliados' que executam os ataques. O grupo principal recebe percentual do resgate (tipicamente 20-30%). Exemplos: LockBit, BlackCat/ALPHV.",
         "seeAlso": ["Ransomware"],
-        "relatedStudyId": null
+        "relatedStudyId": "ransomware-conceito-taxonomia"
       },
       {
         "term": "C2 (Command and Control)",
         "acronym": "C2",
         "definition": "Infraestrutura usada pelo atacante para comunicar com malware instalado em sistemas comprometidos. Permite enviar comandos, receber dados exfiltrados e atualizar o malware. Beaconing é o padrão de comunicação periódica do malware com o C2.",
         "seeAlso": ["Beaconing", "IOC"],
-        "relatedStudyId": null
+        "relatedStudyId": "c2-conceito-beacon-ioc"
       },
       {
         "term": "Beaconing",
         "acronym": null,
         "definition": "Comportamento de malware que realiza comunicação periódica com servidor C2 em intervalos regulares (ex: a cada 60 segundos). Permite ao atacante enviar comandos quando conveniente. Detectável por análise de tráfego de rede buscando padrões de periodicidade.",
         "seeAlso": ["C2"],
-        "relatedStudyId": null
+        "relatedStudyId": "c2-conceito-beacon-ioc"
       },
       {
         "term": "LOLBins (Living off the Land Binaries)",
         "acronym": "LOLBins",
         "definition": "Técnica de ataque que usa ferramentas legítimas do sistema operacional (powershell.exe, wmic.exe, certutil.exe, etc.) para executar ações maliciosas, evitando detecção por soluções AV que buscam arquivos maliciosos conhecidos. Detectável por monitoramento comportamental.",
         "seeAlso": ["MITRE ATT&CK", "TTP"],
-        "relatedStudyId": null
+        "relatedStudyId": "elastic-ferramenta-siem"
       },
       {
         "term": "Movimento Lateral (Lateral Movement)",
@@ -102,14 +102,14 @@
         "acronym": "LGPD",
         "definition": "Lei brasileira nº 13.709/2018 que regula o tratamento de dados pessoais. Em incidentes de segurança com vazamento de dados pessoais, exige notificação à ANPD e aos titulares afetados em prazo razoável (interpretado como 72h para situações de risco). Aplicável a todas as IES e unidades da RNP.",
         "seeAlso": ["ANPD"],
-        "relatedStudyId": null
+        "relatedStudyId": "lgpd-conceito-notificacao"
       },
       {
         "term": "SQL Injection",
         "acronym": "SQLi",
         "definition": "Vulnerabilidade de aplicação web onde entrada do usuário é inserida diretamente em consultas SQL sem sanitização adequada. Permite ao atacante ler, modificar ou deletar dados do banco, executar comandos no SO (via xp_cmdshell em MSSQL) ou bypassar autenticação. Prevenção: prepared statements/parameterized queries.",
         "seeAlso": ["OWASP"],
-        "relatedStudyId": null
+        "relatedStudyId": "sql-conceito-injection"
       }
     ]
   },

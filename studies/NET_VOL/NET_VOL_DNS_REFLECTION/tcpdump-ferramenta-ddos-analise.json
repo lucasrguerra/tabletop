@@ -20,6 +20,8 @@
   "tags": ["tcpdump", "DDoS", "análise de tráfego", "captura", "pcap", "SYN flood", "amplificação"],
   "content": {
     "toolName": "tcpdump",
+    "toolVersion": "tcpdump 4.99.x (libpcap 1.10+)",
+    "installHint": "Linux: apt install tcpdump / yum install tcpdump | macOS: já incluído | Requer root ou CAP_NET_RAW",
     "purpose": "Captura e análise de tráfego de rede em tempo real ou de arquivos pcap. Ferramenta essencial para diagnóstico de ataques DDoS, identificação de padrões de tráfego malicioso e coleta de evidências forenses.",
     "commands": [
       {

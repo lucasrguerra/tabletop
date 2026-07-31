@@ -24,6 +24,14 @@
         "id": "taxonomia",
         "title": "Taxonomia de Phishing",
         "body": "Phishing é o uso de engenharia social via comunicação eletrônica (principalmente e-mail) para induzir a vítima a revelar credenciais, executar malware ou transferir recursos. Os subtipos variam pela especificidade do alvo e pelo canal:\n\n- Phishing em massa: e-mails genéricos enviados para milhões de endereços. Baixa taxa de sucesso por destinatário, mas volume compensa. Exemplo: 'Seu banco bloqueou sua conta — clique aqui'.\n\n- Spear Phishing: e-mail altamente personalizado para um alvo específico ou organização. Usa informações da vítima (LinkedIn, site institucional, papers publicados) para criar contexto convincente. Taxa de sucesso muito maior.\n\n- Whaling: spear phishing direcionado a executivos (reitor, CIO, diretores financeiros). Frequentemente usado para BEC.\n\n- BEC (Business Email Compromise): e-mail que impersonifica executivo interno para induzir transferência financeira ou mudança de credenciais de pagamento. Causou perdas de bilhões globalmente.\n\n- Vishing/Smishing: phishing por voz (ligação) ou SMS respectivamente.\n\n- QR Code Phishing (Quishing): substituição de links clicáveis por QR codes para contornar filtros de URL que não analisam QR codes.",
+        "callout": {
+          "type": "info",
+          "text": "A diferença entre phishing em massa e spear phishing não é técnica, é econômica: o primeiro aposta em volume com custo quase zero por alvo, o segundo investe horas de pesquisa em uma pessoa específica. Por isso os controles diferem — filtro e reputação contêm o primeiro; só verificação fora de banda contém o segundo."
+        },
+        "codeBlock": {
+          "language": "text",
+          "code": "Taxonomia por alvo, canal e objetivo\n\n  TIPO             ALVO             CANAL      OBJETIVO TÍPICO\n  ---------------------------------------------------------------\n  Phishing massa   milhares         e-mail     credencial genérica\n  Spear phishing   pessoa nomeada   e-mail     acesso inicial\n  Whaling          direção/reitoria e-mail     transferência, dados\n  BEC              financeiro       e-mail     fraude bancária\n  Smishing         qualquer         SMS        credencial, malware\n  Vishing          suporte/helpdesk telefone   reset de senha, MFA\n  Quishing         qualquer         QR code    credencial\n  MFA fatigue      usuário com MFA  push       aprovação por cansaço\n\n  Escala de esforço x taxa de sucesso (ordem de grandeza)\n    massa    : 1 hora de preparo   -> ~0,1% de cliques\n    spear    : 4-8 horas por alvo  -> 10-30% de cliques\n    whaling  : dias de pesquisa    -> alto valor por acerto\n\n  Implicação defensiva: treinar usuário reduz o phishing em\n  massa; contra spear e BEC o controle eficaz é processo —\n  dupla aprovação para pagamento, confirmação por canal\n  distinto do que originou o pedido."
+        },
         "keyPoints": [
           "Spear phishing é 85%+ mais efetivo que phishing em massa por ser personalizado",
           "BEC é a maior causa de perda financeira por phishing — não envolve malware, apenas engenharia social",
@@ -37,6 +45,10 @@
         "callout": {
           "type": "danger",
           "text": "AiTM phishing bypassa MFA de token/app authenticator porque captura o cookie de sessão pós-autenticação. FIDO2/hardware keys (YubiKey) são resistentes a AiTM porque a chave privada nunca sai do hardware e o challenge é domain-bound. Se sua organização usa MFA baseado em OTP, AiTM é um risco real."
+        },
+        "codeBlock": {
+          "language": "text",
+          "code": "Evasão de filtro e como o cabeçalho denuncia\n\n  REDIRECIONADOR LEGÍTIMO\n    https://www.google.com/url?q=http://malicioso.example\n    O filtro avalia google.com (reputação boa) e libera.\n    -> Defesa: reescrita de URL no gateway, expandindo o\n       destino final antes da entrega.\n\n  HOMÓGRAFOS / IDN\n    paypaI.com  (I maiúsculo no lugar do l)\n    xn--pypal-4ve.com  (punycode de caracteres cirílicos)\n    -> Defesa: exibir punycode decodificado no cliente,\n       alertar em domínios recém-registrados.\n\n  ANEXO EM CAMADAS\n    .zip protegido por senha, com a senha no corpo do e-mail.\n    O antivírus do gateway não consegue abrir para analisar.\n    -> Defesa: quarentena para arquivo cifrado vindo de\n       remetente externo; detonação em sandbox após extração.\n\n  HOSPEDAGEM CONFIÁVEL\n    Página de credencial em SharePoint, Google Forms ou\n    serviço de formulário — certificado válido, domínio bom.\n    -> Defesa: não confiar em TLS como indicador; monitorar\n       formulários externos que pedem credencial institucional.\n\n  DKIM/SPF VÁLIDOS EM DOMÍNIO PARECIDO\n    O atacante registra universidade-br.org e configura\n    SPF, DKIM e DMARC corretamente. Tudo passa na validação.\n    -> Defesa: DMARC não prova legitimidade, prova apenas que\n       o domínio autorizou o envio. Alertar sobre domínios\n       semelhantes ao institucional (lookalike detection)."
         },
         "keyPoints": [
           "Redirecionadores legítimos (Google, Bing) são usados para contornar filtros de reputação de URL",
@@ -52,6 +64,10 @@
           "language": "text",
           "code": "Cabeçalhos críticos a verificar:\n\n1. Return-Path e From: devem ser do mesmo domínio\n   From: suporte@rnp.br\n   Return-Path: <bounce@malicioushost.ru>  ← SUSPEITO\n\n2. Verificação SPF (em Received-SPF):\n   Received-SPF: fail (domain of rnp.br does not designate 185.220.x.x as permitted)  ← SPOOFING\n   Received-SPF: pass (google.com: domain of rnp.br designates 209.85.x.x)  ← LEGÍTIMO\n\n3. Verificação DKIM (em Authentication-Results):\n   dkim=fail (signature did not verify)  ← SUSPEITO\n   dkim=pass header.d=rnp.br  ← LEGÍTIMO\n\n4. DMARC:\n   dmarc=fail action=quarantine  ← SUSPEITO\n\n5. Reply-To diferente de From:\n   From: suporte@rnp.br\n   Reply-To: coleta-dados@gmail.com  ← SUSPEITO\n\n6. Domínio do link vs texto exibido:\n   Texto: 'Acesse o portal rnp.br'\n   URL real: http://rnp-br.malware.com/login  ← SUSPEITO (subdomínio do atacante)"
         },
+        "callout": {
+          "type": "warning",
+          "text": "SPF, DKIM e DMARC aprovados não significam mensagem confiável — significam apenas que o domínio remetente autorizou aquele servidor a enviar. Um domínio recém-registrado que imita o da instituição pode passar nas três verificações. Sempre confira o domínio em si, não só o resultado da autenticação."
+        },
         "keyPoints": [
           "SPF fail + DKIM fail = e-mail quase certamente spoofado ou de source não autorizada",
           "Reply-To diferente de From = resposta vai para endereço controlado pelo atacante",
@@ -62,6 +78,14 @@
         "id": "spear-phishing-academico",
         "title": "Spear Phishing em Ambiente Acadêmico",
         "body": "Instituições de pesquisa são alvos específicos por deterem dados valiosos (resultados de pesquisa, dados de alunos, propriedade intelectual) e por terem cultura de colaboração que facilita engenharia social.\n\nVetores específicos em ambiente acadêmico:\n- E-mail fingindo ser de outro pesquisador pedindo acesso a dados de pesquisa\n- Convite falso para revisão de paper com link para 'plataforma de revisão'\n- E-mail de 'TI da universidade' pedindo confirmação de senha para 'migração de sistemas'\n- Alerta falso de infraestrutura de rede com link para portal de credenciais\n- QR code em pôster de conferência levando a formulário de coleta de credenciais\n\nSinal de alerta específico: e-mails pedindo credenciais da conta institucional fora do portal oficial. Sistemas legítimos nunca pedem senha por e-mail.",
+        "callout": {
+          "type": "danger",
+          "text": "A superfície de reconhecimento de uma instituição de pesquisa é pública por natureza: lattes, páginas de laboratório, listas de coautores e editais de financiamento entregam nome, cargo, projeto e prazo. Um atacante monta um pretexto convincente — \"pendência na prestação de contas do projeto X, prazo até sexta\" — sem invadir nada. Não é possível reduzir essa exposição; é preciso compensá-la com processo de verificação."
+        },
+        "codeBlock": {
+          "language": "text",
+          "code": "Pretextos recorrentes no meio acadêmico\n\n  1. Prestação de contas / agência de fomento\n     \"Sua prestação do processo 2024/12345 tem pendência.\n      Regularize até 30/03 ou o recurso será bloqueado.\"\n     Alavanca: prazo real, número de processo público\n\n  2. Submissão e revisão de artigo\n     \"Convite para revisar manuscrito — acesse o portal\"\n     Alavanca: prestígio, rotina normal do pesquisador\n\n  3. Biblioteca / acesso a periódico\n     \"Sua assinatura da base expira hoje. Reautentique.\"\n     Alavanca: perda de acesso a material de trabalho\n\n  4. TI institucional\n     \"Cota de e-mail excedida — libere espaço\"\n     Alavanca: familiaridade com o serviço\n\n  5. Reitoria / financeiro (BEC)\n     \"Alteração de dados bancários do fornecedor X\"\n     Alavanca: autoridade + urgência\n\n  CONTROLES QUE FUNCIONAM AQUI\n    Processo, não treinamento:\n      - Alteração de dado bancário exige confirmação por\n        telefone em número já cadastrado (nunca o do e-mail)\n      - Pedido de credencial nunca por e-mail — política\n        divulgada e repetida\n      - Canal único de denúncia (botão \"reportar phishing\")\n        com resposta rápida, para incentivar o uso\n      - MFA resistente a phishing (FIDO2) para contas de\n        pesquisador com acesso a dado sensível"
+        },
         "keyPoints": [
           "Portais falsos de 'revisão de paper' ou 'repositório de pesquisa' são vetores comuns para roubo de credenciais",
           "Sistemas legítimos NUNCA pedem senha por e-mail — qualquer e-mail pedindo credenciais é phishing",

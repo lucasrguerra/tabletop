@@ -121,7 +121,7 @@ export function gradeMatching(question, answer, points_possible) {
 
 	const allCorrect = correctCount === correctMatches.length
 
-	if (question.partialCredit) {
+	if (question.partialCredit && correctMatches.length > 0) {
 		const pointsPerMatch = question.pointsPerMatch || (points_possible / correctMatches.length)
 		const earned = Math.round(correctCount * pointsPerMatch * 100) / 100
 		return {
@@ -176,7 +176,7 @@ export function gradeOrdering(question, answer, points_possible) {
 
 	const allCorrect = correctPositions === correctOrder.length
 
-	if (question.partialCredit) {
+	if (question.partialCredit && correctOrder.length > 0) {
 		const pointsPerPosition = points_possible / correctOrder.length
 		const earned = Math.round(correctPositions * pointsPerPosition * 100) / 100
 		return {

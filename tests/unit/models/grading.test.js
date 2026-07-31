@@ -347,3 +347,61 @@ describe('gradeAnswer — tipo desconhecido', () => {
 		expect(result.points_earned).toBe(0)
 	})
 })
+
+// ─── regressão: crédito parcial com listas vazias ─────────────────────────────
+
+describe('gradeAnswer — crédito parcial com listas vazias', () => {
+	// Regressão: com partialCredit e correctMatches/correctOrder vazios,
+	// points_possible / 0 === Infinity e 0 * Infinity === NaN. O NaN era
+	// persistido em points_earned no banco e contaminava todas as somas
+	// de pontuação (ranking, estatísticas, PDF).
+	it('não produz NaN em matching com correctMatches vazio', () => {
+		const q = { type: 'matching', correctMatches: [], partialCredit: true, points: 10 }
+		const result = gradeAnswer(q, [])
+
+		expect(result.valid).toBe(true)
+		expect(Number.isNaN(result.points_earned)).toBe(false)
+		expect(result.points_earned).toBe(10)
+	})
+
+	it('não produz NaN em ordering com correctOrder vazio', () => {
+		const q = { type: 'ordering', correctOrder: [], partialCredit: true, points: 10 }
+		const result = gradeAnswer(q, [])
+
+		expect(result.valid).toBe(true)
+		expect(Number.isNaN(result.points_earned)).toBe(false)
+		expect(result.points_earned).toBe(10)
+	})
+
+	it('mantém o crédito parcial normal quando há itens', () => {
+		const q = {
+			type: 'ordering',
+			items: [{ id: 'a' }, { id: 'b' }, { id: 'c' }, { id: 'd' }],
+			correctOrder: ['a', 'b', 'c', 'd'],
+			partialCredit: true,
+			points: 8,
+		}
+		// duas posições corretas de quatro
+		const result = gradeAnswer(q, ['a', 'b', 'd', 'c'])
+
+		expect(result.valid).toBe(true)
+		expect(result.is_correct).toBe(false)
+		expect(result.points_earned).toBe(4)
+	})
+
+	it('nunca concede mais pontos do que points_possible', () => {
+		const q = {
+			type: 'matching',
+			correctMatches: [{ left: 'l1', right: 'r1' }, { left: 'l2', right: 'r2' }],
+			partialCredit: true,
+			pointsPerMatch: 100, // valor inconsistente no cenário
+			points: 10,
+		}
+		const result = gradeAnswer(q, [
+			{ left: 'l1', right: 'r1' },
+			{ left: 'l2', right: 'r2' },
+		])
+
+		expect(result.points_earned).toBe(10)
+	})
+})

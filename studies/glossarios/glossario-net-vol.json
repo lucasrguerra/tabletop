@@ -23,50 +23,50 @@
       {
         "term": "DDoS (Distributed Denial of Service)",
         "acronym": "DDoS",
-        "definition": "Ataque que usa múltiplos sistemas distribuídos para sobrecarregar um alvo com tráfego ou requisições, tornando-o indisponível para usuários legítimos. Diferencia-se do DoS simples pela distribuição das fontes.",
-        "seeAlso": ["Amplificação", "Botnet", "RTBH"],
+        "definition": "Negação de serviço executada a partir de múltiplas origens simultâneas, normalmente uma botnet. A distribuição é o que diferencia do DoS: não há um único endereço para bloquear, e o volume somado das origens supera a capacidade do alvo. É o tronco de uma família de variantes que se distinguem pelo vetor (reflexão, aplicação), pelo objetivo (extorsão, custo) ou pelo dano (indisponibilidade temporária ou permanente).",
+        "seeAlso": ["DoS", "DRDoS", "RDDoS", "Amplificação", "Botnet", "RTBH"],
         "relatedStudyId": "dns-conceito-amplificacao"
       },
       {
         "term": "Amplificação",
         "acronym": null,
         "definition": "Técnica de ataque que explora protocolos onde a resposta é significativamente maior que a consulta. Combinada com IP spoofing, direciona esse volume amplificado para a vítima. Exemplos: DNS (até 80x), NTP monlist (até 556x), SSDP (até 30x).",
-        "seeAlso": ["Fator de Amplificação", "IP Spoofing", "Reflexão"],
+        "seeAlso": ["DRDoS", "Fator de Amplificação", "Open Resolver", "NTP Monlist"],
         "relatedStudyId": "dns-conceito-amplificacao"
       },
       {
         "term": "Fator de Amplificação",
         "acronym": null,
         "definition": "Razão entre o tamanho da resposta e o tamanho da consulta em ataques de amplificação. Um fator de 70x significa que 1 byte de consulta gera 70 bytes de resposta. Determina a eficácia do ataque: quanto maior, mais tráfego direcionado à vítima por unidade de largura de banda do atacante.",
-        "seeAlso": ["Amplificação"],
-        "relatedStudyId": null
+        "seeAlso": ["DRDoS", "Amplificação", "NTP Monlist"],
+        "relatedStudyId": "dns-conceito-amplificacao"
       },
       {
         "term": "IP Spoofing",
         "acronym": null,
         "definition": "Forjamento do endereço IP de origem em pacotes de rede. Permite que o atacante se apresente como outra origem (a vítima, em ataques de amplificação) ou oculte sua identidade. Combatido por BCP38 (filtragem de saída nas redes de acesso).",
-        "seeAlso": ["BCP38", "Amplificação"],
-        "relatedStudyId": null
+        "seeAlso": ["DRDoS", "BCP38", "Amplificação"],
+        "relatedStudyId": "dns-conceito-amplificacao"
       },
       {
         "term": "BCP38",
         "acronym": "BCP38",
         "definition": "Best Current Practice 38 (RFC 2827) — recomendação para que provedores de Internet implementem filtros de saída que impeçam que pacotes com endereços IP de origem inválidos (spoofados) saiam da rede. A adoção universal eliminaria os ataques de amplificação/reflexão.",
         "seeAlso": ["IP Spoofing", "uRPF"],
-        "relatedStudyId": null
+        "relatedStudyId": "dns-procedimento-mitigacao-ddos"
       },
       {
         "term": "Open Resolver (Resolver Aberto)",
         "acronym": null,
         "definition": "Servidor DNS configurado para responder a consultas recursivas de qualquer endereço IP de origem, incluindo endereços externos à sua rede. Principal vetor de ataques de amplificação DNS. Deve ser configurado para aceitar recursão apenas de clientes internos autorizados.",
-        "seeAlso": ["DNS", "Amplificação"],
+        "seeAlso": ["DRDoS", "Amplificação", "RRL"],
         "relatedStudyId": "dns-conceito-amplificacao"
       },
       {
         "term": "Scrubbing Center",
         "acronym": null,
         "definition": "Infraestrutura especializada que recebe o tráfego de uma rede atacada por DDoS (via desvio BGP/Anycast), remove o tráfego malicioso e reinjeta apenas o tráfego legítimo. Operado por ISPs e serviços de proteção anti-DDoS.",
-        "seeAlso": ["RTBH", "BGP"],
+        "seeAlso": ["DDoS", "RDDoS", "RTBH", "Camadas de Ataque DDoS"],
         "relatedStudyId": "dns-procedimento-mitigacao-ddos"
       },
       {
@@ -74,35 +74,89 @@
         "acronym": "RTBH",
         "definition": "Técnica que usa BGP para sinalizar ao upstream que descarte todo tráfego destinado a um IP/prefixo específico. Sacrifica a disponibilidade do alvo para proteger o restante da infraestrutura. Comunidades BGP especiais (ex: 65535:666) ativam o blackhole no upstream.",
         "seeAlso": ["BGP", "DDoS"],
-        "relatedStudyId": null
+        "relatedStudyId": "dns-procedimento-mitigacao-ddos"
       },
       {
         "term": "RRL (Response Rate Limiting)",
         "acronym": "RRL",
         "definition": "Mecanismo implementado em servidores DNS que limita a quantidade de respostas idênticas enviadas para o mesmo endereço de destino em um intervalo de tempo. Reduz a eficácia de amplificação DNS sem bloquear tráfego legítimo.",
         "seeAlso": ["DNS", "Amplificação"],
-        "relatedStudyId": null
+        "relatedStudyId": "dns-procedimento-mitigacao-ddos"
       },
       {
         "term": "SYN Flood",
         "acronym": null,
         "definition": "Ataque de camada 4 que envia grande volume de pacotes TCP SYN (com IP de origem spoofado ou real), esgotando a tabela de conexões half-open do servidor. Mitigado por SYN Cookies (RFC 4987), que elimina a necessidade de manter estado para conexões não confirmadas.",
-        "seeAlso": ["DDoS", "TCP", "SYN Cookie"],
-        "relatedStudyId": null
+        "seeAlso": ["DoS", "Camadas de Ataque DDoS", "Low and Slow"],
+        "relatedStudyId": "tcp-conceito-syn-flood"
       },
       {
         "term": "NTP Monlist",
         "acronym": null,
         "definition": "Comando do protocolo NTP (Network Time Protocol) que retorna a lista dos últimos 600 hosts que sincronizaram com o servidor. Fator de amplificação de até 556x. Desabilitado em versões modernas do NTPd por padrão.",
         "seeAlso": ["Amplificação", "DDoS"],
-        "relatedStudyId": null
+        "relatedStudyId": "ntp-conceito-monlist"
       },
       {
         "term": "Botnet",
         "acronym": null,
         "definition": "Rede de dispositivos comprometidos (bots/zumbis) controlados por um Command and Control (C2). Usados para ataques DDoS volumétricos diretos (sem amplificação). Exemplos notórios: Mirai (dispositivos IoT), Emotet.",
-        "seeAlso": ["DDoS", "C2"],
+        "seeAlso": ["DDoS", "PDoS", "C2"],
+        "relatedStudyId": "c2-conceito-beacon-ioc"
+      },
+      {
+        "term": "DoS (Denial of Service)",
+        "acronym": "DoS",
+        "definition": "Ataque que torna um recurso indisponível para usuários legítimos, executado a partir de uma única origem. Hoje é raro em ataques volumétricos — uma origem só costuma ser insuficiente para saturar links modernos e é trivial de bloquear —, mas continua eficaz quando explora esgotamento de estado ou uma falha da aplicação, como no SYN flood ou em requisições que consomem CPU desproporcional. É o termo genérico do qual as demais siglas derivam.",
+        "seeAlso": ["DDoS", "SYN Flood", "Low and Slow"],
+        "relatedStudyId": "tcp-conceito-syn-flood"
+      },
+      {
+        "term": "DRDoS (Distributed Reflection Denial of Service)",
+        "acronym": "DRDoS",
+        "definition": "Variante em que o atacante não envia tráfego diretamente à vítima: ele forja o endereço de origem (IP spoofing) em consultas a servidores legítimos de terceiros — os refletores — que respondem para a vítima. Quando a resposta é maior que a consulta, soma-se amplificação, e o fator pode chegar a centenas de vezes. Do ponto de vista da vítima o tráfego vem de milhares de servidores legítimos, o que torna o bloqueio por origem inviável. É o vetor por trás dos ataques de amplificação DNS e NTP.",
+        "seeAlso": ["DDoS", "Amplificação", "Fator de Amplificação", "IP Spoofing", "Open Resolver", "BCP38"],
+        "relatedStudyId": "dns-conceito-amplificacao"
+      },
+      {
+        "term": "RDDoS (Ransom DDoS)",
+        "acronym": "RDDoS",
+        "definition": "Extorsão baseada na ameaça de DDoS. O atacante envia uma exigência de pagamento — normalmente em criptomoeda — acompanhada de um ataque curto de demonstração, e promete um ataque prolongado caso não haja pagamento na data estipulada. Frequentemente os autores se apresentam como grupos conhecidos (Fancy Bear, Armada Collective, REvil) sem qualquer ligação real com eles. A orientação consolidada é não pagar: boa parte das ameaças nunca se concretiza, e o pagamento marca a organização como alvo disposto a pagar. A resposta correta é acionar o plano de mitigação e preservar a comunicação como evidência.",
+        "seeAlso": ["DDoS", "Scrubbing Center", "Extorsão Dupla"],
+        "relatedStudyId": "dns-procedimento-mitigacao-ddos"
+      },
+      {
+        "term": "PDoS (Permanent Denial of Service)",
+        "acronym": "PDoS",
+        "definition": "Ataque que inutiliza o equipamento de forma permanente, também chamado de phlashing ou bricking. Em vez de saturar recursos, corrompe o firmware — tipicamente abusando de rotinas de atualização sem autenticação ou verificação de assinatura — deixando o dispositivo inoperante. A recuperação exige regravação física do firmware ou substituição do hardware; reiniciar não resolve. O caso mais conhecido é o BrickerBot (2017), que inutilizou dispositivos IoT com credenciais padrão. A defesa é de projeto: atualização assinada, credenciais únicas e segmentação dos dispositivos que não recebem correção.",
+        "seeAlso": ["DoS", "Botnet"],
         "relatedStudyId": null
+      },
+      {
+        "term": "EDoS (Economic Denial of Sustainability)",
+        "acronym": "EDoS",
+        "definition": "Ataque cujo dano é financeiro, não a indisponibilidade. Em ambientes elásticos, o autoescalonamento absorve a carga e o serviço continua respondendo — mas cada requisição gera custo de processamento, tráfego de saída ou cobrança por chamada de API. O ataque é dimensionado para ficar abaixo do limiar dos alarmes de disponibilidade e sustentado por dias, até que a fatura se torne insustentável. Mitigação: teto de gasto e alertas de orçamento, limite de taxa e WAF antes da camada tarifada, CDN absorvendo conteúdo estático, e limite máximo de instâncias no autoescalonamento.",
+        "seeAlso": ["DDoS", "Yo-Yo DoS", "Low and Slow"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "Yo-Yo DoS (Ataque Yo-Yo)",
+        "acronym": "Yo-Yo",
+        "definition": "Ataque dirigido especificamente ao mecanismo de autoescalonamento. O atacante alterna rajadas de carga e períodos de silêncio calibrados pelo tempo de reação do escalonador: a rajada força a subida de instâncias, o silêncio faz o escalonador reduzi-las após o período de espera, e a rajada seguinte chega justamente na janela de capacidade baixa. O resultado combina os dois danos — paga-se pelas instâncias que sobem e o serviço degrada nas transições. Descrito academicamente por Bremler-Barr, Brosh e Sides (2017). Mitigação: reduzir a agressividade da redução de escala, aumentar o período de espera na descida e manter um piso de capacidade.",
+        "seeAlso": ["EDoS", "DDoS"],
+        "relatedStudyId": null
+      },
+      {
+        "term": "Low and Slow (Slowloris)",
+        "definition": "Ataque de negação de serviço na camada de aplicação que usa volume muito baixo de tráfego. Abre muitas conexões e as mantém vivas enviando dados mínimos em intervalos longos — um cabeçalho HTTP incompleto a cada poucos segundos, por exemplo — esgotando o número de conexões simultâneas do servidor. Como o volume é irrisório, passa despercebido em monitoramento baseado em banda e não é interceptado por scrubbing volumétrico. Detecção: número de conexões abertas desproporcional ao tráfego. Mitigação: timeouts agressivos de cabeçalho e corpo, limite de conexões por origem e proxy reverso que só repassa requisições completas.",
+        "seeAlso": ["DoS", "EDoS"],
+        "relatedStudyId": "tcp-conceito-syn-flood"
+      },
+      {
+        "term": "Camadas de Ataque DDoS (L3/L4 e L7)",
+        "definition": "Eixo de classificação que determina qual defesa se aplica. Volumétrico (L3): satura a banda do enlace — amplificação DNS/NTP, UDP flood; mitiga-se fora da rede, com scrubbing ou RTBH, porque o enlace já está cheio quando o tráfego chega. Protocolo (L4): esgota tabelas de estado em servidores, firewalls e balanceadores — SYN flood; mitiga-se com SYN cookies e limite de taxa. Aplicação (L7): consome CPU e conexões com requisições válidas — HTTP flood, Slowloris; mitiga-se com WAF, limite por sessão e cache. Confundir a camada leva ao erro mais comum na resposta: acionar scrubbing volumétrico para um ataque L7, que passa incólume por ele.",
+        "seeAlso": ["DDoS", "SYN Flood", "Low and Slow", "Scrubbing Center", "RTBH"],
+        "relatedStudyId": "dns-procedimento-mitigacao-ddos"
       }
     ]
   },

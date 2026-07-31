@@ -101,8 +101,11 @@ export default async function joinTraining(training_id, user_id, options = {}) {
 			};
 		}
 
-		// Check if training has reached max participants
-		if (training.participants.length >= training.max_participants) {
+		// Check if training has reached max participants.
+		// Only accepted participants occupy a slot — pending and declined invites
+		// must not consume capacity (same rule as inviteParticipant/respondToInvite).
+		const accepted_count = training.participants.filter(p => p.status === 'accepted').length;
+		if (accepted_count >= training.max_participants) {
 			return {
 				success: false,
 				message: 'Treinamento já atingiu o número máximo de participantes'
@@ -135,25 +138,85 @@ export default async function joinTraining(training_id, user_id, options = {}) {
 			}
 		}
 
-		// Add user as participant
-		training.participants.push({
-			user_id: user_id,
-			role: 'participant',
-			status: 'accepted',
-			joined_at: new Date()
-		});
+		// Add user as participant.
+		//
+		// The checks above ran against a snapshot, so two people joining at the
+		// same time could both pass them and push past max_participants. The
+		// write therefore re-asserts every invariant inside the update filter,
+		// making the whole operation atomic: MongoDB matches and pushes in a
+		// single step, so only one of the racing requests can win the last slot.
+		const joined = await Training.findOneAndUpdate(
+			{
+				_id: training._id,
+				status: { $ne: 'completed' },
+				'participants.user_id': { $ne: user_id },
+				$expr: {
+					$lt: [
+						{
+							$size: {
+								$filter: {
+									input: '$participants',
+									cond: { $eq: ['$$this.status', 'accepted'] }
+								}
+							}
+						},
+						'$max_participants'
+					]
+				}
+			},
+			{
+				$push: {
+					participants: {
+						user_id: user_id,
+						role: 'participant',
+						status: 'accepted',
+						joined_at: new Date()
+					}
+				}
+			},
+			{ returnDocument: 'after' }
+		);
 
-		// Save training
-		await training.save();
+		// The filter did not match — another request changed the training between
+		// the checks and the write. Re-read to report the precise reason.
+		if (!joined) {
+			const current = await Training.findById(training._id).lean();
+
+			if (!current) {
+				return {
+					success: false,
+					message: 'Treinamento não encontrado'
+				};
+			}
+
+			if (current.status === 'completed') {
+				return {
+					success: false,
+					message: 'Não é possível entrar em um treinamento finalizado'
+				};
+			}
+
+			if (current.participants.some(p => p.user_id.toString() === user_id)) {
+				return {
+					success: false,
+					message: 'Você já está participando deste treinamento'
+				};
+			}
+
+			return {
+				success: false,
+				message: 'Treinamento já atingiu o número máximo de participantes'
+			};
+		}
 
 		return {
 			success: true,
 			message: 'Você entrou no treinamento com sucesso',
 			training: {
-				id: training._id.toString(),
-				name: training.name,
-				description: training.description,
-				status: training.status
+				id: joined._id.toString(),
+				name: joined.name,
+				description: joined.description,
+				status: joined.status
 			}
 		};
 

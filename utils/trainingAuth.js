@@ -46,9 +46,11 @@ export async function getTrainingWithRole(training_id, user_id) {
 			};
 		}
 
-		// Check if user is a participant with accepted status
+		// Check if user is a participant with accepted status.
+		// user_id can be null when the referenced user no longer exists, so it is
+		// never dereferenced directly.
 		const participant = training.participants.find(
-			p => p.user_id._id.toString() === user_id && p.status === 'accepted'
+			p => p.user_id?._id?.toString() === user_id && p.status === 'accepted'
 		);
 
 		if (!participant) {
@@ -84,15 +86,23 @@ export async function getTrainingWithRole(training_id, user_id) {
  * @returns {Object} Filtered training data
  */
 export function filterTrainingByRole(training, userRole) {
+	// created_by is not cleaned up when an account is deleted, so the populated
+	// document can be null. Fall back to a placeholder instead of throwing.
+	const creator = training.created_by;
+
 	// Create base training object with common fields
 	const filtered = {
 		id: training._id.toString(),
 		name: training.name,
 		description: training.description,
-		created_by: {
-			id: training.created_by._id.toString(),
-			name: training.created_by.name,
-			nickname: training.created_by.nickname
+		created_by: creator?._id ? {
+			id: creator._id.toString(),
+			name: creator.name,
+			nickname: creator.nickname
+		} : {
+			id: null,
+			name: 'Usuário removido',
+			nickname: null
 		},
 		scenario: training.scenario,
 		access_type: training.access_type,
@@ -117,23 +127,25 @@ export function filterTrainingByRole(training, userRole) {
 	// FACILITATOR: Full access to all data
 	if (userRole === 'facilitator') {
 		filtered.access_code = training.access_code;
-		filtered.participants = training.participants.map(p => ({
-			user: {
-				name: p.user_id.name,
-				email: p.user_id.email,
-				nickname: p.user_id.nickname
-			},
-			role: p.role,
-			status: p.status,
-			joined_at: p.joined_at
-		}));
+		filtered.participants = training.participants
+			.filter(p => p.user_id)
+			.map(p => ({
+				user: {
+					name: p.user_id.name,
+					email: p.user_id.email,
+					nickname: p.user_id.nickname
+				},
+				role: p.role,
+				status: p.status,
+				joined_at: p.joined_at
+			}));
 	}
 	// PARTICIPANT & OBSERVER: Limited access
 	else {
 		// Do NOT include access_code
 		// Only show accepted participants without emails
 		filtered.participants = training.participants
-			.filter(p => p.status === 'accepted')
+			.filter(p => p.user_id && p.status === 'accepted')
 			.map(p => ({
 				user: {
 					name: p.user_id.name,

@@ -24,6 +24,14 @@
         "id": "ospf-basico",
         "title": "OSPF: protocolo de estado de link",
         "body": "O OSPF (Open Shortest Path First) é um protocolo de roteamento intra-domínio baseado em estado de link. Cada roteador mantém um mapa completo da topologia (LSDB — Link State Database) e calcula o caminho mais curto para cada destino usando o algoritmo Dijkstra (SPF — Shortest Path First).\n\nDiferente do RIP (baseado em vetor de distância), o OSPF converge mais rapidamente e não tem o problema de contagem ao infinito. É o IGP dominante em redes corporativas e de pesquisa de médio e grande porte.",
+        "callout": {
+          "type": "info",
+          "text": "Todos os roteadores de uma mesma área precisam ter LSDBs idênticas — essa é a invariante do OSPF. Se duas LSDBs divergem, o cálculo de Dijkstra produz resultados diferentes em cada roteador e aparecem loops ou blackholes. Quase todo problema de OSPF é, no fundo, um problema de sincronização de LSDB."
+        },
+        "codeBlock": {
+          "language": "text",
+          "code": "Máquina de estados da adjacência OSPF\n\n  Down\n    |  recebe Hello\n    v\n  Init          — vi o Hello dele, ele ainda não me viu\n    |  meu RID aparece no Hello dele\n    v\n  2-Way         — bidirecional; em rede broadcast, elege DR/BDR\n    |  (DROther com DROther param aqui — é normal)\n    v\n  ExStart       — negocia master/slave e número de sequência\n    |  ** MTU incompatível trava AQUI **\n    v\n  Exchange      — troca descrições da base (DBD)\n    |\n    v\n  Loading       — pede LSAs faltantes (LSR/LSU)\n    |\n    v\n  Full          — LSDBs sincronizadas\n\n  O estado onde a adjacência PARA indica a causa:\n    presa em Init     -> Hello não chega de volta (ACL, unidirecional)\n    presa em 2-Way    -> normal entre DROthers; anormal em ponto a ponto\n    presa em ExStart  -> MTU mismatch (o clássico)\n    presa em Loading  -> perda de pacotes ou LSA corrompida\n    oscila Full/Down  -> Dead interval estourando (perda/CPU)"
+        },
         "keyPoints": [
           "OSPF mantém mapa completo da topologia, não apenas vizinhos diretos",
           "Convergência rápida: recalcula rota em segundos após falha",
@@ -52,6 +60,14 @@
         "id": "causas-falha",
         "title": "Causas comuns de falha de adjacência",
         "body": "As causas mais frequentes de adjacência OSPF não subir ou cair:\n\n1. Timers incompatíveis: Hello ou Dead interval diferentes nos dois lados do link.\n2. Area mismatch: roteadores configurados em areas diferentes no mesmo segmento.\n3. Authentication mismatch: autenticação OSPF habilitada em um lado mas não no outro, ou senhas diferentes.\n4. MTU mismatch: diferentes configurações de MTU impedem troca de DBD packets. Sintoma: adjacência prende no estado ExStart/Exchange.\n5. Subnet mismatch: interfaces em subnets diferentes.\n6. Network type mismatch: um lado configurado como point-to-point, outro como broadcast — afeta eleição de DR/BDR.\n\nO troubleshooting começa com 'show ip ospf neighbor' para ver o estado atual e então verificar os parâmetros de cada causa.",
+        "callout": {
+          "type": "warning",
+          "text": "Autenticação divergente falha em silêncio: o roteador descarta o Hello e não registra nada por padrão. Se os timers, a área e a sub-rede conferem e ainda assim nenhum vizinho aparece, ative o debug de eventos OSPF antes de continuar procurando — é o único jeito de ver o pacote sendo descartado."
+        },
+        "codeBlock": {
+          "language": "bash",
+          "code": "# Comparar os parâmetros que precisam bater nos dois lados\n\nR1# show ip ospf interface GigabitEthernet0/1\n  Internet Address 10.0.12.1/30, Area 0\n  Process ID 1, Router ID 1.1.1.1, Network Type BROADCAST\n  Timer intervals configured, Hello 10, Dead 40\n  Message digest authentication enabled\n    Youngest key id is 1\n\nR2# show ip ospf interface GigabitEthernet0/2\n  Internet Address 10.0.12.2/30, Area 0\n  Process ID 1, Router ID 2.2.2.2, Network Type BROADCAST\n  Timer intervals configured, Hello 30, Dead 120   <-- DIVERGE\n  Simple password authentication enabled           <-- DIVERGE\n\n# Checklist do que DEVE ser idêntico:\n#   Area ID                     Hello interval\n#   Dead interval               Tipo de autenticação e chave\n#   MTU                         Sub-rede/máscara\n#   Stub flags (stub/nssa)      Network type compatível\n#\n# NÃO precisa ser igual:\n#   Router ID (deve ser ÚNICO)  Process ID (é local)\n#   Custo da interface          Prioridade DR\n\n# Ver o descarte acontecendo\nR1# debug ip ospf adj\n*OSPF-1 ADJ Gi0/1: Rcv pkt from 10.0.12.2 : Mismatch\n  Hello parameters: Dead R 120 C 40, Hello R 30 C 10"
+        },
         "keyPoints": [
           "MTU mismatch é a causa mais difícil de diagnosticar — adjacência sobe até Exchange e trava",
           "Autenticação incompatível não mostra o vizinho em Init — o Hello é descartado silenciosamente",

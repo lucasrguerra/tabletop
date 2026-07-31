@@ -84,7 +84,9 @@ export default function ParticipantsList({ participants, userRole, showManagemen
 					<p>Nenhum participante ainda</p>
 				</div>
 			) : (
-				<div className="space-y-3">
+				// Full-width section: lay people out across the row instead of
+				// stacking one per line, which made the block needlessly tall.
+				<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
 					{participants.map((participant) => {
 						const roleConfig = ROLE_CONFIG[participant.role] || ROLE_CONFIG.participant;
 						const statusConfig = STATUS_CONFIG[participant.status] || STATUS_CONFIG.accepted;

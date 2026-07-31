@@ -64,7 +64,7 @@ export default function SessionsPage() {
 			}
 		} catch (err) {
 			console.error('Failed to fetch sessions');
-			setError('Erro ao buscar sessoes');
+			setError('Erro ao buscar sessões');
 		} finally {
 			setLoading(false);
 		}
@@ -80,11 +80,11 @@ export default function SessionsPage() {
 	// Revoke specific session
 	const revokeSession = async (token_id) => {
 		if (!csrf_token) {
-			setError('Token CSRF nao disponivel');
+			setError('Token CSRF não disponível');
 			return;
 		}
 
-		if (!confirm('Tem certeza que deseja encerrar esta sessao?')) {
+		if (!confirm('Tem certeza que deseja encerrar esta sessão?')) {
 			return;
 		}
 
@@ -110,7 +110,7 @@ export default function SessionsPage() {
 			}
 		} catch (err) {
 			console.error('Failed to revoke session');
-			setError('Erro ao revogar sessao');
+			setError('Erro ao revogar sessão');
 		} finally {
 			setRevoking(null);
 		}
@@ -119,11 +119,11 @@ export default function SessionsPage() {
 	// Revoke all other sessions
 	const revokeAllSessions = async () => {
 		if (!csrf_token) {
-			setError('Token CSRF nao disponivel');
+			setError('Token CSRF não disponível');
 			return;
 		}
 
-		if (!confirm('Tem certeza que deseja encerrar todas as outras sessoes? Esta acao nao pode ser desfeita.')) {
+		if (!confirm('Tem certeza que deseja encerrar todas as outras sessões? Esta ação não pode ser desfeita.')) {
 			return;
 		}
 
@@ -143,13 +143,13 @@ export default function SessionsPage() {
 
 			if (data.success) {
 				fetchSessions();
-				alert(`${data.revoked_count} sessao(oes) encerrada(s) com sucesso`);
+				alert(`${data.revoked_count} sessão(ões) encerrada(s) com sucesso`);
 			} else {
 				setError(data.message);
 			}
 		} catch (err) {
 			console.error('Failed to revoke all sessions');
-			setError('Erro ao revogar sessoes');
+			setError('Erro ao revogar sessões');
 		} finally {
 			setLoading(false);
 		}
@@ -179,10 +179,10 @@ export default function SessionsPage() {
 				<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
 					<div className="min-w-0">
 						<h1 className="text-2xl lg:text-3xl font-bold text-slate-900">
-							Gerenciar Sessoes
+							Gerenciar Sessões
 						</h1>
 						<p className="text-slate-600 mt-1">
-							Visualize e gerencie todas as suas sessoes ativas
+							Visualize e gerencie todas as suas sessões ativas
 						</p>
 					</div>
 					<button
@@ -211,7 +211,7 @@ export default function SessionsPage() {
 						<div className="relative inline-flex">
 							<div className="w-14 h-14 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
 						</div>
-						<p className="mt-4 text-slate-600 font-medium">Carregando sessoes...</p>
+						<p className="mt-4 text-slate-600 font-medium">Carregando sessões...</p>
 					</div>
 				) : sessions.length === 0 ? (
 					<div className="bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 p-12 text-center">
@@ -219,7 +219,7 @@ export default function SessionsPage() {
 							<div className="absolute inset-0 bg-linear-to-br from-slate-100 to-slate-200 rounded-2xl" />
 							<FaDesktop className="relative text-3xl text-slate-400" />
 						</div>
-						<p className="text-slate-600 font-medium">Nenhuma sessao ativa encontrada</p>
+						<p className="text-slate-600 font-medium">Nenhuma sessão ativa encontrada</p>
 					</div>
 				) : (
 					<div className="space-y-4">
@@ -250,7 +250,7 @@ export default function SessionsPage() {
 												{sess.is_current && (
 													<span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-full">
 														<FaCheckCircle className="text-xs" />
-														Sessao Atual
+														Sessão Atual
 													</span>
 												)}
 											</div>
@@ -259,7 +259,7 @@ export default function SessionsPage() {
 												<div className="flex items-start gap-2 text-sm text-slate-600">
 													<FaMapMarkerAlt className="text-slate-400 shrink-0 mt-0.5" />
 													<span className="break-all">
-														IP: {sess.ip_address || 'Nao disponivel'}
+														IP: {sess.ip_address || 'Não disponível'}
 													</span>
 												</div>
 
@@ -311,12 +311,12 @@ export default function SessionsPage() {
 						</div>
 						<div>
 							<h3 className="font-semibold text-blue-900 mb-2">
-								Sobre as Sessoes
+								Sobre as Sessões
 							</h3>
 							<p className="text-sm text-blue-800 leading-relaxed">
-								Suas sessoes ativas representam os dispositivos e navegadores onde voce esta conectado.
-								Se voce perceber alguma sessao suspeita, encerre-a imediatamente e altere sua senha.
-								As sessoes expiram automaticamente apos 30 dias.
+								Suas sessões ativas representam os dispositivos e navegadores onde você está conectado.
+								Se você perceber alguma sessão suspeita, encerre-a imediatamente e altere sua senha.
+								As sessões expiram automaticamente após 30 dias.
 							</p>
 						</div>
 					</div>

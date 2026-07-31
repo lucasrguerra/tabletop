@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { FaFilePdf, FaSpinner } from 'react-icons/fa';
+import { questionText } from '@/utils/questions';
 
 function formatDuration(ms) {
 	if (!ms || ms <= 0) return '—';
@@ -635,7 +636,7 @@ async function generatePDF({ training, responses, summary, scenarioData, totalPa
 				margin: { left: margin + 2, right: margin + 2 },
 				theme: 'plain',
 				styles: { fontSize: 8, cellPadding: { top: 1.5, bottom: 1.5, left: 3, right: 3 }, textColor: [30, 41, 59] },
-				body: [[question.text]],
+				body: [[questionText(question)]],
 				showHead: false,
 			});
 			y = doc.lastAutoTable.finalY + 1;
@@ -828,7 +829,7 @@ async function generatePDF({ training, responses, summary, scenarioData, totalPa
 			const acc = qResp.length > 0
 				? Math.round((qC / qResp.length) * 10000) / 100 : null;
 			if (acc !== null) {
-				allQuestionStats.push({ roundIndex: ri, text: q.text, accuracy: acc });
+				allQuestionStats.push({ roundIndex: ri, text: questionText(q), accuracy: acc });
 			}
 		}
 	}

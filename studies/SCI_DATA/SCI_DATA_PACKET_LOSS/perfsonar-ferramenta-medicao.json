@@ -20,6 +20,8 @@
   "tags": ["perfSONAR", "pScheduler", "OWAMP", "iperf3", "latência", "throughput", "redes de pesquisa"],
   "content": {
     "toolName": "perfSONAR / pScheduler",
+    "toolVersion": "perfSONAR 5.x (pScheduler 5.x)",
+    "installHint": "Linux: repositório perfSONAR (apt install perfsonar-toolkit) | Testes pontuais: pscheduler task ... | Requer o par remoto também com perfSONAR",
     "purpose": "perfSONAR é uma plataforma de medição de desempenho de rede amplamente usada em redes de pesquisa e educação (NREN). Permite medir one-way latency, round-trip latency, perda de pacotes, throughput e trace de rota entre pontos de medição. A interface de linha de comando principal é o pScheduler.",
     "commands": [
       {

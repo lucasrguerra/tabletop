@@ -11,22 +11,25 @@ const getDifficultyStyle = (difficulty) => {
 			bg: 'from-emerald-500 to-teal-600',
 			text: 'text-emerald-700',
 			badge: 'from-emerald-50 to-teal-50',
-			border: 'border-emerald-200'
+			border: 'border-emerald-200',
+			label: 'Básico'
 		},
 		'Intermediario': {
 			bg: 'from-amber-500 to-orange-600',
 			text: 'text-amber-700',
 			badge: 'from-amber-50 to-orange-50',
-			border: 'border-amber-200'
+			border: 'border-amber-200',
+			label: 'Intermediário'
 		},
 		'Avancado': {
 			bg: 'from-red-500 to-rose-600',
 			text: 'text-red-700',
 			badge: 'from-red-50 to-rose-50',
-			border: 'border-red-200'
+			border: 'border-red-200',
+			label: 'Avançado'
 		}
 	};
-	
+
 	return styles[difficulty] || styles['Intermediario'];
 };
 
@@ -74,7 +77,7 @@ export default function ScenarioCard({ scenario, isSelected, onClick }) {
 					<div className={`
 						px-3 py-1.5 rounded-full text-xs font-bold border bg-linear-to-r ${difficultyStyle.badge} ${difficultyStyle.border} ${difficultyStyle.text}
 					`}>
-						{scenario.metadata.difficulty}
+						{difficultyStyle.label}
 					</div>
 				)}
 			</div>

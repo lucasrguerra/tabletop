@@ -24,6 +24,14 @@
         "id": "o-que-e-elephant",
         "title": "O que são elephant flows",
         "body": "Em análise de tráfego de rede, distingue-se dois tipos de fluxo:\n\nMouse flows: fluxos curtos (< 1 MB), alta frequência, baixa latência exigida. Representam a maioria dos fluxos em número, mas pequena fração do volume total. Exemplos: consultas DNS, requisições HTTP de páginas, e-mails.\n\nElephant flows: fluxos longos (> 1 GB), baixa frequência, alto volume. Representam pequena fração dos fluxos em número, mas 80-90% do volume total de bytes. Exemplos: transferências de datasets científicos (LHC, imagens de telescópios), backups, replicação de VMs.\n\nO problema: um único elephant flow pode monopolizar a largura de banda disponível em um link, degradando a experiência de centenas de mouse flows simultâneos.",
+        "callout": {
+          "type": "info",
+          "text": "Em redes acadêmicas a proporção é extrema: menos de 1% dos fluxos costuma responder por mais de 80% dos bytes. Isso inverte a intuição de dimensionamento — o problema raramente é a quantidade de usuários, e quase sempre uma única transferência de conjunto de dados que ocupa o buffer inteiro do enlace."
+        },
+        "codeBlock": {
+          "language": "text",
+          "code": "Mouse x Elephant — por que um atrapalha o outro\n\n  Enlace de 10 Gbps, buffer de saída compartilhado\n\n  Elephant (transferência de dataset, GridFTP)\n    +====================================+  9,7 Gbps\n    ocupa o buffer inteiro, TCP em cwnd alto\n\n  Mouse (consulta DNS, SSH interativo, HTTP)\n    +  0,3 Gbps — enfileira ATRÁS do elephant\n\n  Resultado sem QoS:\n    RTT do SSH sobe de 8 ms para 180 ms (bufferbloat)\n    Consulta DNS estoura timeout\n    Usuário reclama de \"rede lenta\" enquanto o gráfico\n    de utilização mostra o enlace saudável, transmitindo\n\n  Identificar elephants em NetFlow:\n    nfdump -R /var/flows -s record/bytes -n 10\n\n    Date flow start   Duration Proto  Src IP   Dst IP   Bytes\n    2026-03-18 09:12   3612.4  TCP   10.1.4.7 192.0.2.9  4.1 T\n    2026-03-18 09:40    288.1  TCP   10.1.9.2 198.51.1.4 22.7 G\n    2026-03-18 10:02      0.3  UDP   10.1.2.8 10.0.0.53   412\n                                                          ^ mouse\n\n  Critério comum: fluxo > 1 GB ou > 10% da capacidade do\n  enlace por mais de 10 segundos."
+        },
         "keyPoints": [
           "Elephant flows = pequena fração dos fluxos, grande fração do volume",
           "Mouse flows = grande fração dos fluxos, pequena fração do volume",
@@ -38,6 +46,10 @@
           "language": "text",
           "code": "DSCP mais comuns na RNP e redes de pesquisa:\n\nDSCP 46 (EF)  → VoIP, videoconferência → fila de prioridade máxima\nDSCP 34 (AF41)→ Dados críticos de pesquisa com deadline\nDSCP 18 (AF21)→ Tráfego interativo de usuários (SSH, web)\nDSCP 10 (AF11)→ Transferências bulk (GridFTP, backup, rsync)\nDSCP 0  (BE)  → Todo tráfego sem marcação explícita"
         },
+        "callout": {
+          "type": "warning",
+          "text": "DSCP só vale dentro do domínio administrativo que o respeita. Ao cruzar para outro AS, a marcação costuma ser zerada ou reescrita na borda — provedores não confiam em marcação de terceiros. Planeje QoS fim a fim apenas onde você controla as duas pontas, ou negocie explicitamente o mapeamento com o parceiro."
+        },
         "keyPoints": [
           "DSCP é marcado na borda — roteadores do núcleo encaminham com base na marcação",
           "Elephant flows devem ser marcados com DSCP baixo (AF11) para ceder à prioridade",
@@ -51,6 +63,10 @@
         "callout": {
           "type": "tip",
           "text": "A RNP oferece o serviço REMAV (Rede de Medição e Análise de Vídeo) e a plataforma perfSONAR para monitoramento de performance. Antes de tomar ações, confirme a causa do congestionamento com dados de telemetria — não assuma que é sempre um elephant flow."
+        },
+        "codeBlock": {
+          "language": "bash",
+          "code": "# Classificar e enfileirar: proteger o mouse sem punir o elephant\n\n# Cisco IOS — classificação por porta de transferência de dados\nclass-map match-any ELEPHANT\n match protocol ftp\n match access-group name GRIDFTP-PORTS\nclass-map match-any INTERATIVO\n match dscp ef\n match protocol ssh\n match protocol dns\n\npolicy-map WAN-SAIDA\n class INTERATIVO\n  priority percent 10           # fila de baixa latência\n class ELEPHANT\n  bandwidth remaining percent 80\n  random-detect dscp-based      # WRED: descarta antes de encher\n class class-default\n  fair-queue\n\ninterface TenGigabitEthernet0/0/0\n service-policy output WAN-SAIDA\n\n# Linux — fq_codel resolve bufferbloat sem classificar nada\n$ tc qdisc replace dev eth0 root fq_codel\n$ tc -s qdisc show dev eth0\nqdisc fq_codel 8003: root refcnt 2 limit 10240p flows 1024\n Sent 8241 GB, dropped 1204, maxpacket 1514\n\n# Ajuste de janela TCP para BDP alto (10 Gbps x 100 ms = 125 MB)\nnet.core.rmem_max = 268435456\nnet.core.wmem_max = 268435456\nnet.ipv4.tcp_rmem = 4096 87380 268435456\nnet.ipv4.tcp_congestion_control = bbr\n\n# Ordem de ataque ao problema:\n#   1. fq_codel/CoDel  — barato, resolve a maior parte\n#   2. Janela TCP      — libera throughput do elephant\n#   3. QoS/DSCP        — quando há contrato de serviço\n#   4. Science DMZ     — separar fisicamente o fluxo de dados"
         },
         "keyPoints": [
           "Detecção de NetFlow + redirecionamento SDN é a abordagem mais sofisticada",

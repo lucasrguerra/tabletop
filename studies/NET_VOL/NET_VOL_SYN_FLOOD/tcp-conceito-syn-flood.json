@@ -28,6 +28,10 @@
           "language": "text",
           "code": "Three-way handshake normal:\n  Cliente → SYN → Servidor  (SYN_SENT)\n  Servidor → SYN-ACK → Cliente  (SYN_RECEIVED, aloca estado)\n  Cliente → ACK → Servidor  (ESTABLISHED, conexão completa)\n\nSYN Flood:\n  Atacante → SYN (src=IP_FALSO_1) → Servidor  → estado SYN_RECEIVED\n  Atacante → SYN (src=IP_FALSO_2) → Servidor  → estado SYN_RECEIVED\n  Atacante → SYN (src=IP_FALSO_3) → Servidor  → estado SYN_RECEIVED\n  ... (100.000 vezes)\n\n  Tabela esgotada → novos SYN legítimos DESCARTADOS"
         },
+        "callout": {
+          "type": "info",
+          "text": "O que o atacante consome não é banda, é memória de estado. Um SYN flood eficaz pode caber em poucos Mbps — o dano vem de encher a fila de conexões meio-abertas, que tem tamanho fixo. É por isso que gráficos de tráfego às vezes não mostram nada e o serviço mesmo assim recusa conexões."
+        },
         "keyPoints": [
           "O servidor aloca estado (memória) no SYN-ACK antes da confirmação do cliente",
           "Tabela de conexões half-open tem capacidade limitada",
@@ -42,6 +46,10 @@
           "type": "info",
           "text": "SYN Cookies estão habilitados por padrão na maioria dos sistemas operacionais modernos e são ativados automaticamente quando o sistema detecta que está sob ataque (número de half-open connections acima de threshold). Verifique: sysctl net.ipv4.tcp_syncookies no Linux."
         },
+        "codeBlock": {
+          "language": "bash",
+          "code": "# Verificar e ativar SYN Cookies no Linux\n$ sysctl net.ipv4.tcp_syncookies\nnet.ipv4.tcp_syncookies = 1        # 1 = ativa sob pressão (padrão)\n\n# Tornar permanente\n$ cat >> /etc/sysctl.d/99-syn.conf <<'EOF'\nnet.ipv4.tcp_syncookies = 1\nnet.ipv4.tcp_max_syn_backlog = 4096\nnet.ipv4.tcp_synack_retries = 3\nEOF\n$ sysctl --system\n\n# Confirmar que entraram em uso durante o ataque\n$ netstat -s | grep -i cookie\n    138204 SYN cookies sent\n    137991 SYN cookies received\n\n$ dmesg | tail\n[ 8821.4] TCP: request_sock_TCP: Possible SYN flooding on port 443.\n          Sending cookies.\n\n# Como o cookie substitui o estado:\n#   ISN = hash(src_ip, src_port, dst_ip, dst_port, contador, segredo)\n#   O servidor não guarda nada. Ao receber o ACK final, recalcula\n#   o hash e confere — se bate, a conexão é legítima e só então\n#   o estado é alocado.\n#\n# Custo: opções TCP negociadas no SYN (window scaling, SACK,\n# timestamps) cabem parcialmente no cookie. Sob cookies, conexões\n# legítimas podem perder window scaling e ficar mais lentas —\n# aceitável durante ataque, indesejável como estado permanente."
+        },
         "keyPoints": [
           "SYN Cookies eliminam o problema de estado sem desabilitar TCP",
           "Ativação automática quando half-open connections excedem threshold",
@@ -52,6 +60,14 @@
         "id": "outras-mitigacoes",
         "title": "Outras mitigações complementares",
         "body": "Além de SYN Cookies, outras medidas complementam a defesa:\n\n1. SYN Rate Limiting: limitar o número de SYNs aceitos por segundo por IP de origem (firewall stateful ou iptables hashlimit).\n\n2. Aumentar SYN backlog: o parâmetro tcp_max_syn_backlog controla o tamanho da fila de half-open connections (Linux). Aumentar de 128 para 2048+ dá mais margem.\n\n3. Reduzir SYN-ACK retries: tcp_synack_retries controla quantas vezes o servidor reenvia SYN-ACKs antes de desistir. Reduzir de 5 para 2 libera estado mais rapidamente.\n\n4. Scrubbing upstream: para ataques volumétricos de SYN, scrubbing center absorve o tráfego antes de atingir o servidor.",
+        "callout": {
+          "type": "warning",
+          "text": "Rate limiting por IP de origem tem eficácia limitada contra SYN flood, porque as origens são falsificadas e mudam a cada pacote — o limite acaba criando milhões de entradas de estado no próprio firewall, que passa a ser o alvo. Limite por interface ou por destino, não por origem."
+        },
+        "codeBlock": {
+          "language": "bash",
+          "code": "# Rate limiting de SYN — nftables (por destino, não por origem)\ntable inet filter {\n  chain input {\n    type filter hook input priority 0; policy drop;\n\n    # aceita até 2000 SYN/s para o serviço, com rajada de 5000\n    tcp flags syn / syn,ack \\\n      limit rate 2000/second burst 5000 packets accept\n\n    # excedente é descartado antes de tocar a pilha TCP\n    tcp flags syn / syn,ack drop\n\n    ct state established,related accept\n  }\n}\n\n# SYNPROXY — o firewall completa o handshake no lugar do servidor\n# e só repassa conexões já validadas\ntable ip raw {\n  chain prerouting {\n    type filter hook prerouting priority -300;\n    tcp dport 443 tcp flags syn notrack\n  }\n}\ntable ip filter {\n  chain input {\n    tcp dport 443 ct state invalid,untracked \\\n      synproxy mss 1460 wscale 7 timestamp sack-perm\n  }\n}\n\n# Ajustes complementares no servidor\nnet.ipv4.tcp_max_syn_backlog = 8192   # fila maior\nnet.ipv4.tcp_synack_retries  = 2      # desiste antes do half-open\nnet.core.somaxconn           = 4096   # fila de accept da aplicação\n\n# Ordem de aplicação sob ataque:\n#   1. SYN cookies (imediato, no servidor)\n#   2. Rate limit na borda (reduz o que chega)\n#   3. Scrubbing do upstream (se saturar o link)"
+        },
         "keyPoints": [
           "tcp_syncookies=1 é a mitigação principal — verificar se está habilitado",
           "Rate limiting por IP de origem no firewall reduz eficácia do ataque com IPs reais",

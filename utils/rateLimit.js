@@ -49,8 +49,16 @@ function cleanupOldEntries() {
 	}
 }
 
-// Run cleanup every 1 minute
-setInterval(cleanupOldEntries, 1 * 60 * 1000);
+// Run cleanup every 1 minute. Unref'd so the timer never keeps the process alive.
+const cleanup_timer = setInterval(cleanupOldEntries, 1 * 60 * 1000);
+cleanup_timer.unref?.();
+
+/**
+ * Clears all rate limit state. Exported for tests only.
+ */
+export function _resetRateLimitState() {
+	rate_limit_map.clear();
+}
 
 /**
  * Get client identifier from request
@@ -143,7 +151,7 @@ export default async function rateLimit(
 		const limit_data = rate_limit_map.get(key);
 		
 		// If no previous data or window has expired, create new entry
-		if (!limit_data || now > limit_data.resetTime) {
+		if (!limit_data || now > limit_data.reset_time) {
 			rate_limit_map.set(key, {
 				count: 1,
 				reset_time: now + config.window_ms,

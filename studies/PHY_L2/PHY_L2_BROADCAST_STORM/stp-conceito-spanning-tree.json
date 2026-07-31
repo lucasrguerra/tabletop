@@ -28,6 +28,10 @@
           "type": "danger",
           "text": "Uma broadcast storm pode derrubar uma rede inteira em menos de 5 segundos. Um único cabo patch plugado em duas portas do mesmo switch pode causar isso. Monitore erros de interface e tabelas CAM anormais como sinal de alerta."
         },
+        "codeBlock": {
+          "language": "text",
+          "code": "Por que um quadro em loop nunca morre\n\n  Cabeçalho IP tem TTL, decrementado a cada roteador:\n    TTL 64 -> 63 -> ... -> 0 -> descartado\n\n  Cabeçalho Ethernet NÃO tem campo equivalente.\n  Um quadro em loop circula até o link cair.\n\n  Topologia com loop físico e STP desabilitado:\n\n         SW-A ============== SW-B\n           \\\\                //\n            \\\\              //\n             \\\\            //\n                 SW-C\n\n  Host envia 1 broadcast (ARP request):\n    SW-A inunda para B e C\n    SW-B inunda para A e C     C inunda para A e B\n    ... cada rodada MULTIPLICA o número de cópias\n\n  Em milissegundos o enlace satura. Efeitos colaterais:\n    - Tabela CAM instável: o mesmo MAC aparece ora numa\n      porta, ora noutra (MAC flapping) — os switches\n      reescrevem a tabela milhares de vezes por segundo\n    - CPU do switch em 100% processando broadcast\n    - Rede inteira do domínio de broadcast fica inacessível,\n      inclusive a gerência — muitas vezes só o console\n      serial ainda responde"
+        },
         "keyPoints": [
           "Ethernet não tem TTL — loops circulam indefinidamente sem controle",
           "Broadcast storm = replicação exponencial de quadros broadcast em loop",
@@ -42,6 +46,10 @@
           "language": "text",
           "code": "Bridge ID = Prioridade (16 bits) + MAC Address (48 bits)\nPadrão: prioridade = 32768\n\nEleição: Bridge ID mais baixo vence\n  → 32768.aa:bb:cc:dd:ee:01  vs  32768.aa:bb:cc:dd:ee:02\n  → Switch com MAC menor se torna Root Bridge (empate em prioridade)"
         },
+        "callout": {
+          "type": "warning",
+          "text": "O Root Bridge é eleito pelo menor Bridge ID, e a prioridade padrão é igual em todos os switches (32768) — o desempate vai para o menor MAC, que costuma ser o equipamento mais antigo da rede. Sem definir a prioridade manualmente no switch de núcleo, é comum a raiz acabar num switch de acesso esquecido, com todo o tráfego passando por ele."
+        },
         "keyPoints": [
           "Root Bridge é eleito — mas deve ser o switch core, não qualquer switch",
           "Prioridade configurável em múltiplos de 4096 (0–61440) — configure explicitamente!",
@@ -55,6 +63,10 @@
         "callout": {
           "type": "tip",
           "text": "Configure PortFast (Cisco) ou Edge Port (outros) em portas de acesso (hosts/servidores) — elas ignoram STP e entram direto em Forwarding. Configure BPDU Guard nessas mesmas portas para desligar automaticamente se um switch não autorizado for conectado."
+        },
+        "codeBlock": {
+          "language": "bash",
+          "code": "# Definir raiz explicitamente (não deixe a eleição ao acaso)\nSW-CORE(config)# spanning-tree vlan 1-100 priority 4096\nSW-CORE-2(config)# spanning-tree vlan 1-100 priority 8192   # raiz secundária\n\n# Ativar RSTP (convergência de ~50s para <1s)\nSW(config)# spanning-tree mode rapid-pvst\n\n# Proteções nas portas de acesso — o que evita o loop na prática\nSW(config)# interface range GigabitEthernet0/1-24\nSW(config-if-range)# spanning-tree portfast\nSW(config-if-range)# spanning-tree bpduguard enable\n#  portfast  : porta de host vai direto para forwarding\n#  bpduguard : se um BPDU chegar numa porta de host, a porta\n#              é desativada (err-disable) — impede que alguém\n#              ligue um switch doméstico e derrube a rede\n\n# Proteger a topologia contra raiz indevida\nSW(config-if)# spanning-tree guard root\n\n# Verificar quem é a raiz e por onde\nSW# show spanning-tree vlan 10\nVLAN0010\n  Root ID    Priority    4106\n             Address     aabb.cc00.0100\n             Cost        4\n             Port        25 (GigabitEthernet0/25)\n\n  Interface     Role Sts Cost  Prio.Nbr Type\n  Gi0/25        Root FWD 4     128.25   P2p\n  Gi0/26        Altn BLK 4     128.26   P2p   <- bloqueada = OK\n\n# MSTP: agrupa VLANs em instâncias — 200 VLANs com PVST são\n# 200 topologias calculadas; com MSTP podem ser 2 ou 3."
         },
         "keyPoints": [
           "RSTP (802.1w) substitui STP — convergência em 1-2s vs 30-50s do 802.1D",

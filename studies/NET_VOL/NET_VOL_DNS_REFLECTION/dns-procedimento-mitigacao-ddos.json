@@ -61,7 +61,8 @@
         "warnings": [
           "Ativação de scrubbing pode ter custo adicional — verificar contrato antes",
           "Tempo de ativação tipicamente 15-30 minutos para desvio BGP propagar"
-        ]
+        ],
+        "rollbackAction": "Encerrado o ataque, retirar o desvio para o scrubbing center e devolver o tráfego ao caminho normal, monitorando por pelo menos 30 minutos. Manter o desvio ativo sem necessidade adiciona latência e, em geral, custo por volume tratado."
       },
       {
         "id": 4,
@@ -74,7 +75,8 @@
         "expectedResult": "Resolver para de responder a consultas de IPs externos. Volume de tráfego de saída UDP/53 cai para próximo de zero.",
         "warnings": [
           "Após restringir, testar resolução a partir de clientes legítimos internos para confirmar que não houve impacto colateral"
-        ]
+        ],
+        "rollbackAction": "Se a nova ACL de recursão bloquear clientes internos legítimos (redes não mapeadas, VPN, laboratórios), acrescentar os blocos faltantes à lista de confiança — nunca voltar a 'allow-recursion { any; }'. Reverter para resolver aberto reabre a organização como fonte de amplificação."
       },
       {
         "id": 5,
@@ -84,7 +86,8 @@
           "# Capturar estatísticas de tráfego para relatório\nnfdump -R /var/netflow/ -t '2025-03-01 14:00:00' -T '2025-03-01 16:00:00' -s ip/bytes -o csv > ddos_report.csv"
         ],
         "expectedResult": "Tráfego retorna a níveis normais. Nenhuma recidiva nas 2 horas seguintes.",
-        "warnings": []
+        "warnings": [],
+        "rollbackAction": "Ao encerrar o incidente, remover as mitigações temporárias aplicadas (filtros de emergência, limites de taxa agressivos, rotas de blackhole) uma a uma, verificando o tráfego após cada remoção. Filtro emergencial esquecido é causa recorrente de falha intermitente semanas depois."
       }
     ],
     "postConditions": [

@@ -1,19 +1,14 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import useSocket from '@/utils/useSocket';
-import DashboardLayout from '@/components/Dashboard/Layout';
-import TrainingHeader from '@/components/Trainings/TrainingHeader';
-import TrainingTimerDisplay from '@/components/Trainings/TrainingTimerDisplay';
-import RoundTimerDisplay from '@/components/Trainings/RoundTimerDisplay';
+import { useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import useTraining, { PHASE } from '@/utils/useTraining';
+import TrainingShell, { Section } from '@/components/Trainings/TrainingShell';
+import ResponseMeter from '@/components/Trainings/ResponseMeter';
 import ParticipantsList from '@/components/Trainings/ParticipantsList';
 import ScenarioInfo from '@/components/Trainings/ScenarioInfo';
-import TrainingStatusBadge from '@/components/Trainings/TrainingStatusBadge';
 import AccessCodeCard from '@/components/Trainings/AccessCodeCard';
 import InviteParticipantCard from '@/components/Trainings/InviteParticipantCard';
-import LoadingSpinner from '@/components/Trainings/LoadingSpinner';
-import ErrorAlert from '@/components/Trainings/ErrorAlert';
 import RoundControl from '@/components/Trainings/RoundControl';
 import RoundInfo from '@/components/Trainings/RoundInfo';
 import MetricsDisplay from '@/components/Trainings/MetricsDisplay';
@@ -21,570 +16,387 @@ import TrainingStatsDashboard from '@/components/Trainings/TrainingStatsDashboar
 import FacilitatorQuestionsView from '@/components/Trainings/FacilitatorQuestionsView';
 import EvaluationStats from '@/components/Trainings/EvaluationStats';
 import ExportPDFButton from '@/components/Trainings/ExportPDFButton';
-import { FaPlay, FaPause, FaCheckCircle, FaUndoAlt, FaChevronDown, FaChevronUp, FaTrophy, FaTrash } from 'react-icons/fa';
+import {
+	FaPlay, FaPause, FaCheckCircle, FaUndoAlt, FaTrophy, FaTrash,
+	FaClock, FaRedo,
+} from 'react-icons/fa';
+
+/** Control in the console strip. */
+function ConsoleButton({ onClick, disabled, icon: Icon, children, tone = 'neutral' }) {
+	const tones = {
+		go:      'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm shadow-emerald-600/20 focus-visible:ring-emerald-400',
+		hold:    'bg-amber-500 text-white hover:bg-amber-600 shadow-sm shadow-amber-500/20 focus-visible:ring-amber-400',
+		end:     'bg-blue-600 text-white hover:bg-blue-700 shadow-sm shadow-blue-600/20 focus-visible:ring-blue-400',
+		neutral: 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 focus-visible:ring-slate-400',
+	};
+	return (
+		<button
+			onClick={onClick}
+			disabled={disabled}
+			className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${tones[tone]}`}
+		>
+			<Icon className="text-xs" />
+			{children}
+		</button>
+	);
+}
 
 export default function FacilitatorPage() {
 	const router = useRouter();
-	const params = useParams();
-	const [training, setTraining] = useState(null);
-	const [scenarioData, setScenarioData] = useState(null);
-	const [userRole, setUserRole] = useState(null);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState(null);
+	const {
+		trainingId, training, scenario, userRole, phase, rounds, currentRound,
+		responses, responseSummary, evaluations, evaluationStats,
+		csrfToken, loading, error, isConnected,
+		refetch, refetchResponses,
+	} = useTraining({
+		expectRole: 'facilitator',
+		withResponses: true,
+		withEvaluations: true,
+	});
+
 	const [actionLoading, setActionLoading] = useState(false);
-	const [responses, setResponses] = useState([]);
-	const [responseSummary, setResponseSummary] = useState(null);
-	const [showTools, setShowTools] = useState(false);
-	const [evaluations, setEvaluations] = useState([]);
-	const [evaluationStats, setEvaluationStats] = useState(null);
-	const [csrfToken, setCsrfToken] = useState(null);
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-	// Socket.io connection for real-time updates
-	const { socket } = useSocket(params.id);
-
-	// Fetch CSRF token
-	useEffect(() => {
-		const fetchCsrf = async () => {
-			try {
-				const res = await fetch('/api/csrf');
-				const data = await res.json();
-				if (data.success && data.csrf_token) {
-					setCsrfToken(data.csrf_token);
-				}
-			} catch (err) {
-				console.error('Error fetching CSRF token:', err);
-			}
-		};
-		fetchCsrf();
-	}, []);
-
-	// Fetch participant responses (for facilitator real-time view)
-	const fetchResponses = useCallback(async () => {
-		try {
-			const res = await fetch(`/api/trainings/${params.id}/responses`, {
-				method: 'GET',
-				credentials: 'include'
-			});
-			if (res.ok) {
-				const data = await res.json();
-				if (data.success) {
-					setResponses(data.responses || []);
-					setResponseSummary(data.summary || null);
-				}
-			}
-		} catch (err) {
-			console.error('Error fetching responses:', err);
+	const patch = useCallback(async (path, body, method = 'PATCH') => {
+		const res = await fetch(`/api/trainings/${trainingId}${path}`, {
+			method,
+			headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+			body: body ? JSON.stringify(body) : undefined,
+			credentials: 'include',
+		});
+		if (!res.ok) {
+			const data = await res.json().catch(() => ({}));
+			throw new Error(data.message || 'Não foi possível concluir a ação');
 		}
-	}, [params.id]);
+		return res;
+	}, [trainingId, csrfToken]);
 
-	// Fetch evaluation data (only when training is completed)
-	const fetchEvaluations = useCallback(async () => {
+	const handleStatusChange = async (status) => {
 		try {
-			const res = await fetch(`/api/trainings/${params.id}/evaluations`, {
-				method: 'GET',
-				credentials: 'include'
-			});
-			if (res.ok) {
-				const data = await res.json();
-				if (data.success) {
-					setEvaluations(data.evaluations || []);
-					setEvaluationStats(data.stats || null);
-				}
-			}
+			setActionLoading(true);
+			await patch('/status', { status });
+			await refetch();
 		} catch (err) {
-			console.error('Error fetching evaluations:', err);
-		}
-	}, [params.id]);
-
-	// Fetch training data (showLoading=true only for initial load)
-	const fetchTraining = async (showLoading = false) => {
-		try {
-			if (showLoading) {
-				setLoading(true);
-			}
-			setError(null);
-
-			const response = await fetch(`/api/trainings/${params.id}`, {
-				method: 'GET',
-				credentials: 'include'
-			});
-
-			if (!response.ok) {
-				const data = await response.json();
-				throw new Error(data.message || 'Erro ao carregar treinamento');
-			}
-
-			const data = await response.json();
-
-			// Validate that user is actually a facilitator
-			if (data.userRole !== 'facilitator') {
-				router.replace(`/dashboard/trainings/${params.id}/${data.userRole}`);
-				return;
-			}
-
-			setTraining(data.training);
-			setUserRole(data.userRole);
-
-			// Fetch scenario data with rounds (only on initial load)
-			if (showLoading && data.training.scenario) {
-				try {
-					const scenarioResponse = await fetch(
-						`/api/trainings/scenarios?` +
-						new URLSearchParams({
-							scenario_id: data.training.scenario.id,
-							category: data.training.scenario.category,
-							type: data.training.scenario.type
-						}),
-						{ credentials: 'include' }
-					);
-					if (scenarioResponse.ok) {
-						const scenarioResult = await scenarioResponse.json();
-						if (scenarioResult.success) {
-							setScenarioData(scenarioResult.scenario);
-						}
-					}
-				} catch (err) {
-					console.error('Error fetching scenario data:', err);
-				}
-			}
-		} catch (err) {
-			console.error('Error fetching training:', err);
-			setError(err.message);
+			alert(err.message);
 		} finally {
-			if (showLoading) {
-				setLoading(false);
-			}
+			setActionLoading(false);
 		}
 	};
 
-	// Initial load
-	useEffect(() => {
-		fetchTraining(true);
-	}, [params.id]);
-
-	// Fetch responses on initial load
-	useEffect(() => {
-		if (!training) return;
-		fetchResponses();
-	}, [training?.status, training?.current_round, params.id, fetchResponses]);
-
-	// Fetch evaluations when training is completed
-	useEffect(() => {
-		if (training?.status === 'completed') {
-			fetchEvaluations();
-		}
-	}, [training?.status, params.id, fetchEvaluations]);
-
-	// Socket.io: listen for real-time updates (replaces polling)
-	useEffect(() => {
-		if (!socket) return;
-
-		const onTrainingUpdated = () => {
-			fetchTraining();
-		};
-
-		const onResponseSubmitted = () => {
-			fetchResponses();
-		};
-
-		socket.on('training:updated', onTrainingUpdated);
-		socket.on('training:response-submitted', onResponseSubmitted);
-
-		return () => {
-			socket.off('training:updated', onTrainingUpdated);
-			socket.off('training:response-submitted', onResponseSubmitted);
-		};
-	}, [socket, fetchResponses]);
-
-	// Handle invite sent
-	const handleInviteSent = () => {
-		fetchTraining();
-	};
-
-	// Handle timer actions (for round timer)
 	const handleTimerAction = async (action) => {
 		try {
 			setActionLoading(true);
-			
-			const response = await fetch(`/api/trainings/${params.id}/timer`, {
-				method: 'PATCH',
-				headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-				body: JSON.stringify({ action }),
-				credentials: 'include'
-			});
-
-			if (!response.ok) {
-				const data = await response.json();
-				throw new Error(data.message || 'Erro ao controlar timer');
-			}
-			
-			await fetchTraining();
+			await patch('/timer', { action });
+			await refetch();
 		} catch (err) {
-			console.error('Error with timer action:', err);
-			alert(err.message || 'Erro ao executar ação no timer');
+			alert(err.message);
 		} finally {
 			setActionLoading(false);
 		}
 	};
 
-	// Handle training status change
-	const handleStatusChange = async (newStatus) => {
-		try {
-			setActionLoading(true);
-			
-			const response = await fetch(`/api/trainings/${params.id}/status`, {
-				method: 'PATCH',
-				headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-				body: JSON.stringify({ status: newStatus }),
-				credentials: 'include'
-			});
-
-			if (!response.ok) {
-				const data = await response.json();
-				throw new Error(data.message || 'Erro ao mudar status');
-			}
-			
-			await fetchTraining();
-		} catch (err) {
-			console.error('Error changing status:', err);
-			alert(err.message || 'Erro ao mudar status do treinamento');
-		} finally {
-			setActionLoading(false);
-		}
-	};
-
-	// Handle round change
 	const handleRoundChange = async (action, roundNumber = null) => {
-		try {
-			const body = { action };
-			if (action === 'set' && roundNumber !== null) {
-				body.round = roundNumber;
-			}
-
-			const response = await fetch(`/api/trainings/${params.id}/round`, {
-				method: 'PATCH',
-				headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-				body: JSON.stringify(body),
-				credentials: 'include'
-			});
-
-			if (!response.ok) {
-				const data = await response.json();
-				throw new Error(data.message || 'Erro ao mudar rodada');
-			}
-			
-			await fetchTraining();
-			await fetchResponses();
-		} catch (err) {
-			console.error('Error changing round:', err);
-			throw err;
-		}
+		const body = { action };
+		if (action === 'set' && roundNumber !== null) { body.round = roundNumber; }
+		await patch('/round', body);
+		await refetch();
+		await refetchResponses();
 	};
 
-	// Handle delete training
 	const handleDeleteTraining = async () => {
 		try {
 			setActionLoading(true);
-
-			const response = await fetch(`/api/trainings/${params.id}`, {
-				method: 'DELETE',
-				headers: { 'X-CSRF-Token': csrfToken },
-				credentials: 'include'
-			});
-
-			if (!response.ok) {
-				const data = await response.json();
-				throw new Error(data.message || 'Erro ao deletar treinamento');
-			}
-
+			await patch('', null, 'DELETE');
 			router.push('/dashboard');
 		} catch (err) {
-			console.error('Error deleting training:', err);
-			alert(err.message || 'Erro ao deletar treinamento');
+			alert(err.message);
 		} finally {
 			setActionLoading(false);
 			setShowDeleteConfirm(false);
 		}
 	};
 
-	// Handle participant management
-	const handleManageParticipant = async (participantId, action) => {
-		try {
-			setActionLoading(true);
-			console.log('Manage participant:', participantId, action);
-			alert(`Participant action "${action}" will be implemented in the API`);
-			await fetchTraining();
-		} catch (err) {
-			console.error('Error managing participant:', err);
-			alert('Erro ao gerenciar participante');
-		} finally {
-			setActionLoading(false);
-		}
-	};
-
-	if (loading) {
-		return (
-			<DashboardLayout>
-				<div className="flex items-center justify-center min-h-[60vh]">
-					<LoadingSpinner />
-				</div>
-			</DashboardLayout>
-		);
-	}
-
-	if (error) {
-		return (
-			<DashboardLayout>
-				<ErrorAlert message={error} onRetry={fetchTraining} />
-			</DashboardLayout>
-		);
-	}
-
-	const acceptedParticipants = (training.participants || []).filter(
+	const acceptedParticipants = (training?.participants || []).filter(
 		p => p.role === 'participant' && p.status === 'accepted'
 	).length;
 
+	const roundQuestions = rounds[currentRound]?.questions || [];
+
+	// ── Console controls: only what this phase can actually do ────────────────
+	const controls = (
+		<div className="flex flex-wrap items-center gap-2">
+			{training?.status === 'not_started' && (
+				<ConsoleButton onClick={() => handleStatusChange('active')} disabled={actionLoading} icon={FaPlay} tone="go">
+					Iniciar treinamento
+				</ConsoleButton>
+			)}
+			{training?.status === 'active' && (
+				<>
+					<ConsoleButton onClick={() => handleStatusChange('paused')} disabled={actionLoading} icon={FaPause} tone="hold">
+						Pausar
+					</ConsoleButton>
+					<ConsoleButton onClick={() => handleStatusChange('completed')} disabled={actionLoading} icon={FaCheckCircle} tone="end">
+						Encerrar
+					</ConsoleButton>
+				</>
+			)}
+			{training?.status === 'paused' && (
+				<>
+					<ConsoleButton onClick={() => handleStatusChange('active')} disabled={actionLoading} icon={FaPlay} tone="go">
+						Retomar
+					</ConsoleButton>
+					<ConsoleButton onClick={() => handleStatusChange('completed')} disabled={actionLoading} icon={FaCheckCircle} tone="end">
+						Encerrar
+					</ConsoleButton>
+				</>
+			)}
+
+			{phase === PHASE.LIVE && (
+				<>
+					<span className="w-px h-6 bg-slate-200 mx-1" aria-hidden="true" />
+					<ConsoleButton onClick={() => handleTimerAction('reset')} disabled={actionLoading} icon={FaRedo}>
+						Zerar tempo da rodada
+					</ConsoleButton>
+					<ConsoleButton
+						onClick={() => handleTimerAction(training?.round_timer?.is_paused === false ? 'pause' : 'start')}
+						disabled={actionLoading}
+						icon={FaClock}
+					>
+						{training?.round_timer?.is_paused === false ? 'Pausar tempo' : 'Contar tempo'}
+					</ConsoleButton>
+				</>
+			)}
+		</div>
+	);
+
+	const consoleExtra = (
+		<div className="space-y-4">
+			{controls}
+			{phase === PHASE.LIVE && (
+				<ResponseMeter
+					questions={roundQuestions}
+					roundIndex={currentRound}
+					responses={responses}
+					totalParticipants={acceptedParticipants}
+				/>
+			)}
+		</div>
+	);
+
+	// TrainingShell renders loading/error states, but JSX children are built by
+	// this component before it can decide — so bail out before touching
+	// `training`, which is null until the first fetch resolves.
+	if (loading || error || !training) {
+		return (
+			<TrainingShell
+				loading={loading}
+				error={error}
+				onRetry={() => refetch(true)}
+			/>
+		);
+	}
+
 	return (
-		<DashboardLayout>
-			<div className="space-y-5">
-				{/* Header */}
-				<TrainingHeader training={training} userRole={userRole} />
-
-				{/* ── COMMAND BAR: Status + Actions + Timers ── */}
-				<div className="bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 p-4 lg:p-5">
-					{/* Top row: status + action buttons */}
-					<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-						<div className="flex items-center gap-3">
-							<TrainingStatusBadge status={training.status} size="lg" />
-							<span className="text-sm text-slate-500 hidden sm:inline">
-								{training.participants?.length || 0} participantes
-							</span>
-						</div>
-
-						<div className="flex flex-wrap gap-2">
-							{training.status === 'not_started' && (
-								<button
-									onClick={() => handleStatusChange('active')}
-									disabled={actionLoading}
-									className="flex items-center gap-2 px-4 py-2 bg-linear-to-r from-emerald-500 to-teal-600 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/25 transition-all disabled:opacity-50 text-sm"
-								>
-									<FaPlay className="text-xs" />
-									Iniciar Treinamento
-								</button>
-							)}
-							{training.status === 'active' && (
-								<>
-									<button
-										onClick={() => handleStatusChange('paused')}
-										disabled={actionLoading}
-										className="flex items-center gap-2 px-4 py-2 bg-linear-to-r from-amber-500 to-orange-600 text-white font-semibold rounded-xl hover:from-amber-600 hover:to-orange-700 shadow-lg shadow-amber-500/25 transition-all disabled:opacity-50 text-sm"
-									>
-										<FaPause className="text-xs" />
-										Pausar
-									</button>
-									<button
-										onClick={() => handleStatusChange('completed')}
-										disabled={actionLoading}
-										className="flex items-center gap-2 px-4 py-2 bg-linear-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-indigo-700 shadow-lg shadow-blue-500/25 transition-all disabled:opacity-50 text-sm"
-									>
-										<FaCheckCircle className="text-xs" />
-										Finalizar
-									</button>
-								</>
-							)}
-							{training.status === 'paused' && (
-								<>
-									<button
-										onClick={() => handleStatusChange('active')}
-										disabled={actionLoading}
-										className="flex items-center gap-2 px-4 py-2 bg-linear-to-r from-emerald-500 to-teal-600 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/25 transition-all disabled:opacity-50 text-sm"
-									>
-										<FaPlay className="text-xs" />
-										Retomar
-									</button>
-									<button
-										onClick={() => handleStatusChange('completed')}
-										disabled={actionLoading}
-										className="flex items-center gap-2 px-4 py-2 bg-linear-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-indigo-700 shadow-lg shadow-blue-500/25 transition-all disabled:opacity-50 text-sm"
-									>
-										<FaCheckCircle className="text-xs" />
-										Finalizar
-									</button>
-								</>
-							)}
-							{training.status === 'completed' && (
-								<button
-									onClick={() => handleStatusChange('not_started')}
-									disabled={actionLoading}
-									className="flex items-center gap-2 px-4 py-2 bg-white text-slate-700 font-semibold rounded-xl hover:bg-slate-50 border-2 border-slate-200 hover:border-slate-300 transition-all disabled:opacity-50 text-sm"
-								>
-									<FaUndoAlt className="text-xs" />
-									Resetar
-								</button>
-							)}
-							<button
-								onClick={() => window.open(`/ranking/${params.id}`, '_blank')}
-								className="flex items-center gap-2 px-4 py-2 bg-white text-amber-700 font-semibold rounded-xl hover:bg-amber-50 border-2 border-amber-200 hover:border-amber-300 transition-all text-sm"
-							>
-								<FaTrophy className="text-xs" />
-								Ranking
-							</button>
-							<ExportPDFButton
-								training={training}
-								responses={responses}
-								summary={responseSummary}
-								scenarioData={scenarioData}
-								totalParticipants={acceptedParticipants}
-							/>						<button
-							onClick={() => setShowDeleteConfirm(true)}
-							disabled={actionLoading}
-							className="flex items-center gap-2 px-4 py-2 bg-white text-red-600 font-semibold rounded-xl hover:bg-red-50 border-2 border-red-200 hover:border-red-300 transition-all disabled:opacity-50 text-sm"
-						>
-							<FaTrash className="text-xs" />
-							Deletar
-						</button>						</div>
-					</div>
-
-					{/* Bottom row: timers side by side, compact */}
-					<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-						<TrainingTimerDisplay training={training} />
-						<RoundTimerDisplay
-							training={training}
-							userRole={userRole}
-							onTimerAction={handleTimerAction}
+		<TrainingShell
+			loading={loading}
+			error={error}
+			onRetry={() => refetch(true)}
+			training={training}
+			userRole={userRole}
+			rounds={rounds}
+			isConnected={isConnected}
+			consoleExtra={consoleExtra}
+		>
+			{/* ══ SETUP ══ Everything here is about getting people into the room. */}
+			{phase === PHASE.SETUP && (
+				<Section
+					title="Preparação"
+					hint="Convide a equipe. O treinamento começa quando você iniciar."
+				>
+					<div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+						<AccessCodeCard
+							accessCode={training.access_code}
+							accessType={training.access_type}
 						/>
+						<InviteParticipantCard trainingId={trainingId} onInviteSent={refetch} />
+						<ScenarioInfo scenario={training.scenario} />
 					</div>
-				</div>
+					<ParticipantsList participants={training.participants} userRole={userRole} showManagement={true} />
+				</Section>
+			)}
 
-				{/* ── MAIN WORKSPACE: 2-column on lg ── */}
-				<div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-
-					{/* LEFT: Primary workspace (2/3 width) */}
-					<div className="lg:col-span-2 space-y-5">
-						{/* Round Control */}
-						{scenarioData?.rounds && (
+			{/* ══ LIVE ══ Round control and monitoring, nothing else. */}
+			{phase === PHASE.LIVE && (
+				<>
+					<Section title="Controle da rodada">
+						{rounds.length > 0 && (
 							<RoundControl
 								training={training}
-								rounds={scenarioData.rounds}
+								rounds={rounds}
 								onRoundChange={handleRoundChange}
-								disabled={actionLoading || training.status === 'completed'}
+								disabled={actionLoading}
 							/>
 						)}
+					</Section>
 
-						{/* Round Info */}
-						{scenarioData?.rounds && scenarioData.rounds[training.current_round] && (
-							<RoundInfo
-								round={scenarioData.rounds[training.current_round]}
-								roundIndex={training.current_round}
-								totalRounds={scenarioData.rounds.length}
+					<div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+						<div className="lg:col-span-2 space-y-6">
+							<Section title="Respostas da equipe" hint="Atualiza sozinho conforme a equipe responde.">
+								{rounds.length > 0 && (
+									<FacilitatorQuestionsView
+										rounds={rounds}
+										currentRound={currentRound}
+										responses={responses}
+										totalParticipants={acceptedParticipants}
+										summary={responseSummary}
+									/>
+								)}
+							</Section>
+						</div>
+
+						<div className="space-y-6">
+							<Section title="Rodada atual">
+								{rounds[currentRound] && (
+									<RoundInfo
+										round={rounds[currentRound]}
+										roundIndex={currentRound}
+										totalRounds={rounds.length}
+									/>
+								)}
+							</Section>
+						</div>
+					</div>
+
+					<Section title="Evidências apresentadas">
+						{rounds.length > 0 && (
+							<MetricsDisplay rounds={rounds.slice(0, currentRound + 1)} currentRound={currentRound} />
+						)}
+					</Section>
+
+					<Section title="Equipe">
+						<ParticipantsList participants={training.participants} userRole={userRole} showManagement={true} />
+					</Section>
+				</>
+			)}
+
+			{/* ══ REVIEW ══ Analysis and export. */}
+			{phase === PHASE.REVIEW && (
+				<>
+					<Section
+						title="Resultados"
+						action={
+							<div className="flex flex-wrap gap-2">
+								<button
+									onClick={() => window.open(`/ranking/${trainingId}`, '_blank')}
+									className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+								>
+									<FaTrophy className="text-xs text-amber-500" />
+									Abrir ranking
+								</button>
+								<ExportPDFButton
+									training={training}
+									responses={responses}
+									summary={responseSummary}
+									scenarioData={scenario}
+									totalParticipants={acceptedParticipants}
+								/>
+							</div>
+						}
+					>
+						{rounds.length > 0 && (
+							<TrainingStatsDashboard
+								training={training}
+								responses={responses}
+								summary={responseSummary}
+								scenarioData={scenario}
+								totalParticipants={acceptedParticipants}
 							/>
 						)}
+					</Section>
 
-						{/* Metrics Display */}
-						{scenarioData?.rounds && (
-							<MetricsDisplay
-								rounds={scenarioData.rounds.slice(0, training.current_round + 1)}
-								currentRound={training.current_round}
-							/>
-						)}
-
-						{/* Questions & Responses (facilitator's main monitoring area) */}
-						{scenarioData?.rounds && (
+					<Section title="Respostas por questão">
+						{rounds.length > 0 && (
 							<FacilitatorQuestionsView
-								rounds={scenarioData.rounds}
-								currentRound={training.current_round}
+								rounds={rounds}
+								currentRound={rounds.length - 1}
 								responses={responses}
 								totalParticipants={acceptedParticipants}
 								summary={responseSummary}
 							/>
 						)}
-					</div>
+					</Section>
 
-					{/* RIGHT: Sidebar tools (1/3 width) */}
-					<div className="space-y-5">
-						{/* Participant Management Tools - collapsible on mobile */}
-						<div className="lg:hidden">
+					{evaluationStats && (
+						<Section title="Avaliação da equipe">
+							<EvaluationStats
+								evaluations={evaluations}
+								stats={evaluationStats}
+								totalParticipants={acceptedParticipants}
+							/>
+						</Section>
+					)}
+				</>
+			)}
+
+			{/* ══ Destructive action: plainly visible, but at the end of the page
+			     rather than beside Pausar/Encerrar in the live controls. ══ */}
+			<Section className="pt-6 border-t border-slate-200">
+				<div className="flex flex-wrap gap-3">
+					{phase === PHASE.REVIEW && (
+						<button
+							onClick={() => handleStatusChange('not_started')}
+							disabled={actionLoading}
+							className="inline-flex items-center gap-2 px-5 py-3 rounded-xl border border-slate-200 bg-white text-slate-700 font-semibold hover:bg-slate-50 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+						>
+							<FaUndoAlt className="text-sm" />
+							Reabrir para nova execução
+						</button>
+					)}
+					<button
+						onClick={() => setShowDeleteConfirm(true)}
+						disabled={actionLoading}
+						className="inline-flex items-center gap-2 px-5 py-3 rounded-xl border-2 border-red-200 bg-white text-red-600 font-semibold hover:bg-red-50 hover:border-red-300 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2"
+					>
+						<FaTrash className="text-sm" />
+						Deletar treinamento
+					</button>
+				</div>
+			</Section>
+
+			{showDeleteConfirm && (
+				<div
+					className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
+					role="dialog"
+					aria-modal="true"
+					aria-labelledby="delete-title"
+				>
+					<div className="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full">
+						<h3 id="delete-title" className="text-lg font-bold text-slate-900 mb-2">
+							Deletar {training.name}?
+						</h3>
+						<p className="text-sm text-slate-600 mb-6">
+							Todas as respostas e avaliações deste treinamento são removidas junto.
+							Não há como desfazer.
+						</p>
+						<div className="flex justify-end gap-3">
 							<button
-								onClick={() => setShowTools(prev => !prev)}
-								className="w-full flex items-center justify-between px-4 py-3 bg-white rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+								onClick={() => setShowDeleteConfirm(false)}
+								disabled={actionLoading}
+								className="px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-50"
 							>
-								Ferramentas de Gerenciamento
-								{showTools ? <FaChevronUp className="text-xs text-slate-400" /> : <FaChevronDown className="text-xs text-slate-400" />}
+								Cancelar
+							</button>
+							<button
+								onClick={handleDeleteTraining}
+								disabled={actionLoading}
+								className="px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50"
+							>
+								{actionLoading ? 'Deletando…' : 'Deletar'}
 							</button>
 						</div>
-
-						<div className={`space-y-5 ${showTools ? 'block' : 'hidden'} lg:block`}>
-							<AccessCodeCard
-								accessCode={training.access_code}
-								accessType={training.access_type}
-							/>
-
-							<InviteParticipantCard
-								trainingId={params.id}
-								onInviteSent={handleInviteSent}
-							/>
-
-							<ParticipantsList
-								participants={training.participants}
-								userRole={userRole}
-								showManagement={true}
-								onManageParticipant={handleManageParticipant}
-							/>
-
-							<ScenarioInfo scenario={training.scenario} />
-						</div>
 					</div>
 				</div>
-
-				{/* ── FULL-WIDTH: Statistics Dashboard ── */}
-				{scenarioData?.rounds && (
-					<TrainingStatsDashboard
-						training={training}
-						responses={responses}
-						summary={responseSummary}
-						scenarioData={scenarioData}
-						totalParticipants={acceptedParticipants}
-					/>
-				)}
-
-				{/* ── EVALUATION STATS (completed) ── */}
-				{training.status === 'completed' && evaluationStats && (
-					<EvaluationStats
-						evaluations={evaluations}
-						stats={evaluationStats}
-						totalParticipants={acceptedParticipants}
-					/>
-				)}
-			</div>
-
-		{/* Delete Confirmation Modal */}
-		{showDeleteConfirm && (
-			<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-				<div className="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full mx-4">
-					<h3 className="text-lg font-bold text-slate-800 mb-2">Deletar Treinamento</h3>
-					<p className="text-sm text-slate-600 mb-6">
-						Tem certeza que deseja deletar este treinamento? Todas as respostas e avaliações associadas serão removidas permanentemente. Esta ação não pode ser desfeita.
-					</p>
-					<div className="flex justify-end gap-3">
-						<button
-							onClick={() => setShowDeleteConfirm(false)}
-							disabled={actionLoading}
-							className="px-4 py-2 text-sm font-semibold text-slate-700 bg-white border-2 border-slate-200 rounded-xl hover:bg-slate-50 transition-all disabled:opacity-50"
-						>
-							Cancelar
-						</button>
-						<button
-							onClick={handleDeleteTraining}
-							disabled={actionLoading}
-							className="px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-xl hover:bg-red-700 transition-all disabled:opacity-50"
-						>
-							{actionLoading ? 'Deletando...' : 'Deletar'}
-						</button>
-					</div>
-				</div>
-			</div>
-		)}
-		</DashboardLayout>
+			)}
+		</TrainingShell>
 	);
 }

@@ -20,6 +20,8 @@
   "tags": ["Elastic", "SIEM", "KQL", "EQL", "threat hunting", "SOC", "detecção"],
   "content": {
     "toolName": "Elastic SIEM (Kibana / Elastic Security)",
+    "toolVersion": "Elastic Stack 8.x (Kibana 8.x / Elastic Security)",
+    "installHint": "Elastic Cloud ou auto-hospedado (apt install elasticsearch kibana) | Ingestão via Elastic Agent ou Filebeat | Acesso pelo navegador em Kibana → Security",
     "purpose": "Interface de consulta e correlação de eventos de segurança. O Elastic SIEM agrega logs de endpoints (Elastic Agent/Winlogbeat), rede (Packetbeat, firewall), DNS e autenticação para detecção de ameaças por regras e threat hunting.",
     "commands": [
       {

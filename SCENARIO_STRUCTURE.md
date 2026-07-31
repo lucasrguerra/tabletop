@@ -193,6 +193,12 @@ Todas as questões compartilham campos comuns:
 }
 ```
 
+> **Use `text` para o enunciado.** Cinco cenários da categoria GOV_LEGAL usam
+> `question` em vez de `text` — uma inconsistência histórica que deixava 80
+> questões em branco na interface. O código lê os dois campos através de
+> `questionText()` (`utils/questions.js`), mas **`text` é o campo canônico** e
+> deve ser o único usado em conteúdo novo.
+
 #### 8.2. Tipos de Questões Suportados
 
 ##### 8.2.1. Múltipla Escolha (multiple-choice)
@@ -476,6 +482,24 @@ Antes de finalizar um cenário, verificar:
 - [ ] Avaliação tem critérios claros
 - [ ] Referências técnicas são públicas e acessíveis
 - [ ] Categoria está corretamente mapeada no `categories.json`
+- [ ] Enunciado no campo `text` (não `question`)
+- [ ] `npm test` passa — a suíte valida o cenário automaticamente
+
+### Validação automática
+
+`tests/unit/models/scenarios.integrity.test.js` percorre todos os arquivos de
+`scenarios/` a cada execução da suíte e falha se encontrar:
+
+- questão sem enunciado, sem `id` ou com pontuação não positiva
+- `correctAnswer` fora do intervalo das opções em `multiple-choice`
+- `correctAnswer` não booleano em `true-false`, ou não numérico em `numeric`
+- `correctMatches` apontando para ids inexistentes nas colunas de `matching`
+- `correctOrder` divergente do conjunto de `items` em `ordering`
+- **a resposta oficial da questão não recebendo pontuação máxima no corretor**
+
+A última é a verificação mais forte: ela executa `gradeAnswer()` com a resposta
+declarada como correta e confere que o resultado é `is_correct: true` com a
+pontuação cheia. Pega tanto cenário malformado quanto regressão no corretor.
 
 ## Exemplo de Fluxo de Criação
 

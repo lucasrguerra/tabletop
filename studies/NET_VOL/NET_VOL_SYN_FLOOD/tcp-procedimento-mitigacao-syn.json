@@ -51,7 +51,8 @@
         "warnings": [
           "SYN Cookies tem limitação: algumas opções TCP (window scaling, SACK) podem não ser negociadas corretamente em conexões que usaram cookie — impacto mínimo em produção",
           "SYN Cookies protege o servidor mas não reduz o volume de tráfego — a banda ainda é consumida"
-        ]
+        ],
+        "rollbackAction": "SYN Cookies pode permanecer ativo em caráter permanente — é a configuração recomendada. Se for necessário desativar para diagnóstico de outro problema ('sysctl -w net.ipv4.tcp_syncookies=0'), fazê-lo apenas em janela controlada e reativar em seguida, pois sem ele o servidor volta a ser vulnerável ao esgotamento da fila."
       },
       {
         "id": 3,
@@ -67,7 +68,8 @@
         "warnings": [
           "Rate limiting por IP de origem é ineficaz contra IPs spoofados — use rate limiting global de SYN",
           "Limite muito agressivo (ex: 10/s) pode bloquear tráfego legítimo em servidores de alto tráfego"
-        ]
+        ],
+        "rollbackAction": "Remover as regras de limite de taxa após o ataque ('iptables -D INPUT ...' ou equivalente em nftables), verificando o tráfego legítimo a cada remoção. Limite agressivo mantido em operação normal descarta conexões válidas em picos legítimos, como início de semestre ou período de matrícula."
       },
       {
         "id": 4,
@@ -97,7 +99,8 @@
         "warnings": [
           "Scrubbing center adiciona latência — verificar impacto em aplicações sensíveis a RTT",
           "Acionar o serviço tem custo — confirmar autorização antes de ativar"
-        ]
+        ],
+        "rollbackAction": "Retirar o desvio ao scrubbing após a normalização, removendo o anúncio BGP mais específico usado para o redirecionamento e confirmando a convergência antes de considerar o incidente encerrado."
       },
       {
         "id": 6,
@@ -113,7 +116,8 @@
         "warnings": [
           "Mantenha SYN Cookies ativo permanentemente — não há motivo para desativar",
           "Documente: horário de início/fim, volume estimado, medidas aplicadas, impacto em usuários legítimos"
-        ]
+        ],
+        "rollbackAction": "Se o ataque retomar durante a reversão, reaplicar as mitigações na ordem inversa da remoção — primeiro o scrubbing, depois o limite de borda — mantendo SYN Cookies ativo em todos os cenários."
       }
     ],
     "postConditions": [

@@ -28,6 +28,10 @@
           "language": "text",
           "code": "ROA: prefix=200.130.0.0/16, asID=64500, maxLength=24\n\nAnúncios e seus status:\n  AS64500 anuncia 200.130.0.0/16  → VALID (origin certo, tamanho ≤ maxLength)\n  AS64500 anuncia 200.130.1.0/24  → VALID (origin certo, /24 ≤ maxLength /24)\n  AS64500 anuncia 200.130.1.0/25  → INVALID (/25 > maxLength /24!)\n  AS65530 anuncia 200.130.0.0/16  → INVALID (origin errado)\n  AS64500 anuncia 200.131.0.0/16  → NOT FOUND (sem ROA para este prefixo)"
         },
+        "callout": {
+          "type": "warning",
+          "text": "Criar um ROA muda o estado global do prefixo de Unknown para Valid ou Invalid — e Invalid é descartado por quem faz ROV. Um ROA errado tira o prefixo do ar de forma mais eficaz que um hijack. Verifique o alcance do maxLength antes de publicar, não depois."
+        },
         "keyPoints": [
           "maxLength define o prefixo mais específico que pode ser anunciado validamente",
           "/25 mais específico que /24 — se maxLength=/24, anúncio /25 é INVALID mesmo pelo ASN correto",
@@ -42,6 +46,10 @@
           "type": "danger",
           "text": "maxLength=16 em um ROA /16 é chamado de 'ROA de tiro no pé' — torna os próprios anúncios mais específicos Invalid. Isso acontece frequentemente quando operadores criam ROAs sem compreender o campo maxLength. Verifique SEMPRE antes de criar ROAs em produção."
         },
+        "codeBlock": {
+          "language": "text",
+          "code": "maxLength restritivo demais — o autobloqueio\n\n  Situação real:\n    ROA publicado: 200.130.0.0/16, AS64500, maxLength=16\n    Anúncio em produção: 200.130.7.0/24 (para engenharia\n                         de tráfego em um segundo upstream)\n\n  Resultado da validação:\n    200.130.0.0/16  -> Valid    (bate prefixo e origem)\n    200.130.7.0/24  -> INVALID  (mais específico que maxLength)\n\n  Quem faz ROV descarta o /24. O tráfego cai no /16 e o\n  desvio de engenharia de tráfego para de funcionar — sem\n  nenhum alarme, porque a rota agregada continua no ar.\n\n  Correção:\n    200.130.0.0/16, AS64500, maxLength=24\n\n  Erro simétrico — maxLength permissivo demais:\n    200.130.0.0/16, AS64500, maxLength=24\n    Um atacante que comprometa a sessão pode anunciar\n    qualquer /24 dentro do bloco e ainda validar como Valid.\n    Use o MENOR maxLength que cubra o que você realmente\n    anuncia — nem mais, nem menos."
+        },
         "keyPoints": [
           "maxLength deve ser = ao comprimento máximo de prefixo específico que você anuncia legitimamente",
           "Se anuncia /24 dentro de um /16, maxLength deve ser pelo menos /24",
@@ -52,6 +60,14 @@
         "id": "planejamento",
         "title": "Como planejar a cobertura RPKI",
         "body": "Antes de criar ROAs, mapeie:\n1. Todos os prefixos que sua organização anuncia (use 'show bgp summary' e 'show ip bgp')\n2. Quais desses prefixos você anuncia como mais específicos (para engenharia de tráfego ou blackholing)\n3. Quais ASNs legitimamente originam cada prefixo (ASNs próprios + ASNs de clientes)\n\nCom esse mapeamento, crie ROAs que cobrem:\n- O prefixo raiz com maxLength igual ao prefixo mais específico que você anuncia\n- ROAs separados para prefixos de clientes (com o ASN do cliente como asID)\n\nVerifique a cobertura com a API do RIPE Stat antes de habilitar ROV nos roteadores.",
+        "callout": {
+          "type": "tip",
+          "text": "Publique os ROAs primeiro em modo de observação: crie o objeto e acompanhe por alguns dias o estado dos seus prefixos nos validadores públicos (RIPE Validator, Cloudflare RPKI Portal) antes de qualquer roteador começar a descartar Invalid. Assim um erro de maxLength aparece como alerta, não como indisponibilidade."
+        },
+        "codeBlock": {
+          "language": "bash",
+          "code": "# 1. Levantar o que você realmente anuncia hoje\nrouter# show ip bgp neighbors 198.51.100.1 advertised-routes\n   Network            Next Hop     Metric LocPrf Path\n*> 200.130.0.0/16     0.0.0.0           0  32768 i\n*> 200.130.7.0/24     0.0.0.0           0  32768 i   <- mais específico\n*> 200.131.0.0/17     0.0.0.0           0  32768 i\n\n# 2. Conferir a visão externa (o que o mundo vê)\n$ whois -h whois.bgpmon.net \" --roa 64500 200.130.0.0/16\"\n\n# 3. Definir os ROAs\n#    prefixo         ASN      maxLength   justificativa\n#    200.130.0.0/16  AS64500  24          anuncia /24 p/ TE\n#    200.131.0.0/17  AS64500  17          só o agregado\n\n# 4. Publicar no portal do RIR (LACNIC/RIPE/ARIN)\n\n# 5. Validar após propagação (leva até ~1h)\n$ routinator vrps --filter-prefix 200.130.0.0/16\nAS64500,200.130.0.0/16,24,lacnic\n\n$ rpki-client -V && \\\n  echo \"200.130.7.0/24 AS64500\" | rtrdump validate\nstate: valid\n\n# Regra prática: um ROA por bloco alocado, maxLength igual\n# ao MAIOR comprimento que você de fato anuncia."
+        },
         "keyPoints": [
           "Mapeie prefixos anunciados ANTES de criar ROAs",
           "ROAs para clientes devem ter o ASN do cliente como asID, não o seu",

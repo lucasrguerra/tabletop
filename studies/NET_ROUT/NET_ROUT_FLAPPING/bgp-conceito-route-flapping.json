@@ -24,6 +24,14 @@
         "id": "o-que-e-flapping",
         "title": "O que é route flapping e por que é problemático",
         "body": "Route flapping ocorre quando um prefixo BGP alterna repetidamente entre os estados announced (anunciado) e withdrawn (retirado) em curto espaço de tempo. Cada mudança de estado gera um UPDATE message BGP que se propaga para todos os peers e, consequentemente, para toda a Internet.\n\nO problema é de escala: um único link instável pode causar centenas de updates por minuto. Como o BGP é um protocolo path-vector que propaga atualizações para todos os vizinhos, um flap em um AS pequeno pode gerar uma cascata de mensagens que alcança ASes na borda oposta do globo — o chamado 'route flap propagation'.\n\nImpactos práticos:\n- Sobrecarga de CPU nos roteadores que processam UPDATE messages\n- Instabilidade na tabela de roteamento — hosts ficam intermitentemente inacessíveis\n- Convergência lenta — cada flap dispara o processo de seleção de melhor rota (best path selection)\n- Em episódios graves, pode causar memory exhaustion em roteadores com tabela BGP grande",
+        "callout": {
+          "type": "warning",
+          "text": "Um único prefixo instável em uma ponta da rede gera trabalho de CPU em milhares de roteadores mundo afora. Por isso flapping é tratado como problema de vizinhança, não só interno: seu upstream pode aplicar dampening ou até suspender a sessão se o padrão persistir."
+        },
+        "codeBlock": {
+          "language": "text",
+          "code": "Anatomia de um flap\n\n  t=0s    link cai       → withdraw 200.130.0.0/16\n  t=8s    link volta     → announce  200.130.0.0/16\n  t=21s   link cai       → withdraw\n  t=33s   link volta     → announce\n  t=47s   link cai       → withdraw\n\n  Cada evento se propaga globalmente. Com ~90 mil ASes na\n  tabela DFZ, um flap por minuto durante uma hora significa\n  60 rodadas de UPDATE + recálculo de melhor rota em cada\n  roteador que carrega a rota completa.\n\n  Causas mais comuns, em ordem de frequência:\n    1. Enlace físico intermitente (SFP degradado, fibra suja)\n    2. Sessão BGP caindo por timeout (CPU alta, perda de keepalive)\n    3. Roteador reiniciando em loop\n    4. Redistribuição instável de IGP para BGP\n    5. Script de automação anunciando e retirando em ciclo\n\n  Distinguir 1 de 2: se a interface fica up mas a sessão cai,\n  o problema é de plano de controle, não de mídia."
+        },
         "keyPoints": [
           "Cada flap gera UPDATE messages que se propagam para todos os peers BGP",
           "Impacto é global — um link instável num AS pequeno afeta roteadores no mundo todo",
@@ -37,6 +45,10 @@
         "codeBlock": {
           "language": "text",
           "code": "Exemplo de dampening em ação:\n\n  T=0min:   Prefixo 200.130.0.0/16 flapa → penalty = 1000\n  T=1min:   Flapa novamente → penalty = 2000 → SUPRIMIDO (≥ suppress threshold)\n  T=16min:  Sem flap por 15min → penalty decay: 2000 → 1000 (1 half-life)\n  T=31min:  Sem flap por mais 15min → penalty: 1000 → 500\n  T=46min:  Sem flap → penalty: 500 → 250 → abaixo de reuse (750) → ROTA RESTAURADA\n\n  Total suprimido: ~44 minutos para uma rota que flapou 2x e parou"
+        },
+        "callout": {
+          "type": "info",
+          "text": "O half-life é o parâmetro que realmente governa o comportamento do dampening: com 15 minutos, uma rota que acumulou penalidade 3000 leva cerca de 30 minutos abaixo do limiar de reuso mesmo que tenha estabilizado no primeiro minuto. É essa desproporção entre a duração do problema e a duração da punição que motivou o abandono dos valores padrão."
         },
         "keyPoints": [
           "Penalty acumula com cada flap; decai exponencialmente no half-life configurado",
@@ -52,6 +64,10 @@
           "type": "warning",
           "text": "Dampening com parâmetros padrão (RFC 2439) pode manter um prefixo suprimido por até 60 minutos mesmo após estabilização. O RIPE-580 documenta casos onde dampening causou mais downtime que o próprio flapping. Use parâmetros conservadores ou não use dampening."
         },
+        "codeBlock": {
+          "language": "text",
+          "code": "Parâmetros do RFC 2439 vs. recomendação atual (RIPE-580)\n\n  Padrão histórico (RFC 2439) — evitar\n    suppress-limit    2000\n    reuse-limit       750\n    half-life         15 min\n    max-suppress-time 60 min\n    → um prefixo com 4 flaps some por até 1 hora\n\n  Recomendado (RIPE-580) — punir só o instável crônico\n    half-life          10 min\n    reuse-limit        750\n    suppress-limit   6000\n    max-suppress-time 60 min\n    → tolera rajada curta, ainda suprime flap persistente\n\n  Cisco IOS\n    router bgp 64500\n     bgp dampening 10 750 6000 60\n\n  JunOS\n    policy-options damping RIPE-580 {\n        half-life 10;\n        reuse 750;\n        suppress 6000;\n        max-suppress 60;\n    }\n\n  Nunca aplique dampening a prefixos de infraestrutura\n  crítica (DNS raiz, anycast de resolvers) — suprimir\n  esses causa dano maior que o flap."
+        },
         "keyPoints": [
           "Dampening com parâmetros padrão pode causar mais downtime que o flapping em si",
           "RIPE-580 recomenda half-life de 1 minuto e max-suppress de 4 minutos se usar dampening",
@@ -65,6 +81,10 @@
         "codeBlock": {
           "language": "text",
           "code": "# Cisco IOS — ver histórico de flaps por prefixo\nshow ip bgp flap-statistics\nshow ip bgp flap-statistics filter-list <access-list>\n\n# Verificar prefixos suprimidos por dampening\nshow ip bgp dampening dampened-paths\nshow ip bgp dampening flap-statistics\n\n# Verificar parâmetros de dampening ativos\nshow ip bgp dampening parameters\n\n# Juniper JunOS\nshow bgp neighbor <IP> flap-statistics\nshow route damping suppressed\n\n# Monitorar UPDATE messages por peer (indicador de instabilidade)\nshow ip bgp neighbors <IP> | include Updates"
+        },
+        "callout": {
+          "type": "tip",
+          "text": "Antes de culpar o BGP, correlacione com a camada física. Um prefixo que só flapa em horário comercial costuma acompanhar temperatura de sala ou vibração; um que flapa em intervalo regular costuma ser processo automatizado. Compare o timestamp dos UPDATEs com os contadores de erro da interface e com o log do IGP — a coincidência aponta a origem mais rápido que qualquer análise só de BGP."
         },
         "keyPoints": [
           "'show ip bgp flap-statistics' mostra contagem de flaps por prefixo — útil para identificar rotas problemáticas",

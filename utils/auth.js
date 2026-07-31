@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import mongoose from 'mongoose';
 import connectDB from '@/database/database';
 import Login from '@/models/User/login';
+import User from '@/database/schemas/User';
 
 /**
  * NextAuth configuration - must be exported to use with getServerSession
@@ -123,9 +125,42 @@ export const authOptions = {
 };
 
 /**
+ * Loads the current privilege flags for a user straight from the database.
+ *
+ * The session JWT is issued at login and lives for 30 days, so `admin` and
+ * `facilitator` inside it are a snapshot taken at sign-in time. Trusting that
+ * snapshot means a revoked privilege stays usable until the session expires.
+ * Every authorization decision must therefore read the flags from the database.
+ *
+ * @param {string} user_id - User ID taken from the session
+ * @returns {Promise<{ admin: boolean, facilitator: boolean }|null>} Null when the user no longer exists
+ */
+export async function getCurrentUserPrivileges(user_id) {
+	if (!mongoose.Types.ObjectId.isValid(user_id)) {
+		return null;
+	}
+
+	await connectDB();
+
+	const user = await User.findById(user_id).select('admin facilitator').lean();
+	if (!user) {
+		return null;
+	}
+
+	return {
+		admin: user.admin === true,
+		facilitator: user.facilitator === true,
+	};
+}
+
+/**
  * Higher-order function to wrap API route handlers with authentication check
  * Ensures user has an active session before executing the handler
- * 
+ *
+ * Privilege flags on the session are refreshed from the database on every
+ * request, so handlers reading `session.user.admin` / `session.user.facilitator`
+ * always see the current value rather than the one stored at login.
+ *
  * @param {Function} handler - The route handler function to wrap
  * @returns {Function} Wrapped handler with authentication validation
  * 
@@ -178,6 +213,23 @@ export function withAuth(handler) {
 				);
 			}
 
+			// Re-read privileges from the database — the session JWT may carry
+			// flags that were revoked after it was issued.
+			const privileges = await getCurrentUserPrivileges(session.user.id);
+
+			if (!privileges) {
+				return NextResponse.json(
+					{
+						success: false,
+						message: 'Sessão inválida'
+					},
+					{ status: 401 }
+				);
+			}
+
+			session.user.admin = privileges.admin;
+			session.user.facilitator = privileges.facilitator;
+
 			// If validation passes, execute the original handler
 			// Pass session as third parameter for convenience
 			return await handler(request, context, session);
@@ -227,7 +279,21 @@ export function withAdmin(handler) {
 				);
 			}
 
-			if (session.user.admin !== true) {
+			// Authority is the database, never the session JWT: an admin flag
+			// revoked after sign-in must take effect on the very next request.
+			const privileges = await getCurrentUserPrivileges(session.user.id);
+
+			if (!privileges) {
+				return NextResponse.json(
+					{
+						success: false,
+						message: 'Sessão inválida'
+					},
+					{ status: 401 }
+				);
+			}
+
+			if (privileges.admin !== true) {
 				return NextResponse.json(
 					{
 						success: false,
@@ -236,6 +302,9 @@ export function withAdmin(handler) {
 					{ status: 403 }
 				);
 			}
+
+			session.user.admin = privileges.admin;
+			session.user.facilitator = privileges.facilitator;
 
 			return await handler(request, context, session);
 

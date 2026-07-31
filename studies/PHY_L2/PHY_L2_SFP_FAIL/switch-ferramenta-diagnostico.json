@@ -20,6 +20,8 @@
   "tags": ["switch", "Cisco", "Juniper", "diagnóstico", "STP", "VLAN", "PoE", "MAC table"],
   "content": {
     "toolName": "Cisco IOS show commands / Juniper JunOS",
+    "toolVersion": "Cisco IOS 15.x / IOS-XE 17.x — JunOS 20.x+",
+    "installHint": "Acesso via console, SSH ou terminal server | Modo EXEC privilegiado (enable) para a maioria dos comandos de diagnóstico",
     "purpose": "Conjunto de comandos de diagnóstico para switches gerenciáveis. Cobrem desde a saúde de interfaces individuais até a topologia STP, tabela de endereços MAC, consumo de PoE e recursos do sistema (CPU/memória).",
     "commands": [
       {

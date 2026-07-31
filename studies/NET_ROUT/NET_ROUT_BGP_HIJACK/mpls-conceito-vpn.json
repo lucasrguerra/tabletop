@@ -28,6 +28,10 @@
           "language": "text",
           "code": "Topologia MPLS L3VPN:\n\n  [CE-ClienteA-SP1] ──── [PE1] ════ [P1] ════ [P2] ════ [PE2] ──── [CE-ClienteA-SP2]\n                           |                              |\n                         VRF-A                         VRF-A\n\n  [CE-ClienteB-SP1] ──── [PE1] ════ (mesmo core P1-P2) ════ [PE2] ──── [CE-ClienteB-SP2]\n                           |                              |\n                         VRF-B                         VRF-B\n\n  PE1 mantém 2 VRFs: VRF-A e VRF-B — tabelas completamente separadas\n  Core P1, P2: apenas comutam labels — não veem rotas de A nem B"
         },
+        "callout": {
+          "type": "info",
+          "text": "O roteador P nunca vê rotas de cliente. Ele comuta apenas pelo label externo e não tem VRF alguma configurada. É isso que permite o núcleo escalar: adicionar um cliente novo mexe só nos PEs das pontas, e a tabela dos roteadores de núcleo não cresce."
+        },
         "keyPoints": [
           "CE não faz MPLS — é roteador IP comum do cliente",
           "PE mantém uma VRF por cliente — isolamento completo de tabela de roteamento",
@@ -41,6 +45,10 @@
         "codeBlock": {
           "language": "text",
           "code": "Configuração VRF no Cisco IOS:\n\nip vrf ClienteA\n  rd 64500:100\n  route-target export 64500:100\n  route-target import 64500:100\n!\ninterface GigabitEthernet0/1\n  ip vrf forwarding ClienteA\n  ip address 10.0.1.1 255.255.255.252\n!\n! Verificar rotas na VRF:\nshow ip route vrf ClienteA\nshow ip bgp vpnv4 vrf ClienteA"
+        },
+        "callout": {
+          "type": "tip",
+          "text": "RD e RT resolvem problemas diferentes e são confundidos com frequência. O RD só torna o prefixo único dentro do MP-BGP, para que 10.0.0.0/8 de dois clientes não colidam — ele não influencia importação. Quem decide qual VRF recebe qual rota é o RT. Se a rota chega ao PE mas não entra na VRF, o erro está no RT, não no RD."
         },
         "keyPoints": [
           "RD torna prefixos únicos no BGP — dois clientes com mesmo IP não colidem",
@@ -56,6 +64,10 @@
           "type": "danger",
           "text": "Falha de separação de VRF (VRF leak) ocorre quando rotas de um cliente aparecem na VRF de outro — geralmente por erro de configuração de Route Target ou comando 'import vrf' incorreto. O resultado é vazamento de tráfego entre clientes. Em ambientes de operadora, isso é um incidente grave de segurança e disponibilidade."
         },
+        "codeBlock": {
+          "language": "text",
+          "code": "Pilha de labels em trânsito PE→PE\n\n  Pacote saindo do CE-A (VRF Cliente1, destino 10.2.0.5)\n\n  PE1 impõe dois labels:\n  +----------+----------+------------------+---------+\n  | Label    | Label    | IP header        | payload |\n  | transp.  | VPN      | 10.1.0.9 →       |         |\n  | 3001     | 16050    | 10.2.0.5         |         |\n  +----------+----------+------------------+---------+\n     ^ troca a cada hop   ^ constante fim a fim\n\n  P1: troca 3001 → 3002, VPN label intocado\n  P2 (penúltimo): PHP remove o label de transporte\n  +----------+------------------+---------+\n  | 16050    | 10.1.0.9 →       | payload |\n  |          | 10.2.0.5         |         |\n  +----------+------------------+---------+\n\n  PE2: consulta 16050 → identifica a VRF Cliente1,\n       remove o label e roteia na tabela da VRF\n\n  Consequência prática de MTU: os dois labels somam 8 bytes.\n  Núcleo com MTU 1500 e cliente enviando 1500 → fragmentação\n  ou blackhole silencioso de pacotes grandes com DF setado.\n  Provisione o núcleo com MTU >= 1600 (jumbo)."
+        },
         "keyPoints": [
           "Dois labels: externo (transporte, trocado nos P) + interno (VPN label, intocado no core)",
           "PHP no penúltimo hop remove label externo antes do PE destino",
@@ -69,6 +81,10 @@
         "codeBlock": {
           "language": "text",
           "code": "# Verificar rotas na VRF específica\nshow ip route vrf <NOME_VRF>\n\n# Verificar rotas VPNv4 no BGP (PE recebendo do PE remoto?)\nshow ip bgp vpnv4 vrf <NOME_VRF>\nshow ip bgp vpnv4 all\n\n# Verificar se label MPLS está correto\nshow mpls forwarding-table vrf <NOME_VRF>\n\n# Testar conectividade dentro de uma VRF\nping vrf <NOME_VRF> <IP_DESTINO> source <IP_LOCAL>\ntraceroute vrf <NOME_VRF> <IP_DESTINO>\n\n# Verificar adjacência BGP entre PEs (sessão vpnv4)\nshow bgp vpnv4 unicast all neighbors | include BGP state\n\n# Verificar se CE está enviando rotas ao PE\nshow ip bgp neighbors <IP_CE> routes"
+        },
+        "callout": {
+          "type": "warning",
+          "text": "O sintoma mais enganoso em L3VPN é o ping do PE funcionar e o tráfego do cliente não passar. O ping originado no PE usa a tabela global e o LSP de transporte; o tráfego do cliente depende também do label de VPN e da importação por RT. Sempre teste de dentro da VRF (ping vrf CLIENTE1) antes de concluir que o núcleo está bom."
         },
         "keyPoints": [
           "Sem rota na VRF do PE remoto → verificar sessão MP-BGP vpnv4 entre PEs",
