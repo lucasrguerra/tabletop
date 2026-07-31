@@ -11,6 +11,7 @@ import {
 	PieChart, Pie, Cell,
 	Legend, ScatterChart, Scatter, ZAxis
 } from 'recharts';
+import { questionText } from '@/utils/questions';
 
 
 function formatDuration(ms) {
@@ -158,7 +159,7 @@ function useTrainingStats({ training, responses, summary, scenarioData, totalPar
 					: null;
 				return {
 					id: q.id,
-					text: q.text,
+					text: questionText(q),
 					type: q.type || 'multiple-choice',
 					points: q.points || 1,
 					responseCount: qResponses.length,
@@ -594,7 +595,7 @@ function RoundBreakdown({ stats }) {
 														{round.questionStats.map((q, qi) => (
 															<tr key={q.id} className="border-b border-slate-100 last:border-0">
 																<td className="py-2.5 px-3 text-slate-500 font-mono text-xs">{qi + 1}</td>
-																<td className="py-2.5 px-3 text-slate-700 max-w-xs truncate">{q.text}</td>
+																<td className="py-2.5 px-3 text-slate-700 max-w-md break-words whitespace-pre-line">{q.text}</td>
 																<td className="py-2.5 px-3 text-center text-slate-600">{q.responseCount}</td>
 																<td className="py-2.5 px-3 text-center">
 																	<span className={q.correctCount > 0 ? 'text-emerald-600 font-medium' : 'text-slate-400'}>
@@ -836,12 +837,12 @@ function QuestionDifficulty({ stats }) {
 						</p>
 						<div className="space-y-2">
 							{hardestQuestions.map((q, i) => (
-								<div key={`${q.roundIndex}-${q.id}`} className="flex items-center gap-3 p-3 rounded-lg bg-red-50 border border-red-100">
+								<div key={`${q.roundIndex}-${q.id}`} className="flex items-start gap-3 p-3 rounded-lg bg-red-50 border border-red-100">
 									<span className="shrink-0 w-6 h-6 flex items-center justify-center rounded-md bg-red-200 text-red-700 text-xs font-bold">
 										{i + 1}
 									</span>
 									<div className="flex-1 min-w-0">
-										<p className="text-sm text-slate-700 line-clamp-1">{q.text}</p>
+										<p className="text-sm text-slate-700 break-words whitespace-pre-line">{q.text}</p>
 										<p className="text-[11px] text-slate-400">Rodada {q.roundIndex + 1}</p>
 									</div>
 									<span className="text-xs font-bold text-red-600 shrink-0">{q.accuracy}%</span>
@@ -859,12 +860,12 @@ function QuestionDifficulty({ stats }) {
 						</p>
 						<div className="space-y-2">
 							{easiestQuestions.map((q, i) => (
-								<div key={`${q.roundIndex}-${q.id}`} className="flex items-center gap-3 p-3 rounded-lg bg-emerald-50 border border-emerald-100">
+								<div key={`${q.roundIndex}-${q.id}`} className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50 border border-emerald-100">
 									<span className="shrink-0 w-6 h-6 flex items-center justify-center rounded-md bg-emerald-200 text-emerald-700 text-xs font-bold">
 										{i + 1}
 									</span>
 									<div className="flex-1 min-w-0">
-										<p className="text-sm text-slate-700 line-clamp-1">{q.text}</p>
+										<p className="text-sm text-slate-700 break-words whitespace-pre-line">{q.text}</p>
 										<p className="text-[11px] text-slate-400">Rodada {q.roundIndex + 1}</p>
 									</div>
 									<span className="text-xs font-bold text-emerald-600 shrink-0">{q.accuracy}%</span>

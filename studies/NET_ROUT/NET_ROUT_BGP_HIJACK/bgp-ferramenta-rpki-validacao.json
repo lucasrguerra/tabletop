@@ -20,6 +20,8 @@
   "tags": ["RPKI", "BGP", "ROA", "ferramentas", "looking glass", "monitoramento"],
   "content": {
     "toolName": "Conjunto de ferramentas RPKI/BGP",
+    "toolVersion": "routinator 0.13+ / rpki-client 8.x / bgpq4 1.11+",
+    "installHint": "Routinator: apt install routinator ou cargo install routinator | rpki-client: apt install rpki-client (OpenBSD/Debian) | bgpq4: apt install bgpq4",
     "purpose": "Verificar o estado da tabela BGP global, validar cobertura RPKI, consultar registros IRR e identificar anúncios suspeitos.",
     "commands": [
       {

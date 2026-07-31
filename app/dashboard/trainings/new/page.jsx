@@ -334,7 +334,7 @@ export default function NewTrainingPage() {
 						Criar Novo Treinamento
 					</h1>
 					<p className="text-lg text-slate-600">
-						Configure seu cenario de tabletop em 3 etapas simples
+						Configure seu cenário de tabletop em 3 etapas simples
 					</p>
 				</div>
 
@@ -364,7 +364,7 @@ export default function NewTrainingPage() {
 											Selecione a Categoria
 										</h2>
 										<p className="text-slate-600 mb-6">
-											Escolha a categoria do incidente que voce deseja simular
+											Escolha a categoria do incidente que você deseja simular
 										</p>
 
 										<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -388,7 +388,7 @@ export default function NewTrainingPage() {
 												Selecione o Tipo de Incidente
 											</h2>
 											<p className="text-slate-600 mb-6">
-												Escolha o tipo especifico de incidente dentro da categoria <span className="font-semibold text-blue-600">{selected_category.title}</span>
+												Escolha o tipo específico de incidente dentro da categoria <span className="font-semibold text-blue-600">{selected_category.title}</span>
 											</p>
 
 											<div className="grid grid-cols-1 gap-3">
@@ -412,14 +412,14 @@ export default function NewTrainingPage() {
 					{current_step === 2 && (
 						<>
 							{loading_scenarios ? (
-								<LoadingSpinner message="Carregando cenarios..." />
+								<LoadingSpinner message="Carregando cenários..." />
 							) : (
 								<div>
 									<h2 className="text-2xl font-bold text-slate-900 mb-2">
-										Selecione o Cenario
+										Selecione o Cenário
 									</h2>
 									<p className="text-slate-600 mb-6">
-										Escolha um cenario pre-configurado para o tipo de incidente{' '}
+										Escolha um cenário pré-configurado para o tipo de incidente{' '}
 										<span className="font-semibold text-blue-600">{selected_type?.title}</span>
 									</p>
 
@@ -430,7 +430,7 @@ export default function NewTrainingPage() {
 												<FaFileAlt className="relative text-3xl text-slate-400" />
 											</div>
 											<p className="text-slate-600 text-lg mb-2">
-												Nenhum cenario disponivel para este tipo de incidente
+												Nenhum cenário disponível para este tipo de incidente
 											</p>
 											<p className="text-slate-500 text-sm">
 												Volte e selecione outro tipo de incidente
@@ -459,10 +459,10 @@ export default function NewTrainingPage() {
 							{/* Scenario Summary */}
 							<div>
 								<h2 className="text-2xl font-bold text-slate-900 mb-2">
-									Resumo do Cenario Selecionado
+									Resumo do Cenário Selecionado
 								</h2>
 								<p className="text-slate-600 mb-6">
-									Revise os detalhes do cenario e configure a sessao de treinamento
+									Revise os detalhes do cenário e configure a sessão de treinamento
 								</p>
 
 								{selected_scenario && (
@@ -489,7 +489,7 @@ export default function NewTrainingPage() {
 													'bg-emerald-100 text-emerald-700'
 												}`}>
 													{selected_scenario.severity === 'high' ? 'Alta' :
-													 selected_scenario.severity === 'medium' ? 'Media' : 'Baixa'}
+													 selected_scenario.severity === 'medium' ? 'Média' : 'Baixa'}
 												</span>
 											</div>
 										)}
@@ -502,17 +502,17 @@ export default function NewTrainingPage() {
 							{/* Session Configuration */}
 							<div>
 								<h2 className="text-2xl font-bold text-slate-900 mb-2">
-									Configuracao da Sessao
+									Configuração da Sessão
 								</h2>
 								<p className="text-slate-600 mb-6">
-									Defina as informacoes e regras de acesso para esta sessao de treinamento
+									Defina as informações e regras de acesso para esta sessão de treinamento
 								</p>
 
 								<div className="space-y-6">
 									{/* Session Name */}
 									<div>
 										<label className="block text-sm font-semibold text-slate-700 mb-2">
-											Nome da Sessao <span className="text-red-500">*</span>
+											Nome da Sessão <span className="text-red-500">*</span>
 										</label>
 										<input
 											type="text"
@@ -530,12 +530,12 @@ export default function NewTrainingPage() {
 									{/* Session Description */}
 									<div>
 										<label className="block text-sm font-semibold text-slate-700 mb-2">
-											Descricao da Sessao <span className="text-red-500">*</span>
+											Descrição da Sessão <span className="text-red-500">*</span>
 										</label>
 										<textarea
 											value={session_description}
 											onChange={(e) => setSessionDescription(e.target.value)}
-											placeholder="Descreva os objetivos e contexto desta sessao de treinamento..."
+											placeholder="Descreva os objetivos e contexto desta sessão de treinamento..."
 											rows={4}
 											className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all resize-none"
 											maxLength={500}
@@ -584,7 +584,7 @@ export default function NewTrainingPage() {
 														<p className={`text-sm ${
 															access_type === 'open' ? 'text-blue-700' : 'text-slate-600'
 														}`}>
-															Qualquer pessoa pode participar da sessao sem necessidade de codigo
+															Qualquer pessoa pode participar da sessão sem necessidade de código
 														</p>
 													</div>
 												</div>
@@ -617,13 +617,13 @@ export default function NewTrainingPage() {
 															<h4 className={`font-bold ${
 																access_type === 'code' ? 'text-blue-900' : 'text-slate-700'
 															}`}>
-																Codigo de Acesso
+																Código de Acesso
 															</h4>
 														</div>
 														<p className={`text-sm ${
 															access_type === 'code' ? 'text-blue-700' : 'text-slate-600'
 														}`}>
-															Participantes precisam de um codigo para poder acessar a sessao
+															Participantes precisam de um código para poder acessar a sessão
 														</p>
 													</div>
 												</div>
@@ -635,7 +635,7 @@ export default function NewTrainingPage() {
 									{access_type === 'code' && (
 										<div className="animate-slide-in-up">
 											<label className="block text-sm font-semibold text-slate-700 mb-2">
-												Codigo de Acesso <span className="text-red-500">*</span>
+												Código de Acesso <span className="text-red-500">*</span>
 											</label>
 											<div className="flex flex-col sm:flex-row gap-3">
 												<div className="flex-1 relative">
@@ -643,7 +643,7 @@ export default function NewTrainingPage() {
 														type="text"
 														value={access_code}
 														onChange={handleAccessCodeChange}
-														placeholder="Digite ou gere um codigo"
+														placeholder="Digite ou gere um código"
 														className={`w-full px-4 py-3.5 pr-12 rounded-xl border bg-slate-50 focus:bg-white outline-none transition-all font-mono font-bold text-lg ${
 															code_is_valid === true
 																? 'border-emerald-500 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20'
@@ -677,25 +677,25 @@ export default function NewTrainingPage() {
 													) : (
 														<FaRandom />
 													)}
-													Gerar Codigo
+													Gerar Código
 												</button>
 											</div>
 											{/* Validation message */}
 											{code_is_valid === true && (
 												<p className="text-xs text-emerald-600 mt-2 flex items-center gap-1">
 													<FaCheckCircle />
-													Codigo valido e disponivel
+													Código válido e disponível
 												</p>
 											)}
 											{code_is_valid === false && (
 												<p className="text-xs text-red-600 mt-2 flex items-center gap-1">
 													<FaTimesCircle />
-													Codigo invalido. Use outro ou gere automaticamente.
+													Código inválido. Use outro ou gere automaticamente.
 												</p>
 											)}
 											{code_is_valid === null && (
 												<p className="text-xs text-slate-500 mt-2">
-													O codigo pode conter letras e numeros (max. 20 caracteres)
+													O código pode conter letras e números (máx. 20 caracteres)
 												</p>
 											)}
 										</div>
@@ -711,12 +711,12 @@ export default function NewTrainingPage() {
 											type="number"
 											value={max_participants}
 											onChange={(e) => setMaxParticipants(e.target.value)}
-											placeholder="Numero maximo de participantes"
+											placeholder="Número máximo de participantes"
 											min="1"
 											className="w-full md:w-64 px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
 										/>
 										<p className="text-xs text-slate-500 mt-2">
-											Defina o numero maximo de participantes permitidos nesta sessao. Esse numero deve ser a soma de todos os facilitadores, participantes e observadores.
+											Defina o número máximo de participantes permitidos nesta sessão. Esse número deve ser a soma de todos os facilitadores, participantes e observadores.
 										</p>
 									</div>
 								</div>
@@ -747,7 +747,7 @@ export default function NewTrainingPage() {
 							onClick={handleNext}
 							className="group flex items-center justify-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-3.5 rounded-xl font-semibold bg-linear-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 transition-all"
 						>
-							<span>Proximo</span>
+							<span>Próximo</span>
 							<FaChevronRight className="text-sm transition-transform group-hover:translate-x-1" />
 						</button>
 					) : (

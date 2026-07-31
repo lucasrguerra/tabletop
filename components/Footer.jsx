@@ -32,14 +32,14 @@ const Footer = () => {
                             </div>
                         </div>
                         <p className="text-slate-400 text-sm leading-relaxed">
-                            Plataforma de treinamentos em resposta a incidentes de seguranca cibernetica por meio de exercicios tabletop.
+                            Plataforma de treinamentos em resposta a incidentes de segurança cibernética por meio de exercícios tabletop.
                         </p>
                     </div>
 
                     {/* Links Section */}
                     <div className="space-y-5">
                         <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                            Links Uteis
+                            Links Úteis
                         </h3>
                         <ul className="space-y-3">
                             <li>

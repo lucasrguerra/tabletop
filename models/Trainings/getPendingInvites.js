@@ -46,8 +46,8 @@ export default async function getPendingInvites(user_id) {
 				training_name: training.name,
 				training_description: training.description,
 				created_by: {
-					name: training.created_by.name,
-					nickname: training.created_by.nickname
+					name: training.created_by?.name || 'Usuário removido',
+					nickname: training.created_by?.nickname || null
 				},
 				scenario: training.scenario,
 				invited_role: invitation.role,

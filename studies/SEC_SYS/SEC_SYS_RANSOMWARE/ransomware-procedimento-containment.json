@@ -35,7 +35,8 @@
           "NÃO desligue o host ainda — memória RAM pode conter chaves de criptografia, credenciais e artefatos forenses",
           "Se múltiplos hosts estão afetados, priorize isolar pelo segmento/VLAN para contenção em massa",
           "Mantenha um canal de comunicação alternativo com o time (telefone, Signal) — e-mail corporativo pode estar comprometido"
-        ]
+        ],
+        "rollbackAction": "Reconectar o host à rede somente após erradicação confirmada e com monitoramento reforçado. Se o isolamento tiver derrubado serviço essencial não relacionado ao incidente, liberar apenas o fluxo específico necessário por regra temporária e nominal, mantendo o restante bloqueado — jamais remover o isolamento por completo para restabelecer um serviço."
       },
       {
         "id": 2,
@@ -52,7 +53,8 @@
           "A imagem de memória deve ser feita ANTES da imagem de disco — RAM é volátil",
           "Calcule hash antes e após a cópia para garantir integridade da evidência",
           "Se não houver capacidade forense interna, contrate empresa especializada ANTES de formatar"
-        ]
+        ],
+        "rollbackAction": "Se a captura de memória falhar, não reiniciar nem desligar o host: a memória volátil é a única fonte de chaves de criptografia e de processos em execução. Repetir a captura com ferramenta alternativa e, persistindo a falha, registrar a impossibilidade e prosseguir apenas com a imagem de disco."
       },
       {
         "id": 3,
@@ -67,7 +69,8 @@
         "expectedResult": "Mapa de hosts afetados com número de arquivos criptografados. Lista de sistemas de arquivo impactados. Confirmação de comunicação C2 (se houver).",
         "warnings": [
           "Ausência de shadow copies (vssadmin list retorna vazio) confirma que ransomware já as deletou"
-        ]
+        ],
+        "rollbackAction": "Se o escopo se mostrar maior que o inicialmente estimado, ampliar o isolamento imediatamente antes de continuar o levantamento — subestimar o escopo e manter hosts conectados permite que a criptografia prossiga durante a própria investigação."
       },
       {
         "id": 4,
@@ -78,7 +81,8 @@
         "warnings": [
           "Não pague o resgate sem consulta jurídica e de seguro — o pagamento pode não resultar na chave e pode financiar atividade criminosa",
           "Comunicação pública prematura pode prejudicar a investigação — comunicados devem ser coordenados com jurídico"
-        ]
+        ],
+        "rollbackAction": "Notificação não se retira. Se a análise posterior reduzir o escopo de dados pessoais afetados, emitir comunicação complementar corrigindo a informação junto à ANPD, aos titulares e às autoridades acionadas."
       },
       {
         "id": 5,

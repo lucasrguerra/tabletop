@@ -31,7 +31,7 @@ import {
 // Status configuration with colors and icons
 const STATUS_CONFIG = {
 	not_started: {
-		label: 'Nao Iniciado',
+		label: 'Não Iniciado',
 		color: 'bg-slate-100 text-slate-700 border-slate-200',
 		icon: FaClock,
 		iconColor: 'text-slate-500',
@@ -52,7 +52,7 @@ const STATUS_CONFIG = {
 		gradient: 'from-amber-400 to-orange-500'
 	},
 	completed: {
-		label: 'Concluido',
+		label: 'Concluído',
 		color: 'bg-blue-100 text-blue-700 border-blue-200',
 		icon: FaCheckCircle,
 		iconColor: 'text-blue-500',
@@ -226,7 +226,7 @@ function Pagination({ pagination, onPageChange }) {
 	return (
 		<div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-6 border-t border-slate-200">
 			<p className="text-sm text-slate-600 order-2 sm:order-1">
-				Mostrando pagina {current_page} de {total_pages} ({total_items} treinamentos)
+				Mostrando página {current_page} de {total_pages} ({total_items} treinamentos)
 			</p>
 
 			<div className="flex items-center gap-1 order-1 sm:order-2">
@@ -234,7 +234,7 @@ function Pagination({ pagination, onPageChange }) {
 					onClick={() => onPageChange(current_page - 1)}
 					disabled={!has_prev}
 					className="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-					aria-label="Pagina anterior"
+					aria-label="Página anterior"
 				>
 					<FaChevronLeft className="text-sm" />
 				</button>
@@ -263,7 +263,7 @@ function Pagination({ pagination, onPageChange }) {
 					onClick={() => onPageChange(current_page + 1)}
 					disabled={!has_next}
 					className="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-					aria-label="Proxima pagina"
+					aria-label="Próxima página"
 				>
 					<FaChevronRight className="text-sm" />
 				</button>
@@ -281,7 +281,7 @@ function EmptyState({ hasFilters, onClearFilters, isFacilitator }) {
 				<FaFolderOpen className="relative text-3xl text-slate-400" />
 			</div>
 			<h3 className="text-lg font-semibold text-slate-900 mb-2">
-				{hasFilters ? 'Nenhum treinamento encontrado' : 'Voce ainda nao participa de nenhum treinamento'}
+				{hasFilters ? 'Nenhum treinamento encontrado' : 'Você ainda não participa de nenhum treinamento'}
 			</h3>
 			<p className="text-slate-600 mb-8 max-w-md mx-auto">
 				{hasFilters
@@ -391,14 +391,14 @@ export default function TrainingsPage() {
 	// Filter options
 	const statusOptions = [
 		{ value: 'all', label: 'Todos os Status' },
-		{ value: 'not_started', label: 'Nao Iniciado' },
+		{ value: 'not_started', label: 'Não Iniciado' },
 		{ value: 'active', label: 'Em Andamento' },
 		{ value: 'paused', label: 'Pausado' },
-		{ value: 'completed', label: 'Concluido' }
+		{ value: 'completed', label: 'Concluído' }
 	];
 
 	const roleOptions = [
-		{ value: 'all', label: 'Todos os Papeis' },
+		{ value: 'all', label: 'Todos os Papéis' },
 		{ value: 'facilitator', label: 'Facilitador' },
 		{ value: 'participant', label: 'Participante' },
 		{ value: 'observer', label: 'Observador' }

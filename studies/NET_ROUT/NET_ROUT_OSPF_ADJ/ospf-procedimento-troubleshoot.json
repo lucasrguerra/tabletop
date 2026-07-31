@@ -76,7 +76,8 @@
         "warnings": [
           "ip ospf mtu-ignore é um workaround — pode mascarar problemas de MTU que afetam outros protocolos",
           "Em túneis GRE e VxLAN, o MTU efetivo é menor que o da interface física — ajuste explicitamente"
-        ]
+        ],
+        "rollbackAction": "O comando 'ip ospf mtu-ignore' é contorno, não correção: ele permite a adjacência subir com MTU divergente, mas mantém o risco de descarte de LSAs grandes. Removê-lo assim que o MTU for igualado nos dois lados e revalidar a adjacência."
       },
       {
         "id": 5,
@@ -89,7 +90,8 @@
         "expectedResult": "Auth type e senha/chave idênticas em ambos os lados. Nenhuma mensagem de rejeição de autenticação no debug.",
         "warnings": [
           "debug ip ospf adj é muito verboso em redes com muitas adjacências — use apenas na interface específica: debug ip ospf adj GigabitEthernet0/0"
-        ]
+        ],
+        "rollbackAction": "Desativar os debugs ao final do diagnóstico ('undebug all'), pois debug de OSPF em roteador com muitas adjacências eleva a CPU e pode provocar a própria queda de sessão que se investiga. Se a autenticação foi alterada para teste, restaurar a configuração original nos dois lados."
       },
       {
         "id": 6,

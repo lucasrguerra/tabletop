@@ -4,9 +4,19 @@ import connectDatabase from '@/database/database';
 import readScenario from '@/models/Trainings/readScenario';
 
 /**
+ * Roles that monitor the exercise rather than take part in it. They read every
+ * participant's answers; they can never submit one (enforced in submitAnswer).
+ */
+const MONITOR_ROLES = ['facilitator', 'observer'];
+
+export function isMonitorRole(user_role) {
+	return MONITOR_ROLES.includes(user_role);
+}
+
+/**
  * Retrieves responses for a training, filtered by role:
  * - Participants: only their own responses
- * - Facilitators: all participant responses with summary stats
+ * - Facilitators and observers: all participant responses with summary stats
  *
  * @param {Object} params
  * @param {string} params.training_id - Training MongoDB ID
@@ -21,8 +31,8 @@ export async function getResponses({ training_id, user_id, user_role, round_id }
 
 		const query = { training_id };
 
-		// Participants and observers can only see their own responses
-		if (user_role !== 'facilitator') {
+		// Participants only ever see their own responses
+		if (!isMonitorRole(user_role)) {
 			query.user_id = user_id;
 		}
 
@@ -39,13 +49,17 @@ export async function getResponses({ training_id, user_id, user_role, round_id }
 		// Load scenario to enrich responses with justifications
 		const justificationMap = await buildJustificationMap(training_id);
 
+		// Responses whose author no longer exists are dropped: the facilitator view
+		// keys everything by user and cannot render an anonymous row.
+		const visibleResponses = responses.filter(r => r.user_id);
+
 		// Build summary statistics
-		const summary = buildSummary(responses, user_role);
+		const summary = buildSummary(visibleResponses, user_role);
 
 		// Format responses for output
-		const formattedResponses = responses.map(r => ({
+		const formattedResponses = visibleResponses.map(r => ({
 			id: r._id,
-			user: user_role === 'facilitator' ? {
+			user: isMonitorRole(user_role) ? {
 				id: r.user_id._id,
 				name: r.user_id.name,
 				nickname: r.user_id.nickname,
@@ -133,8 +147,8 @@ function buildSummary(responses, userRole) {
 		incorrect_count: responses.length - correct_count,
 	};
 
-	// Facilitators get per-participant breakdown
-	if (userRole === 'facilitator') {
+	// Monitor roles get the per-participant breakdown
+	if (isMonitorRole(userRole)) {
 		const byUser = {};
 		for (const r of responses) {
 			const uid = r.user_id._id.toString();

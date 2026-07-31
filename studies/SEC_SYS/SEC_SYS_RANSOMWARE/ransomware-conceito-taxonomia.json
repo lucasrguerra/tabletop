@@ -28,6 +28,10 @@
           "type": "warning",
           "text": "Ambientes de pesquisa e ensino superior são alvos frequentes de ransomware. Dados de pesquisa inéditos, propriedade intelectual e dados de alunos têm alto valor para extorsão. A percepção de defesas mais fracas e orçamentos limitados de segurança também aumenta a atratividade para grupos criminosos."
         },
+        "codeBlock": {
+          "language": "text",
+          "code": "Evolução do modelo de extorsão\n\n  GERAÇÃO 1 (2005-2013) — extorsão simples\n    Criptografa arquivos locais, pede resgate baixo.\n    Backup resolve. Alvo indiscriminado.\n\n  GERAÇÃO 2 (2013-2019) — criptografia forte + dispersão\n    AES para os arquivos, RSA para proteger a chave AES.\n    Sem a chave privada do atacante, não há recuperação\n    por força bruta. Backup ainda resolve.\n\n  GERAÇÃO 3 (2019-hoje) — dupla e tripla extorsão\n    1) exfiltra os dados ANTES de criptografar\n    2) criptografa\n    3) ameaça publicar se não houver pagamento\n    4) pressiona clientes/pacientes/alunos citados nos dados\n    5) denuncia a instituição a órgãos reguladores\n\n    Backup deixa de ser suficiente: ele restaura a\n    disponibilidade, mas não desfaz o vazamento.\n\n  CONSEQUÊNCIA PARA A DEFESA\n    Antes:  a pergunta era \"temos backup?\"\n    Agora:  \"conseguimos detectar exfiltração antes da\n             criptografia?\"\n\n    A janela útil é a fase de reconhecimento e movimento\n    lateral — dias ou semanas ANTES de qualquer arquivo\n    ser criptografado. Depois que a extensão dos arquivos\n    muda, o incidente já está perdido em termos de sigilo."
+        },
         "keyPoints": [
           "Criptografia real (AES+RSA) torna recuperação sem a chave praticamente impossível",
           "Extorsão dupla significa que backups isolados não eliminam completamente o risco",
@@ -42,6 +46,10 @@
           "language": "text",
           "code": "MITRE ATT&CK — Técnicas típicas de ransomware moderno:\n\nT1190 - Exploit Public-Facing Application (acesso via VPN/RDP)\nT1078 - Valid Accounts (uso de credenciais legítimas compradas)\nT1486 - Data Encrypted for Impact (a criptografia em si)\nT1490 - Inhibit System Recovery (deletar shadow copies)\nT1048 - Exfiltration Over Alternative Protocol (upload pré-criptografia)\nT1021.002 - Remote Services: SMB/Windows Admin Shares (movimento lateral)\nT1059.001 - PowerShell (execução do payload)"
         },
+        "callout": {
+          "type": "warning",
+          "text": "A criptografia é o último passo, não o primeiro. Quando os arquivos começam a ser cifrados, o atacante já esteve dias ou semanas na rede, já mapeou o ambiente e já levou os dados. Todo investimento em detecção deve mirar as fases anteriores — reconhecimento, escalada e movimento lateral — porque na fase de criptografia resta apenas conter o dano."
+        },
         "keyPoints": [
           "O ransomware é frequentemente a última fase de uma intrusão que durou dias ou semanas",
           "Deletar shadow copies (vssadmin delete shadows) é quase universal — backups locais são ineficazes",
@@ -55,6 +63,10 @@
         "callout": {
           "type": "tip",
           "text": "Monitorar a execução de 'vssadmin delete shadows' ou equivalentes PowerShell é um dos indicadores mais confiáveis de ransomware iminente. Implemente alertas de SIEM para esta ação específica."
+        },
+        "codeBlock": {
+          "language": "text",
+          "code": "Indicadores por fase — do mais cedo ao mais tarde\n\n  RECONHECIMENTO (dias antes) — melhor janela\n    Volume anormal de consultas LDAP de uma estação\n    Execução de ferramentas de enumeração de AD\n      (BloodHound, SharpHound, AdFind)\n    Varredura de portas interna a partir de host de usuário\n    Acesso sequencial a muitos compartilhamentos\n\n  ESCALADA / PERSISTÊNCIA\n    Criação de conta local ou de domínio fora do processo\n    Adição de conta a Domain Admins\n    Dump de credencial (acesso ao processo LSASS)\n    Tarefa agendada ou serviço novo em vários hosts\n\n  MOVIMENTO LATERAL\n    PsExec, WMI ou WinRM entre estações (incomum: estação\n      não costuma iniciar sessão administrativa em outra)\n    RDP de estação para estação\n    Uso de LOLBins: certutil, bitsadmin, rundll32, mshta\n\n  PRÉ-CRIPTOGRAFIA (horas antes) — último alarme útil\n    Exclusão de shadow copies:\n      vssadmin delete shadows /all /quiet\n      wbadmin delete catalog -quiet\n      bcdedit /set recoveryenabled No\n    Parada de serviços de backup e de antivírus\n    Exfiltração: volume alto de saída para nuvem pública\n      (MEGA, Dropbox, rclone) fora do horário\n\n  CRIPTOGRAFIA — tarde demais para prevenir\n    Renomeação em massa, entropia alta de arquivos\n    Notas de resgate em vários diretórios\n\n  Regra prática: alertar com prioridade máxima em\n  'vssadmin delete shadows' — é quase sempre malicioso e\n  costuma preceder a criptografia em minutos."
         },
         "keyPoints": [
           "Detecção na fase de reconhecimento ou movimento lateral permite contenção antes de criptografia",

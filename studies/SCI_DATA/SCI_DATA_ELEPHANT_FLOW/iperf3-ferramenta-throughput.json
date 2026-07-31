@@ -20,6 +20,8 @@
   "tags": ["iperf3", "throughput", "TCP", "UDP", "BDP", "buffer", "redes de pesquisa"],
   "content": {
     "toolName": "iperf3",
+    "toolVersion": "iperf3 3.16+",
+    "installHint": "Linux: apt install iperf3 / yum install iperf3 | macOS: brew install iperf3 | Windows: binários em iperf.fr | Exige um lado em modo servidor (-s)",
     "purpose": "Ferramenta para medição ativa de throughput TCP e UDP entre dois hosts. Essencial para verificar a capacidade efetiva de um path de rede, identificar limitações de buffer TCP em links com alto Bandwidth-Delay Product (BDP), e validar configurações de QoS.",
     "commands": [
       {

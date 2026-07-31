@@ -28,6 +28,10 @@
           "type": "info",
           "text": "Para que o IP spoofing funcione, o atacante precisa estar em uma rede que não implementa BCP38/uRPF (Unicast Reverse Path Forwarding). Redes que implementam filtragem de saída bloqueiam pacotes com IP de origem falso antes que saiam da rede do atacante."
         },
+        "codeBlock": {
+          "language": "text",
+          "code": "Reflexão + amplificação em três atores\n\n  ATACANTE                RESOLVER ABERTO           VÍTIMA\n  (1 Gbps)                (milhares deles)     203.0.113.10\n     |                          |                    |\n     |  consulta 60 bytes       |                    |\n     |  src IP FALSIFICADO      |                    |\n     |  = 203.0.113.10          |                    |\n     |------------------------->|                    |\n     |                          |  resposta 3900 B   |\n     |                          |------------------->|\n     |                          |                    |\n                                                  saturado\n\n  O atacante nunca troca pacote com a vítima. Para a vítima,\n  o ataque vem de milhares de resolvers legítimos — bloquear\n  a origem significa bloquear DNS de meio mundo.\n\n  Consulta que o atacante envia:\n    dig ANY isc.org @<resolver-aberto>   (60 bytes)\n  Resposta gerada:\n    ~3900 bytes com DNSSEC   → fator ~65x\n\n  Com 1 Gbps de upload e fator 65x, o atacante entrega\n  ~65 Gbps na vítima. É por isso que amplificação é o vetor\n  preferido: o custo do atacante é uma fração do dano."
+        },
         "keyPoints": [
           "IP spoofing direciona respostas para a vítima sem que ela tenha enviado consultas",
           "Resolvers abertos (open resolvers) respondem a qualquer origem — são o vetor principal",
@@ -42,6 +46,10 @@
           "language": "text",
           "code": "Consulta DNS (qualquer tipo):\n  Tamanho: ~40 bytes\n  Fonte:   [IP vítima SPOOFADO]\n  Destino: [Resolver aberto]\n\nResposta DNS (registro DNSKEY grande):\n  Tamanho: ~3.200 bytes  → fator 80x\n  Fonte:   [Resolver aberto]\n  Destino: [IP vítima]\n\nAtacante com 1 Gbps → vítima recebe até 80 Gbps"
         },
+        "callout": {
+          "type": "danger",
+          "text": "Habilitar DNSSEC aumenta o fator de amplificação, porque as respostas passam a carregar assinaturas RRSIG. Isso não é argumento contra DNSSEC — é argumento para nunca operar um resolver aberto. Um servidor autoritativo com DNSSEC e Response Rate Limiting é seguro; um resolver recursivo aberto com DNSSEC é uma arma."
+        },
         "keyPoints": [
           "Registros EDNS0/DNSSEC produzem respostas maiores — aumentam o fator de amplificação",
           "Consultas ANY foram depreciadas (RFC 8482) justamente por este vetor",
@@ -55,6 +63,10 @@
         "callout": {
           "type": "warning",
           "text": "Fechar um resolver aberto elimina o vetor mas não protege a organização de ser vítima de amplificação usando resolvers de terceiros. Implemente rate limiting no upstream e configure alertas de volumetria."
+        },
+        "codeBlock": {
+          "language": "bash",
+          "code": "# 1. Fechar recursão — BIND (named.conf)\nacl \"redes-internas\" { 200.130.0.0/16; 10.0.0.0/8; localhost; };\n\noptions {\n    allow-query        { any; };            # autoritativo p/ todos\n    allow-recursion    { redes-internas; }; # recursão só interna\n    recursion          yes;\n    additional-from-cache no;\n};\n\n# 2. Response Rate Limiting no autoritativo\nrate-limit {\n    responses-per-second 15;   # respostas idênticas por cliente/s\n    window 5;\n    slip 2;                    # 1 em cada 2 excedentes vira TC=1\n    log-only no;\n};\n# slip força o cliente legítimo a repetir em TCP, o que\n# o refletor spoofado não consegue fazer\n\n# 3. Recusar consultas ANY (RFC 8482)\nminimal-any yes;\n\n# 4. BCP38 na borda — impedir sair pacote com origem forjada\n#    Cisco:\n interface GigabitEthernet0/1\n  ip verify unicast source reachable-via rx\n#    Linux:\n net.ipv4.conf.all.rp_filter = 1\n\n# 5. Verificar se você é um refletor aberto\n$ dig +short ANY isc.org @SEU.IP.PUBLICO\n#   resposta = resolver aberto = precisa corrigir hoje"
         },
         "keyPoints": [
           "BCP38 (filtragem de saída) é a solução mais eficaz globalmente — depende de adoção do setor",

@@ -5,6 +5,7 @@ import {
 	FaQuestionCircle, FaCheckCircle, FaListOl, FaExchangeAlt, FaSortNumericDown,
 	FaChevronDown, FaCheck, FaTimes, FaUsers, FaUserCheck, FaHashtag, FaClock
 } from 'react-icons/fa';
+import { questionText } from '@/utils/questions';
 
 const TYPE_CONFIG = {
 	'multiple-choice': { label: 'Múltipla Escolha', icon: FaCheckCircle, color: 'bg-blue-100 text-blue-700' },
@@ -190,17 +191,17 @@ function QuestionResponses({ question, roundIndex, responses, totalParticipants 
 					Nenhum participante respondeu ainda
 				</p>
 			) : (
-				<div className="space-y-1.5 max-h-48 overflow-y-auto">
+				<div className="space-y-1.5 max-h-80 overflow-y-auto">
 					{qResponses.map((r) => (
 						<div
 							key={r.id}
-							className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm border ${
+							className={`flex items-start gap-3 px-3 py-2 rounded-lg text-sm border ${
 								r.is_correct
 									? 'bg-emerald-50/50 border-emerald-100'
 									: 'bg-red-50/50 border-red-100'
 							}`}
 						>
-							<div className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
+							<div className={`shrink-0 mt-0.5 w-5 h-5 rounded-full flex items-center justify-center ${
 								r.is_correct ? 'bg-emerald-500' : 'bg-red-500'
 							}`}>
 								{r.is_correct
@@ -208,14 +209,16 @@ function QuestionResponses({ question, roundIndex, responses, totalParticipants 
 									: <FaTimes className="text-white text-[10px]" />
 								}
 							</div>
-							<span className="font-medium text-slate-700 min-w-0 truncate">
-								{r.user?.nickname || r.user?.name || 'Participante'}
+							<span className="flex-1 min-w-0 break-words">
+								<span className="font-medium text-slate-700">
+									{r.user?.nickname || r.user?.name || 'Participante'}
+								</span>
+								<span className="text-slate-400 mx-1.5">—</span>
+								<span className={r.is_correct ? 'text-emerald-700' : 'text-red-700'}>
+									<ParticipantAnswerText answer={r.answer} question={question} />
+								</span>
 							</span>
-							<span className="text-slate-400 mx-1">—</span>
-							<span className={`min-w-0 truncate ${r.is_correct ? 'text-emerald-700' : 'text-red-700'}`}>
-								<ParticipantAnswerText answer={r.answer} question={question} />
-							</span>
-							<span className="text-xs text-slate-400 ml-auto shrink-0">
+							<span className="text-xs text-slate-400 shrink-0 mt-0.5">
 								{r.points_earned}/{r.points_possible} pts
 							</span>
 						</div>
@@ -236,23 +239,38 @@ function QuestionCard({ question, questionIndex, roundIndex, responses, totalPar
 		<div className="rounded-xl border border-slate-200 overflow-hidden">
 			<button
 				onClick={() => setIsOpen(!isOpen)}
-				className="w-full flex items-center gap-3 p-4 text-left hover:bg-slate-50/50 transition-colors"
+				className="w-full flex items-start gap-3 p-4 text-left hover:bg-slate-50/50 transition-colors"
 			>
 				<span className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 border border-blue-200 text-sm font-bold text-blue-600">
 					{questionIndex + 1}
 				</span>
 				<div className="flex-1 min-w-0">
-					<p className="text-sm font-medium text-slate-900 line-clamp-2">{question.text}</p>
+					<p className="text-sm font-medium text-slate-900 break-words whitespace-pre-line line-clamp-2">
+						{questionText(question)}
+					</p>
 				</div>
-				<QuestionTypeBadge type={question.type || 'multiple-choice'} />
-				<span className="text-xs font-semibold text-slate-400 shrink-0">{question.points} pts</span>
-				<FaChevronDown className={`text-slate-400 text-xs shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+				<div className="flex items-center gap-3 shrink-0 pt-0.5">
+					<QuestionTypeBadge type={question.type || 'multiple-choice'} />
+					<span className="text-xs font-semibold text-slate-400">{question.points} pts</span>
+					<FaChevronDown className={`text-slate-400 text-xs transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+				</div>
 			</button>
 
 			{isOpen && (
 				<div className="px-4 pb-4 space-y-4 border-t border-slate-100">
-					{/* Correct answer */}
+					{/* Full question text, exactly as the participants see it */}
 					<div className="pt-4">
+						<p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+							<FaQuestionCircle className="text-xs" />
+							Enunciado da Pergunta
+						</p>
+						<p className="text-sm text-slate-800 leading-relaxed break-words whitespace-pre-line">
+							{questionText(question)}
+						</p>
+					</div>
+
+					{/* Correct answer */}
+					<div>
 						<p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-2 flex items-center gap-1.5">
 							<FaCheckCircle className="text-xs" />
 							Resposta Correta

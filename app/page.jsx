@@ -25,45 +25,45 @@ export default function HomePage() {
 	const features = [
 		{
 			icon: FaShieldAlt,
-			title: "O que e um Exercicio Tabletop?",
-			description: "Exercicios tabletop sao simulacoes baseadas em discussao onde equipes trabalham juntas para resolver cenarios de incidentes de seguranca. Sem sistemas reais em risco, a equipe analisa metricas, toma decisoes e aprende com feedback imediato.",
+			title: "O que é um Exercício Tabletop?",
+			description: "Exercícios tabletop são simulações baseadas em discussão onde equipes trabalham juntas para resolver cenários de incidentes de segurança. Sem sistemas reais em risco, a equipe analisa métricas, toma decisões e aprende com feedback imediato.",
 			gradient: "from-blue-500 to-indigo-600"
 		},
 		{
 			icon: FaNetworkWired,
-			title: "Cenarios Realistas",
-			description: "Baseados em incidentes reais, os exercicios apresentam ataques DDoS, analises de logs, identificacao de botnets e outras ameacas comuns. Cada rodada simula a evolucao temporal de um ataque real.",
+			title: "Cenários Realistas",
+			description: "Baseados em incidentes reais, os exercícios apresentam ataques DDoS, análises de logs, identificação de botnets e outras ameaças comuns. Cada rodada simula a evolução temporal de um ataque real.",
 			gradient: "from-emerald-500 to-teal-600"
 		},
 		{
 			icon: FaClipboardCheck,
-			title: "Aprendizado Pratico",
-			description: "Participantes analisam metricas reais de servidores, logs de rede e dados de trafego. Respondem questoes sobre identificacao, analise e mitigacao de ataques, recebendo feedback detalhado sobre suas respostas.",
+			title: "Aprendizado Prático",
+			description: "Participantes analisam métricas reais de servidores, logs de rede e dados de tráfego. Respondem questões sobre identificação, análise e mitigação de ataques, recebendo feedback detalhado sobre suas respostas.",
 			gradient: "from-violet-500 to-purple-600"
 		},
 	];
 
 	const facilitator_steps = [
-		"Selecione um exercicio disponivel",
+		"Selecione um exercício disponível",
 		"Inicie o treinamento quando a equipe estiver pronta",
 		"Controle o fluxo das rodadas",
-		"Apresente metricas e dados em tempo real",
+		"Apresente métricas e dados em tempo real",
 		"Avalie o desempenho da equipe"
 	];
 
 	const participant_steps = [
 		"Receba o link de acesso do facilitador",
-		"Cadastre-se na sessao com seu nome e funcao",
-		"Aguarde o facilitador iniciar o exercicio",
-		"Leia os cenarios e responda as questoes",
-		"Receba feedback e pontuacao ao final"
+		"Cadastre-se na sessão com seu nome e função",
+		"Aguarde o facilitador iniciar o exercício",
+		"Leia os cenários e responda às questões",
+		"Receba feedback e pontuação ao final"
 	];
 
 	const benefits = [
 		{
 			icon: FaUsers,
 			title: "Trabalho em Equipe",
-			description: "Desenvolva coordenacao e comunicacao",
+			description: "Desenvolva coordenação e comunicação",
 			color: "blue"
 		},
 		{
@@ -74,14 +74,14 @@ export default function HomePage() {
 		},
 		{
 			icon: FaTrophy,
-			title: "Avaliacao Objetiva",
+			title: "Avaliação Objetiva",
 			description: "Identifique lacunas de conhecimento",
 			color: "amber"
 		},
 		{
 			icon: FaShieldAlt,
-			title: "Preparacao Real",
-			description: "Baseado em incidentes ciberneticos reais",
+			title: "Preparação Real",
+			description: "Baseado em incidentes cibernéticos reais",
 			color: "violet"
 		},
 	];
@@ -102,7 +102,7 @@ export default function HomePage() {
 					<div className="text-center max-w-4xl mx-auto">
 						<div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-full mb-8 animate-fade-in">
 							<FaShieldAlt className="text-blue-600 text-sm" />
-							<span className="text-sm font-medium text-blue-700">Plataforma de Treinamentos em Ciberseguranca</span>
+							<span className="text-sm font-medium text-blue-700">Plataforma de Treinamentos em Cibersegurança</span>
 						</div>
 
 						<h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-slate-900 mb-6 leading-tight animate-slide-in-up">
@@ -125,8 +125,8 @@ export default function HomePage() {
 						</h1>
 
 						<p className="text-lg md:text-xl lg:text-2xl text-slate-600 mb-10 max-w-3xl mx-auto leading-relaxed animate-slide-in-up" style={{ animationDelay: '0.1s' }}>
-							Treine sua equipe em cenarios realistas com exercicios tabletop, 
-							sem comprometer a seguranca de sistemas reais
+							Treine sua equipe em cenários realistas com exercícios tabletop, 
+							sem comprometer a segurança de sistemas reais
 						</p>
 
 						<div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-slide-in-up" style={{ animationDelay: '0.2s' }}>
@@ -174,8 +174,8 @@ export default function HomePage() {
 							Entenda o Conceito
 						</h2>
 						<p className="text-slate-600 max-w-2xl mx-auto text-lg">
-							Conheca os fundamentos dos exercicios tabletop e como eles fortalecem sua equipe 
-							para responder a incidentes de seguranca cibernetica.
+							Conheça os fundamentos dos exercícios tabletop e como eles fortalecem sua equipe 
+							para responder a incidentes de segurança cibernética.
 						</p>
 					</div>
 
@@ -260,7 +260,7 @@ export default function HomePage() {
 									<h3 className="text-xl font-bold text-slate-900">
 										Para Participantes
 									</h3>
-									<p className="text-sm text-slate-500">Aprenda na pratica</p>
+									<p className="text-sm text-slate-500">Aprenda na prática</p>
 								</div>
 							</div>
 
@@ -292,7 +292,7 @@ export default function HomePage() {
 							Beneficios do Treinamento
 						</h2>
 						<p className="text-slate-600 max-w-2xl mx-auto text-lg">
-							Desenvolva competencias essenciais para resposta a incidentes de seguranca
+							Desenvolva competências essenciais para resposta a incidentes de segurança
 						</p>
 					</div>
 					
@@ -375,7 +375,7 @@ export default function HomePage() {
 									className="flex items-center justify-center gap-2 bg-transparent text-white px-8 py-4 rounded-xl text-base font-semibold hover:bg-white/10 transition-all duration-300 border-2 border-white/30 hover:border-white/50 w-full sm:w-auto backdrop-blur"
 								>
 									<FaUser />
-									<span>Ja tenho conta</span>
+									<span>Já tenho conta</span>
 								</Link>
 							</>
 						)}

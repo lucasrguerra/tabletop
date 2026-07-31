@@ -50,7 +50,8 @@
         "warnings": [
           "MAC address duplicado na tabela CAM (mesmo MAC em portas diferentes) é sinal claro de loop",
           "Em switches empilhados (stack), o loop pode cruzar membros do stack — verificar todos"
-        ]
+        ],
+        "rollbackAction": "Reabilitar a porta isolada ('no shutdown') somente após confirmar a causa e aplicar as proteções. Se o isolamento não estancar a tempestade, a porta escolhida não era a origem: reabilitá-la e prosseguir a busca, evitando deixar portas desativadas espalhadas pela rede sem registro."
       },
       {
         "id": 3,
@@ -82,7 +83,8 @@
         "warnings": [
           "Switch não gerenciado (barato, sem STP) é a causa mais comum — usuário conecta dois cabos ao mesmo switch não gerenciado",
           "PortFast em porta de uplink faz o switch entrar imediatamente em Forwarding sem aguardar STP — loop instantâneo"
-        ]
+        ],
+        "rollbackAction": "Se a investigação alterou configuração para teste (prioridade de bridge, custo de porta, estado de PortFast), restaurar os valores originais antes de aplicar a correção definitiva — mudar a raiz do STP em produção durante a análise pode provocar nova convergência e uma segunda interrupção."
       },
       {
         "id": 5,
@@ -98,7 +100,8 @@
         "expectedResult": "BPDU Guard ativo nas portas de acesso. Storm Control configurado. STP mostrando topologia estável com portas corretas em Forwarding/Blocking.",
         "warnings": [
           "Storm Control com 'action shutdown' desliga a porta automaticamente se atingir o threshold — monitorar porta após reabilitar"
-        ]
+        ],
+        "rollbackAction": "Se BPDU Guard ou Loop Guard desativarem portas legítimas de uplink por erro de classificação, remover a proteção apenas da porta afetada ('no spanning-tree bpduguard enable') e reclassificá-la como uplink — nunca desabilitar a proteção globalmente para resolver um caso pontual."
       }
     ],
     "postConditions": [

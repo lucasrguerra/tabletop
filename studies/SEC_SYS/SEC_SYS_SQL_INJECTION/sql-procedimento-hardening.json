@@ -53,7 +53,8 @@
           "Nunca executar SQLMap em produção sem janela de manutenção e autorização — pode causar erros de banco e alertas no SIEM",
           "SQLMap pode ser detectado por WAFs — em ambiente de teste, desabilitar WAF ou usar flag --tamper para bypass",
           "SQLMap com --dump pode extrair dados reais — garantir que está em ambiente de homologação com dados anonimizados"
-        ]
+        ],
+        "rollbackAction": "SQLMap altera dados: usa injeção baseada em tempo, pode inserir registros e, com '--os-shell', escrever arquivos. Restaurar o banco de homologação a partir do snapshot tomado antes do scan e nunca reaproveitar essa base como origem para produção."
       },
       {
         "id": 3,
@@ -78,7 +79,8 @@
         "warnings": [
           "ORMs como Hibernate, SQLAlchemy e Eloquent usam prepared statements internamente — mas métodos raw_query() e execute() ainda podem ser vulneráveis se usados com concatenação",
           "ORDER BY e column names não podem ser parametrizados — se dinâmicos, usar whitelist: if ($col not in ['nome','ra','data']) { error; }"
-        ]
+        ],
+        "rollbackAction": "Se a migração para prepared statements quebrar funcionalidade (consulta dinâmica com nome de coluna variável, cláusula IN com lista, ORDER BY parametrizado), reverter o commit específico e tratar o caso com validação por lista fechada de valores permitidos — não voltar à concatenação como solução definitiva."
       },
       {
         "id": 5,
@@ -93,7 +95,8 @@
         "warnings": [
           "WAF não é substituto para código seguro — pode ser bypassado. Usar apenas como controle complementar temporário",
           "SecRuleEngine On pode bloquear tráfego legítimo — monitorar logs de WAF após ativação e ajustar exceções"
-        ]
+        ],
+        "rollbackAction": "Controles compensatórios são temporários por definição. Se as regras do WAF bloquearem uso legítimo, ajustar a regra específica em vez de desligar o conjunto, e remover o bloqueio somente depois que o prepared statement correspondente estiver em produção e validado."
       },
       {
         "id": 6,
@@ -107,7 +110,8 @@
         "expectedResult": "SQLMap não encontra vulnerabilidade. Revisão de código sem queries concatenadas. SAST sem alertas de SQLi.",
         "warnings": [
           "Retestar também os endpoints adjacentes — correção de um pode revelar que outros seguem o mesmo padrão vulnerável"
-        ]
+        ],
+        "rollbackAction": "Se o reteste apontar regressão, reverter a implantação para a versão anterior e corrigir em ambiente de homologação. Endpoint com correção parcial em produção é pior que o original, porque cria falsa confiança e sai da fila de prioridade."
       }
     ],
     "postConditions": [

@@ -88,8 +88,8 @@ export default async function getUserTrainings(user_id, options = {}) {
 				name: training.name,
 				description: training.description,
 				created_by: {
-					name: training.created_by.name,
-					nickname: training.created_by.nickname
+					name: training.created_by?.name || 'Usuário removido',
+					nickname: training.created_by?.nickname || null
 				},
 				scenario: training.scenario,
 				access_type: training.access_type,

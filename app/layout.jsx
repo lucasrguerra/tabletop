@@ -1,9 +1,17 @@
 import "./globals.css";
 import Footer from "@/components/Footer";
-import { Montserrat } from "next/font/google";
+import { Montserrat, JetBrains_Mono } from "next/font/google";
 import SessionWrapper from "@/components/SessionWrapper";
 
 const montserrat = Montserrat({ subsets: ["latin"] });
+
+// Telemetry face: clocks, counters and round positions. Tabular figures keep
+// the console from shifting as digits change during a live exercise.
+const jetbrainsMono = JetBrains_Mono({
+    subsets: ["latin"],
+    variable: "--font-mono",
+    display: "swap",
+});
 
 export const metadata = {
   title: "Exercícios Tabletop",
@@ -14,7 +22,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
     return (
         <html lang="pt-BR">
-            <body className={`${montserrat.className} flex flex-col min-h-screen`}>
+            <body className={`${montserrat.className} ${jetbrainsMono.variable} flex flex-col min-h-screen`}>
                 <SessionWrapper>
                     <div className="flex-1">
                         {children}

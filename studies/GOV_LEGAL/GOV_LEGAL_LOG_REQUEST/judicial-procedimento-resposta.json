@@ -30,7 +30,8 @@
         "warnings": [
           "NUNCA forneça logs com base em e-mail, telefonema ou solicitação informal de policiais ou investigadores — exija a ordem judicial por escrito",
           "Ordens sem determinação de escopo específico ('todos os logs') devem ser questionadas pelo jurídico antes do atendimento"
-        ]
+        ],
+        "rollbackAction": "Se o setor jurídico identificar vício formal depois de iniciada a coleta, interromper a extração imediatamente, manter o material preservado sem entregar e registrar em ata o motivo da suspensão e a data."
       },
       {
         "id": 2,
@@ -45,7 +46,8 @@
         "warnings": [
           "NÃO filtre, edite ou formate os logs antes de calcular o hash — entregue o arquivo bruto como encontrado",
           "Se os logs do período solicitado já expiraram pela política de retenção, documente isso formalmente ao jurídico"
-        ]
+        ],
+        "rollbackAction": "Se o material preservado exceder o escopo da ordem (período, contas ou IPs além do determinado), descartar o excedente mediante registro formal e refazer a extração restrita ao que foi determinado — excesso de coleta é tratado como tratamento indevido de dados pessoais."
       },
       {
         "id": 3,
@@ -57,7 +59,8 @@
         "expectedResult": "Termo de custódia assinado pelo responsável técnico e pelo representante jurídico da instituição.",
         "warnings": [
           "O técnico que extrai os logs deve assinar o termo — não delegar para outra pessoa que não participou da extração"
-        ]
+        ],
+        "rollbackAction": "Se o hash registrado no termo não conferir com o do arquivo entregue, invalidar o termo, refazer a extração a partir da fonte original preservada e emitir novo termo de custódia com a justificativa da reemissão."
       },
       {
         "id": 4,
@@ -68,7 +71,8 @@
         "warnings": [
           "Se a ordem determinar sigilo, não divulgue internamente além do estritamente necessário",
           "Notifique o usuário investigado somente se a ordem judicial autorizar — algumas ordens incluem cláusula de confidencialidade"
-        ]
+        ],
+        "rollbackAction": "Entrega não se desfaz. Constatado envio além do escopo, comunicar imediatamente o juízo e o Encarregado (DPO), solicitar formalmente a destruição do material excedente e registrar o ocorrido como incidente para avaliação sob a LGPD."
       },
       {
         "id": 5,
@@ -76,7 +80,8 @@
         "description": "Registre o atendimento em sistema de controle interno. Comunique à gestão superior e ao DPO, que pode ter obrigações adicionais de registro.",
         "commands": [],
         "expectedResult": "Registro interno completo com: número do processo, data de recebimento, data de atendimento, técnico responsável, hash dos arquivos entregues.",
-        "warnings": []
+        "warnings": [],
+        "rollbackAction": "Registro de atendimento a ordem judicial não pode ser sobrescrito. Correções entram por aditamento, preservando o histórico original e a data de cada alteração."
       }
     ],
     "postConditions": [

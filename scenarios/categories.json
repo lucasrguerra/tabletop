@@ -107,7 +107,7 @@
 	},
 	{
 		"id": "PHY_L2",
-		"title": "Infraestrutura Física e Camada 2",
+		"title": "Infraestrutura Física e Troubleshooting",
 		"description": "Incidentes na camada física ou de enlace (Camada 2), abrangendo cortes de fibra, falhas de hardware (SFP), problemas de energia e tempestades de broadcast.",
 		"types": [
 			{

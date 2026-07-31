@@ -47,8 +47,9 @@ export async function GET(request, context) {
 		}
 
 		// Build a map of accepted participants (only participants, not facilitators/observers)
+		// p.user_id is null when the referenced account was deleted — skip those.
 		const acceptedParticipants = training.participants.filter(
-			(p) => p.status === 'accepted' && p.role === 'participant'
+			(p) => p.status === 'accepted' && p.role === 'participant' && p.user_id?._id
 		);
 
 		if (acceptedParticipants.length === 0) {

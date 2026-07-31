@@ -24,6 +24,14 @@
         "id": "o-que-e-bgp",
         "title": "O que é BGP e por que ele importa",
         "body": "O Border Gateway Protocol (BGP) é o protocolo de roteamento que mantém a Internet funcionando. É o único protocolo de roteamento inter-domínio amplamente implantado, responsável por propagar informações de alcançabilidade entre os mais de 100.000 Sistemas Autônomos (AS) que compõem a Internet global.\n\nCada AS anuncia os blocos de endereços IP que ele opera — chamados de prefixos — para seus vizinhos BGP. Esses anúncios se propagam em cascata, construindo tabelas de roteamento globais. A tabela BGP global atualmente contém mais de 950.000 prefixos IPv4 e IPv6.\n\nO problema central: o BGP foi projetado em 1989 em um ambiente de confiança implícita entre operadores. Não existe autenticação nativa dos anúncios. Qualquer AS pode, técnica e silenciosamente, anunciar prefixos que não lhe pertencem.",
+        "callout": {
+          "type": "info",
+          "text": "BGP não tem noção nativa de verdade: ele propaga o que os vizinhos anunciam e escolhe rota por política, não por autenticidade. Todo mecanismo de proteção — RPKI, IRR, filtros — é uma camada adicionada por cima, e nenhuma delas é obrigatória para participar da tabela global."
+        },
+        "codeBlock": {
+          "language": "text",
+          "code": "Propagação de um anúncio legítimo\n\n  AS64500 (detentor de 200.130.0.0/16)\n     |\n     |  anuncia 200.130.0.0/16, AS_PATH: 64500\n     v\n  AS1916 (trânsito)\n     |  repassa, AS_PATH: 1916 64500\n     v\n  AS6939 (trânsito)\n     |  repassa, AS_PATH: 6939 1916 64500\n     v\n  Resto da Internet\n\n  Cada AS antepõe seu número ao AS_PATH. O caminho serve\n  para detectar loop e para escolher rota — não prova que\n  o AS de origem tem direito sobre o prefixo.\n\n  Critérios de escolha (ordem simplificada):\n    1. Maior LOCAL_PREF        (política local)\n    2. Menor AS_PATH           (menos saltos)\n    3. Menor MED\n    4. eBGP antes de iBGP\n  E antes de tudo isso: prefixo MAIS ESPECÍFICO vence\n  qualquer critério — é o que torna o hijack por /24 eficaz."
+        },
         "keyPoints": [
           "BGP é o único protocolo de roteamento inter-domínio da Internet",
           "Não possui autenticação nativa de origem de prefixos",
@@ -56,6 +64,10 @@
           "type": "info",
           "text": "Um ROA com maxLength=/16 impede que o próprio dono anuncie /24 válidos. Sempre configure ROAs adicionais ou ajuste maxLength se precisar anunciar sub-redes mais específicas legitimamente."
         },
+        "codeBlock": {
+          "language": "bash",
+          "code": "# Consultar o estado RPKI de um prefixo antes e depois do ROA\n\n$ routinator vrps --filter-prefix 200.130.0.0/16\nASN,Prefix,Max Length,Trust Anchor\nAS64500,200.130.0.0/16,24,lacnic\n\n# Estado da rota no roteador (Cisco IOS-XR)\nRP/0/0/CPU0:router# show bgp 200.130.5.0/24\n  Path #1: Received by speaker 0\n  origin-AS validity: invalid          <-- ROA existe, origem não bate\n  64496\n    198.51.100.1 from 198.51.100.1\n\n# Política que descarta Invalid (JunOS)\npolicy-statement rpki-check {\n    term invalid {\n        from validation-database invalid;\n        then reject;\n    }\n    term unknown {\n        from validation-database unknown;\n        then { local-preference 90; accept; }\n    }\n    term valid {\n        from validation-database valid;\n        then { local-preference 110; accept; }\n    }\n}\n\n# Rejeitar Invalid só funciona se o validador estiver ativo.\n# Validador fora do ar => tudo vira Unknown => nada é bloqueado."
+        },
         "keyPoints": [
           "ROA = declaração criptograficamente assinada de quem pode originar um prefixo",
           "ROV = processo de validar anúncios BGP contra ROAs",
@@ -66,6 +78,14 @@
         "id": "manrs-irr",
         "title": "MANRS e IRR: A Camada de Filtragem Operacional",
         "body": "O Internet Routing Registry (IRR) é um conjunto de bases de dados distribuídas onde operadores registram objetos route e route6 — declarações de quais prefixos cada AS anuncia. Transit providers usam esses registros para construir prefix filters e bloquear anúncios de clientes que extrapolam o que foi declarado.\n\nO MANRS (Mutually Agreed Norms for Routing Security) é uma iniciativa da comunidade de operadores que formaliza quatro ações: (1) filtragem de clientes, (2) anti-spoofing BCP38, (3) manutenção de contatos de operações, (4) publicação de ROAs RPKI e registros IRR.\n\nA RNP já é membro do MANRS. O registro dos prefixos no IRR e a publicação de ROAs para os blocos operados são obrigações que diretamente reduzem a janela de exposição a sequestros.",
+        "callout": {
+          "type": "warning",
+          "text": "Registros IRR desatualizados causam mais incidentes operacionais do que hijacks. Um objeto route esquecido de um cliente que saiu há dois anos permite que outro AS anuncie aquele prefixo e passe pelos filtros do upstream. Trate a remoção de objetos IRR como parte do processo de desligamento de cliente."
+        },
+        "codeBlock": {
+          "language": "bash",
+          "code": "# Gerar prefix-list a partir do IRR com bgpq4\n\n$ bgpq4 -Jl AS64500-IN AS-EXAMPLE\npolicy-options {\nreplace:\n prefix-list AS64500-IN {\n    200.130.0.0/16;\n    200.131.0.0/17;\n }\n}\n\n# Formato Cisco\n$ bgpq4 -l AS64500-IN AS-EXAMPLE\nno ip prefix-list AS64500-IN\nip prefix-list AS64500-IN permit 200.130.0.0/16\nip prefix-list AS64500-IN permit 200.131.0.0/17\n\n# Consultar objeto route existente\n$ whois -h whois.radb.net 200.130.0.0/16\nroute:      200.130.0.0/16\norigin:     AS64500\nmnt-by:     MAINT-AS64500\nchanged:    noc@exemplo.br 20240115\n\n# As quatro ações do MANRS:\n#  1. Filtragem      — filtrar anúncios de clientes por IRR/RPKI\n#  2. Anti-spoofing  — aplicar BCP38 na borda\n#  3. Coordenação    — manter contatos atualizados no PeeringDB\n#  4. Validação      — publicar ROAs e objetos IRR corretos"
+        },
         "keyPoints": [
           "IRR não usa criptografia — é baseado em confiança operacional entre operadores",
           "MANRS combina IRR + RPKI + anti-spoofing em uma postura de segurança coerente",

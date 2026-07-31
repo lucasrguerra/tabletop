@@ -42,11 +42,11 @@ export default function RegisterPage() {
 				if (data.success && data.csrf_token) {
 					setCsrfToken(data.csrf_token);
 				} else {
-					setError('Erro ao carregar token de seguranca');
+					setError('Erro ao carregar token de segurança');
 				}
 			} catch (err) {
 				console.error('Failed to fetch CSRF token');
-				setError('Erro ao carregar token de seguranca');
+				setError('Erro ao carregar token de segurança');
 			}
 		};
 
@@ -68,12 +68,12 @@ export default function RegisterPage() {
 		setSuccess('');
 
 		if (formData.password !== formData.confirmPassword) {
-			setError('As senhas nao coincidem');
+			setError('As senhas não coincidem');
 			return;
 		}
 
 		if (!csrf_token) {
-			setError('Token de seguranca nao encontrado. Recarregue a pagina.');
+			setError('Token de segurança não encontrado. Recarregue a página.');
 			return;
 		}
 
@@ -237,7 +237,7 @@ export default function RegisterPage() {
 									/>
 								</div>
 								<p className="mt-2 text-xs text-slate-500">
-									Apenas letras, numeros, pontos e underscore
+									Apenas letras, números, pontos e underscore
 								</p>
 							</div>
 
@@ -272,7 +272,7 @@ export default function RegisterPage() {
 									</button>
 								</div>
 								<p className="mt-2 text-xs text-slate-500">
-									Minimo 8 caracteres, com maiusculas, minusculas, numeros e caracteres especiais
+									Mínimo 8 caracteres, com maiúsculas, minúsculas, números e caracteres especiais
 								</p>
 							</div>
 
@@ -340,7 +340,7 @@ export default function RegisterPage() {
 						{/* Footer */}
 						<div className="mt-8 pt-6 border-t border-slate-100 text-center">
 							<p className="text-sm text-slate-600">
-								Ja tem uma conta?{' '}
+								Já tem uma conta?{' '}
 								<Link href="/login" className="text-blue-600 hover:text-blue-700 font-semibold hover:underline transition-colors">
 									Entrar
 								</Link>
@@ -355,7 +355,7 @@ export default function RegisterPage() {
 							className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 transition-colors group"
 						>
 							<FaArrowLeft className="text-xs group-hover:-translate-x-1 transition-transform" />
-							<span>Voltar para pagina inicial</span>
+							<span>Voltar para página inicial</span>
 						</Link>
 					</div>
 				</div>

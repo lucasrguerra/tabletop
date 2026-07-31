@@ -34,7 +34,8 @@
         "warnings": [
           "Rx Power abaixo de -30 dBm quase certamente indica fibra cortada, conector sujo ou SFP com defeito",
           "Tx Power anormalmente baixo indica SFP com laser degradado — troque o transceptor"
-        ]
+        ],
+        "rollbackAction": "Leitura de DDM não altera o enlace. Se os valores lidos forem incoerentes (Tx e Rx zerados com o link operacional), suspeitar do próprio transceptor ou da leitura do equipamento antes de intervir na planta óptica."
       },
       {
         "id": 2,
@@ -46,7 +47,8 @@
           "NUNCA olhe diretamente para a ponta de um cabo de fibra sem primeiro verificar se há sinal óptico ativo — risco de lesão ocular",
           "Use apenas ferramentas de limpeza apropriadas: swab de limpeza seco ou kit de limpeza IEC 61300-3-35",
           "Limpe sempre imediatamente antes de conectar — fibra limpa e depois deixada exposta recontamina"
-        ]
+        ],
+        "rollbackAction": "Se a potência piorar após a limpeza, o conector provavelmente foi danificado ou contaminado no processo: substituir o patch cord e refazer a medição. Nunca reinserir conector que tenha encostado em superfície sem nova limpeza."
       },
       {
         "id": 3,
@@ -56,7 +58,8 @@
         "expectedResult": "Após substituição do patch cord, Rx Power retorna à faixa normal e link sobe.",
         "warnings": [
           "Verifique o tipo de conector (LC, SC, ST) e o tipo de fibra (single-mode 9/125 µm ou multimode 50/125 µm ou 62.5/125 µm) — incompatibilidade causa alta atenuação"
-        ]
+        ],
+        "rollbackAction": "Se o patch cord novo não melhorar a potência, recolocar o original e seguir a investigação na planta externa — descartar o cabo antigo antes de confirmar o diagnóstico elimina a possibilidade de comparação."
       },
       {
         "id": 4,
@@ -67,7 +70,8 @@
         "warnings": [
           "Desconecte o link ativo no outro lado antes de conectar o OTDR — sinal ativo danifica o equipamento",
           "A precisão do OTDR depende do índice de refração configurado — verifique as especificações da fibra instalada"
-        ]
+        ],
+        "rollbackAction": "A medição com OTDR exige desconectar a fibra do equipamento ativo. Ao concluir, reconectar na mesma posição e polaridade, confirmar a leitura de DDM e validar o tráfego antes de liberar o enlace — inversão de polaridade Tx/Rx é erro comum ao reconectar."
       },
       {
         "id": 5,
@@ -78,7 +82,8 @@
         "warnings": [
           "Emendas mecânicas (não fusão) têm perda típica de 0.3-0.5 dB — evitar em backbones",
           "Documentar a posição e comprimento do trecho substituído no inventário da planta"
-        ]
+        ],
+        "rollbackAction": "Se a emenda executada em campo elevar a atenuação acima do orçamento óptico do enlace, refazê-la antes de liberar o circuito. Enquanto o reparo não estabilizar, manter o tráfego pelo caminho alternativo e não remover o desvio."
       }
     ],
     "postConditions": [

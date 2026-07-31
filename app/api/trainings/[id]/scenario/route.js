@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { withAuth } from '@/utils/auth';
 import { withTrainingRole } from '@/utils/trainingAuth';
 import readScenario from '@/models/Trainings/readScenario';
+import { questionText } from '@/utils/questions';
 
 /**
  * Strips sensitive answer data from a question object.
@@ -14,7 +15,7 @@ function sanitizeQuestion(question) {
 	const safe = {
 		id: question.id,
 		type,
-		text: question.text,
+		text: questionText(question),
 		points: question.points,
 	};
 
@@ -75,9 +76,11 @@ function sanitizeRound(round) {
  * GET /api/trainings/[id]/scenario
  *
  * Returns scenario data for the training, filtered by role:
- * - Facilitator: full scenario data (all rounds, all fields)
- * - Participant / Observer: only rounds up to and including current_round,
- *   with answer-sensitive fields stripped from questions.
+ * - Facilitator / Observer: full scenario data (all rounds, all fields).
+ *   Observers evaluate the team, so they need the answer key just like the
+ *   facilitator — they simply cannot act on the training.
+ * - Participant: only rounds up to and including current_round, with
+ *   answer-sensitive fields stripped from questions.
  *
  * Requires authentication and training participation.
  */
@@ -98,15 +101,15 @@ export const GET = withAuth(withTrainingRole(async (request, context, session, t
 
 		const scenario = scenarioResult.scenario;
 
-		// Facilitator gets everything unchanged
-		if (userRole === 'facilitator') {
+		// Roles that monitor the exercise get everything unchanged
+		if (userRole === 'facilitator' || userRole === 'observer') {
 			return NextResponse.json({
 				success: true,
 				scenario,
 			}, { status: 200 });
 		}
 
-		// Participant & Observer: filter rounds and strip answers
+		// Participant: filter rounds and strip answers
 		const currentRound = training.current_round ?? 0;
 		const visibleRounds = (scenario.rounds || [])
 			.filter((_, index) => index <= currentRound)

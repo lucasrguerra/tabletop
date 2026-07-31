@@ -24,6 +24,14 @@
         "id": "o-que-e-vlan",
         "title": "O que é uma VLAN e por que existe",
         "body": "Em uma rede comutada sem VLANs, todos os hosts conectados ao mesmo conjunto de switches compartilham o mesmo domínio de broadcast. Isso significa que um broadcast enviado por qualquer host (ARP request, DHCP discover, etc.) é recebido por todos os outros hosts — independente de serem da mesma organização ou segmento lógico.\n\nUma VLAN (Virtual Local Area Network) cria domínios de broadcast virtuais dentro de um ou mais switches físicos. Hosts em VLANs diferentes não se comunicam diretamente em L2 — precisam de um roteador (ou switch L3) para atravessar a fronteira de VLAN.\n\nBenefícios práticos:\n- Contenção de broadcast storms: um loop L2 em VLAN 10 não afeta VLAN 20\n- Segurança: um host comprometido em VLAN de usuários não enxerga tráfego da VLAN de servidores\n- Organização lógica: separar setores (TI, RH, Pesquisa) em VLANs diferentes sem rearranjar cabos físicos\n- Redução de tabela MAC: cada VLAN tem sua própria tabela MAC no switch",
+        "callout": {
+          "type": "info",
+          "text": "Uma VLAN é um domínio de broadcast, não um domínio de segurança. Ela impede que o broadcast de um segmento alcance o outro, mas quem decide se um host da VLAN 10 fala com um da VLAN 20 é a política de roteamento — sem ACL entre elas, a segmentação não isola coisa alguma além do broadcast."
+        },
+        "codeBlock": {
+          "language": "text",
+          "code": "Mesmo switch, com e sem VLAN\n\n  SEM VLAN — um único domínio de broadcast\n    +---------------------------------------------+\n    | SW  P1     P2      P3       P4      P5       |\n    +---------------------------------------------+\n       PC-Adm  PC-Lab  Camera  Servidor  Visitante\n\n    ARP do visitante chega em TODOS, inclusive no servidor.\n    Um host infectado varre a rede inteira sem passar por\n    nenhum roteador ou firewall.\n\n  COM VLAN — domínios separados\n    +---------------------------------------------+\n    | SW  P1     P2      P3       P4      P5       |\n    |    VLAN10 VLAN20  VLAN30   VLAN10   VLAN99   |\n    +---------------------------------------------+\n       PC-Adm  PC-Lab  Camera  Servidor  Visitante\n\n    VLAN 10 -> Administrativo\n    VLAN 20 -> Laboratório\n    VLAN 30 -> Câmeras (IoT, sem patch)\n    VLAN 99 -> Visitantes (só saída para Internet)\n\n    O broadcast do visitante morre na VLAN 99.\n    Para VLAN 99 alcançar VLAN 10 é preciso passar pelo\n    roteador — onde existe ACL, log e controle."
+        },
         "keyPoints": [
           "VLAN = domínio de broadcast virtual — broadcast não atravessa fronteira de VLAN",
           "Comunicação entre VLANs requer roteamento (L3) — switch L3 ou roteador dedicado",
@@ -37,6 +45,10 @@
         "codeBlock": {
           "language": "text",
           "code": "Frame Ethernet sem tag:\n[ Dest MAC (6B) | Src MAC (6B) | EtherType (2B) | Payload | FCS ]\n\nFrame Ethernet com tag 802.1Q:\n[ Dest MAC (6B) | Src MAC (6B) | TPID 0x8100 (2B) | PCP|DEI|VID (2B) | EtherType (2B) | Payload | FCS ]\n                                 ^_____ 802.1Q Tag (4 bytes) _____^\n\nExemplo de VID para VLAN 100:\nPCP=0, DEI=0, VID=0x064 (100 decimal)"
+        },
+        "callout": {
+          "type": "tip",
+          "text": "A tag 802.1Q acrescenta 4 bytes ao quadro, elevando o tamanho máximo de 1518 para 1522 bytes. Equipamento antigo que não reconheça esse formato descarta o quadro como \"giant\" ou \"baby giant\". Quando VLANs param de funcionar só em links específicos, verifique os contadores de erro de tamanho antes de suspeitar da configuração de VLAN."
         },
         "keyPoints": [
           "802.1Q adiciona 4 bytes ao frame Ethernet — VLAN ID de 12 bits suporta até 4094 VLANs",
@@ -52,6 +64,10 @@
           "language": "text",
           "code": "Configuração típica — Cisco IOS:\n\n! Porta access para usuário:\ninterface GigabitEthernet0/1\n switchport mode access\n switchport access vlan 10\n spanning-tree portfast\n!\n! Porta trunk entre switches:\ninterface GigabitEthernet0/24\n switchport mode trunk\n switchport trunk encapsulation dot1q\n switchport trunk allowed vlan 10,20,30,99\n switchport trunk native vlan 999\n!\n! Verificar configuração:\nshow interfaces trunk\nshow vlan brief"
         },
+        "callout": {
+          "type": "warning",
+          "text": "Nunca deixe a negociação automática de trunk (DTP) ativa em porta de usuário. Um atacante pode negociar um trunk a partir do notebook dele e passar a receber o tráfego de todas as VLANs permitidas no link. Configure explicitamente switchport mode access e switchport nonegotiate em toda porta de acesso."
+        },
         "keyPoints": [
           "Access: um host, uma VLAN. Trunk: múltiplas VLANs com 802.1Q tags",
           "Native VLAN deve ser trocada da VLAN 1 para evitar VLAN hopping por frames não taggeados",
@@ -65,6 +81,10 @@
         "callout": {
           "type": "warning",
           "text": "VLAN separada para servidores sem ACL no roteador inter-VLAN é segurança ilusória. Um host comprometido que consiga roteamento para a VLAN de servidores tem acesso completo. Sempre combine VLANs com ACLs nos gateways inter-VLAN."
+        },
+        "codeBlock": {
+          "language": "bash",
+          "code": "# VLAN hopping por double tagging — como funciona e como fechar\n#\n#   Atacante na VLAN 1 (native) envia quadro com DUAS tags:\n#     [802.1Q VLAN 1][802.1Q VLAN 20][payload]\n#   O primeiro switch remove a tag da native (VLAN 1) e\n#   encaminha pelo trunk — o quadro chega ao segundo switch\n#   ainda com a tag da VLAN 20 e entra nela.\n#   O tráfego é unidirecional, mas basta para varredura.\n\n# Mitigação 1 — native VLAN dedicada e sem hosts\nSW(config)# vlan 999\nSW(config-vlan)# name NATIVE-NAO-USADA\nSW(config)# interface GigabitEthernet0/48\nSW(config-if)# switchport trunk native vlan 999\nSW(config-if)# switchport trunk allowed vlan 10,20,30\n\n# Mitigação 2 — taguear também a native\nSW(config)# vlan dot1q tag native\n\n# Mitigação 3 — travar portas de acesso\nSW(config-if)# switchport mode access\nSW(config-if)# switchport access vlan 10\nSW(config-if)# switchport nonegotiate\nSW(config-if)# spanning-tree bpduguard enable\n\n# Mitigação 4 — limitar MACs por porta\nSW(config-if)# switchport port-security\nSW(config-if)# switchport port-security maximum 2\nSW(config-if)# switchport port-security violation restrict\n\n# Conferir o que realmente passa no trunk\nSW# show interfaces trunk\nPort      Mode  Encapsulation  Status   Native vlan\nGi0/48    on    802.1q         trunking 999\nPort      Vlans allowed on trunk\nGi0/48    10,20,30"
         },
         "keyPoints": [
           "VLAN Hopping via double tagging: mitigar trocando a native VLAN para VLAN não utilizada",

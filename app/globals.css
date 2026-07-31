@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* Bind the telemetry face loaded in layout.jsx to Tailwind's `font-mono`, so
+   `font-mono tabular-nums` in the training console renders JetBrains Mono. */
+@theme inline {
+	--font-mono: var(--font-mono), ui-monospace, SFMono-Regular, monospace;
+}
+
 /* ============================================
    CUSTOM PROPERTIES & DESIGN TOKENS
    ============================================ */

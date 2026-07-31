@@ -96,7 +96,8 @@
         "warnings": [
           "QoS protege tráfego classificado mas não cria capacidade — se o link está saturado por tráfego legítimo, aumento de capacidade é necessário",
           "Aguardar pelo menos 10 minutos após correção antes de retestar para dar tempo ao TCP de sair do estado de backoff"
-        ]
+        ],
+        "rollbackAction": "Se a mitigação aplicada não reduzir a perda medida pelo perfSONAR em até 24 horas, revertê-la antes de tentar a hipótese seguinte. Acumular políticas de QoS, ajustes de buffer e alterações de roteamento sem reverter as que não funcionaram torna impossível atribuir causa e deixa configuração órfã no equipamento."
       }
     ],
     "postConditions": [

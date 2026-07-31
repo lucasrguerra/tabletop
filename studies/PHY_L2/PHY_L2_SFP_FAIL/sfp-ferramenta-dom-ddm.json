@@ -20,6 +20,8 @@
   "tags": ["SFP", "DDM", "DOM", "óptico", "potência", "diagnóstico"],
   "content": {
     "toolName": "DDM/DOM (Digital Diagnostic Monitoring)",
+    "toolVersion": "ethtool 5.x+ / SFF-8472 rev 12.0",
+    "installHint": "Linux: apt install ethtool | Switches: comandos nativos do fabricante (show interfaces transceiver) | Requer suporte a DDM no transceptor",
     "purpose": "Ler parâmetros de diagnóstico em tempo real de transceptores ópticos: temperatura, tensão, corrente do laser, potência TX e RX.",
     "commands": [
       {

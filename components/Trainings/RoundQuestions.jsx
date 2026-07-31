@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { FaQuestionCircle, FaCheckCircle, FaListOl, FaExchangeAlt, FaSortNumericDown, FaChevronLeft, FaChevronRight, FaHashtag, FaArrowsAltV, FaArrowUp, FaArrowDown, FaPaperPlane, FaCheck, FaTimes, FaLock, FaEye } from 'react-icons/fa';
+import { questionText } from '@/utils/questions';
 
 const TYPE_CONFIG = {
 	'multiple-choice': {
@@ -108,8 +109,8 @@ function QuestionDisplay({ question, index, total, selectedAnswer, onAnswerChang
 
 			{/* Question text */}
 			<div className="p-5 bg-linear-to-br from-slate-50 to-blue-50/30 rounded-2xl border border-slate-200">
-				<p className="text-lg font-medium text-slate-900 leading-relaxed">
-					{question.text}
+				<p className="text-lg font-medium text-slate-900 leading-relaxed break-words whitespace-pre-line">
+					{questionText(question)}
 				</p>
 			</div>
 

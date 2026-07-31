@@ -28,6 +28,10 @@
           "type": "warning",
           "text": "A LGPD não especifica um prazo exato em horas ou dias. O regulamento da ANPD (Resolução CD/ANPD nº 02/2022) estabelece que a comunicação deve ser feita em até 3 dias úteis após o conhecimento do incidente para os casos de risco relevante, com comunicação complementar possível em até 20 dias úteis."
         },
+        "codeBlock": {
+          "language": "text",
+          "code": "Avaliação de risco relevante — critérios práticos (Art. 48 LGPD)\n\n  NOTIFICAR quando houver QUALQUER destes:\n  [x] Dados sensíveis expostos (saúde, biometria, origem racial,\n      convicção religiosa, opinião política, vida sexual)\n  [x] Dados financeiros ou que permitam fraude (cartão, conta, CPF+RG)\n  [x] Credenciais de acesso (senha, token) sem hash forte\n  [x] Volume expressivo de titulares\n  [x] Titulares vulneráveis (crianças, adolescentes, idosos)\n  [x] Dado exposto publicamente ou exfiltrado por terceiro\n\n  PODE NÃO NOTIFICAR quando TODOS forem verdade:\n  [ ] Dados criptografados com chave íntegra e não comprometida\n  [ ] Nenhum acesso efetivo comprovado (só possibilidade teórica)\n  [ ] Nenhum dado sensível envolvido\n  → Ainda assim: REGISTRAR a avaliação e a justificativa\n\n  Exemplo prático:\n  Notebook furtado, disco com BitLocker, sem sinal de acesso\n  → risco baixo, decisão documentada, sem notificação\n\n  Mesmo notebook, disco SEM criptografia, 8.000 matrículas\n  → risco relevante, NOTIFICAR ANPD + titulares"
+        },
         "keyPoints": [
           "O gatilho para notificação é o risco ou dano relevante aos titulares — não o incidente em si",
           "Comunicação ao DPO interno deve ocorrer imediatamente após identificação",
@@ -42,6 +46,10 @@
           "language": "text",
           "code": "Informações mínimas para comunicação à ANPD:\n\n1. Identificação do controlador (CNPJ, nome, contato do DPO)\n2. Data/hora do incidente e da descoberta\n3. Descrição: como ocorreu, o que foi afetado\n4. Tipos de dados: nome, e-mail, CPF, dados de saúde, etc.\n5. Volume: número de titulares afetados (estimativa aceita)\n6. Riscos identificados para os titulares\n7. Medidas de contenção já tomadas\n8. Plano de ação para mitigação e prevenção"
         },
+        "callout": {
+          "type": "warning",
+          "text": "Notificação incompleta não interrompe o prazo. Se a ANPD receber uma comunicação sem os elementos mínimos do Art. 48 §1º, o incidente segue em aberto para efeito de contagem. Quando alguma informação ainda não estiver disponível, notifique dentro do prazo com o que já se sabe, declare explicitamente o que está pendente e o prazo de complemento — é preferível a uma notificação tardia e completa."
+        },
         "keyPoints": [
           "DPO é o ponto focal — deve ser notificado internamente antes da comunicação à ANPD",
           "Volume estimado é aceito — não é necessário aguardar análise forense completa",
@@ -55,6 +63,10 @@
         "callout": {
           "type": "info",
           "text": "A ANPD pode exigir que a comunicação aos titulares seja feita de forma ampla (como publicação no site institucional) quando o número de afetados é muito grande ou quando a identificação individual não é viável. Avalie com o jurídico e o DPO."
+        },
+        "codeBlock": {
+          "language": "text",
+          "code": "Modelo de comunicação ao titular — linguagem acessível\n\n  Assunto: Comunicado sobre incidente com seus dados pessoais\n\n  Prezado(a) [NOME],\n\n  Em [DATA], identificamos um acesso não autorizado a um de\n  nossos sistemas. Verificamos que dados seus estavam entre os\n  afetados.\n\n  O QUE FOI AFETADO\n  - Nome completo, e-mail institucional e número de matrícula\n  - NÃO foram afetados: senha, dados bancários, dados de saúde\n\n  O QUE JÁ FIZEMOS\n  - O acesso foi bloqueado em [DATA/HORA]\n  - A ANPD foi notificada em [DATA]\n  - As senhas de todos os usuários foram invalidadas\n\n  O QUE VOCÊ DEVE FAZER\n  1. Cadastre uma nova senha ao entrar no sistema\n  2. Desconfie de mensagens que citem este incidente e peçam\n     dados ou pagamento — não pediremos isso por e-mail\n\n  CONTATO\n  Encarregado de Dados (DPO): dpo@instituicao.br\n\n  Evite: jargão técnico, minimizar o ocorrido, atribuir culpa\n  ao titular, ou omitir o que ainda está sob investigação."
         },
         "keyPoints": [
           "Titulares têm o direito de saber que seus dados foram expostos",

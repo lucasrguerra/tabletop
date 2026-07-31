@@ -23,8 +23,11 @@ Uma plataforma completa para condução de **exercícios tabletop** de resposta 
 - [Como Usar](#-como-usar)
 - [Estrutura de Cenários](#-estrutura-de-cenários)
 - [Categorias de Incidentes](#-categorias-de-incidentes)
+- [Biblioteca de Estudos](#-biblioteca-de-estudos)
 - [API Endpoints](#-api-endpoints)
 - [Segurança](#-segurança)
+- [Testes](#-testes)
+- [Design da Interface](#-design-da-interface)
 - [Deploy](#-deploy)
 - [Contribuindo](#-contribuindo)
 - [Licença](#-licença)
@@ -78,10 +81,14 @@ Exercícios tabletop são simulações baseadas em discussão onde equipes traba
 - ✅ Enviar avaliação pós-treinamento (ratings + comentário)
 
 ### Para Observadores
-- ✅ Acompanhar o treinamento em modo read-only
-- ✅ Visualizar cenário, métricas e questões (sem possibilidade de resposta)
-- ✅ Navegar entre rodadas disponíveis
-- ✅ Auto-sincronização quando o facilitador avança de rodada
+- ✅ Acompanhar o treinamento sem qualquer controle sobre ele
+- ✅ Ver as respostas de todos os participantes, o gabarito e as justificativas — o mesmo acesso de leitura do facilitador
+- ✅ Acompanhar o medidor de respostas e as estatísticas de desempenho em tempo real
+- ✅ Navegar entre rodadas disponíveis, com aviso quando o facilitador abre uma nova
+- ❌ Não pode responder questões, controlar rodadas nem ver o código de acesso
+
+> O papel de observador existe para avaliar a equipe e embasar o feedback ao
+> final. Por isso recebe o gabarito: sem ele, não teria o que observar.
 
 ### Sistema de Questões
 A plataforma suporta 5 tipos de questões para avaliar diferentes habilidades cognitivas (baseado na Taxonomia de Bloom):
@@ -116,31 +123,57 @@ Distribuição recomendada por cenário: 60-70% múltipla escolha, 10-15% verdad
 | `/dashboard/trainings/access` | Entrar em treinamentos: formulário de código de acesso ou navegar por treinamentos abertos com filtros por status |
 | `/dashboard/trainings/invites` | Ver convites pendentes com aceitar/recusar |
 | `/dashboard/trainings/:id` | Redirecionamento automático para a view do papel do usuário (facilitator/participant/observer) |
-| `/dashboard/trainings/:id/facilitator` | Painel completo do facilitador: barra de comandos, timers, controle de rodadas, métricas, questões com respostas em tempo real, lista de participantes, convites, código de acesso, estatísticas, avaliações, exportação PDF |
-| `/dashboard/trainings/:id/participant` | Experiência do participante: responder questões, visualizar métricas, navegar rodadas, dashboard de resultados pessoais, formulário de avaliação |
-| `/dashboard/trainings/:id/observer` | View read-only: cenário, métricas, questões (sem interação), auto-sync de rodadas, orientações para observadores |
+| `/dashboard/trainings/:id/facilitator` | Console de comando, controle de rodadas e medidor de respostas ao vivo. O que aparece muda conforme a fase — preparação, ao vivo ou análise (ver [DESIGN.md](DESIGN.md)) |
+| `/dashboard/trainings/:id/participant` | Responder questões, ler evidências, navegar rodadas, progresso pessoal no console; ao encerrar, resultados e avaliação |
+| `/dashboard/trainings/:id/observer` | Acesso de leitura equivalente ao do facilitador — respostas de todos, gabarito, justificativas e estatísticas — sem nenhum controle |
+| `/dashboard/studies` | Biblioteca de estudos: busca, filtros por categoria/tipo/dificuldade, ordenação e paginação servida pelo backend; estado na URL |
+| `/dashboard/studies/:id` | Artigo completo, com registro de leitura e conclusão |
+| `/dashboard/admin` | Painel administrativo: métricas da plataforma, gestão de usuários e de treinamentos (exige `admin`) |
 
 ## 🛠️ Tecnologias Utilizadas
 
 ### Frontend
 | Tecnologia | Versão | Função |
 |-----------|--------|--------|
-| [Next.js](https://nextjs.org/) | 16.1.6 | Framework React com SSR e App Router |
+| [Next.js](https://nextjs.org/) | 16.2.12 | Framework React com SSR e App Router |
 | [React](https://react.dev/) | 18 | Biblioteca JavaScript para interfaces |
 | [TailwindCSS](https://tailwindcss.com/) | 4.1.18 | Framework CSS utility-first |
 | [React Icons](https://react-icons.github.io/react-icons/) | 5.5.0 | Biblioteca de ícones |
 | [Recharts](https://recharts.org/) | 3.6.0 | Gráficos e visualização de dados |
-| [jsPDF](https://github.com/parallax/jsPDF) | 4.1.0 | Geração de relatórios PDF |
+| [jsPDF](https://github.com/parallax/jsPDF) | 4.2.1 | Geração de relatórios PDF |
 | [jspdf-autotable](https://github.com/simonbengtsson/jsPDF-AutoTable) | 5.0.7 | Tabelas em relatórios PDF |
+
+Tipografia: **Montserrat** para a interface e **JetBrains Mono** para telemetria
+(relógios, contadores, posição de rodada), ambas via `next/font/google`.
 
 ### Backend & Autenticação
 | Tecnologia | Versão | Função |
 |-----------|--------|--------|
-| [NextAuth.js](https://next-auth.js.org/) | 4.24.13 | Autenticação com Credentials Provider |
+| [NextAuth.js](https://next-auth.js.org/) | 4.24.15 | Autenticação com Credentials Provider |
 | [MongoDB](https://www.mongodb.com/) | — | Banco de dados NoSQL |
-| [Mongoose](https://mongoosejs.com/) | 9.0.1 | ODM para MongoDB com schemas validados |
+| [Mongoose](https://mongoosejs.com/) | 9.9.0 | ODM para MongoDB com schemas validados |
 | [bcryptjs](https://github.com/dcodeIO/bcrypt.js) | 3.0.3 | Hash de senhas |
 | [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken) | 9.0.3 | Geração e validação de JWTs com issuer/audience |
+| [Socket.IO](https://socket.io/) | 4.8.3 | Atualização em tempo real do treinamento |
+
+### Desenvolvimento
+| Tecnologia | Versão | Função |
+|-----------|--------|--------|
+| [Vitest](https://vitest.dev/) | 4.1.10 | Execução de testes unitários e de integração |
+| [mongodb-memory-server](https://github.com/typegoose/mongodb-memory-server) | 10.4.3 | MongoDB em memória para os testes de integração |
+
+#### Sobre o bloco `overrides` do `package.json`
+
+```json
+"overrides": { "postcss": "^8.5.25", "sharp": "^0.35.3" }
+```
+
+Ambas as bibliotecas são dependências transitivas do Next.js e o range que ele
+declara ainda aponta para versões com CVE aberto — `sharp` é fixado em `^0.34.5`,
+enquanto a correção das vulnerabilidades de libvips exige `>= 0.35.0`. Os
+overrides existem só por isso e devem ser removidos quando o Next.js passar a
+declarar as versões corrigidas. Com eles, `npm audit` reporta zero
+vulnerabilidades, inclusive com `--omit=dev`.
 
 ## 🏗️ Arquitetura
 
@@ -157,39 +190,51 @@ Distribuição recomendada por cenário: 60-70% múltipla escolha, 10-15% verdad
 │                   MIDDLEWARE (proxy.js)                      │
 │  Security Headers │ CSP │ HSTS │ Route Protection │ JWT Check│
 ├─────────────────────────┼────────────────────────────────────┤
-│                    API ROUTES (32 endpoints)                 │
-│   ┌────────┐ ┌──────┐ ┌────────────┐ ┌───────────────┐       │
-│   │  Auth  │ │ CSRF │ │ Trainings  │ │    Users      │       │
-│   │NextAuth│ │ HMAC │ │ 22 routes  │ │  4 routes     │       │
-│   └────────┘ └──────┘ └────────────┘ └───────────────┘       │
-│        │ withAuth │ withCsrf │ withTrainingRole │ rateLimit  │
-├────────┼──────────┼──────────┼──────────────────┼────────────┤
+│                    API ROUTES (35 endpoints)                 │
+│  ┌──────┐ ┌────┐ ┌──────────┐ ┌─────┐ ┌───────┐ ┌────────┐   │
+│  │ Auth │ │CSRF│ │Trainings │ │Users│ │Studies│ │ Admin  │   │
+│  │ + 2  │ │HMAC│ │18 routes │ │  4  │ │   3   │ │   5    │   │
+│  └──────┘ └────┘ └──────────┘ └─────┘ └───────┘ └────────┘   │
+│              ┌──────────────┐ ┌───────────────┐              │
+│              │ Notifications│ │  /api/health  │              │
+│              └──────────────┘ └───────────────┘              │
+│   withAuth │ withCsrf │ withTrainingRole │ withAdmin │ rate  │
+├────────────┼──────────┼──────────────────┼──────────┼────────┤
 │                     MODELS (Lógica de Negócio)               │
 │  ┌──────────┐ ┌──────────────┐  ┌────────┐ ┌──────────────┐  │
 │  │   User   │ │  Trainings   │  │ Token  │ │Notifications │  │
 │  │ register │ │ create/join  │  │ create │ │   create     │  │
 │  │  login   │ │ submit/eval  │  │validate│ │  markAsRead  │  │
-│  │  getOne  │ │ 16 funções   │  │ revoke │ │getUserNotifs │  │
+│  │  getOne  │ │ 17 funções   │  │ revoke │ │getUserNotifs │  │
 │  └──────────┘ └──────────────┘  └────────┘ └──────────────┘  │
+│         ┌──────────────┐  ┌────────────────────┐             │
+│         │   Studies    │  │       Admin        │             │
+│         │ list/read    │  │ getStats/getUsers  │             │
+│         │ progress     │  │ update/deleteUser  │             │
+│         └──────────────┘  └────────────────────┘             │
 ├──────────────────────────────────────────────────────────────┤
 │                     DATABASE (MongoDB)                       │
 │   ┌──────┐ ┌──────────┐ ┌───────┐ ┌──────────┐ ┌──────────┐  │
 │   │ User │ │ Training │ │ Token │ │ Response │ │Evaluation│  │
 │   └──────┘ └──────────┘ └───────┘ └──────────┘ └──────────┘  │
-│                    ┌──────────────┐                          │
-│                    │ Notification │                          │
-│                    └──────────────┘                          │
+│           ┌──────────────┐ ┌────────────────┐                │
+│           │ Notification │ │ StudyProgress  │                │
+│           └──────────────┘ └────────────────┘                │
 ├──────────────────────────────────────────────────────────────┤
-│                    SCENARIOS (31 JSON files)                 │
-│  GOV_LEGAL(5) NET_ROUT(6) NET_VOL(6) PHY_L2(6)               │
+│         CONTEÚDO EM ARQUIVO (lido do disco, não do banco)    │
+│  SCENARIOS (31 JSON)          STUDIES (43 JSON)              │
+│  GOV_LEGAL(5) NET_ROUT(6)     CONCEITO(17) PROCEDIMENTO(11)  │
+│  NET_VOL(6)   PHY_L2(6)       FERRAMENTA(9) GLOSSARIO(6)     │
 │  SCI_DATA(4)  SEC_SYS(4)                                     │
 └──────────────────────────────────────────────────────────────┘
 ```
 
 ### Padrões Chave
 - **Autenticação**: NextAuth.js com `CredentialsProvider` → JWT strategy → tokens armazenados como hashes SHA-256 no banco → sessões de 30 dias
-- **Autorização**: Middleware composável via HOFs: `withAuth` → `withCsrf` → `withTrainingRole(['facilitator'])`
+- **Autorização**: Middleware composável via HOFs: `withAuth` → `withCsrf` → `withTrainingRole(['facilitator'])`. As flags `admin` e `facilitator` são relidas do banco a cada requisição — a sessão nunca é fonte de verdade para privilégio (ver [Segurança](#-segurança))
 - **WebSockets (Socket.IO)**: Comunicação em tempo real para sincronizar o status do treinamento, timers, respostas dos participantes, ranking público e notificações.
+- **Conteúdo em arquivo**: cenários e artigos de estudo são JSON versionados no repositório, não registros de banco. O índice de estudos é lido do disco uma vez e mantido em memória (`clearStudyArticleCache()` invalida)
+- **Estado da interface na URL**: filtros, busca e paginação da biblioteca de estudos vivem em query params, de modo que uma visão filtrada é compartilhável e o botão voltar funciona
 - **Path alias**: `@/*` mapeia para a raiz do projeto via jsconfig.json
 
 ## 📁 Estrutura do Projeto
@@ -197,7 +242,7 @@ Distribuição recomendada por cenário: 60-70% múltipla escolha, 10-15% verdad
 ```
 tabletop/
 ├── app/                              # App Router do Next.js
-│   ├── api/                          # 32 API Routes
+│   ├── api/                          # 35 API Routes
 │   │   ├── auth/                     # Autenticação (NextAuth + logout)
 │   │   ├── csrf/                     # Geração de token CSRF
 │   │   ├── notifications/            # Notificações (GET/PATCH)
@@ -327,8 +372,18 @@ tabletop/
 │   ├── SCI_DATA/                     # 4 cenários - Dados Científicos
 │   └── SEC_SYS/                      # 4 cenários - Segurança de Sistemas
 │
-├── utils/                            # 9 Utilitários
-│   ├── auth.js                       # NextAuth config + withAuth HOF
+├── studies/                          # 43 artigos de estudo (JSON)
+│   ├── glossarios/                   # 6 glossários, um por categoria
+│   └── <CATEGORIA>/<TIPO>/           # conceitos, procedimentos e ferramentas
+│
+├── tests/                            # 20 arquivos, 289 testes (Vitest)
+│   ├── setup/                        # env, MongoMemoryServer, limpeza entre testes
+│   ├── unit/                         # models e utils
+│   └── integration/                  # middlewares e models com banco real
+│
+├── utils/                            # 14 Utilitários
+│   ├── auth.js                       # NextAuth config + withAuth/withAdmin HOFs
+│   │                                 #   + getCurrentUserPrivileges (revalida no banco)
 │   ├── csrf.js                       # HMAC CSRF tokens + withCsrf HOF
 │   ├── jwt.js                        # Geração/verificação/hash de JWTs
 │   ├── rateLimit.js                  # Rate limiter in-memory (4 tiers)
@@ -336,21 +391,29 @@ tabletop/
 │   ├── regexes.js                    # Validação de email/nickname (RFC 5322)
 │   ├── timingSafe.js                 # crypto.timingSafeEqual + random delay
 │   ├── trainingAuth.js               # Autorização por papel + withTrainingRole HOF
+│   ├── questions.js                  # questionText() — aceita `text` ou `question`
+│   ├── useTraining.js                # Hook compartilhado pelas 3 views de treinamento
+│   ├── socket.js                     # Emissores server-side de eventos Socket.IO
+│   ├── useSocket.js                  # Cliente Socket.IO da sala de treinamento
+│   ├── useUserSocket.js              # Cliente Socket.IO da sala do usuário (notificações)
 │   └── useAuth.js                    # Hook React client-side (logout)
 │
 ├── proxy.js                          # Middleware Next.js (security headers + auth)
 ├── Dockerfile                        # Container Node.js 22 (slim)
-├── package.json                      # Dependências
+├── docker-compose.yml                # App + MongoDB com healthchecks
+├── vitest.config.mjs                 # Configuração dos testes
+├── package.json                      # Dependências (+ overrides de segurança)
 ├── postcss.config.mjs                # Configuração PostCSS (TailwindCSS)
 ├── jsconfig.json                     # Path alias (@/*)
 ├── SCENARIO_STRUCTURE.md             # Documentação de cenários
+├── DESIGN.md                         # Decisões de interface
 ├── LICENSE                           # Licença MIT
 └── README.md                         # Este arquivo
 ```
 
 ## 🗄️ Banco de Dados
 
-A aplicação utiliza MongoDB com Mongoose como ODM. São 6 coleções principais:
+A aplicação utiliza MongoDB com Mongoose como ODM. São 7 coleções:
 
 ### Schemas
 
@@ -422,6 +485,19 @@ Unique constraint: `(training_id, user_id, round_id, question_id)` — impede du
 | `comment` | String | Comentário livre (max 1000) |
 
 Unique constraint: `(training_id, user_id)` — uma avaliação por participante.
+
+#### StudyProgress
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `user_id` | ObjectId → User | Dono do progresso (unique — um documento por usuário) |
+| `articles[]` | Array | `{article_id, category, content_type, first_read_at, last_read_at, read_count, completed, completed_at}` |
+| `total_read`, `total_completed` | Number | Contadores agregados |
+| `last_activity_at` | Date | Última leitura registrada |
+
+Cada entrada carrega a própria `category`, o que permite calcular o progresso por
+categoria sem depender do índice de artigos carregado no cliente.
+
+Índices: `(user_id, articles.article_id)` e `(user_id, articles.category)`.
 
 ### Configuração da Conexão
 
@@ -689,9 +765,67 @@ A plataforma oferece **31 cenários** organizados em **6 categorias** com **31 t
 
 > **Nota**: O tipo "Desfiguração de Site (Web Defacement)" está cadastrado na categoria SEC_SYS mas ainda não possui cenário JSON implementado.
 
+## 📚 Biblioteca de Estudos
+
+Material técnico para preparação antes do exercício e consulta durante ele,
+acessível em `/dashboard/studies`. São **43 artigos** em JSON versionado, nas
+mesmas seis categorias dos cenários.
+
+### Tipos de artigo
+
+Cada tipo tem um renderizador próprio em `components/Studies/` e um formato de
+conteúdo distinto:
+
+| Tipo | Qtd | Estrutura do `content` | Renderizador |
+|------|-----|------------------------|--------------|
+| `CONCEITO` | 17 | `sections[]` — cada seção com `body`, `keyPoints[]`, `callout`, `codeBlock` | `StudyConceptBody` |
+| `PROCEDIMENTO` | 11 | `context`, `steps[]`, `postConditions[]`, `escalationCriteria[]` | `StudyProcedureBody` |
+| `FERRAMENTA` | 9 | `toolName`, `toolVersion`, `installHint`, `commands[]`, `outputFields[]`, `commonPitfalls[]` | `StudyToolBody` |
+| `GLOSSARIO` | 6 | `terms[]` — cada termo com `definition`, `seeAlso[]`, `relatedStudyId` | `StudyGlossaryBody` |
+
+Campos relevantes por elemento:
+
+- **`callout`** — `{type, text}`, com `type` ∈ `info | warning | tip | danger`.
+  Cada tipo tem cor e ícone próprios; use `danger` apenas para risco real de dano.
+- **`codeBlock`** — `{language, code}`. Aceita comandos reais ou diagramas em
+  texto; `language` alimenta o rótulo exibido acima do bloco.
+- **`step.rollbackAction`** — como desfazer um passo que altera estado. Passos
+  puramente diagnósticos (só comandos de leitura) não têm o campo, e o
+  renderizador omite o bloco. A lista dos passos isentos é explícita em
+  `tests/unit/models/studies.integrity.test.js`.
+- **`term.relatedStudyId`** — leva o leitor do termo ao artigo que o desenvolve.
+  Termos sem artigo correspondente ficam com `null` e constam da lista
+  `SEM_ARTIGO_AINDA` no mesmo teste — é a fila de conteúdo a escrever.
+
+### Busca, filtros e paginação
+
+A listagem é paginada **no servidor** (`models/Studies/getStudyArticles.js`):
+
+| Parâmetro | Valores | Observação |
+|-----------|---------|------------|
+| `page` | inteiro ≥ 1 | Valor inválido cai em 1; acima do total prende na última página |
+| `limit` | 1–48 | Padrão 12, teto `MAX_PAGE_SIZE` |
+| `search` | texto livre | Busca em título, descrição, tags e categoria, ignorando acento e caixa; todos os termos precisam casar |
+| `category` | ID da categoria | — |
+| `content_type` | `CONCEITO`… | — |
+| `difficulty` | `Basico`\|`Intermediario`\|`Avancado` | — |
+| `sort` | `relevance`\|`title`\|`difficulty`\|`readTime`\|`recent` | `relevance` mantém a ordem curada |
+
+A resposta inclui `facets`, com as contagens por categoria, tipo e dificuldade
+calculadas sobre **todo o resultado filtrado** e não sobre a página atual — sem
+isso os números dos chips mudariam a cada troca de página.
+
+### Integridade do conteúdo
+
+`tests/unit/models/studies.integrity.test.js` valida a biblioteca inteira a cada
+execução da suíte: ids únicos, `relatedStudies` e `prerequisites` sem referência
+morta, campos obrigatórios por tipo, `callout.type` dentro dos quatro conhecidos,
+e ausência de link quebrado nos glossários. Um artigo novo incompleto quebra o
+teste antes de chegar à interface.
+
 ## 🔌 API Endpoints
 
-A plataforma expõe **32 endpoints** organizados em 5 grupos. Todas as rotas mutáveis (POST/PATCH/DELETE) autenticadas incluem proteção CSRF.
+A plataforma expõe **35 endpoints**. Todas as rotas mutáveis (POST/PATCH/DELETE) autenticadas incluem proteção CSRF.
 
 ### Autenticação & CSRF
 
@@ -745,6 +879,34 @@ A plataforma expõe **32 endpoints** organizados em 5 grupos. Todas as rotas mut
 | POST | `/api/users/sessions/revoke` | ✅ | ✅ | — | Revogar sessão específica |
 | POST | `/api/users/sessions/revoke-all` | ✅ | ✅ | — | Revogar todas exceto a atual |
 
+### Estudos
+
+| Método | Rota | Auth | CSRF | Descrição |
+|--------|------|------|------|-----------|
+| GET | `/api/studies` | ✅ | — | Listar artigos paginados (`page`, `limit`, `search`, `sort`, `category`, `content_type`, `difficulty`); retorna `pagination`, `facets` e `library_total` |
+| GET | `/api/studies/:id` | ✅ | — | Artigo completo com o corpo do conteúdo |
+| GET | `/api/studies/progress` | ✅ | — | Progresso de leitura do usuário |
+| POST | `/api/studies/progress` | ✅ | ✅ | Registrar leitura ou conclusão de um artigo |
+
+### Administração
+
+Todas exigem `admin === true` **verificado no banco** a cada requisição, via `withAdmin`.
+
+| Método | Rota | Auth | CSRF | Descrição |
+|--------|------|------|------|-----------|
+| GET | `/api/admin/stats` | ✅ | — | Métricas agregadas da plataforma |
+| GET | `/api/admin/users` | ✅ | — | Listar usuários |
+| PATCH | `/api/admin/users/:id` | ✅ | ✅ | Conceder/remover papel de facilitador |
+| DELETE | `/api/admin/users/:id` | ✅ | ✅ | Deletar usuário em cascata (participações, respostas, avaliações) |
+| GET | `/api/admin/trainings` | ✅ | — | Listar todos os treinamentos |
+| DELETE | `/api/admin/trainings/:id` | ✅ | ✅ | Deletar qualquer treinamento |
+
+### Operação
+
+| Método | Rota | Auth | CSRF | Descrição |
+|--------|------|------|------|-----------|
+| GET | `/api/health` | — | — | Health check: verifica a conexão com o MongoDB. `200` com `{status:'ok'}` ou `503` se o banco estiver inacessível. Usado pelo healthcheck do container |
+
 ## 🔒 Segurança
 
 A aplicação implementa uma arquitetura de segurança em múltiplas camadas:
@@ -772,22 +934,124 @@ A aplicação implementa uma arquitetura de segurança em múltiplas camadas:
 | **Sanitização** | Prevenção NoSQL Injection | Rejeita objetos, bloqueia operadores MongoDB (`$`, `{`, `}`), limpa HTML |
 | **Timing-Safe** | `crypto.timingSafeEqual` | Comparações em tempo constante + delay aleatório (0-100ms) em falhas de auth |
 | **Autorização** | RBAC por treinamento | Middleware `withTrainingRole` filtra dados por papel (facilitador/participante/observador) |
+| **Privilégio** | Revalidado no banco | `admin` e `facilitator` são relidos a cada requisição — a sessão não é fonte de verdade |
 | **Dados** | Proteção em profundidade | Password hash `select: false`, tokens como SHA-256, TTL auto-delete, unique constraints |
 | **Validação** | Regex + Mongoose schemas | Email RFC 5322, nickname alfanumérico, schemas com max lengths e enums |
 | **Transporte** | HSTS + middleware | Redirecionamento `/dashboard` sem JWT → `/login`, CSP restritivo |
 
+### Privilégio não vem da sessão
+
+A sessão do NextAuth é um JWT emitido no login com validade de 30 dias. Se
+`admin` e `facilitator` fossem lidos dele, revogar o privilégio de alguém só
+teria efeito quando a sessão expirasse ou a pessoa refizesse login — uma janela
+de até um mês.
+
+Por isso `withAuth` e `withAdmin` chamam `getCurrentUserPrivileges(user_id)`,
+que lê as flags direto do banco (`findById` com projeção de dois campos), e
+sobrescrevem os valores na sessão antes de entregá-la ao handler:
+
+```js
+const privileges = await getCurrentUserPrivileges(session.user.id);
+if (!privileges) { return 401; }          // conta deletada durante a sessão
+session.user.admin       = privileges.admin;
+session.user.facilitator = privileges.facilitator;
+```
+
+Consequências: revogação e promoção valem já na requisição seguinte, e uma
+sessão cuja conta foi deletada recebe `401` em vez de seguir adiante. O custo é
+uma consulta indexada por requisição autenticada.
+
+### Correção do rate limiter
+
+O limitador guarda a expiração como `reset_time`, mas a checagem lia
+`resetTime`. Como `now > undefined` é sempre falso, **a janela nunca reiniciava
+pelo caminho da requisição**: o contador só crescia e o cliente ficava bloqueado
+até a rotina de limpeza rodar, o que independe do `window_ms` configurado.
+Coberto por teste de regressão em `tests/unit/utils/rateLimit.test.js`.
+
+## 🧪 Testes
+
+Suíte em [Vitest](https://vitest.dev/), com MongoDB em memória para os testes de
+integração. **289 testes em 20 arquivos.**
+
+| Comando | Escopo |
+|---------|--------|
+| `npm test` | Suíte completa |
+| `npm run test:unit` | Apenas `tests/unit` |
+| `npm run test:integration` | Apenas `tests/integration` (sobe MongoDB em memória) |
+| `npm run test:watch` | Modo interativo |
+| `npm run test:coverage` | Cobertura de `models/` e `utils/` via V8 |
+
+```
+tests/
+├── setup/
+│   ├── env.js            # variáveis de ambiente + database por worker
+│   ├── globalSetup.js    # sobe o MongoMemoryServer
+│   └── database.js       # limpa coleções entre testes
+├── unit/
+│   ├── models/           # grading, password, integridade de cenários e estudos
+│   └── utils/            # csrf, jwt, rateLimit, sanitize, timingSafe, trainingAuth
+└── integration/
+    ├── api/              # middlewares withAuth / withCsrf / withAdmin / privilégios
+    └── models/           # register, login, joinTraining (com concorrência real)
+```
+
+> **Isolamento entre workers**: `globalSetup` expõe o MongoMemoryServer sem nome
+> de database, então todos os workers cairiam no mesmo banco `test` — e como o
+> helper limpa todas as coleções entre testes, um arquivo apagava os dados de
+> outro rodando em paralelo. `tests/setup/env.js` dá a cada worker seu próprio
+> database (`tabletop_test_<worker_id>`).
+
+Os testes de conteúdo (`scenarios.integrity`, `studies.integrity`) validam os
+JSON versionados no repositório e falham quando um cenário ou artigo novo está
+incompleto — inclusive verificando que a resposta oficial de cada questão recebe
+pontuação máxima no corretor.
+
+## 🎨 Design da Interface
+
+As decisões visuais e de layout da aplicação — sistema de cores, tipografia,
+hierarquia por fase do treinamento e os componentes compartilhados — estão
+documentadas em **[DESIGN.md](DESIGN.md)**.
+
 ## 🐳 Deploy
 
-### Docker
+### Docker Compose (recomendado)
+
+Sobe a aplicação e o MongoDB já conectados:
+
+```bash
+npm run build:release        # gera .next.tar.gz, exigido pelo Dockerfile
+docker compose up -d --build
+docker compose ps            # ambos devem aparecer como "healthy"
+```
+
+Os dois serviços têm healthcheck. O do MongoDB usa `db.adminCommand('ping')`; o
+da aplicação consulta `/api/health`, que confirma a conexão com o banco. Como a
+imagem `node:22-slim` não traz `curl` nem `wget`, o comando usa o próprio Node:
+
+```yaml
+healthcheck:
+  test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+  interval: 15s
+  timeout: 5s
+  retries: 5
+  start_period: 40s
+```
+
+O `depends_on` da aplicação usa `condition: service_healthy`, de modo que ela só
+sobe depois que o banco responde — e não apenas quando o container inicia.
+
+As variáveis seguem o padrão de nomes do Coolify (`SERVICE_USER_MONGODB`,
+`SERVICE_PASSWORD_64_NEXTAUTH`, `SERVICE_PASSWORD_64_CSRF`, `SERVICE_URL_APP`),
+com valores de desenvolvimento como padrão — **troque todos antes de expor**.
+
+### Docker (imagem isolada)
 
 O Dockerfile utiliza `node:22-slim` e espera que o build Next.js já tenha sido executado:
 
 ```bash
-# Build da aplicação
-npm run build
-
-# Comprimir o build (exigido pelo Dockerfile)
-zip -r .next.zip .next
+# Build da aplicação e empacotamento (o Dockerfile descompacta .next.tar.gz)
+npm run build:release
 
 # Build da imagem
 docker build -t tabletop .
@@ -860,13 +1124,21 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 | `npm run start` | Inicia servidor de produção via `server.mjs` (com `NODE_ENV=production`) |
 | `npm run lint` | Executa linting do código pelo Next.js |
 | `npm run clean` | Remove as pastas `.next` e arquivos de build `.tar.gz` usando `rimraf` |
+| `npm test` | Executa a suíte completa de testes |
+| `npm run test:unit` | Somente testes unitários |
+| `npm run test:integration` | Somente testes de integração (MongoDB em memória) |
+| `npm run test:watch` | Testes em modo interativo |
+| `npm run test:coverage` | Relatório de cobertura de `models/` e `utils/` |
 | `node scripts/add-facilitator.mjs <nickname>` | Concede papel de facilitador a um usuário cadastrado |
 | `node scripts/remove-facilitator.mjs <nickname>` | Remove o papel de facilitador de um usuário cadastrado |
 
 ### Limitações Conhecidas
 
 - **Redundância/Clusterização**: Atualmente a implementação do Next.js rate limiting em memória e as instâncias de WebSocket (Socket.IO) operam como Single Node stateful. Para múltiplos nós/clusters é necessário alocar persistência compartilhada (ex: adaptador Redis).
+- **Cache de estudos por processo**: o índice de artigos é mantido em memória por instância. Alterar um JSON em `studies/` exige reiniciar o processo (ou chamar `clearStudyArticleCache()`), o que é adequado para conteúdo versionado no repositório mas não para edição em tempo de execução.
 - **Cenário SEC_SYS_WEB_DEFACEMENT**: Tipo cadastrado mas sem cenário JSON implementado
+- **Conteúdo pendente na biblioteca**: os termos `PDoS`, `EDoS` e `Yo-Yo DoS` estão definidos no glossário mas ainda não têm artigo que os aprofunde — a lista está em `SEM_ARTIGO_AINDA`, em `tests/unit/models/studies.integrity.test.js`.
+- **`overrides` no `package.json`**: `postcss` e `sharp` são forçados acima do range declarado pelo Next.js para eliminar CVEs; revisar a cada atualização do framework.
 
 ---
 

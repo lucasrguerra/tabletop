@@ -28,6 +28,10 @@
           "type": "danger",
           "text": "Ataques de amplificação NTP via monlist foram responsáveis pelos maiores ataques DDoS registrados até 2014 (> 400 Gbps). A vulnerabilidade CVE-2013-5211 está associada a este vetor."
         },
+        "codeBlock": {
+          "language": "bash",
+          "code": "# Testar se um servidor NTP responde a monlist\n$ ntpdc -n -c monlist 198.51.100.53\nremote address      port local address    count m ver rstr avgint  lstint\n===============================================================\n203.0.113.7        123 198.51.100.53      982 3 4    0      12       3\n192.0.2.44         123 198.51.100.53      771 3 4    0      45       9\n... (até 600 entradas)\n\n#  Se listar hosts => VULNERÁVEL\n#  Se \"timed out\" ou recusar => corrigido\n\n# Alternativa moderna (ntpdc está obsoleto)\n$ ntpq -c rv 198.51.100.53\n$ nmap -sU -p123 --script ntp-monlist 198.51.100.53\n\n# Matemática da amplificação\n#   consulta MON_GETLIST ......    8 bytes de payload\n#   resposta (600 entradas) ... 4460 bytes\n#   fator ..................... ~556x\n#\n#   1 Gbps de upload do atacante -> ~556 Gbps na vítima\n\n# Correção definitiva (/etc/ntp.conf)\ndisable monitor\nrestrict default kod nomodify notrap nopeer noquery\nrestrict -6 default kod nomodify notrap nopeer noquery\nrestrict 127.0.0.1\n\n$ systemctl restart ntp"
+        },
         "keyPoints": [
           "Fator de amplificação de até 556x — maior de todos os protocolos explorados para DDoS",
           "Servidores NTP com ntpd < 4.2.7p26 são vulneráveis por padrão",
@@ -41,6 +45,10 @@
         "codeBlock": {
           "language": "bash",
           "code": "# Verificar se servidor NTP responde a monlist (requer nmap com script)\nnmap -sU -p 123 --script ntp-monlist <SERVIDOR_NTP>\n\n# Corrigir em ntpd — adicionar ao ntp.conf:\ndisable monitor\n\n# Reiniciar ntpd após a correção\nsystemctl restart ntpd\n\n# Verificar que chrony está instalado (recomendado em vez de ntpd)\nsystemctl status chronyd"
+        },
+        "callout": {
+          "type": "tip",
+          "text": "Migrar para o Chrony resolve o problema por eliminação: ele nunca implementou monlist e restringe o acesso ao socket de comando por padrão. Em distribuições recentes o Chrony já é o serviço de tempo padrão — em muitos servidores basta confirmar que o ntpd antigo não ficou instalado e ativo em paralelo."
         },
         "keyPoints": [
           "Verificar servidores NTP internos — organizações também podem ser fonte involuntária de amplificação",

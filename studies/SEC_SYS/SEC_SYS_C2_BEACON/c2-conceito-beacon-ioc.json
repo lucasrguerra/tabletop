@@ -24,6 +24,14 @@
         "id": "o-que-e-beaconing",
         "title": "O que é beaconing e por que é difícil detectar",
         "body": "Beaconing é o padrão de comunicação periódica de malware com seu servidor de Command and Control (C2). O malware envia periodicamente um sinal de 'estou vivo' ao C2, que pode responder com novos comandos, payloads ou dados exfiltrados.\n\nO intervalo pode ser fixo (ex: a cada 60 segundos) ou jitterizado (aleatório ±30% para dificultar detecção). A carga de dados em cada beacon pode ser mínima (keep-alive) ou conter resultados de comandos executados.\n\nPor que é difícil detectar: beacons muitas vezes usam protocolos legítimos (HTTPS, DNS, HTTP) e se misturam ao tráfego normal de usuários. Um único beacon de 200 bytes a cada 5 minutos é invisível em um link de 10 Gbps.",
+        "callout": {
+          "type": "info",
+          "text": "O beacon é ruidoso por natureza: para receber comandos, o implante precisa falar com o C2 repetidamente, e repetição gera padrão. Essa é a assimetria a favor do defensor — o atacante pode trocar de domínio e de IP a cada hora, mas não consegue eliminar a periodicidade sem perder o controle do host."
+        },
+        "codeBlock": {
+          "language": "text",
+          "code": "Beacon x tráfego humano — o que diferencia\n\n  BEACON (implante, intervalo 300s, jitter 5%)\n    09:00:02  350 B enviados / 280 B recebidos\n    09:05:14  352 B / 280 B\n    09:10:01  350 B / 284 B\n    09:14:49  351 B / 280 B\n    ...ininterrupto por 72 horas, inclusive 03h da manhã\n\n    desvio dos intervalos: 297s, 287s, 288s -> baixíssimo\n    variação do tamanho: < 2% -> payload constante\n\n  NAVEGAÇÃO HUMANA\n    09:00:02   14 kB / 1,2 MB\n    09:00:04  8,1 kB / 840 kB\n    09:03:41   22 kB / 4,4 MB\n    09:47:10  6,3 kB / 120 kB\n    ...silêncio das 18h às 8h, silêncio no fim de semana\n\n    intervalos irregulares, tamanhos muito variáveis\n\n  Métrica prática de periodicidade:\n    coef_variacao = desvio_padrao(intervalos) / media(intervalos)\n\n    < 0,05  -> beacon quase certo\n    0,05-0,20 -> beacon com jitter, investigar\n    > 0,50  -> provavelmente humano ou aplicação legítima\n\n  Cuidado com falso positivo: atualizador de antivírus,\n  agente de monitoramento e NTP também são periódicos.\n  Diferencie pelo destino e pela reputação, não só pelo padrão."
+        },
         "keyPoints": [
           "Beaconing periódico permite ao atacante manter acesso sem conexão contínua — menor exposição",
           "Jitter dificulta detecção por período fixo — análise estatística ainda detecta o padrão",
@@ -38,6 +46,10 @@
           "type": "warning",
           "text": "Domain Fronting foi amplamente usado por APTs e grupos de ransomware usando Cobalt Strike. CDNs como Cloudflare e Google implementaram restrições, mas variantes continuam emergindo. Detectar por comportamento (periodicidade) é mais eficaz que bloquear por domínio."
         },
+        "codeBlock": {
+          "language": "text",
+          "code": "Evasão de canal C2 e o que ainda é observável\n\n  DGA (Domain Generation Algorithm)\n    O malware gera centenas de domínios/dia:\n      kqxvbnmzlp.com   wjdhfnsqoe.net   plmzxkdiwq.org\n    O atacante registra 2 ou 3. O resto dá NXDOMAIN.\n    -> Observável: pico de NXDOMAIN de um único host,\n       domínios com alta entropia de caracteres.\n       Sinal: > 50 NXDOMAIN/hora do mesmo endereço interno.\n\n  Domain Fronting\n    TLS SNI aponta para cdn-legitimo.com, mas o header\n    Host: dentro do TLS aponta para o C2 real.\n    -> Observável: divergência entre SNI e Host quando há\n       inspeção TLS; volume anômalo para uma CDN específica.\n       Sem inspeção, resta a análise de periodicidade.\n\n  DNS over HTTPS (DoH)\n    Consultas DNS viajam dentro de HTTPS para 1.1.1.1 ou\n    8.8.8.8 — o resolver interno perde toda visibilidade.\n    -> Observável: host falando DoH direto, ignorando o\n       resolver corporativo.\n       Controle: bloquear resolvers DoH públicos na borda e\n       forçar o resolver interno.\n\n  Malleable C2 (Cobalt Strike)\n    O perfil imita tráfego legítimo: URI, User-Agent e\n    cookies copiados de aplicações reais.\n    -> Observável: o conteúdo engana, o RITMO não.\n       A detecção por periodicidade continua valendo.\n\n  Conclusão operacional: assinatura de IOC envelhece em horas;\n  análise de comportamento sobrevive à troca de infraestrutura."
+        },
         "keyPoints": [
           "DGA: detectar por alto volume de NXDOMAIN de um único host",
           "Domain Fronting: detectar por anomalia de SNI vs Host header (requer inspeção TLS)",
@@ -51,6 +63,10 @@
         "codeBlock": {
           "language": "text",
           "code": "Indicadores de beaconing em logs de tráfego (NetFlow/firewall):\n\n  Suspeito:\n  - dst: 45.134.215.89 (AS recém-criado, registrado há 3 dias)\n  - proto: HTTPS (TCP/443)\n  - bytes: 350 bytes (sent) / 280 bytes (recv) — consistente\n  - intervalo: a cada 300 segundos (±15s jitter)\n  - horário: 24h por dia, 7 dias por semana\n  - host: workstation-finance-07\n\n  → Padrão de beacon com jitter de 5%"
+        },
+        "callout": {
+          "type": "tip",
+          "text": "Antes de caçar beacon, construa a linha de base do que é periódico e legítimo na sua rede: agentes de inventário, coleta de métricas, atualizadores e NTP. Sem essa lista, a busca por periodicidade devolve centenas de resultados e a equipe desiste da técnica — que é justamente a mais resistente à troca de infraestrutura pelo atacante."
         },
         "keyPoints": [
           "Periodicidade é o indicador principal — use análise estatística, não apenas regras fixas",

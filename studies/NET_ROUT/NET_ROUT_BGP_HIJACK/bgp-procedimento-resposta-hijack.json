@@ -33,7 +33,8 @@
         "warnings": [
           "Não confundir anycast legítimo com hijack — verifique sua documentação interna de ASes autorizados",
           "Anúncios de backup/failover de provedores de trânsito podem aparecer como hijack se não documentados"
-        ]
+        ],
+        "rollbackAction": "Se a análise concluir que o anúncio é legítimo (cliente novo, upstream ou engenharia de tráfego não comunicada), encerrar como falso positivo, registrar o par ASN/prefixo em lista de exceções conhecidas e comunicar quem abriu o alerta."
       },
       {
         "id": 2,
@@ -43,7 +44,8 @@
         "expectedResult": "Ticket de incidente aberto com: prefixo afetado, AS origem do hijack, horário de detecção, AS path observado, impacto estimado (quais serviços apontam para aquele prefixo).",
         "warnings": [
           "Não tente resolver sozinho sem registrar — a linha do tempo é evidência crítica"
-        ]
+        ],
+        "rollbackAction": "Confirmado o falso positivo, comunicar o encerramento aos mesmos destinatários acionados e fechar o ticket com a justificativa técnica — escalada aberta e não encerrada consome atenção da equipe em incidentes seguintes."
       },
       {
         "id": 3,
@@ -71,7 +73,8 @@
         "expectedResult": "E-mail de notificação enviado para NOC e abuse@ do AS origem e seu(s) upstream(s). Registrar todos os contatos e horários no ticket.",
         "warnings": [
           "Hijacks acidentais (misconfiguration) são mais comuns que hijacks maliciosos — mantenha tom técnico e não acusatório na comunicação inicial"
-        ]
+        ],
+        "rollbackAction": "Se o contato acionado não for o responsável pelo AS, retificar o envio ao contato correto obtido no WHOIS ou PeeringDB e informar o destinatário anterior sobre o engano, evitando que ele atue sobre prefixo que não é dele."
       },
       {
         "id": 5,
@@ -83,7 +86,8 @@
         "expectedResult": "Todos os prefixos anunciados com ROA status 'valid'. Nenhum prefixo 'not-found' nos blocos operados.",
         "warnings": [
           "maxLength muito permissivo (ex: /8 com maxLength=/24) é quase tão ruim quanto não ter ROA — permite que qualquer sub-prefixo seja válido"
-        ]
+        ],
+        "rollbackAction": "Se um ROA recém-publicado tornar prefixos legítimos Invalid, remover ou corrigir o ROA imediatamente no portal do RIR e acompanhar a repropagação nos validadores públicos. Até a correção propagar (pode levar cerca de uma hora), avaliar suspender o descarte de Invalid nos roteadores próprios."
       },
       {
         "id": 6,
@@ -93,7 +97,8 @@
           "# Monitorar prefixo via RIPE Stat (polling a cada 5 min)\nwatch -n 300 \"curl -s 'https://stat.ripe.net/data/bgp-state/data.json?resource=198.51.100.0/16' | jq '.data.routes[].path'\""
         ],
         "expectedResult": "Apenas AS origin legítimos na tabela global. Ausência de sub-prefixos /24 não autorizados.",
-        "warnings": []
+        "warnings": [],
+        "rollbackAction": "Havendo recidiva do anúncio malicioso, reabrir o incidente na severidade original, retomar os anúncios mais específicos de contenção e reacionar os upstreams — não trate a recidiva como incidente novo, pois o histórico é o que sustenta a escalada junto ao provedor."
       }
     ],
     "postConditions": [
