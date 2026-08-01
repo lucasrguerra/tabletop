@@ -14,7 +14,11 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:unit": "vitest run tests/unit",
-    "test:integration": "vitest run tests/integration"
+    "test:integration": "vitest run tests/integration",
+    "test:e2e": "next build && playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:theme": "next build && playwright test theme.spec.mjs",
+    "test:all": "vitest run && npm run test:e2e"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.18",
@@ -35,6 +39,7 @@
     "tailwindcss": "^4.1.18"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@vitest/coverage-v8": "^4.1.10",
     "mongodb-memory-server": "^10.4.3",
     "vitest": "^4.1.10"
