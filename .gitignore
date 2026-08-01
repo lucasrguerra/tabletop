@@ -13,6 +13,8 @@
 /.next/
 /out/
 
+# build artifact: published as a GitHub Release asset, never committed
+/.next.tar.gz
 
 # production
 /build

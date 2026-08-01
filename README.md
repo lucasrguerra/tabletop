@@ -283,11 +283,24 @@ tabletop/
 │   ├── layout.jsx                    # Layout raiz (SessionProvider + Footer)
 │   └── page.jsx                      # Landing page
 │
-├── components/                       # 28 Componentes React
+├── components/                       # 48 Componentes React
 │   ├── Dashboard/                    # Layout e notificações do dashboard
 │   │   ├── Layout.jsx                # Sidebar colapsável + header + nav
 │   │   └── NotificationBell.jsx      # Dropdown de notificações (WebSockets)
-│   ├── Trainings/                    # Componentes de treinamentos
+│   ├── Studies/                      # Biblioteca de estudos (12 componentes)
+│   │   ├── StudyArticleViewer.jsx    # Visualizador principal de artigos
+│   │   ├── StudyBreadcrumb.jsx       # Navegação breadcrumb
+│   │   ├── StudyCard.jsx             # Card de artigo
+│   │   ├── StudyCategoryPanel.jsx    # Seletor de categoria em pílulas
+│   │   ├── StudyConceptBody.jsx      # Renderizador de artigos conceituais
+│   │   ├── StudyDifficultyBadge.jsx # Badge de nível de dificuldade
+│   │   ├── StudyGlossaryBody.jsx     # Renderizador de termos de glossário
+│   │   ├── StudyPagination.jsx       # Paginação da biblioteca
+│   │   ├── StudyProcedureBody.jsx    # Renderizador de procedimentos operacionais
+│   │   ├── StudyProgressBar.jsx      # Barra de progresso de leitura
+│   │   ├── StudyToolBody.jsx         # Renderizador de guias de ferramentas
+│   │   └── StudyTypeFilter.jsx       # Filtro por tipo de artigo
+│   ├── Trainings/                    # Componentes de treinamentos (27 componentes)
 │   │   ├── AccessCodeCard.jsx        # Card de código de acesso
 │   │   ├── BaseScenarioDisplay.jsx   # Exibição do cenário base
 │   │   ├── ErrorAlert.jsx            # Alerta de erro
@@ -298,8 +311,10 @@ tabletop/
 │   │   ├── InviteParticipantCard.jsx # Card para convidar participantes
 │   │   ├── LoadingSpinner.jsx        # Spinner de carregamento
 │   │   ├── MetricsDisplay.jsx        # Gráficos e métricas (Recharts)
+│   │   ├── MyRoundProgress.jsx       # Indicador de progresso pessoal
 │   │   ├── ParticipantResultsDashboard.jsx # Dashboard de resultados pessoais
 │   │   ├── ParticipantsList.jsx      # Lista de participantes com gestão
+│   │   ├── ResponseMeter.jsx         # Medidor de submissão de respostas
 │   │   ├── RoundControl.jsx          # Controle de rodadas (próxima/anterior/set)
 │   │   ├── RoundInfo.jsx             # Informações da rodada atual
 │   │   ├── RoundNavigator.jsx        # Navegação entre rodadas disponíveis
@@ -307,7 +322,9 @@ tabletop/
 │   │   ├── RoundTimerDisplay.jsx     # Timer manual da rodada
 │   │   ├── ScenarioInfo.jsx          # Info do cenário (metadados, objetivos)
 │   │   ├── TimerDisplay.jsx          # Componente base de timer
+│   │   ├── TrainingConsole.jsx       # Console unificado do treinamento
 │   │   ├── TrainingHeader.jsx        # Cabeçalho do treinamento
+│   │   ├── TrainingShell.jsx         # Container estrutural da view de treinamento
 │   │   ├── TrainingStatsDashboard.jsx # Dashboard de estatísticas do treinamento
 │   │   ├── TrainingStatusBadge.jsx   # Badge de status
 │   │   ├── TrainingTimerDisplay.jsx  # Timer automático do treinamento
@@ -322,46 +339,59 @@ tabletop/
 │
 ├── database/                         # Camada de banco de dados
 │   ├── database.js                   # Conexão MongoDB (singleton, pool de 10)
-│   └── schemas/                      # 6 Schemas Mongoose
+│   └── schemas/                      # 7 Schemas Mongoose
 │       ├── User.js                   # name, email, nickname, password_hash
 │       ├── Training.js               # Sessão de treinamento (cenário, participantes, timers)
 │       ├── Token.js                  # Tokens JWT (hash SHA-256, TTL auto-delete)
 │       ├── Notification.js           # Notificações (convites, aceites, recusas)
 │       ├── Response.js               # Respostas dos participantes (unique constraint)
-│       └── Evaluation.js             # Avaliações pós-treinamento (1-5 estrelas)
+│       ├── Evaluation.js             # Avaliações pós-treinamento (1-5 estrelas)
+│       └── StudyProgress.js          # Progresso e histórico de leitura de estudos
 │
-├── models/                           # Lógica de negócio (24 funções)
+├── models/                           # Lógica de negócio (37 módulos / 7 diretórios)
 │   ├── Password.js                   # Hash e verificação com bcryptjs
-│   ├── User/                         # Gestão de usuários
-│   │   ├── register.js               # Registro com sanitização
-│   │   ├── login.js                  # Login email/nickname + bcrypt
-│   │   └── getOne.js                 # Buscar usuário por ID
-│   ├── Token/                        # Gestão de tokens JWT
+│   ├── Admin/                        # Gestão administrativa (5 funções)
+│   │   ├── deleteUser.js             # Deletar usuário em cascata
+│   │   ├── getAllTrainings.js        # Listar todos os treinamentos
+│   │   ├── getStats.js               # Métricas agregadas da plataforma
+│   │   ├── getUsers.js               # Listar usuários cadastrados
+│   │   └── updateUser.js             # Atualizar papéis de usuário
+│   ├── Notifications/                # Gestão de notificações (3 funções)
+│   │   ├── create.js                 # Criar notificação
+│   │   ├── getUserNotifications.js   # Listar com paginação
+│   │   └── markAsRead.js             # Marcar como lida(s)
+│   ├── Studies/                      # Biblioteca de estudos (4 funções)
+│   │   ├── getStudyArticles.js       # Listagem paginada com busca e facets
+│   │   ├── getUserStudyProgress.js   # Progresso de leitura do usuário
+│   │   ├── markArticleRead.js        # Registrar leitura/conclusão de artigo
+│   │   └── readStudyArticle.js       # Ler artigo completo do JSON
+│   ├── Token/                        # Gestão de tokens JWT (4 funções)
 │   │   ├── create.js                 # Criar token (armazena hash)
 │   │   ├── validate.js               # Validar token (verifica hash + expiração)
 │   │   ├── getUserTokens.js          # Listar sessões ativas
 │   │   └── revoke.js                 # Revogar sessão(ões)
-│   ├── Trainings/                    # Gestão de treinamentos (16 funções)
+│   ├── Trainings/                    # Gestão de treinamentos (17 funções)
+│   │   ├── accessCode.js             # Gerar/validar códigos de acesso
 │   │   ├── create.js                 # Criar treinamento
 │   │   ├── deleteTraining.js         # Deletar com dados associados
-│   │   ├── getUserTrainings.js       # Listar treinamentos do usuário
 │   │   ├── getAvailableTrainings.js  # Treinamentos abertos para acesso
-│   │   ├── joinTraining.js           # Entrar em treinamento
-│   │   ├── inviteParticipant.js      # Convidar por nickname
-│   │   ├── respondToInvite.js        # Aceitar/recusar convite
-│   │   ├── getPendingInvites.js      # Convites pendentes
 │   │   ├── getCategories.js          # Categorias de cenários
-│   │   ├── getScenarios.js           # Listar cenários por tipo
-│   │   ├── readScenario.js           # Ler cenário completo do JSON
-│   │   ├── accessCode.js             # Gerar/validar códigos de acesso
-│   │   ├── submitAnswer.js           # Submeter resposta (correção automática)
+│   │   ├── getEvaluations.js         # Consultar avaliações
+│   │   ├── getPendingInvites.js      # Convites pendentes
 │   │   ├── getResponses.js           # Consultar respostas
-│   │   ├── submitEvaluation.js       # Submeter avaliação
-│   │   └── getEvaluations.js         # Consultar avaliações
-│   └── Notifications/                # Gestão de notificações
-│       ├── create.js                 # Criar notificação
-│       ├── getUserNotifications.js   # Listar com paginação
-│       └── markAsRead.js             # Marcar como lida(s)
+│   │   ├── getScenarios.js           # Listar cenários por tipo
+│   │   ├── getUserTrainings.js       # Listar treinamentos do usuário
+│   │   ├── grading.js                # Corretor automático de questões
+│   │   ├── inviteParticipant.js      # Convidar por nickname
+│   │   ├── joinTraining.js           # Entrar em treinamento
+│   │   ├── readScenario.js           # Ler cenário completo do JSON
+│   │   ├── respondToInvite.js        # Aceitar/recusar convite
+│   │   ├── submitAnswer.js           # Submeter resposta
+│   │   └── submitEvaluation.js       # Submeter avaliação
+│   └── User/                         # Gestão de usuários (3 funções)
+│       ├── getOne.js                 # Buscar usuário por ID
+│       ├── login.js                  # Login email/nickname + bcrypt
+│       └── register.js               # Registro com sanitização
 │
 ├── scenarios/                        # 31 Cenários JSON em 6 categorias
 │   ├── categories.json               # Definição de categorias e tipos
@@ -372,11 +402,17 @@ tabletop/
 │   ├── SCI_DATA/                     # 4 cenários - Dados Científicos
 │   └── SEC_SYS/                      # 4 cenários - Segurança de Sistemas
 │
+├── scripts/                          # Scripts utilitários CLI de administração
+│   ├── add-admin.mjs                 # Conceder privilégio de administrador
+│   ├── add-facilitator.mjs           # Conceder papel de facilitador
+│   ├── remove-admin.mjs              # Remover privilégio de administrador
+│   └── remove-facilitator.mjs        # Remover papel de facilitador
+│
 ├── studies/                          # 43 artigos de estudo (JSON)
 │   ├── glossarios/                   # 6 glossários, um por categoria
 │   └── <CATEGORIA>/<TIPO>/           # conceitos, procedimentos e ferramentas
 │
-├── tests/                            # 20 arquivos, 289 testes (Vitest)
+├── tests/                            # 20 arquivos, 291 testes (Vitest)
 │   ├── setup/                        # env, MongoMemoryServer, limpeza entre testes
 │   ├── unit/                         # models e utils
 │   └── integration/                  # middlewares e models com banco real
@@ -399,6 +435,7 @@ tabletop/
 │   └── useAuth.js                    # Hook React client-side (logout)
 │
 ├── proxy.js                          # Middleware Next.js (security headers + auth)
+├── server.mjs                        # Servidor HTTP/Socket.IO customizado (dev & prod)
 ├── Dockerfile                        # Container Node.js 22 (slim)
 ├── docker-compose.yml                # App + MongoDB com healthchecks
 ├── vitest.config.mjs                 # Configuração dos testes
@@ -972,7 +1009,7 @@ Coberto por teste de regressão em `tests/unit/utils/rateLimit.test.js`.
 ## 🧪 Testes
 
 Suíte em [Vitest](https://vitest.dev/), com MongoDB em memória para os testes de
-integração. **289 testes em 20 arquivos.**
+integração. **291 testes em 20 arquivos.**
 
 | Comando | Escopo |
 |---------|--------|
@@ -1080,13 +1117,51 @@ Para produção, certifique-se de:
 
 ## 🤝 Contribuindo
 
-Contribuições são bem-vindas! Para contribuir:
+### Fluxo de trabalho no Git (obrigatório)
 
-1. Faça um Fork do projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/MinhaFeature`)
-3. Commit suas mudanças (`git commit -m 'Adiciona MinhaFeature'`)
-4. Push para a branch (`git push origin feature/MinhaFeature`)
-5. Abra um Pull Request
+Todo trabalho segue este padrão, sem exceções:
+
+- **Uma branch numerada por feature/correção**: `feature/N-descricao` ou `fix/N-descricao`, onde `N` é sequencial em todo o repositório. Antes de criar, confira o maior `N` existente:
+
+  ```bash
+  git branch -a | grep -oE '(feature|fix)/[0-9]+' | grep -oE '[0-9]+' | sort -n | tail -1
+  ```
+
+- **Toda mensagem de commit é prefixada com o número da branch**: `#N: mensagem`
+
+  ```
+  #17: corrige superfícies sem variante dark em 36 arquivos
+  ```
+
+  Isso torna trivial identificar de qual branch cada mudança veio, mesmo depois do merge.
+
+- **Merge na `main` sempre com `--no-ff`**, para que o grafo mostre uma bolha de merge por feature. **Nunca commite direto na `main`.**
+
+  ```bash
+  git checkout main
+  git merge --no-ff feature/17-correcao-do-dark-mode
+  ```
+
+- **Agrupe commits pequenos**: retoques repetidos no mesmo arquivo e ajustes mínimos pertencem a um único commit completo — não inche a árvore. Use `git commit --amend` ou um rebase interativo antes do merge.
+
+- **Mensagens em português, no imperativo**, descrevendo o *porquê* quando não for óbvio.
+
+#### Exemplo completo
+
+```bash
+git checkout main && git pull
+git checkout -b feature/21-exportacao-de-relatorios
+
+git commit -m "#21: adiciona exportação de resultados em PDF por participante"
+
+git checkout main
+git merge --no-ff feature/21-exportacao-de-relatorios
+git push origin main
+```
+
+### Artefato de build
+
+O `.next.tar.gz` **não é versionado** — é um artefato de build publicado como anexo de uma [GitHub Release](https://github.com/lucasrguerra/tabletop/releases). Gere-o com `npm run build:release` e anexe-o à release da versão correspondente. O `Dockerfile` espera o arquivo na raiz do projeto no momento do build.
 
 ### Criando Novos Cenários
 
@@ -1129,7 +1204,9 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 | `npm run test:integration` | Somente testes de integração (MongoDB em memória) |
 | `npm run test:watch` | Testes em modo interativo |
 | `npm run test:coverage` | Relatório de cobertura de `models/` e `utils/` |
-| `node scripts/add-facilitator.mjs <nickname>` | Concede papel de facilitador a um usuário cadastrado |
+| `node scripts/add-admin.mjs <nickname>` | Concede papel de administrador (`admin: true`) a um usuário cadastrado |
+| `node scripts/remove-admin.mjs <nickname>` | Remove o papel de administrador de um usuário cadastrado |
+| `node scripts/add-facilitator.mjs <nickname>` | Concede papel de facilitador (`facilitator: true`) a um usuário cadastrado |
 | `node scripts/remove-facilitator.mjs <nickname>` | Remove o papel de facilitador de um usuário cadastrado |
 
 ### Limitações Conhecidas
