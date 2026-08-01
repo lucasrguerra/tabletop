@@ -18,7 +18,7 @@ export default function ResponseMeter({
 }) {
 	if (questions.length === 0) {
 		return (
-			<p className="text-sm text-slate-500">
+			<p className="text-sm text-slate-500 dark:text-slate-400">
 				Esta rodada não tem questões — é de contextualização.
 			</p>
 		);
@@ -43,11 +43,11 @@ export default function ResponseMeter({
 	return (
 		<div>
 			<div className="flex items-baseline justify-between gap-3 mb-2">
-				<p className="text-[10px] uppercase tracking-[0.12em] text-slate-400 font-semibold">
+				<p className="text-[10px] uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 font-semibold">
 					Respostas desta rodada
 				</p>
-				<p className="text-xs font-mono tabular-nums text-slate-500">
-					<span className={complete ? 'text-emerald-600 font-semibold' : 'text-slate-900 font-semibold'}>
+				<p className="text-xs font-mono tabular-nums text-slate-500 dark:text-slate-400">
+					<span className={complete ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-900 dark:text-slate-100 font-semibold'}>
 						{answeredTotal}
 					</span>
 					/{expectedTotal || '—'}
@@ -62,7 +62,7 @@ export default function ResponseMeter({
 						title={`Q${i + 1}: ${q.text} — ${q.answered} de ${totalParticipants}`}
 						className="flex-1 min-w-0"
 					>
-						<div className="h-8 rounded bg-slate-200/70 overflow-hidden flex items-end">
+						<div className="h-8 rounded bg-slate-200/70 dark:bg-slate-700/70 overflow-hidden flex items-end">
 							<div
 								className={`w-full transition-[height] duration-500 ease-out ${
 									q.ratio >= 1 ? 'bg-emerald-500' : 'bg-blue-500/70'
@@ -70,7 +70,7 @@ export default function ResponseMeter({
 								style={{ height: `${Math.round(q.ratio * 100)}%` }}
 							/>
 						</div>
-						<p className="mt-1 text-center text-[10px] font-mono tabular-nums text-slate-400">
+						<p className="mt-1 text-center text-[10px] font-mono tabular-nums text-slate-400 dark:text-slate-500">
 							{i + 1}
 						</p>
 					</div>
@@ -78,7 +78,7 @@ export default function ResponseMeter({
 			</div>
 
 			{totalParticipants === 0 && (
-				<p className="mt-2 text-sm text-slate-500">
+				<p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
 					Nenhum participante aceito ainda.
 				</p>
 			)}

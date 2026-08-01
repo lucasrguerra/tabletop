@@ -25,23 +25,23 @@ import {
 const STATUS_CONFIG = {
 	not_started: {
 		label: 'Não Iniciado',
-		color: 'bg-slate-100 text-slate-700 border-slate-200',
+		color: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700',
 		icon: FaClock,
-		iconColor: 'text-slate-500',
+		iconColor: 'text-slate-500 dark:text-slate-400',
 		gradient: 'from-slate-400 to-slate-500'
 	},
 	active: {
 		label: 'Em Andamento',
-		color: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+		color: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/50',
 		icon: FaPlay,
-		iconColor: 'text-emerald-500',
+		iconColor: 'text-emerald-500 dark:text-emerald-400',
 		gradient: 'from-emerald-400 to-teal-500'
 	},
 	paused: {
 		label: 'Pausado',
-		color: 'bg-amber-100 text-amber-700 border-amber-200',
+		color: 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/50',
 		icon: FaPause,
-		iconColor: 'text-amber-500',
+		iconColor: 'text-amber-500 dark:text-amber-400',
 		gradient: 'from-amber-400 to-orange-500'
 	}
 };
@@ -61,15 +61,15 @@ function TrainingCard({ training, onJoin, isJoining }) {
 	};
 
 	return (
-		<div className="group bg-white rounded-2xl border border-slate-200/60 shadow-sm shadow-slate-200/50 hover:shadow-lg hover:shadow-slate-200/50 hover:border-blue-200 transition-all duration-300 overflow-hidden">
+		<div className="group bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 shadow-sm shadow-slate-200/50 hover:shadow-lg hover:shadow-slate-200/50 hover:border-blue-200 dark:hover:border-blue-900/50 transition-all duration-300 overflow-hidden">
 			{/* Header */}
-			<div className="p-5 lg:p-6 border-b border-slate-100">
+			<div className="p-5 lg:p-6 border-b border-slate-100 dark:border-slate-800">
 				<div className="flex items-start justify-between gap-3 mb-3">
 					<div className="flex-1 min-w-0">
-						<h3 className="font-semibold text-slate-900 truncate">
+						<h3 className="font-semibold text-slate-900 dark:text-slate-100 truncate">
 							{training.name}
 						</h3>
-						<p className="text-sm text-slate-500 mt-1">
+						<p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
 							por {training.created_by?.nickname || training.created_by?.name}
 						</p>
 					</div>
@@ -80,18 +80,18 @@ function TrainingCard({ training, onJoin, isJoining }) {
 				</div>
 
 				{training.description && (
-					<p className="text-sm text-slate-600 line-clamp-2">
+					<p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2">
 						{training.description}
 					</p>
 				)}
 			</div>
 
 			{/* Info */}
-			<div className="p-5 lg:p-6 bg-slate-50/50">
+			<div className="p-5 lg:p-6 bg-slate-50/50 dark:bg-slate-800/50">
 				<div className="flex flex-wrap items-center gap-3 text-sm mb-4">
 					{/* Participants */}
-					<div className="flex items-center gap-1.5 text-slate-600 bg-white px-3 py-1.5 rounded-lg border border-slate-100">
-						<FaUsers className="text-xs text-slate-400" />
+					<div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-slate-800">
+						<FaUsers className="text-xs text-slate-400 dark:text-slate-500" />
 						<span className="text-xs font-medium">
 							{training.participants_count}
 							{training.max_participants && `/${training.max_participants}`}
@@ -100,8 +100,8 @@ function TrainingCard({ training, onJoin, isJoining }) {
 
 					{/* Scenario */}
 					{training.scenario && (
-						<div className="flex items-center gap-1.5 text-slate-600 bg-white px-3 py-1.5 rounded-lg border border-slate-100">
-							<FaBook className="text-xs text-slate-400" />
+						<div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-slate-800">
+							<FaBook className="text-xs text-slate-400 dark:text-slate-500" />
 							<span className="text-xs font-medium">
 								{training.scenario.title || training.scenario.id}
 							</span>
@@ -110,8 +110,8 @@ function TrainingCard({ training, onJoin, isJoining }) {
 				</div>
 
 				{/* Created Date */}
-				<div className="mb-4 pb-4 border-b border-slate-200/60 flex items-center gap-1.5 text-xs text-slate-500">
-					<FaCalendarAlt className="text-slate-400" />
+				<div className="mb-4 pb-4 border-b border-slate-200/60 dark:border-slate-700/60 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+					<FaCalendarAlt className="text-slate-400 dark:text-slate-500" />
 					<span>Criado em {formatDate(training.created_at)}</span>
 				</div>
 
@@ -150,16 +150,16 @@ function AccessCodeForm({ onSubmit, isJoining }) {
 	};
 
 	return (
-		<div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm shadow-slate-200/50 p-6 lg:p-8">
+		<div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 shadow-sm shadow-slate-200/50 p-6 lg:p-8">
 			<div className="flex items-start gap-4 mb-6">
 				<div className="flex items-center justify-center w-12 h-12 bg-linear-to-br from-violet-500 to-purple-600 rounded-xl shadow-lg shadow-violet-500/25">
 					<FaKey className="text-xl text-white" />
 				</div>
 				<div>
-					<h2 className="text-xl font-semibold text-slate-900 mb-1">
+					<h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-1">
 						Entrar com Código de Acesso
 					</h2>
-					<p className="text-sm text-slate-600">
+					<p className="text-sm text-slate-600 dark:text-slate-400">
 						Digite o código de acesso fornecido pelo facilitador
 					</p>
 				</div>
@@ -167,7 +167,7 @@ function AccessCodeForm({ onSubmit, isJoining }) {
 
 			<form onSubmit={handleSubmit} className="space-y-4">
 				<div>
-					<label htmlFor="access_code" className="block text-sm font-medium text-slate-700 mb-2">
+					<label htmlFor="access_code" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
 						Código de Acesso
 					</label>
 					<div className="relative">
@@ -177,12 +177,12 @@ function AccessCodeForm({ onSubmit, isJoining }) {
 							value={accessCode}
 							onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
 							placeholder="Digite o código"
-							className="w-full px-4 py-3 pl-11 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-900 placeholder-slate-400"
+							className="w-full px-4 py-3 pl-11 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500"
 							maxLength={20}
 							required
 						/>
 						<div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-							<FaLock className="text-slate-400" />
+							<FaLock className="text-slate-400 dark:text-slate-500" />
 						</div>
 					</div>
 				</div>
@@ -213,17 +213,17 @@ function AccessCodeForm({ onSubmit, isJoining }) {
 function FilterDropdown({ label, value, options, onChange, icon: Icon }) {
 	return (
 		<div className="relative">
-			<label className="block text-xs font-semibold text-slate-600 mb-2">{label}</label>
+			<label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">{label}</label>
 			<div className="relative">
 				{Icon && (
 					<div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
-						<Icon className="text-slate-400 text-sm" />
+						<Icon className="text-slate-400 dark:text-slate-500 text-sm" />
 					</div>
 				)}
 				<select
 					value={value}
 					onChange={(e) => onChange(e.target.value)}
-					className={`w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl py-3 pr-10 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all ${Icon ? 'pl-10' : 'pl-4'}`}
+					className={`w-full appearance-none bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl py-3 pr-10 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white dark:focus:bg-slate-900 transition-all ${Icon ? 'pl-10' : 'pl-4'}`}
 				>
 					{options.map((option) => (
 						<option key={option.value} value={option.value}>
@@ -232,7 +232,7 @@ function FilterDropdown({ label, value, options, onChange, icon: Icon }) {
 					))}
 				</select>
 				<div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
-					<svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<svg className="w-4 h-4 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
 					</svg>
 				</div>
@@ -269,8 +269,8 @@ function Pagination({ pagination, onPageChange }) {
 	};
 
 	return (
-		<div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-6 border-t border-slate-200">
-			<p className="text-sm text-slate-600 order-2 sm:order-1">
+		<div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
+			<p className="text-sm text-slate-600 dark:text-slate-400 order-2 sm:order-1">
 				Mostrando página {current_page} de {total_pages} ({total_items} treinamentos)
 			</p>
 
@@ -278,7 +278,7 @@ function Pagination({ pagination, onPageChange }) {
 				<button
 					onClick={() => onPageChange(current_page - 1)}
 					disabled={!has_prev}
-					className="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+					className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
 					aria-label="Página anterior"
 				>
 					<FaChevronLeft className="text-sm" />
@@ -287,7 +287,7 @@ function Pagination({ pagination, onPageChange }) {
 				<div className="hidden sm:flex items-center gap-1">
 					{getPageNumbers().map((page, index) => (
 						page === '...' ? (
-							<span key={`ellipsis-${index}`} className="px-3 py-2 text-sm text-slate-400">...</span>
+							<span key={`ellipsis-${index}`} className="px-3 py-2 text-sm text-slate-400 dark:text-slate-500">...</span>
 						) : (
 							<button
 								key={page}
@@ -295,7 +295,7 @@ function Pagination({ pagination, onPageChange }) {
 								className={`w-10 h-10 rounded-xl text-sm font-medium transition-all ${
 									page === current_page
 									? 'bg-linear-to-br from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25'
-										: 'border border-slate-200 text-slate-600 hover:bg-slate-50'
+										: 'border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'
 								}`}
 							>
 								{page}
@@ -304,14 +304,14 @@ function Pagination({ pagination, onPageChange }) {
 					))}
 				</div>
 
-				<span className="sm:hidden px-3 py-2 text-sm text-slate-600">
+				<span className="sm:hidden px-3 py-2 text-sm text-slate-600 dark:text-slate-400">
 					{current_page} / {total_pages}
 				</span>
 
 				<button
 					onClick={() => onPageChange(current_page + 1)}
 					disabled={!has_next}
-					className="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+					className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
 					aria-label="Próxima página"
 				>
 					<FaChevronRight className="text-sm" />
@@ -324,15 +324,15 @@ function Pagination({ pagination, onPageChange }) {
 // Empty State Component
 function EmptyState() {
 	return (
-		<div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm shadow-slate-200/50 p-8 sm:p-12 text-center">
+		<div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 shadow-sm shadow-slate-200/50 p-8 sm:p-12 text-center">
 			<div className="relative inline-flex items-center justify-center w-20 h-20 mb-6">
-				<div className="absolute inset-0 bg-linear-to-br from-slate-100 to-slate-200 rounded-2xl" />
-				<FaLockOpen className="relative text-3xl text-slate-400" />
+				<div className="absolute inset-0 bg-linear-to-br from-slate-100 dark:from-slate-800 to-slate-200 rounded-2xl" />
+				<FaLockOpen className="relative text-3xl text-slate-400 dark:text-slate-500" />
 			</div>
-			<h3 className="text-lg font-semibold text-slate-900 mb-2">
+			<h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
 				Nenhum treinamento disponível no momento
 			</h3>
-			<p className="text-slate-600 mb-8 max-w-md mx-auto">
+			<p className="text-slate-600 dark:text-slate-400 mb-8 max-w-md mx-auto">
 				Não há treinamentos abertos para participar. Tente novamente mais tarde ou use um código de acesso.
 			</p>
 		</div>
@@ -344,11 +344,11 @@ function LoadingSkeleton() {
 	return (
 		<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 			{[1, 2, 3, 4].map((i) => (
-				<div key={i} className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6 animate-pulse">
-					<div className="h-4 bg-slate-200 rounded w-3/4 mb-3"></div>
-					<div className="h-3 bg-slate-200 rounded w-1/2 mb-4"></div>
-					<div className="h-3 bg-slate-200 rounded w-full mb-2"></div>
-					<div className="h-3 bg-slate-200 rounded w-5/6"></div>
+				<div key={i} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 shadow-sm p-6 animate-pulse">
+					<div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4 mb-3"></div>
+					<div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-1/2 mb-4"></div>
+					<div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-full mb-2"></div>
+					<div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-5/6"></div>
 				</div>
 			))}
 		</div>
@@ -358,14 +358,14 @@ function LoadingSkeleton() {
 // Error State Component
 function ErrorState({ message, onRetry }) {
 	return (
-		<div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
-			<div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-xl mb-4">
-				<FaExclamationTriangle className="text-2xl text-red-500" />
+		<div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-2xl p-6 text-center">
+			<div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 dark:bg-red-900/50 rounded-xl mb-4">
+				<FaExclamationTriangle className="text-2xl text-red-500 dark:text-red-400" />
 			</div>
-			<h3 className="text-lg font-semibold text-red-900 mb-2">
+			<h3 className="text-lg font-semibold text-red-900 dark:text-red-200 mb-2">
 				Erro ao carregar treinamentos
 			</h3>
-			<p className="text-red-700 mb-6">{message}</p>
+			<p className="text-red-700 dark:text-red-300 mb-6">{message}</p>
 			<button
 				onClick={onRetry}
 				className="px-5 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all font-medium"
@@ -507,12 +507,12 @@ export default function AccessTrainingsPage() {
 		<DashboardLayout>
 			<div className="space-y-6">
 				{/* Page Header */}
-				<div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-6 border-b border-slate-200">
+				<div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-700">
 					<div>
-						<h1 className="text-3xl font-bold text-slate-900 mb-2">
+						<h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">
 							Acessar Treinamentos
 						</h1>
-						<p className="text-slate-600">
+						<p className="text-slate-600 dark:text-slate-400">
 							Entre em treinamentos abertos ou use um código de acesso
 						</p>
 					</div>
@@ -527,17 +527,17 @@ export default function AccessTrainingsPage() {
 				{/* Divider */}
 				<div className="relative py-4">
 					<div className="absolute inset-0 flex items-center">
-						<div className="w-full border-t border-slate-200"></div>
+						<div className="w-full border-t border-slate-200 dark:border-slate-700"></div>
 					</div>
 					<div className="relative flex justify-center">
-						<span className="bg-slate-50 px-4 text-sm text-slate-500 font-medium">
+						<span className="bg-slate-50 dark:bg-slate-800/50 px-4 text-sm text-slate-500 dark:text-slate-400 font-medium">
 							ou navegue por treinamentos abertos
 						</span>
 					</div>
 				</div>
 
 				{/* Filters */}
-				<div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-5 lg:p-6">
+				<div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 shadow-sm p-5 lg:p-6">
 					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 						<FilterDropdown
 							label="Status"

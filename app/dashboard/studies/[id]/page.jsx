@@ -15,10 +15,10 @@ import StudyDifficultyBadge from '@/components/Studies/StudyDifficultyBadge';
 import StudyArticleViewer from '@/components/Studies/StudyArticleViewer';
 
 const CONTENT_TYPE_CONFIG = {
-    CONCEITO:     { icon: FaBookOpen, label: 'Conceito',     gradient: 'from-blue-500 to-indigo-600',   bgLight: 'bg-blue-50',    textColor: 'text-blue-600' },
-    PROCEDIMENTO: { icon: FaListOl,   label: 'Procedimento', gradient: 'from-violet-500 to-purple-600', bgLight: 'bg-violet-50',  textColor: 'text-violet-600' },
-    FERRAMENTA:   { icon: FaTools,    label: 'Ferramenta',   gradient: 'from-slate-600 to-gray-700',    bgLight: 'bg-slate-50',   textColor: 'text-slate-600' },
-    GLOSSARIO:    { icon: FaBook,     label: 'Glossário',    gradient: 'from-teal-500 to-emerald-600',  bgLight: 'bg-teal-50',    textColor: 'text-teal-600' }
+    CONCEITO:     { icon: FaBookOpen, label: 'Conceito',     gradient: 'from-blue-500 to-indigo-600',   bgLight: 'bg-blue-50 dark:bg-blue-950/30',    textColor: 'text-blue-600 dark:text-blue-400' },
+    PROCEDIMENTO: { icon: FaListOl,   label: 'Procedimento', gradient: 'from-violet-500 to-purple-600', bgLight: 'bg-violet-50 dark:bg-violet-950/30',  textColor: 'text-violet-600 dark:text-violet-400' },
+    FERRAMENTA:   { icon: FaTools,    label: 'Ferramenta',   gradient: 'from-slate-600 to-gray-700',    bgLight: 'bg-slate-50 dark:bg-slate-800/50',   textColor: 'text-slate-600 dark:text-slate-400' },
+    GLOSSARIO:    { icon: FaBook,     label: 'Glossário',    gradient: 'from-teal-500 to-emerald-600',  bgLight: 'bg-teal-50 dark:bg-teal-950/30',    textColor: 'text-teal-600 dark:text-teal-400' }
 };
 
 const CATEGORY_BORDER = {
@@ -152,7 +152,7 @@ export default function StudyArticlePage() {
     if (status === 'loading' || loading) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
-                <FaSpinner className="animate-spin text-4xl text-blue-500" />
+                <FaSpinner className="animate-spin text-4xl text-blue-500 dark:text-blue-400" />
             </div>
         );
     }
@@ -161,8 +161,8 @@ export default function StudyArticlePage() {
         return (
             <div className="max-w-2xl mx-auto p-8 text-center">
                 <FaExclamationTriangle className="text-4xl text-amber-400 mx-auto mb-4" />
-                <p className="text-slate-700 font-semibold mb-2">{error || 'Artigo não encontrado'}</p>
-                <Link href="/dashboard/studies" className="text-sm text-blue-600 hover:underline">← Voltar para Estudos</Link>
+                <p className="text-slate-700 dark:text-slate-300 font-semibold mb-2">{error || 'Artigo não encontrado'}</p>
+                <Link href="/dashboard/studies" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">← Voltar para Estudos</Link>
             </div>
         );
     }
@@ -183,54 +183,54 @@ export default function StudyArticlePage() {
                 {/* Main article column */}
                 <div className="flex-1 min-w-0">
                     {/* Article header card */}
-                    <div className={`bg-white rounded-2xl border-l-4 border border-slate-200 ${borderColor} shadow-sm p-6 mb-5`}>
+                    <div className={`bg-white dark:bg-slate-900 rounded-2xl border-l-4 border border-slate-200 dark:border-slate-800 ${borderColor} shadow-sm dark:shadow-slate-950/50 p-6 mb-5`}>
                         <div className="flex items-start gap-4 mb-4">
-                            <div className={`shrink-0 w-12 h-12 rounded-2xl ${typeConfig.bgLight} flex items-center justify-center`}>
-                                <Icon className={`text-xl ${typeConfig.textColor}`} />
+                            <div className={`shrink-0 w-12 h-12 rounded-2xl ${typeConfig.bgLight} dark:bg-slate-800 flex items-center justify-center`}>
+                                <Icon className={`text-xl ${typeConfig.textColor} dark:text-blue-400`} />
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="flex flex-wrap items-center gap-2 mb-2">
-                                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${typeConfig.bgLight} ${typeConfig.textColor}`}>
+                                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${typeConfig.bgLight} dark:bg-slate-800 ${typeConfig.textColor} dark:text-blue-300`}>
                                         {typeConfig.label}
                                     </span>
                                     {article.metadata?.difficulty && (
                                         <StudyDifficultyBadge difficulty={article.metadata.difficulty} />
                                     )}
                                     {isCompleted && (
-                                        <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700">
+                                        <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
                                             <FaCheckCircle className="text-xs" /> Concluído
                                         </span>
                                     )}
                                 </div>
-                                <h1 className="text-xl font-bold text-slate-900 leading-snug">{article.title}</h1>
+                                <h1 className="text-xl font-bold text-slate-900 dark:text-white leading-snug">{article.title}</h1>
                             </div>
                         </div>
 
-                        <p className="text-sm text-slate-600 leading-relaxed mb-4">{article.description}</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-4">{article.description}</p>
 
                         {/* Metadata pills */}
-                        <div className="flex flex-wrap gap-3 text-xs text-slate-500">
+                        <div className="flex flex-wrap gap-3 text-xs text-slate-500 dark:text-slate-400">
                             {article.metadata?.estimatedReadTime && (
                                 <span className="flex items-center gap-1.5">
-                                    <FaClock className="text-slate-400" />
+                                    <FaClock className="text-slate-400 dark:text-slate-500" />
                                     {article.metadata.estimatedReadTime}
                                 </span>
                             )}
                             {article.metadata?.targetAudience && (
                                 <span className="flex items-center gap-1.5">
-                                    <FaUser className="text-slate-400" />
+                                    <FaUser className="text-slate-400 dark:text-slate-500" />
                                     {article.metadata.targetAudience}
                                 </span>
                             )}
                             {article.metadata?.lastUpdate && (
                                 <span className="flex items-center gap-1.5">
-                                    <FaCalendar className="text-slate-400" />
+                                    <FaCalendar className="text-slate-400 dark:text-slate-500" />
                                     {new Date(article.metadata.lastUpdate).toLocaleDateString('pt-BR')}
                                 </span>
                             )}
                             {article.metadata?.author && (
                                 <span className="flex items-center gap-1.5">
-                                    <span className="text-slate-400">Por</span>
+                                    <span className="text-slate-400 dark:text-slate-500">Por</span>
                                     {article.metadata.author}
                                 </span>
                             )}
@@ -247,14 +247,14 @@ export default function StudyArticlePage() {
                 {/* Sidebar */}
                 <div className="xl:w-72 shrink-0 space-y-4">
                     {/* Complete button */}
-                    <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm dark:shadow-slate-950/50">
                         {isCompleted ? (
-                            <div className="flex items-center gap-3 p-3 bg-emerald-50 rounded-xl border border-emerald-200">
-                                <FaCheckCircle className="text-emerald-500 text-xl shrink-0" />
+                            <div className="flex items-center gap-3 p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-900/50">
+                                <FaCheckCircle className="text-emerald-500 dark:text-emerald-400 text-xl shrink-0" />
                                 <div>
-                                    <p className="text-sm font-bold text-emerald-700">Concluído!</p>
+                                    <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">Concluído!</p>
                                     {progressEntry?.completed_at && (
-                                        <p className="text-xs text-emerald-600">
+                                        <p className="text-xs text-emerald-600 dark:text-emerald-400">
                                             {new Date(progressEntry.completed_at).toLocaleDateString('pt-BR')}
                                         </p>
                                     )}
@@ -274,14 +274,14 @@ export default function StudyArticlePage() {
 
                     {/* Related studies */}
                     {article.relatedStudies?.length > 0 && (
-                        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-                            <h3 className="text-sm font-bold text-slate-700 mb-3">Artigos relacionados</h3>
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm dark:shadow-slate-950/50">
+                            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">Artigos relacionados</h3>
                             <ul className="space-y-2">
                                 {article.relatedStudies.map(id => (
                                     <li key={id}>
                                         <Link
                                             href={`/dashboard/studies/${id}`}
-                                            className="text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                                            className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline transition-colors"
                                         >
                                             → {id.replace(/-/g, ' ')}
                                         </Link>
@@ -293,14 +293,14 @@ export default function StudyArticlePage() {
 
                     {/* Related scenarios */}
                     {article.relatedScenarios?.length > 0 && (
-                        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-                            <h3 className="text-sm font-bold text-slate-700 mb-3">Cenários que usam este conteúdo</h3>
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm dark:shadow-slate-950/50">
+                            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">Cenários que usam este conteúdo</h3>
                             <ul className="space-y-2">
                                 {article.relatedScenarios.map(id => (
                                     <li key={id}>
                                         <Link
                                             href="/dashboard/trainings/new"
-                                            className="text-sm text-violet-600 hover:text-violet-800 hover:underline transition-colors"
+                                            className="text-sm text-violet-600 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300 hover:underline transition-colors"
                                         >
                                             → {id.replace(/-/g, ' ')}
                                         </Link>
@@ -312,8 +312,8 @@ export default function StudyArticlePage() {
 
                     {/* Technical references */}
                     {article.technicalReferences?.length > 0 && (
-                        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-                            <h3 className="text-sm font-bold text-slate-700 mb-3">Referências técnicas</h3>
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm dark:shadow-slate-950/50">
+                            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">Referências técnicas</h3>
                             <ul className="space-y-2">
                                 {article.technicalReferences.map((ref, i) => (
                                     <li key={i}>
@@ -321,9 +321,9 @@ export default function StudyArticlePage() {
                                             href={ref.url}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="flex items-start gap-1.5 text-xs text-slate-600 hover:text-blue-600 transition-colors group"
+                                            className="flex items-start gap-1.5 text-xs text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors group"
                                         >
-                                            <FaExternalLinkAlt className="shrink-0 mt-0.5 text-slate-400 group-hover:text-blue-400 text-xs" />
+                                            <FaExternalLinkAlt className="shrink-0 mt-0.5 text-slate-400 dark:text-slate-500 group-hover:text-blue-400 text-xs" />
                                             <span className="leading-relaxed">{ref.title}</span>
                                         </a>
                                     </li>
@@ -335,7 +335,7 @@ export default function StudyArticlePage() {
                     {/* Back link */}
                     <Link
                         href="/dashboard/studies"
-                        className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 transition-colors"
+                        className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
                     >
                         <FaArrowLeft className="text-xs" />
                         Voltar para Estudos

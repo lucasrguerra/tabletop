@@ -7,9 +7,9 @@ import { FaMapMarkerAlt, FaClock, FaExclamationTriangle, FaBullhorn } from 'reac
  */
 function SituationItem({ label, value }) {
 	return (
-		<div className="flex justify-between items-start py-2 border-b border-slate-100 last:border-0">
-			<span className="text-xs text-slate-500 shrink-0 mr-4">{label}</span>
-			<span className="text-xs font-medium text-slate-800 text-right">{String(value)}</span>
+		<div className="flex justify-between items-start py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
+			<span className="text-xs text-slate-500 dark:text-slate-400 shrink-0 mr-4">{label}</span>
+			<span className="text-xs font-medium text-slate-800 dark:text-slate-200 text-right">{String(value)}</span>
 		</div>
 	);
 }
@@ -38,39 +38,39 @@ export default function RoundInfo({ round, roundIndex, totalRounds }) {
 	if (!round) return null;
 
 	return (
-		<div className="bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 p-6 lg:p-8">
+		<div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm shadow-slate-200/50 dark:shadow-slate-950/50 border border-slate-200/60 dark:border-slate-800 p-6 lg:p-8">
 			{/* Header */}
 			<div className="flex items-center gap-3 mb-6">
 				<div className="flex items-center justify-center w-10 h-10 rounded-xl bg-linear-to-br from-purple-500 to-indigo-600 shadow-lg shadow-purple-500/25">
 					<FaMapMarkerAlt className="text-white text-lg" />
 				</div>
 				<div className="flex-1">
-					<h3 className="text-lg font-semibold text-slate-900">
+					<h3 className="text-lg font-semibold text-slate-900 dark:text-white">
 						Rodada Atual
 					</h3>
-					<p className="text-sm text-slate-500">
+					<p className="text-sm text-slate-500 dark:text-slate-400">
 						Rodada {roundIndex + 1} de {totalRounds}
 					</p>
 				</div>
 			</div>
 
 			{/* Round title & phase */}
-			<div className="mb-4 p-4 bg-linear-to-br from-purple-50 to-indigo-50 rounded-xl border border-purple-100">
+			<div className="mb-4 p-4 bg-linear-to-br from-purple-50 to-indigo-50 dark:from-purple-950/40 dark:to-indigo-950/40 rounded-xl border border-purple-100 dark:border-purple-900/50">
 				<div className="flex items-center gap-2 mb-2">
 					<span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-600 text-white">
 						Rodada {roundIndex + 1}
 					</span>
 					{round.phase && (
-						<span className="text-xs font-medium text-slate-600">
+						<span className="text-xs font-medium text-slate-600 dark:text-slate-300">
 							{round.phase}
 						</span>
 					)}
 				</div>
-				<h4 className="text-base font-bold text-slate-900 mb-1">
+				<h4 className="text-base font-bold text-slate-900 dark:text-white mb-1">
 					{round.title}
 				</h4>
 				{round.description && (
-					<p className="text-sm text-slate-700 leading-relaxed">
+					<p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
 						{round.description}
 					</p>
 				)}
@@ -78,21 +78,21 @@ export default function RoundInfo({ round, roundIndex, totalRounds }) {
 
 			{/* Time elapsed */}
 			{round.timeElapsed && (
-				<div className="flex items-center gap-2 mb-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
-					<FaClock className="text-slate-400 text-sm" />
-					<span className="text-xs font-medium text-slate-600">Tempo decorrido no cenário:</span>
-					<span className="text-xs font-bold text-slate-800">{round.timeElapsed}</span>
+				<div className="flex items-center gap-2 mb-4 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-100 dark:border-slate-700/60">
+					<FaClock className="text-slate-400 dark:text-slate-500 text-sm" />
+					<span className="text-xs font-medium text-slate-600 dark:text-slate-400">Tempo decorrido no cenário:</span>
+					<span className="text-xs font-bold text-slate-800 dark:text-slate-200">{round.timeElapsed}</span>
 				</div>
 			)}
 
 			{/* Inject */}
 			{round.inject && (
-				<div className="mb-4 p-4 bg-amber-50 border border-amber-100 rounded-xl">
+				<div className="mb-4 p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-900/50 rounded-xl">
 					<div className="flex items-start gap-2.5">
-						<FaBullhorn className="text-amber-500 mt-0.5 shrink-0" />
+						<FaBullhorn className="text-amber-500 dark:text-amber-400 mt-0.5 shrink-0" />
 						<div>
-							<p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-1">Injeção do Cenário</p>
-							<p className="text-sm text-amber-900 leading-relaxed">{round.inject}</p>
+							<p className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide mb-1">Injeção do Cenário</p>
+							<p className="text-sm text-amber-900 dark:text-amber-200 leading-relaxed">{round.inject}</p>
 						</div>
 					</div>
 				</div>
@@ -100,10 +100,10 @@ export default function RoundInfo({ round, roundIndex, totalRounds }) {
 
 			{/* Current situation */}
 			{round.currentSituation && Object.keys(round.currentSituation).length > 0 && (
-				<div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+				<div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-700/60">
 					<div className="flex items-center gap-2 mb-3">
-						<FaExclamationTriangle className="text-slate-500 text-sm" />
-						<p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Situação Atual</p>
+						<FaExclamationTriangle className="text-slate-500 dark:text-slate-400 text-sm" />
+						<p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Situação Atual</p>
 					</div>
 					<div>
 						{Object.entries(round.currentSituation).map(([key, value]) => (
@@ -116,12 +116,12 @@ export default function RoundInfo({ round, roundIndex, totalRounds }) {
 			{/* Progress bar */}
 			<div className="mt-4">
 				<div className="flex items-center justify-between mb-1.5">
-					<span className="text-xs font-medium text-slate-600">Progresso</span>
-					<span className="text-xs font-semibold text-purple-600">
+					<span className="text-xs font-medium text-slate-600 dark:text-slate-400">Progresso</span>
+					<span className="text-xs font-semibold text-purple-600 dark:text-purple-400">
 						{Math.round(((roundIndex + 1) / totalRounds) * 100)}%
 					</span>
 				</div>
-				<div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+				<div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
 					<div
 						className="h-full bg-linear-to-r from-purple-500 to-indigo-600 transition-all duration-300 ease-out"
 						style={{ width: `${((roundIndex + 1) / totalRounds) * 100}%` }}

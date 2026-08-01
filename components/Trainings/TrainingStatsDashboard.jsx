@@ -27,24 +27,24 @@ function formatDuration(ms) {
 
 function StatCard({ icon: Icon, label, value, sublabel, color = 'blue', className = '' }) {
 	const colorClasses = {
-		blue: 'bg-blue-50 border-blue-100 text-blue-600',
-		emerald: 'bg-emerald-50 border-emerald-100 text-emerald-600',
-		red: 'bg-red-50 border-red-100 text-red-600',
-		amber: 'bg-amber-50 border-amber-100 text-amber-600',
-		purple: 'bg-purple-50 border-purple-100 text-purple-600',
-		slate: 'bg-slate-50 border-slate-100 text-slate-600',
-		teal: 'bg-teal-50 border-teal-100 text-teal-600',
-		indigo: 'bg-indigo-50 border-indigo-100 text-indigo-600',
+		blue: 'bg-blue-50 dark:bg-blue-950/30 border-blue-100 dark:border-blue-900/40 text-blue-600 dark:text-blue-400',
+		emerald: 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-100 dark:border-emerald-900/40 text-emerald-600 dark:text-emerald-400',
+		red: 'bg-red-50 dark:bg-red-950/30 border-red-100 dark:border-red-900/40 text-red-600 dark:text-red-400',
+		amber: 'bg-amber-50 dark:bg-amber-950/30 border-amber-100 dark:border-amber-900/40 text-amber-600 dark:text-amber-400',
+		purple: 'bg-purple-50 dark:bg-purple-950/30 border-purple-100 dark:border-purple-900/40 text-purple-600 dark:text-purple-400',
+		slate: 'bg-slate-50 dark:bg-slate-800/40 border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400',
+		teal: 'bg-teal-50 dark:bg-teal-950/30 border-teal-100 dark:border-teal-900/40 text-teal-600 dark:text-teal-400',
+		indigo: 'bg-indigo-50 dark:bg-indigo-950/30 border-indigo-100 dark:border-indigo-900/40 text-indigo-600 dark:text-indigo-400',
 	};
 	const iconColors = {
-		blue: 'bg-blue-100 text-blue-600',
-		emerald: 'bg-emerald-100 text-emerald-600',
-		red: 'bg-red-100 text-red-600',
-		amber: 'bg-amber-100 text-amber-600',
-		purple: 'bg-purple-100 text-purple-600',
-		slate: 'bg-slate-100 text-slate-600',
-		teal: 'bg-teal-100 text-teal-600',
-		indigo: 'bg-indigo-100 text-indigo-600',
+		blue: 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400',
+		emerald: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400',
+		red: 'bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400',
+		amber: 'bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400',
+		purple: 'bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400',
+		slate: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400',
+		teal: 'bg-teal-100 dark:bg-teal-900/50 text-teal-600 dark:text-teal-400',
+		indigo: 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400',
 	};
 
 	return (
@@ -54,24 +54,24 @@ function StatCard({ icon: Icon, label, value, sublabel, color = 'blue', classNam
 					<Icon className="text-base" />
 				</div>
 				<div className="min-w-0 flex-1">
-					<p className="text-2xl font-bold text-slate-900">{value}</p>
-					<p className="text-xs font-medium text-slate-500 mt-0.5">{label}</p>
-					{sublabel && <p className="text-[11px] text-slate-400 mt-0.5">{sublabel}</p>}
+					<p className="text-2xl font-bold text-slate-900 dark:text-white">{value}</p>
+					<p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">{label}</p>
+					{sublabel && <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{sublabel}</p>}
 				</div>
 			</div>
 		</div>
 	);
 }
 
-function SectionHeader({ icon: Icon, title, subtitle, color = 'bg-blue-100 text-blue-600' }) {
+function SectionHeader({ icon: Icon, title, subtitle, color = 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400' }) {
 	return (
 		<div className="flex items-center gap-3 mb-5">
 			<div className={`p-2.5 rounded-xl ${color}`}>
 				<Icon className="text-xl" />
 			</div>
 			<div>
-				<h4 className="text-lg font-bold text-slate-900">{title}</h4>
-				{subtitle && <p className="text-sm text-slate-500 mt-0.5">{subtitle}</p>}
+				<h4 className="text-lg font-bold text-slate-900 dark:text-white">{title}</h4>
+				{subtitle && <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{subtitle}</p>}
 			</div>
 		</div>
 	);
@@ -80,7 +80,7 @@ function SectionHeader({ icon: Icon, title, subtitle, color = 'bg-blue-100 text-
 function ProgressBar({ value, max, color = 'bg-emerald-500', className = '' }) {
 	const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
 	return (
-		<div className={`w-full bg-slate-100 rounded-full h-2.5 ${className}`}>
+		<div className={`w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2.5 ${className}`}>
 			<div
 				className={`h-2.5 rounded-full transition-all duration-500 ${color}`}
 				style={{ width: `${pct}%` }}
@@ -92,8 +92,8 @@ function ProgressBar({ value, max, color = 'bg-emerald-500', className = '' }) {
 function CustomTooltip({ active, payload, label }) {
 	if (!active || !payload?.length) return null;
 	return (
-		<div className="bg-white rounded-lg shadow-lg border border-slate-200 p-3 text-sm">
-			<p className="font-semibold text-slate-900 mb-1">{label}</p>
+		<div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 p-3 text-sm">
+			<p className="font-semibold text-slate-900 dark:text-slate-100 mb-1">{label}</p>
 			{payload.map((entry, i) => (
 				<p key={i} style={{ color: entry.color }} className="flex items-center gap-2">
 					<span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: entry.color }} />
@@ -414,7 +414,7 @@ function GlobalOverview({ stats }) {
 				icon={FaChartBar}
 				title="Visão Geral"
 				subtitle="Estatísticas globais do exercício"
-				color="bg-indigo-100 text-indigo-600"
+				color="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400"
 			/>
 
 			<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
@@ -432,8 +432,8 @@ function GlobalOverview({ stats }) {
 			{global.totalResponses > 0 && (
 				<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 					{/* Accuracy Pie */}
-					<div className="p-4 rounded-xl border border-slate-100 bg-slate-50/50">
-						<p className="text-sm font-semibold text-slate-700 mb-3">Distribuição de Acertos</p>
+					<div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
+						<p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Distribuição de Acertos</p>
 						<ResponsiveContainer width="100%" height={220}>
 							<PieChart>
 								<Pie
@@ -456,13 +456,13 @@ function GlobalOverview({ stats }) {
 
 					{/* Round accuracy bar chart */}
 					{charts.roundChartData.length > 1 && (
-						<div className="p-4 rounded-xl border border-slate-100 bg-slate-50/50">
-							<p className="text-sm font-semibold text-slate-700 mb-3">Aproveitamento por Rodada</p>
+						<div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
+							<p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Aproveitamento por Rodada</p>
 							<ResponsiveContainer width="100%" height={220}>
 								<BarChart data={charts.roundChartData}>
-									<CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-									<XAxis dataKey="name" tick={{ fontSize: 12 }} />
-									<YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
+									<CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+									<XAxis dataKey="name" tick={{ fontSize: 12, fill: 'var(--chart-axis)' }} />
+									<YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: 'var(--chart-axis)' }} />
 									<Tooltip content={<CustomTooltip />} />
 									<Bar dataKey="Aproveitamento (%)" fill="#3b82f6" radius={[4, 4, 0, 0]} />
 									<Bar dataKey="Conclusão (%)" fill="#10b981" radius={[4, 4, 0, 0]} />
@@ -488,65 +488,65 @@ function RoundBreakdown({ stats }) {
 				icon={FaListOl}
 				title="Estatísticas por Rodada"
 				subtitle="Detalhamento de cada rodada do exercício"
-				color="bg-blue-100 text-blue-600"
+				color="bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400"
 			/>
 
 			<div className="space-y-3">
 				{roundStats.map((round) => {
 					const isExpanded = expandedRound === round.index;
 					return (
-						<div key={round.index} className="rounded-xl border border-slate-200 overflow-hidden">
+						<div key={round.index} className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
 							<button
 								onClick={() => setExpandedRound(isExpanded ? null : round.index)}
-								className="w-full flex items-center gap-4 p-4 text-left hover:bg-slate-50/50 transition-colors"
+								className="w-full flex items-center gap-4 p-4 text-left hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors"
 							>
-								<span className="shrink-0 flex items-center justify-center w-9 h-9 rounded-lg bg-blue-50 border border-blue-200 text-sm font-bold text-blue-600">
+								<span className="shrink-0 flex items-center justify-center w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 text-sm font-bold text-blue-600 dark:text-blue-400">
 									{round.index + 1}
 								</span>
 								<div className="flex-1 min-w-0">
-									<p className="text-sm font-semibold text-slate-900 truncate">{round.title}</p>
-									{round.phase && <p className="text-xs text-slate-500">{round.phase}</p>}
+									<p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">{round.title}</p>
+									{round.phase && <p className="text-xs text-slate-500 dark:text-slate-400">{round.phase}</p>}
 								</div>
 
 								{/* Mini stats */}
 								<div className="hidden sm:flex items-center gap-3">
 									<span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-										round.accuracy >= 70 ? 'bg-emerald-100 text-emerald-700' :
-										round.accuracy >= 40 ? 'bg-amber-100 text-amber-700' :
-										'bg-red-100 text-red-700'
+										round.accuracy >= 70 ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' :
+										round.accuracy >= 40 ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300' :
+										'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300'
 									}`}>
 										{round.accuracy}%
 									</span>
-									<span className="text-xs text-slate-500">
+									<span className="text-xs text-slate-500 dark:text-slate-400">
 										{round.correct}/{round.responseCount} acertos
 									</span>
-									<span className="text-xs text-slate-400">
+									<span className="text-xs text-slate-400 dark:text-slate-500">
 										{round.questionCount} questões
 									</span>
 								</div>
 
-								<FaChevronDown className={`text-slate-400 text-xs shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+								<FaChevronDown className={`text-slate-400 dark:text-slate-500 text-xs shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
 							</button>
 
 							{isExpanded && (
-								<div className="px-4 pb-4 border-t border-slate-100 space-y-4">
+								<div className="px-4 pb-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
 									{/* Round summary cards */}
 									<div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-4">
-										<div className="p-3 rounded-lg bg-blue-50 border border-blue-100 text-center">
-											<p className="text-lg font-bold text-blue-700">{round.accuracy}%</p>
-											<p className="text-[11px] text-blue-600">Aproveitamento</p>
+										<div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 text-center">
+											<p className="text-lg font-bold text-blue-700 dark:text-blue-300">{round.accuracy}%</p>
+											<p className="text-[11px] text-blue-600 dark:text-blue-400">Aproveitamento</p>
 										</div>
-										<div className="p-3 rounded-lg bg-emerald-50 border border-emerald-100 text-center">
-											<p className="text-lg font-bold text-emerald-700">{round.correct}</p>
-											<p className="text-[11px] text-emerald-600">Acertos</p>
+										<div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 text-center">
+											<p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">{round.correct}</p>
+											<p className="text-[11px] text-emerald-600 dark:text-emerald-400">Acertos</p>
 										</div>
-										<div className="p-3 rounded-lg bg-red-50 border border-red-100 text-center">
-											<p className="text-lg font-bold text-red-700">{round.incorrect}</p>
-											<p className="text-[11px] text-red-600">Erros</p>
+										<div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/40 text-center">
+											<p className="text-lg font-bold text-red-700 dark:text-red-300">{round.incorrect}</p>
+											<p className="text-[11px] text-red-600 dark:text-red-400">Erros</p>
 										</div>
-										<div className="p-3 rounded-lg bg-purple-50 border border-purple-100 text-center">
-											<p className="text-lg font-bold text-purple-700">{round.completion}%</p>
-											<p className="text-[11px] text-purple-600">Conclusão</p>
+										<div className="p-3 rounded-lg bg-purple-50 dark:bg-purple-950/30 border border-purple-100 dark:border-purple-900/40 text-center">
+											<p className="text-lg font-bold text-purple-700 dark:text-purple-300">{round.completion}%</p>
+											<p className="text-[11px] text-purple-600 dark:text-purple-400">Conclusão</p>
 										</div>
 									</div>
 
@@ -554,21 +554,21 @@ function RoundBreakdown({ stats }) {
 									{(round.hardest || round.easiest) && (
 										<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 											{round.easiest && (
-												<div className="p-3 rounded-lg bg-emerald-50 border border-emerald-100">
-													<p className="text-[11px] font-semibold text-emerald-600 uppercase tracking-wide mb-1 flex items-center gap-1">
+												<div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40">
+													<p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-1 flex items-center gap-1">
 														<FaArrowUp className="text-[10px]" /> Mais Fácil
 													</p>
-													<p className="text-sm text-slate-700 line-clamp-2">{round.easiest.text}</p>
-													<p className="text-xs text-emerald-600 mt-1 font-semibold">{round.easiest.accuracy}% de acerto</p>
+													<p className="text-sm text-slate-700 dark:text-slate-300 line-clamp-2">{round.easiest.text}</p>
+													<p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-semibold">{round.easiest.accuracy}% de acerto</p>
 												</div>
 											)}
 											{round.hardest && round.hardest.id !== round.easiest?.id && (
-												<div className="p-3 rounded-lg bg-red-50 border border-red-100">
-													<p className="text-[11px] font-semibold text-red-600 uppercase tracking-wide mb-1 flex items-center gap-1">
+												<div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/40">
+													<p className="text-[11px] font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide mb-1 flex items-center gap-1">
 														<FaArrowDown className="text-[10px]" /> Mais Difícil
 													</p>
-													<p className="text-sm text-slate-700 line-clamp-2">{round.hardest.text}</p>
-													<p className="text-xs text-red-600 mt-1 font-semibold">{round.hardest.accuracy}% de acerto</p>
+													<p className="text-sm text-slate-700 dark:text-slate-300 line-clamp-2">{round.hardest.text}</p>
+													<p className="text-xs text-red-600 dark:text-red-400 mt-1 font-semibold">{round.hardest.accuracy}% de acerto</p>
 												</div>
 											)}
 										</div>
@@ -577,42 +577,42 @@ function RoundBreakdown({ stats }) {
 									{/* Per-question table */}
 									{round.questionStats.length > 0 && (
 										<div>
-											<p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">
+											<p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-2">
 												Questões da rodada
 											</p>
-											<div className="overflow-x-auto rounded-lg border border-slate-200">
+											<div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
 												<table className="w-full text-sm">
 													<thead>
-														<tr className="bg-slate-50 border-b border-slate-200">
-															<th className="text-left py-2.5 px-3 font-semibold text-slate-600 text-xs">#</th>
-															<th className="text-left py-2.5 px-3 font-semibold text-slate-600 text-xs">Questão</th>
-															<th className="text-center py-2.5 px-3 font-semibold text-slate-600 text-xs">Respostas</th>
-															<th className="text-center py-2.5 px-3 font-semibold text-slate-600 text-xs">Acertos</th>
-															<th className="text-center py-2.5 px-3 font-semibold text-slate-600 text-xs">Aproveitamento</th>
+														<tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+															<th className="text-left py-2.5 px-3 font-semibold text-slate-600 dark:text-slate-400 text-xs">#</th>
+															<th className="text-left py-2.5 px-3 font-semibold text-slate-600 dark:text-slate-400 text-xs">Questão</th>
+															<th className="text-center py-2.5 px-3 font-semibold text-slate-600 dark:text-slate-400 text-xs">Respostas</th>
+															<th className="text-center py-2.5 px-3 font-semibold text-slate-600 dark:text-slate-400 text-xs">Acertos</th>
+															<th className="text-center py-2.5 px-3 font-semibold text-slate-600 dark:text-slate-400 text-xs">Aproveitamento</th>
 														</tr>
 													</thead>
 													<tbody>
 														{round.questionStats.map((q, qi) => (
-															<tr key={q.id} className="border-b border-slate-100 last:border-0">
-																<td className="py-2.5 px-3 text-slate-500 font-mono text-xs">{qi + 1}</td>
-																<td className="py-2.5 px-3 text-slate-700 max-w-md break-words whitespace-pre-line">{q.text}</td>
-																<td className="py-2.5 px-3 text-center text-slate-600">{q.responseCount}</td>
+															<tr key={q.id} className="border-b border-slate-100 dark:border-slate-800 last:border-0">
+																<td className="py-2.5 px-3 text-slate-500 dark:text-slate-400 font-mono text-xs">{qi + 1}</td>
+																<td className="py-2.5 px-3 text-slate-700 dark:text-slate-300 max-w-md break-words whitespace-pre-line">{q.text}</td>
+																<td className="py-2.5 px-3 text-center text-slate-600 dark:text-slate-400">{q.responseCount}</td>
 																<td className="py-2.5 px-3 text-center">
-																	<span className={q.correctCount > 0 ? 'text-emerald-600 font-medium' : 'text-slate-400'}>
+																	<span className={q.correctCount > 0 ? 'text-emerald-600 dark:text-emerald-400 font-medium' : 'text-slate-400 dark:text-slate-500'}>
 																		{q.correctCount}
 																	</span>
 																</td>
 																<td className="py-2.5 px-3 text-center">
 																	{q.accuracy !== null ? (
 																		<span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-																			q.accuracy >= 70 ? 'bg-emerald-100 text-emerald-700' :
-																			q.accuracy >= 40 ? 'bg-amber-100 text-amber-700' :
-																			'bg-red-100 text-red-700'
+																			q.accuracy >= 70 ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' :
+																			q.accuracy >= 40 ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300' :
+																			'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300'
 																		}`}>
 																			{q.accuracy}%
 																		</span>
 																	) : (
-																		<span className="text-xs text-slate-400">—</span>
+																		<span className="text-xs text-slate-400 dark:text-slate-500">—</span>
 																	)}
 																</td>
 															</tr>
@@ -647,18 +647,18 @@ function ParticipantBreakdown({ stats }) {
 				icon={FaUsers}
 				title="Desempenho Individual"
 				subtitle="Ranking e detalhamento por participante"
-				color="bg-purple-100 text-purple-600"
+				color="bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400"
 			/>
 
 			{/* Participant bar chart */}
 			{participants.length > 1 && (
-				<div className="p-4 rounded-xl border border-slate-100 bg-slate-50/50 mb-5">
-					<p className="text-sm font-semibold text-slate-700 mb-3">Comparativo de Aproveitamento</p>
+				<div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 mb-5">
+					<p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Comparativo de Aproveitamento</p>
 					<ResponsiveContainer width="100%" height={Math.max(180, participants.length * 44)}>
 						<BarChart data={stats.charts.participantChartData} layout="vertical">
-							<CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-							<XAxis type="number" domain={[0, 100]} tick={{ fontSize: 12 }} />
-							<YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} width={100} />
+							<CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+							<XAxis type="number" domain={[0, 100]} tick={{ fontSize: 12, fill: "var(--chart-axis)" }} />
+							<YAxis dataKey="name" type="category" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} width={100} />
 							<Tooltip content={<CustomTooltip />} />
 							<Bar dataKey="Aproveitamento (%)" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
 						</BarChart>
@@ -671,22 +671,22 @@ function ParticipantBreakdown({ stats }) {
 				{participants.map((p, idx) => {
 					const isExpanded = expandedUser === p.user.id;
 					return (
-						<div key={p.user.id} className="rounded-xl border border-slate-200 overflow-hidden">
+						<div key={p.user.id} className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
 							<button
 								onClick={() => setExpandedUser(isExpanded ? null : p.user.id)}
-								className="w-full flex items-center gap-3 p-4 text-left hover:bg-slate-50/50 transition-colors"
+								className="w-full flex items-center gap-3 p-4 text-left hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors"
 							>
 								{/* Rank */}
 								<span className="shrink-0 text-lg w-8 text-center">
-									{idx < 3 ? medals[idx] : <span className="text-sm text-slate-400 font-bold">{idx + 1}º</span>}
+									{idx < 3 ? medals[idx] : <span className="text-sm text-slate-400 dark:text-slate-500 font-bold">{idx + 1}º</span>}
 								</span>
 
 								{/* Name */}
 								<div className="flex-1 min-w-0">
-									<p className="text-sm font-semibold text-slate-900 truncate">
+									<p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
 										{p.user.nickname || p.user.name}
 									</p>
-									<p className="text-xs text-slate-500">
+									<p className="text-xs text-slate-500 dark:text-slate-400">
 										{p.questionsAnswered}/{p.totalQuestions} questões respondidas
 									</p>
 								</div>
@@ -694,52 +694,52 @@ function ParticipantBreakdown({ stats }) {
 								{/* Stats inline */}
 								<div className="hidden sm:flex items-center gap-3">
 									<span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-										p.percentage >= 70 ? 'bg-emerald-100 text-emerald-700' :
-										p.percentage >= 40 ? 'bg-amber-100 text-amber-700' :
-										'bg-red-100 text-red-700'
+										p.percentage >= 70 ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' :
+										p.percentage >= 40 ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300' :
+										'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300'
 									}`}>
 										{p.percentage}%
 									</span>
-									<span className="text-xs text-slate-500 font-medium">
+									<span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
 										{p.points_earned}/{p.points_possible} pts
 									</span>
 									{p.avgResponseInterval && (
-										<span className="text-xs text-slate-400">
+										<span className="text-xs text-slate-400 dark:text-slate-500">
 											~{formatDuration(p.avgResponseInterval)}/resp.
 										</span>
 									)}
 								</div>
 
-								<FaChevronDown className={`text-slate-400 text-xs shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+								<FaChevronDown className={`text-slate-400 dark:text-slate-500 text-xs shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
 							</button>
 
 							{isExpanded && (
-								<div className="px-4 pb-4 border-t border-slate-100 space-y-4">
+								<div className="px-4 pb-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
 									{/* Summary row */}
 									<div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-4">
-										<div className="p-3 rounded-lg bg-blue-50 border border-blue-100 text-center">
-											<p className="text-lg font-bold text-blue-700">{p.percentage}%</p>
-											<p className="text-[11px] text-blue-600">Aproveitamento</p>
+										<div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 text-center">
+											<p className="text-lg font-bold text-blue-700 dark:text-blue-300">{p.percentage}%</p>
+											<p className="text-[11px] text-blue-600 dark:text-blue-400">Aproveitamento</p>
 										</div>
-										<div className="p-3 rounded-lg bg-emerald-50 border border-emerald-100 text-center">
-											<p className="text-lg font-bold text-emerald-700">{p.correct_count}</p>
-											<p className="text-[11px] text-emerald-600">Acertos</p>
+										<div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 text-center">
+											<p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">{p.correct_count}</p>
+											<p className="text-[11px] text-emerald-600 dark:text-emerald-400">Acertos</p>
 										</div>
-										<div className="p-3 rounded-lg bg-red-50 border border-red-100 text-center">
-											<p className="text-lg font-bold text-red-700">{p.total_responses - p.correct_count}</p>
-											<p className="text-[11px] text-red-600">Erros</p>
+										<div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/40 text-center">
+											<p className="text-lg font-bold text-red-700 dark:text-red-300">{p.total_responses - p.correct_count}</p>
+											<p className="text-[11px] text-red-600 dark:text-red-400">Erros</p>
 										</div>
-										<div className="p-3 rounded-lg bg-amber-50 border border-amber-100 text-center">
-											<p className="text-lg font-bold text-amber-700">{p.points_earned}</p>
-											<p className="text-[11px] text-amber-600">Pontos</p>
+										<div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/40 text-center">
+											<p className="text-lg font-bold text-amber-700 dark:text-amber-300">{p.points_earned}</p>
+											<p className="text-[11px] text-amber-600 dark:text-amber-400">Pontos</p>
 										</div>
 									</div>
 
 									{/* Progress bar */}
 									<div>
 										<div className="flex items-center justify-between mb-1.5">
-											<span className="text-xs text-slate-500">Progresso geral</span>
-											<span className="text-xs font-semibold text-slate-600">
+											<span className="text-xs text-slate-500 dark:text-slate-400">Progresso geral</span>
+											<span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
 												{p.questionsAnswered}/{p.totalQuestions}
 											</span>
 										</div>
@@ -753,48 +753,48 @@ function ParticipantBreakdown({ stats }) {
 									{/* Per-round breakdown */}
 									{p.perRound.length > 0 && (
 										<div>
-											<p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">
+											<p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-2">
 												Desempenho por Rodada
 											</p>
-											<div className="overflow-x-auto rounded-lg border border-slate-200">
+											<div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
 												<table className="w-full text-sm">
 													<thead>
-														<tr className="bg-slate-50 border-b border-slate-200">
-															<th className="text-left py-2 px-3 font-semibold text-slate-600 text-xs">Rodada</th>
-															<th className="text-center py-2 px-3 font-semibold text-slate-600 text-xs">Respostas</th>
-															<th className="text-center py-2 px-3 font-semibold text-slate-600 text-xs">Acertos</th>
-															<th className="text-center py-2 px-3 font-semibold text-slate-600 text-xs">Pontos</th>
-															<th className="text-center py-2 px-3 font-semibold text-slate-600 text-xs">%</th>
+														<tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+															<th className="text-left py-2 px-3 font-semibold text-slate-600 dark:text-slate-400 text-xs">Rodada</th>
+															<th className="text-center py-2 px-3 font-semibold text-slate-600 dark:text-slate-400 text-xs">Respostas</th>
+															<th className="text-center py-2 px-3 font-semibold text-slate-600 dark:text-slate-400 text-xs">Acertos</th>
+															<th className="text-center py-2 px-3 font-semibold text-slate-600 dark:text-slate-400 text-xs">Pontos</th>
+															<th className="text-center py-2 px-3 font-semibold text-slate-600 dark:text-slate-400 text-xs">%</th>
 														</tr>
 													</thead>
 													<tbody>
 														{p.perRound.map(pr => (
-															<tr key={pr.roundIndex} className="border-b border-slate-100 last:border-0">
-																<td className="py-2 px-3 text-slate-700 text-xs font-medium">
+															<tr key={pr.roundIndex} className="border-b border-slate-100 dark:border-slate-800 last:border-0">
+																<td className="py-2 px-3 text-slate-700 dark:text-slate-300 text-xs font-medium">
 																	R{pr.roundIndex + 1} — {pr.roundTitle}
 																</td>
-																<td className="py-2 px-3 text-center text-slate-600 text-xs">
+																<td className="py-2 px-3 text-center text-slate-600 dark:text-slate-400 text-xs">
 																	{pr.responses}/{pr.totalQuestions}
 																</td>
 																<td className="py-2 px-3 text-center text-xs">
-																	<span className={pr.correct > 0 ? 'text-emerald-600 font-medium' : 'text-slate-400'}>
+																	<span className={pr.correct > 0 ? 'text-emerald-600 dark:text-emerald-400 font-medium' : 'text-slate-400 dark:text-slate-500'}>
 																		{pr.correct}
 																	</span>
 																</td>
-																<td className="py-2 px-3 text-center text-xs text-slate-600">
+																<td className="py-2 px-3 text-center text-xs text-slate-600 dark:text-slate-400">
 																	{pr.pointsEarned}/{pr.pointsPossible}
 																</td>
 																<td className="py-2 px-3 text-center">
 																	{pr.accuracy !== null ? (
 																		<span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-																			pr.accuracy >= 70 ? 'bg-emerald-100 text-emerald-700' :
-																			pr.accuracy >= 40 ? 'bg-amber-100 text-amber-700' :
-																			'bg-red-100 text-red-700'
+																			pr.accuracy >= 70 ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' :
+																			pr.accuracy >= 40 ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300' :
+																			'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300'
 																		}`}>
 																			{pr.accuracy}%
 																		</span>
 																	) : (
-																		<span className="text-xs text-slate-400">—</span>
+																		<span className="text-xs text-slate-400 dark:text-slate-500">—</span>
 																	)}
 																</td>
 															</tr>
@@ -825,27 +825,27 @@ function QuestionDifficulty({ stats }) {
 				icon={FaStar}
 				title="Análise de Dificuldade"
 				subtitle="Questões mais difíceis, mais fáceis e distribuição por tipo"
-				color="bg-amber-100 text-amber-600"
+				color="bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400"
 			/>
 
 			<div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 				{/* Hardest questions */}
 				{hardestQuestions.length > 0 && (
 					<div>
-						<p className="text-xs font-semibold text-red-600 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+						<p className="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
 							<FaArrowDown className="text-[10px]" /> Questões Mais Difíceis
 						</p>
 						<div className="space-y-2">
 							{hardestQuestions.map((q, i) => (
-								<div key={`${q.roundIndex}-${q.id}`} className="flex items-start gap-3 p-3 rounded-lg bg-red-50 border border-red-100">
-									<span className="shrink-0 w-6 h-6 flex items-center justify-center rounded-md bg-red-200 text-red-700 text-xs font-bold">
+								<div key={`${q.roundIndex}-${q.id}`} className="flex items-start gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/40">
+									<span className="shrink-0 w-6 h-6 flex items-center justify-center rounded-md bg-red-200 dark:bg-red-900/60 text-red-700 dark:text-red-300 text-xs font-bold">
 										{i + 1}
 									</span>
 									<div className="flex-1 min-w-0">
-										<p className="text-sm text-slate-700 break-words whitespace-pre-line">{q.text}</p>
-										<p className="text-[11px] text-slate-400">Rodada {q.roundIndex + 1}</p>
+										<p className="text-sm text-slate-700 dark:text-slate-300 break-words whitespace-pre-line">{q.text}</p>
+										<p className="text-[11px] text-slate-400 dark:text-slate-500">Rodada {q.roundIndex + 1}</p>
 									</div>
-									<span className="text-xs font-bold text-red-600 shrink-0">{q.accuracy}%</span>
+									<span className="text-xs font-bold text-red-600 dark:text-red-400 shrink-0">{q.accuracy}%</span>
 								</div>
 							))}
 						</div>
@@ -855,20 +855,20 @@ function QuestionDifficulty({ stats }) {
 				{/* Easiest questions */}
 				{easiestQuestions.length > 0 && (
 					<div>
-						<p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+						<p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
 							<FaArrowUp className="text-[10px]" /> Questões Mais Fáceis
 						</p>
 						<div className="space-y-2">
 							{easiestQuestions.map((q, i) => (
-								<div key={`${q.roundIndex}-${q.id}`} className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50 border border-emerald-100">
-									<span className="shrink-0 w-6 h-6 flex items-center justify-center rounded-md bg-emerald-200 text-emerald-700 text-xs font-bold">
+								<div key={`${q.roundIndex}-${q.id}`} className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40">
+									<span className="shrink-0 w-6 h-6 flex items-center justify-center rounded-md bg-emerald-200 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
 										{i + 1}
 									</span>
 									<div className="flex-1 min-w-0">
-										<p className="text-sm text-slate-700 break-words whitespace-pre-line">{q.text}</p>
-										<p className="text-[11px] text-slate-400">Rodada {q.roundIndex + 1}</p>
+										<p className="text-sm text-slate-700 dark:text-slate-300 break-words whitespace-pre-line">{q.text}</p>
+										<p className="text-[11px] text-slate-400 dark:text-slate-500">Rodada {q.roundIndex + 1}</p>
 									</div>
-									<span className="text-xs font-bold text-emerald-600 shrink-0">{q.accuracy}%</span>
+									<span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 shrink-0">{q.accuracy}%</span>
 								</div>
 							))}
 						</div>
@@ -879,20 +879,20 @@ function QuestionDifficulty({ stats }) {
 			{/* Type distribution */}
 			{typeStats.length > 0 && (
 				<div className="mt-5">
-					<p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-3">
+					<p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-3">
 						Aproveitamento por Tipo de Questão
 					</p>
 					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
 						{typeStats.map(t => (
-							<div key={t.type} className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100">
+							<div key={t.type} className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
 								<div className="flex-1 min-w-0">
-									<p className="text-sm font-medium text-slate-700">{t.label}</p>
-									<p className="text-[11px] text-slate-400">{t.count} questões · {t.total} respostas</p>
+									<p className="text-sm font-medium text-slate-700 dark:text-slate-300">{t.label}</p>
+									<p className="text-[11px] text-slate-400 dark:text-slate-500">{t.count} questões · {t.total} respostas</p>
 								</div>
 								<span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-									t.accuracy >= 70 ? 'bg-emerald-100 text-emerald-700' :
-									t.accuracy >= 40 ? 'bg-amber-100 text-amber-700' :
-									'bg-red-100 text-red-700'
+									t.accuracy >= 70 ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' :
+									t.accuracy >= 40 ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300' :
+									'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300'
 								}`}>
 									{t.accuracy}%
 								</span>
@@ -919,7 +919,7 @@ function TimeAnalytics({ stats }) {
 				icon={FaStopwatch}
 				title="Tempo & Velocidade"
 				subtitle="Análise de tempos de resposta e correlação com desempenho"
-				color="bg-teal-100 text-teal-600"
+				color="bg-teal-100 dark:bg-teal-900/50 text-teal-600 dark:text-teal-400"
 			/>
 
 			{/* Summary cards */}
@@ -953,26 +953,26 @@ function TimeAnalytics({ stats }) {
 
 			{/* Speed vs Accuracy scatter chart */}
 			{speedAccuracyData.length > 1 && (
-				<div className="p-4 rounded-xl border border-slate-100 bg-slate-50/50 mb-6">
-					<p className="text-sm font-semibold text-slate-700 mb-1">Velocidade vs Aproveitamento</p>
-					<p className="text-xs text-slate-400 mb-3">Cada ponto representa um participante. Eixo X = tempo médio entre respostas (s), Y = aproveitamento (%)</p>
+				<div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 mb-6">
+					<p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Velocidade vs Aproveitamento</p>
+					<p className="text-xs text-slate-400 dark:text-slate-500 mb-3">Cada ponto representa um participante. Eixo X = tempo médio entre respostas (s), Y = aproveitamento (%)</p>
 					<ResponsiveContainer width="100%" height={260}>
 						<ScatterChart margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
-							<CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+							<CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
 							<XAxis
 								type="number"
 								dataKey="velocidade"
 								name="Tempo (s)"
-								tick={{ fontSize: 11 }}
-								label={{ value: 'Tempo médio (s)', position: 'insideBottom', offset: -5, style: { fontSize: 11, fill: '#94a3b8' } }}
+								tick={{ fontSize: 11, fill: "var(--chart-axis)" }}
+								label={{ value: 'Tempo médio (s)', position: 'insideBottom', offset: -5, style: { fontSize: 11, fill: 'var(--chart-axis)' } }}
 							/>
 							<YAxis
 								type="number"
 								dataKey="aproveitamento"
 								name="Aproveitamento (%)"
 								domain={[0, 100]}
-								tick={{ fontSize: 11 }}
-								label={{ value: 'Aproveit. (%)', angle: -90, position: 'insideLeft', offset: 10, style: { fontSize: 11, fill: '#94a3b8' } }}
+								tick={{ fontSize: 11, fill: "var(--chart-axis)" }}
+								label={{ value: 'Aproveit. (%)', angle: -90, position: 'insideLeft', offset: 10, style: { fontSize: 11, fill: 'var(--chart-axis)' } }}
 							/>
 							<ZAxis type="number" dataKey="respostas" range={[40, 160]} name="Respostas" />
 							<Tooltip
@@ -981,11 +981,11 @@ function TimeAnalytics({ stats }) {
 									if (!active || !payload?.length) return null;
 									const d = payload[0].payload;
 									return (
-										<div className="bg-white rounded-lg shadow-lg border border-slate-200 p-3 text-sm">
-											<p className="font-semibold text-slate-900">{d.name}</p>
-											<p className="text-teal-600">Tempo: {d.velocidade}s/resp.</p>
-											<p className="text-indigo-600">Aproveitamento: {d.aproveitamento}%</p>
-											<p className="text-slate-500">{d.respostas} respostas</p>
+										<div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 p-3 text-sm">
+											<p className="font-semibold text-slate-900 dark:text-slate-100">{d.name}</p>
+											<p className="text-teal-600 dark:text-teal-400">Tempo: {d.velocidade}s/resp.</p>
+											<p className="text-indigo-600 dark:text-indigo-400">Aproveitamento: {d.aproveitamento}%</p>
+											<p className="text-slate-500 dark:text-slate-400">{d.respostas} respostas</p>
 										</div>
 									);
 								}}
@@ -998,14 +998,14 @@ function TimeAnalytics({ stats }) {
 
 			{/* Round time chart */}
 			{roundTimeData.length > 1 && (
-				<div className="p-4 rounded-xl border border-slate-100 bg-slate-50/50 mb-6">
-					<p className="text-sm font-semibold text-slate-700 mb-3">Tempo Médio por Rodada vs Aproveitamento</p>
+				<div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 mb-6">
+					<p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Tempo Médio por Rodada vs Aproveitamento</p>
 					<ResponsiveContainer width="100%" height={240}>
 						<BarChart data={roundTimeData} barGap={4}>
-							<CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-							<XAxis dataKey="name" tick={{ fontSize: 12 }} />
-							<YAxis yAxisId="left" tick={{ fontSize: 12 }} label={{ value: 'Tempo (s)', angle: -90, position: 'insideLeft', style: { fontSize: 11, fill: '#94a3b8' } }} />
-							<YAxis yAxisId="right" orientation="right" domain={[0, 100]} tick={{ fontSize: 12 }} label={{ value: '% Acerto', angle: 90, position: 'insideRight', style: { fontSize: 11, fill: '#94a3b8' } }} />
+							<CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+							<XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} />
+							<YAxis yAxisId="left" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} label={{ value: 'Tempo (s)', angle: -90, position: 'insideLeft', style: { fontSize: 11, fill: 'var(--chart-axis)' } }} />
+							<YAxis yAxisId="right" orientation="right" domain={[0, 100]} tick={{ fontSize: 12, fill: "var(--chart-axis)" }} label={{ value: '% Acerto', angle: 90, position: 'insideRight', style: { fontSize: 11, fill: 'var(--chart-axis)' } }} />
 							<Tooltip content={<CustomTooltip />} />
 							<Legend wrapperStyle={{ fontSize: '12px' }} />
 							<Bar yAxisId="left" dataKey="Tempo Médio (s)" fill="#0d9488" radius={[4, 4, 0, 0]} />
@@ -1019,20 +1019,20 @@ function TimeAnalytics({ stats }) {
 			{fastestParticipants.length > 0 && (
 				<div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
 					<div>
-						<p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+						<p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
 							<FaBolt className="text-[10px]" /> Mais Rápidos
 						</p>
 						<div className="space-y-2">
 							{fastestParticipants.map((p, i) => (
-								<div key={p.user.id} className="flex items-center gap-3 p-3 rounded-lg bg-emerald-50 border border-emerald-100">
+								<div key={p.user.id} className="flex items-center gap-3 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40">
 									<span className="shrink-0 text-lg w-7 text-center">
 										{i < 3 ? medals[i] : `${i + 1}º`}
 									</span>
 									<div className="flex-1 min-w-0">
-										<p className="text-sm font-medium text-slate-700 truncate">{p.user.nickname || p.user.name}</p>
-										<p className="text-[11px] text-slate-400">{p.percentage}% aproveitamento</p>
+										<p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{p.user.nickname || p.user.name}</p>
+										<p className="text-[11px] text-slate-400 dark:text-slate-500">{p.percentage}% aproveitamento</p>
 									</div>
-									<span className="text-xs font-bold text-emerald-600 shrink-0">
+									<span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
 										{formatDuration(p.avgResponseInterval)}/resp.
 									</span>
 								</div>
@@ -1042,20 +1042,20 @@ function TimeAnalytics({ stats }) {
 
 					{slowestParticipants.length > 0 && (
 						<div>
-							<p className="text-xs font-semibold text-amber-600 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+							<p className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
 								<FaClock className="text-[10px]" /> Mais Lentos
 							</p>
 							<div className="space-y-2">
 								{slowestParticipants.map((p, i) => (
-									<div key={p.user.id} className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 border border-amber-100">
-										<span className="shrink-0 w-7 text-center text-sm text-amber-500 font-bold">
+									<div key={p.user.id} className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/40">
+										<span className="shrink-0 w-7 text-center text-sm text-amber-500 dark:text-amber-400 font-bold">
 											{i + 1}º
 										</span>
 										<div className="flex-1 min-w-0">
-											<p className="text-sm font-medium text-slate-700 truncate">{p.user.nickname || p.user.name}</p>
-											<p className="text-[11px] text-slate-400">{p.percentage}% aproveitamento</p>
+											<p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{p.user.nickname || p.user.name}</p>
+											<p className="text-[11px] text-slate-400 dark:text-slate-500">{p.percentage}% aproveitamento</p>
 										</div>
-										<span className="text-xs font-bold text-amber-600 shrink-0">
+										<span className="text-xs font-bold text-amber-600 dark:text-amber-400 shrink-0">
 											{formatDuration(p.avgResponseInterval)}/resp.
 										</span>
 									</div>
@@ -1069,18 +1069,18 @@ function TimeAnalytics({ stats }) {
 			{/* Speed ranking table */}
 			{participants.filter(p => p.avgResponseInterval).length > 0 && (
 				<div className="mt-5">
-					<p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-3">
+					<p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-3">
 						Tempo de Resposta por Participante
 					</p>
-					<div className="overflow-x-auto rounded-lg border border-slate-200">
+					<div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
 						<table className="w-full text-sm">
 							<thead>
-								<tr className="bg-slate-50 border-b border-slate-200">
-									<th className="text-left py-2.5 px-3 font-semibold text-slate-600 text-xs">Participante</th>
-									<th className="text-center py-2.5 px-3 font-semibold text-slate-600 text-xs">Tempo Médio</th>
-									<th className="text-center py-2.5 px-3 font-semibold text-slate-600 text-xs">Respostas</th>
-									<th className="text-center py-2.5 px-3 font-semibold text-slate-600 text-xs">Aproveitamento</th>
-									<th className="text-center py-2.5 px-3 font-semibold text-slate-600 text-xs">Pontos</th>
+								<tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+									<th className="text-left py-2.5 px-3 font-semibold text-slate-600 dark:text-slate-400 text-xs">Participante</th>
+									<th className="text-center py-2.5 px-3 font-semibold text-slate-600 dark:text-slate-400 text-xs">Tempo Médio</th>
+									<th className="text-center py-2.5 px-3 font-semibold text-slate-600 dark:text-slate-400 text-xs">Respostas</th>
+									<th className="text-center py-2.5 px-3 font-semibold text-slate-600 dark:text-slate-400 text-xs">Aproveitamento</th>
+									<th className="text-center py-2.5 px-3 font-semibold text-slate-600 dark:text-slate-400 text-xs">Pontos</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -1088,25 +1088,25 @@ function TimeAnalytics({ stats }) {
 									.filter(p => p.avgResponseInterval !== null)
 									.sort((a, b) => a.avgResponseInterval - b.avgResponseInterval)
 									.map((p, i) => (
-									<tr key={p.user.id} className="border-b border-slate-100 last:border-0">
-										<td className="py-2.5 px-3 font-medium text-slate-700">
+									<tr key={p.user.id} className="border-b border-slate-100 dark:border-slate-800 last:border-0">
+										<td className="py-2.5 px-3 font-medium text-slate-700 dark:text-slate-300">
 											{i < 3 ? <span className="mr-1">{medals[i]}</span> : null}
 											{p.user.nickname || p.user.name}
 										</td>
-										<td className="py-2.5 px-3 text-center text-teal-600 font-semibold">
+										<td className="py-2.5 px-3 text-center text-teal-600 dark:text-teal-400 font-semibold">
 											{formatDuration(p.avgResponseInterval)}
 										</td>
-										<td className="py-2.5 px-3 text-center text-slate-600">{p.questionsAnswered}</td>
+										<td className="py-2.5 px-3 text-center text-slate-600 dark:text-slate-400">{p.questionsAnswered}</td>
 										<td className="py-2.5 px-3 text-center">
 											<span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-												p.percentage >= 70 ? 'bg-emerald-100 text-emerald-700' :
-												p.percentage >= 40 ? 'bg-amber-100 text-amber-700' :
-												'bg-red-100 text-red-700'
+												p.percentage >= 70 ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' :
+												p.percentage >= 40 ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300' :
+												'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300'
 											}`}>
 												{p.percentage}%
 											</span>
 										</td>
-										<td className="py-2.5 px-3 text-center text-slate-600">
+										<td className="py-2.5 px-3 text-center text-slate-600 dark:text-slate-400">
 											{p.points_earned}/{p.points_possible}
 										</td>
 									</tr>
@@ -1150,24 +1150,24 @@ export default function TrainingStatsDashboard({ training, responses, summary, s
 	];
 
 	return (
-		<div className="bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 p-6 lg:p-8">
+		<div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm shadow-slate-200/50 dark:shadow-slate-950/50 border border-slate-200/60 dark:border-slate-800 p-6 lg:p-8">
 			{/* Header */}
 			<div className="flex items-center gap-3 mb-6">
-				<div className="p-3 bg-linear-to-br from-indigo-100 to-purple-100 rounded-xl">
-					<FaChartPie className="text-2xl text-indigo-600" />
+				<div className="p-3 bg-linear-to-br from-indigo-100 to-purple-100 dark:from-indigo-950/60 dark:to-purple-950/60 rounded-xl">
+					<FaChartPie className="text-2xl text-indigo-600 dark:text-indigo-400" />
 				</div>
 				<div className="flex-1">
-					<h3 className="text-xl font-bold text-slate-900">
+					<h3 className="text-xl font-bold text-slate-900 dark:text-white">
 						Painel de Estatísticas
 					</h3>
-					<p className="text-sm text-slate-500 mt-0.5">
+					<p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
 						Análise detalhada do desempenho dos participantes
 					</p>
 				</div>
 			</div>
 
 			{/* Tabs */}
-			<div className="flex flex-wrap gap-2 mb-6 border-b border-slate-100 pb-4">
+			<div className="flex flex-wrap gap-2 mb-6 border-b border-slate-100 dark:border-slate-800 pb-4">
 				{tabs.map(tab => {
 					const Icon = tab.icon;
 					return (
@@ -1177,7 +1177,7 @@ export default function TrainingStatsDashboard({ training, responses, summary, s
 							className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
 								activeTab === tab.id
 									? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/25'
-									: 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+									: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
 							}`}
 						>
 							<Icon className="text-xs" />

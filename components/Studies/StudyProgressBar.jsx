@@ -10,10 +10,10 @@ export default function StudyProgressBar({ label, completed, total, colorClass =
     return (
         <div className="space-y-1">
             <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-600 font-medium truncate">{label}</span>
-                <span className="text-slate-400 shrink-0 ml-2">{completed}/{total}</span>
+                <span className="text-slate-600 dark:text-slate-300 font-medium truncate">{label}</span>
+                <span className="text-slate-400 dark:text-slate-500 shrink-0 ml-2">{completed}/{total}</span>
             </div>
-            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                 <div
                     className={`h-full rounded-full transition-all duration-500 ${colorClass}`}
                     style={{ width: `${percentage}%` }}

@@ -40,38 +40,38 @@ export default function RoundControl({ training, rounds, onRoundChange, disabled
 	const canGoNext = currentRound < totalRounds - 1;
 
 	return (
-		<div className="bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 p-6 lg:p-8">
+		<div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm shadow-slate-200/50 dark:shadow-slate-950/50 border border-slate-200/60 dark:border-slate-800 p-6 lg:p-8">
 			<div className="flex items-center gap-3 mb-6">
 				<div className="flex items-center justify-center w-10 h-10 rounded-xl bg-linear-to-br from-purple-500 to-indigo-600 shadow-lg shadow-purple-500/25">
 					<FaList className="text-white text-lg" />
 				</div>
 				<div>
-					<h3 className="text-lg font-semibold text-slate-900">
+					<h3 className="text-lg font-semibold text-slate-900 dark:text-white">
 						Controle de Rodadas
 					</h3>
-					<p className="text-sm text-slate-500">
+					<p className="text-sm text-slate-500 dark:text-slate-400">
 						Rodada {currentRound + 1} de {totalRounds}
 					</p>
 				</div>
 			</div>
 
 			{/* Current Round Info */}
-			<div className="mb-6 p-4 bg-linear-to-br from-purple-50 to-indigo-50 rounded-xl border border-purple-100">
+			<div className="mb-6 p-4 bg-linear-to-br from-purple-50 to-indigo-50 dark:from-purple-950/40 dark:to-indigo-950/40 rounded-xl border border-purple-100 dark:border-purple-900/50">
 				<div className="flex items-center gap-2 mb-2">
 					<span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-600 text-white">
 						Rodada {currentRound + 1}
 					</span>
 					{currentRoundData.phase && (
-						<span className="text-xs font-medium text-slate-600">
+						<span className="text-xs font-medium text-slate-600 dark:text-slate-300">
 							{currentRoundData.phase}
 						</span>
 					)}
 				</div>
-				<h4 className="text-base font-semibold text-slate-900 mb-1">
+				<h4 className="text-base font-semibold text-slate-900 dark:text-white mb-1">
 					{currentRoundData.title}
 				</h4>
 				{currentRoundData.description && (
-					<p className="text-sm text-slate-600 line-clamp-2">
+					<p className="text-sm text-slate-600 dark:text-slate-300 line-clamp-2">
 						{currentRoundData.description}
 					</p>
 				)}
@@ -82,7 +82,7 @@ export default function RoundControl({ training, rounds, onRoundChange, disabled
 				<button
 					onClick={() => handleRoundChange('previous')}
 					disabled={disabled || loading || !canGoPrevious}
-					className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white text-slate-700 font-semibold rounded-xl hover:bg-slate-50 border-2 border-slate-200 hover:border-slate-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-slate-200"
+					className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 border-2 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white dark:disabled:hover:bg-slate-800 disabled:hover:border-slate-200 dark:disabled:hover:border-slate-700"
 					title={!canGoPrevious ? "Já está na primeira rodada" : "Rodada anterior"}
 				>
 					<FaChevronLeft className="text-sm" />
@@ -103,12 +103,12 @@ export default function RoundControl({ training, rounds, onRoundChange, disabled
 			{/* Round Progress Bar */}
 			<div className="mt-4">
 				<div className="flex items-center justify-between mb-2">
-					<span className="text-xs font-medium text-slate-600">Progresso</span>
-					<span className="text-xs font-semibold text-purple-600">
+					<span className="text-xs font-medium text-slate-600 dark:text-slate-400">Progresso</span>
+					<span className="text-xs font-semibold text-purple-600 dark:text-purple-400">
 						{Math.round(((currentRound + 1) / totalRounds) * 100)}%
 					</span>
 				</div>
-				<div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+				<div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
 					<div
 						className="h-full bg-linear-to-r from-purple-500 to-indigo-600 transition-all duration-300 ease-out"
 						style={{ width: `${((currentRound + 1) / totalRounds) * 100}%` }}
@@ -118,7 +118,7 @@ export default function RoundControl({ training, rounds, onRoundChange, disabled
 
 			{/* Round List (collapsed) */}
 			<details className="mt-4">
-				<summary className="cursor-pointer text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors select-none">
+				<summary className="cursor-pointer text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors select-none">
 					Ver todas as rodadas
 				</summary>
 				<div className="mt-3 space-y-2 max-h-64 overflow-y-auto">
@@ -129,13 +129,13 @@ export default function RoundControl({ training, rounds, onRoundChange, disabled
 							disabled={disabled || loading || index === currentRound}
 							className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all ${
 								index === currentRound
-									? 'bg-purple-100 text-purple-900 font-semibold border border-purple-200'
-									: 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-transparent'
+									? 'bg-purple-100 dark:bg-purple-950/70 text-purple-900 dark:text-purple-200 font-semibold border border-purple-200 dark:border-purple-800'
+									: 'bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent'
 							} disabled:cursor-not-allowed`}
 						>
 							<div className="flex items-center gap-2">
 								<span className={`text-xs font-semibold ${
-									index === currentRound ? 'text-purple-600' : 'text-slate-500'
+									index === currentRound ? 'text-purple-600 dark:text-purple-400' : 'text-slate-500 dark:text-slate-400'
 								}`}>
 									{index + 1}.
 								</span>

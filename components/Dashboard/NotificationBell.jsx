@@ -13,9 +13,9 @@ const NOTIFICATION_ICONS = {
 };
 
 const NOTIFICATION_COLORS = {
-	invite_received: 'text-blue-500 bg-blue-50',
-	invite_accepted: 'text-emerald-500 bg-emerald-50',
-	invite_declined: 'text-red-500 bg-red-50',
+	invite_received: 'text-blue-500 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30',
+	invite_accepted: 'text-emerald-500 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30',
+	invite_declined: 'text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-950/30',
 };
 
 function timeAgo(date) {
@@ -171,12 +171,12 @@ export default function NotificationBell() {
 			<button
 				ref={bellRef}
 				onClick={toggleOpen}
-				className="relative p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all duration-200"
+				className="relative p-2.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all duration-200"
 				aria-label="Notificações"
 			>
 				<FaBell className="text-base" />
 				{unreadCount > 0 && (
-					<span className="absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 flex items-center justify-center px-1 text-[10px] font-bold text-white bg-red-500 rounded-full border-2 border-white shadow-sm">
+					<span className="absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 flex items-center justify-center px-1 text-[10px] font-bold text-white bg-red-500 rounded-full border-2 border-white dark:border-slate-700 shadow-sm">
 						{unreadCount > 99 ? '99+' : unreadCount}
 					</span>
 				)}
@@ -186,16 +186,16 @@ export default function NotificationBell() {
 			{open && (
 				<div
 					ref={dropdownRef}
-					className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl shadow-slate-900/15 border border-slate-200/80 overflow-hidden z-50"
+					className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl shadow-slate-900/15 border border-slate-200/80 dark:border-slate-700/80 overflow-hidden z-50"
 				>
 					{/* Header */}
-					<div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50">
-						<h3 className="text-sm font-bold text-slate-900">Notificações</h3>
+					<div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+						<h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Notificações</h3>
 						<div className="flex items-center gap-2">
 							{unreadCount > 0 && (
 								<button
 									onClick={markAllAsRead}
-									className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors"
+									className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
 									title="Marcar todas como lidas"
 								>
 									<FaCheckDouble className="text-[10px]" />
@@ -206,7 +206,7 @@ export default function NotificationBell() {
 					</div>
 
 					{/* Filter Tabs */}
-					<div className="flex border-b border-slate-100">
+					<div className="flex border-b border-slate-100 dark:border-slate-800">
 						{[
 							{ key: 'all', label: 'Todas' },
 							{ key: 'unread', label: 'Não lidas' },
@@ -217,13 +217,13 @@ export default function NotificationBell() {
 								onClick={() => setFilter(tab.key)}
 								className={`flex-1 py-2 text-xs font-medium transition-colors ${
 									filter === tab.key
-										? 'text-blue-600 border-b-2 border-blue-600'
-										: 'text-slate-500 hover:text-slate-700'
+										? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
+										: 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
 								}`}
 							>
 								{tab.label}
 								{tab.key === 'unread' && unreadCount > 0 && (
-									<span className="ml-1 px-1.5 py-0.5 text-[10px] font-bold bg-red-100 text-red-600 rounded-full">
+									<span className="ml-1 px-1.5 py-0.5 text-[10px] font-bold bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-full">
 										{unreadCount}
 									</span>
 								)}
@@ -239,24 +239,24 @@ export default function NotificationBell() {
 							</div>
 						) : notifications.length === 0 ? (
 							<div className="flex flex-col items-center justify-center py-8 px-4">
-								<div className="p-3 bg-slate-100 rounded-full mb-3">
-									<FaBell className="text-lg text-slate-400" />
+								<div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-full mb-3">
+									<FaBell className="text-lg text-slate-400 dark:text-slate-500" />
 								</div>
-								<p className="text-sm font-medium text-slate-500">Nenhuma notificação</p>
-								<p className="text-xs text-slate-400 mt-1">
+								<p className="text-sm font-medium text-slate-500 dark:text-slate-400">Nenhuma notificação</p>
+								<p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
 									{filter === 'unread' ? 'Todas as notificações foram lidas' : 'Você ainda não tem notificações'}
 								</p>
 							</div>
 						) : (
 							notifications.map(notification => {
 								const Icon = NOTIFICATION_ICONS[notification.type] || FaBell;
-								const colorClass = NOTIFICATION_COLORS[notification.type] || 'text-slate-500 bg-slate-50';
+								const colorClass = NOTIFICATION_COLORS[notification.type] || 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50';
 
 								return (
 									<div
 										key={notification.id}
-										className={`flex items-start gap-3 px-4 py-3 border-b border-slate-50 transition-colors cursor-pointer hover:bg-slate-50 ${
-											!notification.is_read ? 'bg-blue-50/40' : ''
+										className={`flex items-start gap-3 px-4 py-3 border-b border-slate-50 dark:border-slate-800 transition-colors cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
+											!notification.is_read ? 'bg-blue-50/40 dark:bg-blue-950/40' : ''
 										}`}
 										onClick={() => {
 											if (!notification.is_read) {
@@ -276,17 +276,17 @@ export default function NotificationBell() {
 										{/* Content */}
 										<div className="flex-1 min-w-0">
 											<div className="flex items-center gap-2">
-												<p className={`text-xs font-semibold truncate ${!notification.is_read ? 'text-slate-900' : 'text-slate-600'}`}>
+												<p className={`text-xs font-semibold truncate ${!notification.is_read ? 'text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-400'}`}>
 													{notification.title}
 												</p>
 												{!notification.is_read && (
 													<span className="shrink-0 w-2 h-2 bg-blue-500 rounded-full" />
 												)}
 											</div>
-											<p className={`text-xs mt-0.5 line-clamp-2 ${!notification.is_read ? 'text-slate-700' : 'text-slate-500'}`}>
+											<p className={`text-xs mt-0.5 line-clamp-2 ${!notification.is_read ? 'text-slate-700 dark:text-slate-300' : 'text-slate-500 dark:text-slate-400'}`}>
 												{notification.message}
 											</p>
-											<p className="text-[10px] text-slate-400 mt-1">
+											<p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
 												{timeAgo(notification.created_at)}
 											</p>
 										</div>

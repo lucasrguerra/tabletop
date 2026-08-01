@@ -14,8 +14,8 @@ export default function IncidentTypeCard({ type, isSelected, onClick }) {
 				group relative p-5 rounded-2xl border-2 text-left transition-all duration-300
 				transform hover:scale-[1.01] hover:shadow-lg hover:shadow-slate-200/50
 				${isSelected
-					? 'border-blue-500 bg-linear-to-br from-blue-50 to-indigo-50 shadow-md shadow-blue-500/10'
-					: 'border-slate-200 bg-white hover:border-slate-300 shadow-sm shadow-slate-200/50'
+					? 'border-blue-500 bg-linear-to-br from-blue-50 dark:from-blue-950/40 to-indigo-50 dark:to-indigo-950/40 shadow-md shadow-blue-500/10'
+					: 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 shadow-sm shadow-slate-200/50'
 				}
 			`}
 		>
@@ -34,21 +34,21 @@ export default function IncidentTypeCard({ type, isSelected, onClick }) {
 					shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300
 					${isSelected
 						? 'bg-linear-to-br from-blue-500 to-indigo-600 shadow-md shadow-blue-500/25'
-						: 'bg-slate-100 group-hover:bg-blue-100'
+						: 'bg-slate-100 dark:bg-slate-800 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50'
 					}
 				`}>
-					<FaBolt className={`text-lg ${isSelected ? 'text-white' : 'text-slate-600 group-hover:text-blue-600'}`} />
+					<FaBolt className={`text-lg ${isSelected ? 'text-white' : 'text-slate-600 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400'}`} />
 				</div>
 
 				{/* Content */}
 				<div className="flex-1 min-w-0">
 					<h4 className={`
 						font-bold mb-1 transition-colors duration-300
-						${isSelected ? 'text-blue-700' : 'text-slate-900 group-hover:text-blue-600'}
+						${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400'}
 					`}>
 						{type.title}
 					</h4>
-					<p className="text-sm text-slate-600 leading-relaxed line-clamp-5">
+					<p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-5">
 						{type.description}
 					</p>
 				</div>

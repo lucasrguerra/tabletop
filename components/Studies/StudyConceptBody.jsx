@@ -4,10 +4,10 @@ import { useState } from 'react';
 import { FaChevronDown, FaChevronUp, FaInfoCircle, FaExclamationTriangle, FaLightbulb, FaTimesCircle, FaCheckCircle } from 'react-icons/fa';
 
 const CALLOUT_STYLES = {
-    info:    { bg: 'bg-blue-50 border-blue-200',    icon: FaInfoCircle,         iconColor: 'text-blue-500',   textColor: 'text-blue-800' },
-    warning: { bg: 'bg-amber-50 border-amber-200',  icon: FaExclamationTriangle,iconColor: 'text-amber-500',  textColor: 'text-amber-800' },
-    tip:     { bg: 'bg-emerald-50 border-emerald-200', icon: FaLightbulb,       iconColor: 'text-emerald-500',textColor: 'text-emerald-800' },
-    danger:  { bg: 'bg-red-50 border-red-200',      icon: FaTimesCircle,        iconColor: 'text-red-500',    textColor: 'text-red-800' }
+    info:    { bg: 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-900/50',    icon: FaInfoCircle,         iconColor: 'text-blue-500 dark:text-blue-400',   textColor: 'text-blue-800 dark:text-blue-200' },
+    warning: { bg: 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900/50',  icon: FaExclamationTriangle,iconColor: 'text-amber-500 dark:text-amber-400',  textColor: 'text-amber-800 dark:text-amber-200' },
+    tip:     { bg: 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900/50', icon: FaLightbulb,       iconColor: 'text-emerald-500 dark:text-emerald-400',textColor: 'text-emerald-800 dark:text-emerald-200' },
+    danger:  { bg: 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-900/50',      icon: FaTimesCircle,        iconColor: 'text-red-500 dark:text-red-400',    textColor: 'text-red-800 dark:text-red-200' }
 };
 
 function Callout({ callout }) {
@@ -44,11 +44,11 @@ function KeyPoints({ keyPoints }) {
     if (!keyPoints?.length) return null;
 
     return (
-        <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Pontos-chave</p>
+        <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700/60">
+            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Pontos-chave</p>
             <ul className="space-y-1.5">
                 {keyPoints.map((point, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
+                    <li key={i} className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
                         <FaCheckCircle className="shrink-0 mt-0.5 text-blue-400 text-xs" />
                         <span className="leading-relaxed">{point}</span>
                     </li>
@@ -70,7 +70,7 @@ export default function StudyConceptBody({ content }) {
 
     const toggle = (id) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
 
-    if (!sections.length) return <p className="text-slate-500 text-sm">Conteúdo não disponível.</p>;
+    if (!sections.length) return <p className="text-slate-500 dark:text-slate-400 text-sm">Conteúdo não disponível.</p>;
 
     return (
         <div className="space-y-3">
@@ -79,23 +79,23 @@ export default function StudyConceptBody({ content }) {
                 const isOpen = expanded[key];
 
                 return (
-                    <div key={key} className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                    <div key={key} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm dark:shadow-slate-950/50">
                         <button
                             onClick={() => toggle(key)}
-                            className="w-full flex items-center justify-between p-5 text-left hover:bg-slate-50 transition-colors"
+                            className="w-full flex items-center justify-between p-5 text-left hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
                         >
-                            <h3 className="font-bold text-slate-900 text-base leading-snug pr-4">
+                            <h3 className="font-bold text-slate-900 dark:text-white text-base leading-snug pr-4">
                                 {section.title}
                             </h3>
-                            <span className={`shrink-0 p-1.5 rounded-lg transition-colors ${isOpen ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-500'}`}>
+                            <span className={`shrink-0 p-1.5 rounded-lg transition-colors ${isOpen ? 'bg-blue-100 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>
                                 {isOpen ? <FaChevronUp className="text-xs" /> : <FaChevronDown className="text-xs" />}
                             </span>
                         </button>
 
                         {isOpen && (
-                            <div className="px-5 pb-5 border-t border-slate-100">
+                            <div className="px-5 pb-5 border-t border-slate-100 dark:border-slate-800">
                                 {section.body && (
-                                    <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line mt-4">
+                                    <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line mt-4">
                                         {section.body}
                                     </p>
                                 )}

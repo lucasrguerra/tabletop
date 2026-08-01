@@ -34,12 +34,12 @@ export default function StudyPagination({ pagination, onPageChange }) {
 
 	return (
 		<nav
-			className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-5 border-t border-slate-200"
+			className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-5 border-t border-slate-200 dark:border-slate-800"
 			aria-label="Paginação dos artigos"
 		>
-			<p className="text-sm text-slate-500 order-2 sm:order-1">
-				Mostrando <span className="font-medium text-slate-700 tabular-nums">{first}–{last}</span>
-				{' '}de <span className="font-medium text-slate-700 tabular-nums">{total}</span>
+			<p className="text-sm text-slate-500 dark:text-slate-400 order-2 sm:order-1">
+				Mostrando <span className="font-medium text-slate-700 dark:text-slate-200 tabular-nums">{first}–{last}</span>
+				{' '}de <span className="font-medium text-slate-700 dark:text-slate-200 tabular-nums">{total}</span>
 			</p>
 
 			<div className="flex items-center gap-1 order-1 sm:order-2">
@@ -47,14 +47,14 @@ export default function StudyPagination({ pagination, onPageChange }) {
 					onClick={() => onPageChange(page - 1)}
 					disabled={!has_prev}
 					aria-label="Página anterior"
-					className="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+					className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 dark:focus-visible:ring-blue-800"
 				>
 					<FaChevronLeft className="text-sm" />
 				</button>
 
 				{pageWindow(page, total_pages).map((entry, i) =>
 					entry === 'gap' ? (
-						<span key={`gap-${i}`} className="px-1.5 text-slate-400 select-none" aria-hidden="true">
+						<span key={`gap-${i}`} className="px-1.5 text-slate-400 dark:text-slate-600 select-none" aria-hidden="true">
 							…
 						</span>
 					) : (
@@ -63,10 +63,10 @@ export default function StudyPagination({ pagination, onPageChange }) {
 							onClick={() => onPageChange(entry)}
 							aria-current={entry === page ? 'page' : undefined}
 							aria-label={`Página ${entry}`}
-							className={`min-w-9 h-9 px-2 rounded-xl text-sm font-semibold tabular-nums transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
+							className={`min-w-9 h-9 px-2 rounded-xl text-sm font-semibold tabular-nums transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 dark:focus-visible:ring-blue-800 ${
 								entry === page
 									? 'bg-blue-600 text-white shadow-sm shadow-blue-600/20'
-									: 'border border-slate-200 text-slate-600 hover:bg-slate-50'
+									: 'border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
 							}`}
 						>
 							{entry}
@@ -78,7 +78,7 @@ export default function StudyPagination({ pagination, onPageChange }) {
 					onClick={() => onPageChange(page + 1)}
 					disabled={!has_next}
 					aria-label="Próxima página"
-					className="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+					className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 dark:focus-visible:ring-blue-800"
 				>
 					<FaChevronRight className="text-sm" />
 				</button>

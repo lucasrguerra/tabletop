@@ -71,38 +71,38 @@ export default function EvaluationForm({ trainingId, existingEvaluation, onSubmi
 	if (submitted || existingEvaluation) {
 		const eval_ = existingEvaluation || {};
 		return (
-			<div className="bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 p-6">
+			<div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 dark:border-slate-700/60 p-6">
 				<div className="flex items-center gap-3 mb-4">
-					<div className="p-2.5 rounded-xl bg-emerald-100">
-						<FaCheckCircle className="text-xl text-emerald-600" />
+					<div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-900/50">
+						<FaCheckCircle className="text-xl text-emerald-600 dark:text-emerald-400" />
 					</div>
 					<div>
-						<h4 className="text-lg font-bold text-slate-900">Avaliação Enviada</h4>
-						<p className="text-sm text-slate-500">Obrigado pelo seu feedback!</p>
+						<h4 className="text-lg font-bold text-slate-900 dark:text-slate-100">Avaliação Enviada</h4>
+						<p className="text-sm text-slate-500 dark:text-slate-400">Obrigado pelo seu feedback!</p>
 					</div>
 				</div>
 
 				{eval_.overall_rating && (
 					<div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
-						<div className="p-3 rounded-xl bg-amber-50 border border-amber-100 text-center">
-							<p className="text-xs font-semibold text-amber-700 uppercase mb-1">Geral</p>
+						<div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/40 text-center">
+							<p className="text-xs font-semibold text-amber-700 dark:text-amber-300 uppercase mb-1">Geral</p>
 							<div className="flex justify-center gap-0.5">
 								{[1, 2, 3, 4, 5].map(s => (
 									<FaStar key={s} className={`text-sm ${s <= eval_.overall_rating ? 'text-amber-400' : 'text-slate-200'}`} />
 								))}
 							</div>
 						</div>
-						<div className="p-3 rounded-xl bg-blue-50 border border-blue-100 text-center">
-							<p className="text-xs font-semibold text-blue-700 uppercase mb-1">Cenário</p>
+						<div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 text-center">
+							<p className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase mb-1">Cenário</p>
 							<div className="flex justify-center gap-0.5">
 								{[1, 2, 3, 4, 5].map(s => (
 									<FaStar key={s} className={`text-sm ${s <= eval_.scenario_rating ? 'text-amber-400' : 'text-slate-200'}`} />
 								))}
 							</div>
 						</div>
-						<div className="p-3 rounded-xl bg-purple-50 border border-purple-100 text-center">
-							<p className="text-xs font-semibold text-purple-700 uppercase mb-1">Dificuldade</p>
-							<p className="text-sm font-medium text-slate-700">{DIFFICULTY_LABELS[eval_.difficulty_rating] || '—'}</p>
+						<div className="p-3 rounded-xl bg-purple-50 dark:bg-purple-950/30 border border-purple-100 dark:border-purple-900/40 text-center">
+							<p className="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase mb-1">Dificuldade</p>
+							<p className="text-sm font-medium text-slate-700 dark:text-slate-300">{DIFFICULTY_LABELS[eval_.difficulty_rating] || '—'}</p>
 						</div>
 					</div>
 				)}
@@ -149,21 +149,21 @@ export default function EvaluationForm({ trainingId, existingEvaluation, onSubmi
 	};
 
 	return (
-		<form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 p-6">
+		<form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 dark:border-slate-700/60 p-6">
 			<div className="flex items-center gap-3 mb-5">
-				<div className="p-2.5 rounded-xl bg-amber-100">
-					<FaStar className="text-xl text-amber-600" />
+				<div className="p-2.5 rounded-xl bg-amber-100 dark:bg-amber-900/50">
+					<FaStar className="text-xl text-amber-600 dark:text-amber-400" />
 				</div>
 				<div>
-					<h4 className="text-lg font-bold text-slate-900">Avaliar Treinamento</h4>
-					<p className="text-sm text-slate-500">Sua avaliação é opcional, mas nos ajuda a melhorar!</p>
+					<h4 className="text-lg font-bold text-slate-900 dark:text-slate-100">Avaliar Treinamento</h4>
+					<p className="text-sm text-slate-500 dark:text-slate-400">Sua avaliação é opcional, mas nos ajuda a melhorar!</p>
 				</div>
 			</div>
 
 			<div className="space-y-5">
 				{/* Overall Rating */}
 				<div>
-					<label className="block text-sm font-semibold text-slate-700 mb-2">
+					<label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
 						Avaliação Geral <span className="text-red-400">*</span>
 					</label>
 					<StarRating value={overallRating} onChange={setOverallRating} disabled={submitting} />
@@ -171,7 +171,7 @@ export default function EvaluationForm({ trainingId, existingEvaluation, onSubmi
 
 				{/* Scenario Rating */}
 				<div>
-					<label className="block text-sm font-semibold text-slate-700 mb-2">
+					<label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
 						Qualidade do Cenário <span className="text-red-400">*</span>
 					</label>
 					<StarRating value={scenarioRating} onChange={setScenarioRating} disabled={submitting} />
@@ -179,7 +179,7 @@ export default function EvaluationForm({ trainingId, existingEvaluation, onSubmi
 
 				{/* Difficulty Rating */}
 				<div>
-					<label className="block text-sm font-semibold text-slate-700 mb-2">
+					<label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
 						Nível de Dificuldade <span className="text-red-400">*</span>
 					</label>
 					<div className="flex flex-wrap gap-2">
@@ -191,8 +191,8 @@ export default function EvaluationForm({ trainingId, existingEvaluation, onSubmi
 								onClick={() => setDifficultyRating(level)}
 								className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
 									difficultyRating === level
-										? 'bg-purple-100 border-purple-300 text-purple-700'
-										: 'bg-white border-slate-200 text-slate-600 hover:border-purple-200 hover:bg-purple-50'
+										? 'bg-purple-100 dark:bg-purple-900/50 border-purple-300 dark:border-purple-800 text-purple-700 dark:text-purple-300'
+										: 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-purple-200 dark:hover:border-purple-900/50 hover:bg-purple-50 dark:hover:bg-purple-950/30'
 								} ${submitting ? 'opacity-50 cursor-default' : 'cursor-pointer'}`}
 							>
 								{DIFFICULTY_LABELS[level]}
@@ -203,7 +203,7 @@ export default function EvaluationForm({ trainingId, existingEvaluation, onSubmi
 
 				{/* Would Recommend */}
 				<div>
-					<label className="block text-sm font-semibold text-slate-700 mb-2">
+					<label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
 						Recomendaria este treinamento? <span className="text-red-400">*</span>
 					</label>
 					<div className="flex gap-3">
@@ -213,8 +213,8 @@ export default function EvaluationForm({ trainingId, existingEvaluation, onSubmi
 							onClick={() => setWouldRecommend(true)}
 							className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
 								wouldRecommend === true
-									? 'bg-emerald-100 border-emerald-300 text-emerald-700'
-									: 'bg-white border-slate-200 text-slate-600 hover:border-emerald-200 hover:bg-emerald-50'
+									? 'bg-emerald-100 dark:bg-emerald-900/50 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
+									: 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-emerald-200 dark:hover:border-emerald-900/50 hover:bg-emerald-50 dark:hover:bg-emerald-950/30'
 							} ${submitting ? 'opacity-50 cursor-default' : 'cursor-pointer'}`}
 						>
 							<FaThumbsUp className="text-xs" />
@@ -226,8 +226,8 @@ export default function EvaluationForm({ trainingId, existingEvaluation, onSubmi
 							onClick={() => setWouldRecommend(false)}
 							className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
 								wouldRecommend === false
-									? 'bg-red-100 border-red-300 text-red-700'
-									: 'bg-white border-slate-200 text-slate-600 hover:border-red-200 hover:bg-red-50'
+									? 'bg-red-100 dark:bg-red-900/50 border-red-300 dark:border-red-800 text-red-700 dark:text-red-300'
+									: 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-red-200 dark:hover:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-950/30'
 							} ${submitting ? 'opacity-50 cursor-default' : 'cursor-pointer'}`}
 						>
 							<FaThumbsDown className="text-xs" />
@@ -238,8 +238,8 @@ export default function EvaluationForm({ trainingId, existingEvaluation, onSubmi
 
 				{/* Comment */}
 				<div>
-					<label htmlFor="eval-comment" className="block text-sm font-semibold text-slate-700 mb-2">
-						Comentário <span className="text-slate-400 font-normal">(opcional)</span>
+					<label htmlFor="eval-comment" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+						Comentário <span className="text-slate-400 dark:text-slate-500 font-normal">(opcional)</span>
 					</label>
 					<textarea
 						id="eval-comment"
@@ -249,13 +249,13 @@ export default function EvaluationForm({ trainingId, existingEvaluation, onSubmi
 						maxLength={1000}
 						rows={3}
 						placeholder="Compartilhe sua experiência, sugestões de melhoria..."
-						className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 resize-none disabled:opacity-50"
+						className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-sm text-slate-700 dark:text-slate-300 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 dark:focus:border-blue-800 resize-none disabled:opacity-50"
 					/>
-					<p className="text-xs text-slate-400 mt-1 text-right">{comment.length}/1000</p>
+					<p className="text-xs text-slate-400 dark:text-slate-500 mt-1 text-right">{comment.length}/1000</p>
 				</div>
 
 				{error && (
-					<div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+					<div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 text-sm text-red-700 dark:text-red-300">
 						{error}
 					</div>
 				)}

@@ -28,8 +28,8 @@ export default function StudyBreadcrumb({ article }) {
     const contentType = article?.content_type;
 
     return (
-        <nav className="flex items-center gap-1.5 text-sm text-slate-500 flex-wrap">
-            <Link href="/dashboard/studies" className="hover:text-blue-600 transition-colors font-medium">
+        <nav className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 flex-wrap">
+            <Link href="/dashboard/studies" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium">
                 Estudos
             </Link>
 
@@ -38,7 +38,7 @@ export default function StudyBreadcrumb({ article }) {
                     <FaChevronRight className="text-xs text-slate-300 shrink-0" />
                     <Link
                         href={`/dashboard/studies?category=${categoryId}`}
-                        className="hover:text-blue-600 transition-colors"
+                        className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                     >
                         {CATEGORY_LABELS[categoryId] || categoryId}
                     </Link>
@@ -50,7 +50,7 @@ export default function StudyBreadcrumb({ article }) {
                     <FaChevronRight className="text-xs text-slate-300 shrink-0" />
                     <Link
                         href={`/dashboard/studies?content_type=${contentType}`}
-                        className="hover:text-blue-600 transition-colors"
+                        className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                     >
                         {CONTENT_TYPE_LABELS[contentType] || contentType}
                     </Link>
@@ -60,7 +60,7 @@ export default function StudyBreadcrumb({ article }) {
             {article?.title && (
                 <>
                     <FaChevronRight className="text-xs text-slate-300 shrink-0" />
-                    <span className="text-slate-700 font-medium line-clamp-1">{article.title}</span>
+                    <span className="text-slate-700 dark:text-slate-300 font-medium line-clamp-1">{article.title}</span>
                 </>
             )}
         </nav>

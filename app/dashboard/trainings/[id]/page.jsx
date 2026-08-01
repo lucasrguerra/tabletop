@@ -61,16 +61,16 @@ export default function TrainingRedirectPage() {
 		return (
 			<DashboardLayout>
 				<div className="max-w-lg mx-auto text-center py-20 px-4">
-					<div className="w-14 h-14 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center mx-auto mb-5">
-						<FaExclamationTriangle className="text-xl text-red-500" />
+					<div className="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/40 flex items-center justify-center mx-auto mb-5">
+						<FaExclamationTriangle className="text-xl text-red-500 dark:text-red-400" />
 					</div>
-					<h1 className="text-xl font-bold text-slate-900 mb-2">
+					<h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">
 						Não foi possível abrir este treinamento
 					</h1>
-					<p className="text-slate-600 mb-6">{error}</p>
+					<p className="text-slate-600 dark:text-slate-400 mb-6">{error}</p>
 					<Link
 						href="/dashboard/trainings"
-						className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
+						className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 dark:focus-visible:ring-blue-800 focus-visible:ring-offset-2"
 					>
 						<FaArrowLeft className="text-xs" />
 						Voltar para treinamentos
@@ -88,7 +88,7 @@ export default function TrainingRedirectPage() {
 				aria-live="polite"
 			>
 				<FaSpinner className="text-3xl text-slate-300 animate-spin" />
-				<p className="text-sm text-slate-500">Abrindo treinamento…</p>
+				<p className="text-sm text-slate-500 dark:text-slate-400">Abrindo treinamento…</p>
 			</div>
 		</DashboardLayout>
 	);

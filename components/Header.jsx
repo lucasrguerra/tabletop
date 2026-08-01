@@ -11,6 +11,7 @@ import {
     FaTimes
 } from 'react-icons/fa';
 import { useSession } from 'next-auth/react';
+import ThemeToggle from '@/components/ThemeToggle';
 
 const Header = () => {
     const { data: session } = useSession();
@@ -41,8 +42,8 @@ const Header = () => {
             className={`
                 sticky top-0 z-50 print:hidden transition-all duration-300
                 ${scrolled 
-                    ? 'bg-white/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 border-b border-slate-200/80' 
-                    : 'bg-white border-b border-slate-100'
+                    ? 'bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-slate-950/30 border-b border-slate-200/80 dark:border-slate-800' 
+                    : 'bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800'
                 }
             `}
         >
@@ -58,20 +59,21 @@ const Header = () => {
                         </div>
                         
                         <div className="hidden sm:block">
-                            <h1 className="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                            <h1 className="text-xl font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                                 Tabletop App
                             </h1>
-                            <p className="text-[10px] text-slate-500 font-medium tracking-wide uppercase">
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium tracking-wide uppercase">
                                 Resposta a Incidentes
                             </p>
                         </div>
-                        <span className="sm:hidden text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                        <span className="sm:hidden text-lg font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                             Tabletop
                         </span>
                     </Link>
 
                     {/* Desktop Navigation */}
                     <div className="hidden md:flex justify-center items-center gap-3">
+                        <ThemeToggle />
                         {session ? (
                             <Link
                                 href="/dashboard"
@@ -88,8 +90,8 @@ const Header = () => {
                             <>
                                 <Link
                                     href="/login"
-                                    className="flex items-center gap-2 px-5 py-2.5 text-slate-700 font-semibold 
-                                        bg-slate-100 hover:bg-slate-200 
+                                    className="flex items-center gap-2 px-5 py-2.5 text-slate-700 dark:text-slate-200 font-semibold 
+                                        bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 
                                         rounded-xl transition-all duration-200 hover:scale-[1.02]"
                                 >
                                     <FaUser className="text-sm" />
@@ -111,18 +113,21 @@ const Header = () => {
                         )}
                     </div>
 
-                    {/* Mobile Menu Button */}
-                    <button 
-                        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                        className="md:hidden p-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all"
-                        aria-label={mobileMenuOpen ? 'Fechar menu' : 'Abrir menu'}
-                    >
-                        {mobileMenuOpen ? (
-                            <FaTimes className="text-xl" />
-                        ) : (
-                            <FaBars className="text-xl" />
-                        )}
-                    </button>
+                    {/* Mobile Controls */}
+                    <div className="flex items-center gap-2 md:hidden">
+                        <ThemeToggle compact />
+                        <button 
+                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                            className="p-2.5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all"
+                            aria-label={mobileMenuOpen ? 'Fechar menu' : 'Abrir menu'}
+                        >
+                            {mobileMenuOpen ? (
+                                <FaTimes className="text-xl" />
+                            ) : (
+                                <FaBars className="text-xl" />
+                            )}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Mobile Navigation */}
@@ -132,7 +137,7 @@ const Header = () => {
                         ${mobileMenuOpen ? 'max-h-64 pb-4' : 'max-h-0'}
                     `}
                 >
-                    <nav className="flex flex-col gap-2 pt-2 border-t border-slate-100">
+                    <nav className="flex flex-col gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                         {session ? (
                             <Link
                                 href="/dashboard"
@@ -149,8 +154,8 @@ const Header = () => {
                                 <Link
                                     href="/login"
                                     onClick={() => setMobileMenuOpen(false)}
-                                    className="flex items-center justify-center gap-2 px-4 py-3 text-slate-700 font-semibold 
-                                        bg-slate-100 hover:bg-slate-200 
+                                    className="flex items-center justify-center gap-2 px-4 py-3 text-slate-700 dark:text-slate-200 font-semibold 
+                                        bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 
                                         rounded-xl transition-all"
                                 >
                                     <FaUser className="text-sm" />

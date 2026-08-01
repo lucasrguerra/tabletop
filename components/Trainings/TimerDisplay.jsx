@@ -51,19 +51,19 @@ export default function TimerDisplay({ training, userRole, onTimerAction }) {
 	const isRunning = !timer.is_paused && timer.started_at;
 
 	return (
-		<div className="bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 p-6 lg:p-8">
+		<div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 dark:border-slate-700/60 p-6 lg:p-8">
 			{/* Timer Display */}
 			<div className="flex flex-col items-center mb-6">
 				<div className="flex items-center gap-3 mb-3">
-					<FaClock className="text-2xl text-slate-400" />
-					<h3 className="text-lg font-semibold text-slate-900">
+					<FaClock className="text-2xl text-slate-400 dark:text-slate-500" />
+					<h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
 						Tempo de Treinamento
 					</h3>
 				</div>
 
 				{/* Time Display */}
 				<div className="relative">
-					<div className={`text-5xl lg:text-6xl font-mono font-bold ${isRunning ? 'text-emerald-600' : 'text-slate-700'} transition-colors`}>
+					<div className={`text-5xl lg:text-6xl font-mono font-bold ${isRunning ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300'} transition-colors`}>
 						{formatTime(currentElapsedTime)}
 					</div>
 					{isRunning && (
@@ -77,14 +77,14 @@ export default function TimerDisplay({ training, userRole, onTimerAction }) {
 				</div>
 
 				{/* Status Text */}
-				<p className="text-sm text-slate-500 mt-2">
+				<p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
 					{isRunning ? 'Em andamento' : 'Pausado'}
 				</p>
 			</div>
 
 			{/* Facilitator Controls */}
 			{isFacilitator && onTimerAction && (
-				<div className="flex flex-wrap gap-3 justify-center border-t border-slate-100 pt-6">
+				<div className="flex flex-wrap gap-3 justify-center border-t border-slate-100 dark:border-slate-800 pt-6">
 					{timer.is_paused ? (
 						<button
 							onClick={() => onTimerAction('start')}
@@ -106,7 +106,7 @@ export default function TimerDisplay({ training, userRole, onTimerAction }) {
 					{timer.started_at && (
 						<button
 							onClick={() => onTimerAction('reset')}
-							className="flex items-center gap-2 px-5 py-2.5 bg-white text-slate-700 font-semibold rounded-xl hover:bg-slate-50 border-2 border-slate-200 hover:border-slate-300 transition-all"
+							className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-semibold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 border-2 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-700 transition-all"
 						>
 							<FaStop className="text-sm" />
 							Resetar
@@ -117,7 +117,7 @@ export default function TimerDisplay({ training, userRole, onTimerAction }) {
 
 			{/* Read-only note for non-facilitators */}
 			{!isFacilitator && (
-				<div className="text-center text-xs text-slate-500 border-t border-slate-100 pt-4">
+				<div className="text-center text-xs text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800 pt-4">
 					Apenas o facilitador pode controlar o timer
 				</div>
 			)}

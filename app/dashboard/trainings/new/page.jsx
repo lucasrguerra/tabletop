@@ -330,10 +330,10 @@ export default function NewTrainingPage() {
 							<FaShieldAlt className="text-2xl text-white" />
 						</div>
 					</div>
-					<h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3">
+					<h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-slate-100 mb-3">
 						Criar Novo Treinamento
 					</h1>
-					<p className="text-lg text-slate-600">
+					<p className="text-lg text-slate-600 dark:text-slate-400">
 						Configure seu cenário de tabletop em 3 etapas simples
 					</p>
 				</div>
@@ -351,7 +351,7 @@ export default function NewTrainingPage() {
 				)}
 
 				{/* Content Card */}
-				<div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-200/60 p-6 sm:p-8 mb-8">
+				<div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-200/60 dark:border-slate-700/60 p-6 sm:p-8 mb-8">
 					{/* Step 1: Category and Type */}
 					{current_step === 1 && (
 						<>
@@ -360,10 +360,10 @@ export default function NewTrainingPage() {
 							) : (
 								<div className="space-y-8">
 									<div>
-										<h2 className="text-2xl font-bold text-slate-900 mb-2">
+										<h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
 											Selecione a Categoria
 										</h2>
-										<p className="text-slate-600 mb-6">
+										<p className="text-slate-600 dark:text-slate-400 mb-6">
 											Escolha a categoria do incidente que você deseja simular
 										</p>
 
@@ -384,11 +384,11 @@ export default function NewTrainingPage() {
 										<div className="animate-slide-in-up">
 											<div className="h-px bg-linear-to-r from-transparent via-slate-300 to-transparent mb-8" />
 											
-											<h2 className="text-2xl font-bold text-slate-900 mb-2">
+											<h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
 												Selecione o Tipo de Incidente
 											</h2>
-											<p className="text-slate-600 mb-6">
-												Escolha o tipo específico de incidente dentro da categoria <span className="font-semibold text-blue-600">{selected_category.title}</span>
+											<p className="text-slate-600 dark:text-slate-400 mb-6">
+												Escolha o tipo específico de incidente dentro da categoria <span className="font-semibold text-blue-600 dark:text-blue-400">{selected_category.title}</span>
 											</p>
 
 											<div className="grid grid-cols-1 gap-3">
@@ -415,24 +415,24 @@ export default function NewTrainingPage() {
 								<LoadingSpinner message="Carregando cenários..." />
 							) : (
 								<div>
-									<h2 className="text-2xl font-bold text-slate-900 mb-2">
+									<h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
 										Selecione o Cenário
 									</h2>
-									<p className="text-slate-600 mb-6">
+									<p className="text-slate-600 dark:text-slate-400 mb-6">
 										Escolha um cenário pré-configurado para o tipo de incidente{' '}
-										<span className="font-semibold text-blue-600">{selected_type?.title}</span>
+										<span className="font-semibold text-blue-600 dark:text-blue-400">{selected_type?.title}</span>
 									</p>
 
 									{scenarios.length === 0 ? (
 										<div className="text-center py-16">
 											<div className="relative inline-flex items-center justify-center w-20 h-20 mb-6">
-												<div className="absolute inset-0 bg-linear-to-br from-slate-100 to-slate-200 rounded-2xl" />
-												<FaFileAlt className="relative text-3xl text-slate-400" />
+												<div className="absolute inset-0 bg-linear-to-br from-slate-100 dark:from-slate-800 to-slate-200 rounded-2xl" />
+												<FaFileAlt className="relative text-3xl text-slate-400 dark:text-slate-500" />
 											</div>
-											<p className="text-slate-600 text-lg mb-2">
+											<p className="text-slate-600 dark:text-slate-400 text-lg mb-2">
 												Nenhum cenário disponível para este tipo de incidente
 											</p>
-											<p className="text-slate-500 text-sm">
+											<p className="text-slate-500 dark:text-slate-400 text-sm">
 												Volte e selecione outro tipo de incidente
 											</p>
 										</div>
@@ -458,15 +458,15 @@ export default function NewTrainingPage() {
 						<div className="space-y-8">
 							{/* Scenario Summary */}
 							<div>
-								<h2 className="text-2xl font-bold text-slate-900 mb-2">
+								<h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
 									Resumo do Cenário Selecionado
 								</h2>
-								<p className="text-slate-600 mb-6">
+								<p className="text-slate-600 dark:text-slate-400 mb-6">
 									Revise os detalhes do cenário e configure a sessão de treinamento
 								</p>
 
 								{selected_scenario && (
-									<div className="bg-linear-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200/60">
+									<div className="bg-linear-to-br from-blue-50 dark:from-blue-950/40 to-indigo-50 dark:to-indigo-950/40 rounded-2xl p-6 border border-blue-200/60 dark:border-blue-900/60">
 										<div className="mb-4 flex flex-wrap gap-2">
 											<span className="inline-block px-3 py-1.5 bg-linear-to-r from-blue-600 to-blue-700 text-white text-xs font-bold rounded-full">
 												{selected_category?.title}
@@ -475,18 +475,18 @@ export default function NewTrainingPage() {
 												{selected_type?.title}
 											</span>
 										</div>
-										<h3 className="font-bold text-blue-900 text-xl mb-2">
+										<h3 className="font-bold text-blue-900 dark:text-blue-200 text-xl mb-2">
 											{selected_scenario.title}
 										</h3>
-										<p className="text-blue-700 mb-4">{selected_scenario.description}</p>
+										<p className="text-blue-700 dark:text-blue-300 mb-4">{selected_scenario.description}</p>
 										
 										{selected_scenario.severity && (
 											<div className="flex items-center gap-2 text-sm">
-												<span className="text-blue-600 font-semibold">Severidade:</span>
+												<span className="text-blue-600 dark:text-blue-400 font-semibold">Severidade:</span>
 												<span className={`px-3 py-1 rounded-full font-bold ${
-													selected_scenario.severity === 'high' ? 'bg-red-100 text-red-700' :
-													selected_scenario.severity === 'medium' ? 'bg-amber-100 text-amber-700' :
-													'bg-emerald-100 text-emerald-700'
+													selected_scenario.severity === 'high' ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300' :
+													selected_scenario.severity === 'medium' ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300' :
+													'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
 												}`}>
 													{selected_scenario.severity === 'high' ? 'Alta' :
 													 selected_scenario.severity === 'medium' ? 'Média' : 'Baixa'}
@@ -501,54 +501,54 @@ export default function NewTrainingPage() {
 
 							{/* Session Configuration */}
 							<div>
-								<h2 className="text-2xl font-bold text-slate-900 mb-2">
+								<h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
 									Configuração da Sessão
 								</h2>
-								<p className="text-slate-600 mb-6">
+								<p className="text-slate-600 dark:text-slate-400 mb-6">
 									Defina as informações e regras de acesso para esta sessão de treinamento
 								</p>
 
 								<div className="space-y-6">
 									{/* Session Name */}
 									<div>
-										<label className="block text-sm font-semibold text-slate-700 mb-2">
-											Nome da Sessão <span className="text-red-500">*</span>
+										<label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+											Nome da Sessão <span className="text-red-500 dark:text-red-400">*</span>
 										</label>
 										<input
 											type="text"
 											value={session_name}
 											onChange={(e) => setSessionName(e.target.value)}
 											placeholder="Ex: Treinamento DNS Reflection - Turma 2026"
-											className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
+											className="w-full px-4 py-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
 											maxLength={100}
 										/>
-										<p className="text-xs text-slate-500 mt-2">
+										<p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
 											{session_name.length}/100 caracteres
 										</p>
 									</div>
 
 									{/* Session Description */}
 									<div>
-										<label className="block text-sm font-semibold text-slate-700 mb-2">
-											Descrição da Sessão <span className="text-red-500">*</span>
+										<label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+											Descrição da Sessão <span className="text-red-500 dark:text-red-400">*</span>
 										</label>
 										<textarea
 											value={session_description}
 											onChange={(e) => setSessionDescription(e.target.value)}
 											placeholder="Descreva os objetivos e contexto desta sessão de treinamento..."
 											rows={4}
-											className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all resize-none"
+											className="w-full px-4 py-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all resize-none"
 											maxLength={500}
 										/>
-										<p className="text-xs text-slate-500 mt-2">
+										<p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
 											{session_description.length}/500 caracteres
 										</p>
 									</div>
 
 									{/* Access Type */}
 									<div>
-										<label className="block text-sm font-semibold text-slate-700 mb-3">
-											Forma de Acesso <span className="text-red-500">*</span>
+										<label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
+											Forma de Acesso <span className="text-red-500 dark:text-red-400">*</span>
 										</label>
 										<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 											{/* Open Access */}
@@ -558,15 +558,15 @@ export default function NewTrainingPage() {
 												className={`
 													p-5 rounded-2xl border-2 transition-all text-left
 													${access_type === 'open'
-														? 'border-blue-500 bg-blue-50 shadow-lg shadow-blue-500/10'
-														: 'border-slate-200 hover:border-slate-300 bg-white'
+														? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30 shadow-lg shadow-blue-500/10'
+														: 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900'
 													}
 												`}
 											>
 												<div className="flex items-start gap-3">
 													<div className={`
 														w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5
-														${access_type === 'open' ? 'border-blue-500' : 'border-slate-300'}
+														${access_type === 'open' ? 'border-blue-500' : 'border-slate-300 dark:border-slate-700'}
 													`}>
 														{access_type === 'open' && (
 															<div className="w-3 h-3 rounded-full bg-blue-500" />
@@ -574,15 +574,15 @@ export default function NewTrainingPage() {
 													</div>
 													<div className="flex-1">
 														<div className="flex items-center gap-2 mb-1">
-															<FaLockOpen className={access_type === 'open' ? 'text-blue-600' : 'text-slate-400'} />
+															<FaLockOpen className={access_type === 'open' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'} />
 															<h4 className={`font-bold ${
-																access_type === 'open' ? 'text-blue-900' : 'text-slate-700'
+																access_type === 'open' ? 'text-blue-900 dark:text-blue-200' : 'text-slate-700 dark:text-slate-300'
 															}`}>
 																Acesso Livre
 															</h4>
 														</div>
 														<p className={`text-sm ${
-															access_type === 'open' ? 'text-blue-700' : 'text-slate-600'
+															access_type === 'open' ? 'text-blue-700 dark:text-blue-300' : 'text-slate-600 dark:text-slate-400'
 														}`}>
 															Qualquer pessoa pode participar da sessão sem necessidade de código
 														</p>
@@ -597,15 +597,15 @@ export default function NewTrainingPage() {
 												className={`
 													p-5 rounded-2xl border-2 transition-all text-left
 													${access_type === 'code'
-														? 'border-blue-500 bg-blue-50 shadow-lg shadow-blue-500/10'
-														: 'border-slate-200 hover:border-slate-300 bg-white'
+														? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30 shadow-lg shadow-blue-500/10'
+														: 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900'
 													}
 												`}
 											>
 												<div className="flex items-start gap-3">
 													<div className={`
 														w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5
-														${access_type === 'code' ? 'border-blue-500' : 'border-slate-300'}
+														${access_type === 'code' ? 'border-blue-500' : 'border-slate-300 dark:border-slate-700'}
 													`}>
 														{access_type === 'code' && (
 															<div className="w-3 h-3 rounded-full bg-blue-500" />
@@ -613,15 +613,15 @@ export default function NewTrainingPage() {
 													</div>
 													<div className="flex-1">
 														<div className="flex items-center gap-2 mb-1">
-															<FaLock className={access_type === 'code' ? 'text-blue-600' : 'text-slate-400'} />
+															<FaLock className={access_type === 'code' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'} />
 															<h4 className={`font-bold ${
-																access_type === 'code' ? 'text-blue-900' : 'text-slate-700'
+																access_type === 'code' ? 'text-blue-900 dark:text-blue-200' : 'text-slate-700 dark:text-slate-300'
 															}`}>
 																Código de Acesso
 															</h4>
 														</div>
 														<p className={`text-sm ${
-															access_type === 'code' ? 'text-blue-700' : 'text-slate-600'
+															access_type === 'code' ? 'text-blue-700 dark:text-blue-300' : 'text-slate-600 dark:text-slate-400'
 														}`}>
 															Participantes precisam de um código para poder acessar a sessão
 														</p>
@@ -634,8 +634,8 @@ export default function NewTrainingPage() {
 									{/* Access Code Input - Only shown when code is selected */}
 									{access_type === 'code' && (
 										<div className="animate-slide-in-up">
-											<label className="block text-sm font-semibold text-slate-700 mb-2">
-												Código de Acesso <span className="text-red-500">*</span>
+											<label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+												Código de Acesso <span className="text-red-500 dark:text-red-400">*</span>
 											</label>
 											<div className="flex flex-col sm:flex-row gap-3">
 												<div className="flex-1 relative">
@@ -644,25 +644,25 @@ export default function NewTrainingPage() {
 														value={access_code}
 														onChange={handleAccessCodeChange}
 														placeholder="Digite ou gere um código"
-														className={`w-full px-4 py-3.5 pr-12 rounded-xl border bg-slate-50 focus:bg-white outline-none transition-all font-mono font-bold text-lg ${
+														className={`w-full px-4 py-3.5 pr-12 rounded-xl border bg-slate-50 dark:bg-slate-800/50 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono font-bold text-lg ${
 															code_is_valid === true
 																? 'border-emerald-500 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20'
 																: code_is_valid === false
 																? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20'
-																: 'border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
+																: 'border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
 														}`}
 														maxLength={20}
 													/>
 													{/* Validation indicator */}
 													<div className="absolute right-4 top-1/2 -translate-y-1/2">
 														{validating_code && (
-															<FaSpinner className="text-blue-500 animate-spin text-lg" />
+															<FaSpinner className="text-blue-500 dark:text-blue-400 animate-spin text-lg" />
 														)}
 														{!validating_code && code_is_valid === true && (
-															<FaCheckCircle className="text-emerald-500 text-lg" />
+															<FaCheckCircle className="text-emerald-500 dark:text-emerald-400 text-lg" />
 														)}
 														{!validating_code && code_is_valid === false && (
-															<FaTimesCircle className="text-red-500 text-lg" />
+															<FaTimesCircle className="text-red-500 dark:text-red-400 text-lg" />
 														)}
 													</div>
 												</div>
@@ -682,19 +682,19 @@ export default function NewTrainingPage() {
 											</div>
 											{/* Validation message */}
 											{code_is_valid === true && (
-												<p className="text-xs text-emerald-600 mt-2 flex items-center gap-1">
+												<p className="text-xs text-emerald-600 dark:text-emerald-400 mt-2 flex items-center gap-1">
 													<FaCheckCircle />
 													Código válido e disponível
 												</p>
 											)}
 											{code_is_valid === false && (
-												<p className="text-xs text-red-600 mt-2 flex items-center gap-1">
+												<p className="text-xs text-red-600 dark:text-red-400 mt-2 flex items-center gap-1">
 													<FaTimesCircle />
 													Código inválido. Use outro ou gere automaticamente.
 												</p>
 											)}
 											{code_is_valid === null && (
-												<p className="text-xs text-slate-500 mt-2">
+												<p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
 													O código pode conter letras e números (máx. 20 caracteres)
 												</p>
 											)}
@@ -703,9 +703,9 @@ export default function NewTrainingPage() {
 
 									{/* Max Participants */}
 									<div>
-										<label className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
-											<FaUsers className="text-slate-500" />
-											Limite de Participantes <span className="text-red-500">*</span>
+										<label className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+											<FaUsers className="text-slate-500 dark:text-slate-400" />
+											Limite de Participantes <span className="text-red-500 dark:text-red-400">*</span>
 										</label>
 										<input
 											type="number"
@@ -713,9 +713,9 @@ export default function NewTrainingPage() {
 											onChange={(e) => setMaxParticipants(e.target.value)}
 											placeholder="Número máximo de participantes"
 											min="1"
-											className="w-full md:w-64 px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
+											className="w-full md:w-64 px-4 py-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
 										/>
-										<p className="text-xs text-slate-500 mt-2">
+										<p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
 											Defina o número máximo de participantes permitidos nesta sessão. Esse número deve ser a soma de todos os facilitadores, participantes e observadores.
 										</p>
 									</div>
@@ -733,8 +733,8 @@ export default function NewTrainingPage() {
 						className={`
 							group flex items-center justify-center gap-2 sm:gap-3 px-5 sm:px-6 py-3 sm:py-3.5 rounded-xl font-semibold transition-all
 							${current_step === 1
-								? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-								: 'bg-white text-slate-700 border border-slate-200 hover:border-slate-300 hover:shadow-lg'
+								? 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed'
+								: 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-lg'
 							}
 						`}
 					>

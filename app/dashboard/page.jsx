@@ -34,43 +34,43 @@ import {
 const STATUS_CONFIG = {
 	not_started: {
 		label: 'Não Iniciado',
-		color: 'bg-slate-100 text-slate-700 border-slate-200',
+		color: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700',
 		icon: FaClock,
-		iconColor: 'text-slate-500'
+		iconColor: 'text-slate-500 dark:text-slate-400'
 	},
 	active: {
 		label: 'Em Andamento',
-		color: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+		color: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/50',
 		icon: FaPlay,
-		iconColor: 'text-emerald-500'
+		iconColor: 'text-emerald-500 dark:text-emerald-400'
 	},
 	paused: {
 		label: 'Pausado',
-		color: 'bg-amber-100 text-amber-700 border-amber-200',
+		color: 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/50',
 		icon: FaPause,
-		iconColor: 'text-amber-500'
+		iconColor: 'text-amber-500 dark:text-amber-400'
 	},
 	completed: {
 		label: 'Concluído',
-		color: 'bg-blue-100 text-blue-700 border-blue-200',
+		color: 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900/50',
 		icon: FaCheckCircle,
-		iconColor: 'text-blue-500'
+		iconColor: 'text-blue-500 dark:text-blue-400'
 	}
 };
 
 const ROLE_CONFIG = {
-	facilitator: { label: 'Facilitador', icon: FaUserShield, color: 'bg-violet-100 text-violet-700' },
-	participant: { label: 'Participante', icon: FaUser, color: 'bg-blue-100 text-blue-700' },
-	observer: { label: 'Observador', icon: FaEye, color: 'bg-slate-100 text-slate-700' }
+	facilitator: { label: 'Facilitador', icon: FaUserShield, color: 'bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300' },
+	participant: { label: 'Participante', icon: FaUser, color: 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' },
+	observer: { label: 'Observador', icon: FaEye, color: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300' }
 };
 
 const CATEGORY_CONFIG = {
-	GOV_LEGAL: { label: 'Governança e Jurídico', icon: FaShieldAlt, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-	NET_ROUT: { label: 'Roteamento de Rede', icon: FaNetworkWired, color: 'text-cyan-600', bg: 'bg-cyan-50' },
-	NET_VOL: { label: 'Tráfego Volumétrico e DDoS', icon: FaServer, color: 'text-red-600', bg: 'bg-red-50' },
-	PHY_L2: { label: 'Infraestrutura Física e L2', icon: FaMicrochip, color: 'text-orange-600', bg: 'bg-orange-50' },
-	SCI_DATA: { label: 'Dados Científicos', icon: FaDatabase, color: 'text-teal-600', bg: 'bg-teal-50' },
-	SEC_SYS: { label: 'Segurança de Sistemas', icon: FaLock, color: 'text-rose-600', bg: 'bg-rose-50' }
+	GOV_LEGAL: { label: 'Governança e Jurídico', icon: FaShieldAlt, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/30' },
+	NET_ROUT: { label: 'Roteamento de Rede', icon: FaNetworkWired, color: 'text-cyan-600 dark:text-cyan-400', bg: 'bg-cyan-50 dark:bg-cyan-950/30' },
+	NET_VOL: { label: 'Tráfego Volumétrico e DDoS', icon: FaServer, color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950/30' },
+	PHY_L2: { label: 'Infraestrutura Física e L2', icon: FaMicrochip, color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-950/30' },
+	SCI_DATA: { label: 'Dados Científicos', icon: FaDatabase, color: 'text-teal-600 dark:text-teal-400', bg: 'bg-teal-50 dark:bg-teal-950/30' },
+	SEC_SYS: { label: 'Segurança de Sistemas', icon: FaLock, color: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-950/30' }
 };
 
 function formatDate(dateString) {
@@ -82,20 +82,20 @@ function formatDate(dateString) {
 	});
 }
 
-function StatCard({ label, value, icon: Icon, bgLight, textColor, loading }) {
+function StatCard({ label, value, icon: Icon, bgLight, bgDark, textColor, darkTextColor, loading }) {
 	return (
-		<div className="group bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 p-5 lg:p-6 hover:shadow-lg hover:shadow-slate-200/50 transition-all duration-300">
+		<div className="group bg-white dark:bg-slate-900 rounded-2xl shadow-sm shadow-slate-200/50 dark:shadow-slate-950/50 border border-slate-200/60 dark:border-slate-800 p-5 lg:p-6 hover:shadow-lg hover:shadow-slate-200/50 dark:hover:shadow-slate-950/80 transition-all duration-300">
 			<div className="flex items-center justify-between">
 				<div>
-					<p className="text-sm font-medium text-slate-500 mb-1">{label}</p>
+					<p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{label}</p>
 					{loading ? (
-						<div className="h-9 w-12 bg-slate-200 rounded-lg animate-pulse" />
+						<div className="h-9 w-12 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
 					) : (
-						<p className="text-3xl lg:text-4xl font-bold text-slate-900">{value}</p>
+						<p className="text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white">{value}</p>
 					)}
 				</div>
-				<div className={`relative p-3.5 bg-linear-to-br ${bgLight} rounded-xl group-hover:scale-110 transition-transform duration-300`}>
-					<Icon className={`text-xl lg:text-2xl ${textColor}`} />
+				<div className={`relative p-3.5 bg-linear-to-br ${bgLight} ${bgDark} rounded-xl group-hover:scale-110 transition-transform duration-300`}>
+					<Icon className={`text-xl lg:text-2xl ${textColor} ${darkTextColor}`} />
 				</div>
 			</div>
 		</div>
@@ -111,15 +111,15 @@ function TrainingCardMini({ training }) {
 	return (
 		<Link
 			href={`/dashboard/trainings/${training.id}`}
-			className="group flex items-center gap-4 p-4 bg-slate-50/80 rounded-xl border border-slate-100 hover:bg-white hover:border-blue-200 hover:shadow-md transition-all duration-200"
+			className="group flex items-center gap-4 p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 hover:border-blue-200 dark:hover:border-blue-800 hover:shadow-md transition-all duration-200"
 		>
 			<div className="flex-1 min-w-0">
 				<div className="flex items-center gap-2 mb-1">
-					<h4 className="font-semibold text-slate-900 truncate text-sm group-hover:text-blue-600 transition-colors">
+					<h4 className="font-semibold text-slate-900 dark:text-slate-100 truncate text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
 						{training.name}
 					</h4>
 				</div>
-				<div className="flex items-center gap-3 text-xs text-slate-500">
+				<div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
 					<span className="flex items-center gap-1">
 						<RoleIcon className="text-[10px]" />
 						{roleConfig.label}
@@ -140,17 +140,17 @@ function TrainingCardMini({ training }) {
 				<StatusIcon className={`text-[10px] ${statusConfig.iconColor}`} />
 				<span className="hidden sm:inline">{statusConfig.label}</span>
 			</div>
-			<FaArrowRight className="text-xs text-slate-300 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all shrink-0" />
+			<FaArrowRight className="text-xs text-slate-300 dark:text-slate-600 group-hover:text-blue-500 dark:group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all shrink-0" />
 		</Link>
 	);
 }
 
 function InviteCard({ invite, onRespond, responding }) {
 	return (
-		<div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-violet-50/60 rounded-xl border border-violet-100">
+		<div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-violet-50/60 dark:bg-violet-950/30 rounded-xl border border-violet-100 dark:border-violet-900/40">
 			<div className="flex-1 min-w-0">
-				<h4 className="font-semibold text-slate-900 text-sm truncate">{invite.name}</h4>
-				<p className="text-xs text-slate-500 mt-0.5">
+				<h4 className="font-semibold text-slate-900 dark:text-slate-100 text-sm truncate">{invite.name}</h4>
+				<p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
 					por {invite.created_by?.nickname || invite.created_by?.name}
 					{invite.scenario?.title && ` · ${invite.scenario.title}`}
 				</p>
@@ -159,14 +159,14 @@ function InviteCard({ invite, onRespond, responding }) {
 				<button
 					onClick={() => onRespond(invite.id, 'decline')}
 					disabled={responding}
-					className="px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-all disabled:opacity-50"
+					className="px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-all disabled:opacity-50"
 				>
 					Recusar
 				</button>
 				<button
 					onClick={() => onRespond(invite.id, 'accept')}
 					disabled={responding}
-					className="px-3 py-1.5 text-xs font-medium text-white bg-linear-to-r from-blue-600 to-indigo-600 rounded-lg hover:from-blue-700 hover:to-indigo-700 shadow-sm transition-all disabled:opacity-50"
+					className="px-3 py-1.5 text-xs font-medium text-white bg-linear-to-r from-blue-600 to-indigo-600 rounded-lg hover:from-blue-700 hover:to-indigo-700 shadow-xs transition-all disabled:opacity-50"
 				>
 					Aceitar
 				</button>
@@ -176,7 +176,7 @@ function InviteCard({ invite, onRespond, responding }) {
 }
 
 function CategoryBar({ category, count, total }) {
-	const config = CATEGORY_CONFIG[category] || { label: category, icon: FaBook, color: 'text-slate-600', bg: 'bg-slate-50' };
+	const config = CATEGORY_CONFIG[category] || { label: category, icon: FaBook, color: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-50 dark:bg-slate-800' };
 	const Icon = config.icon;
 	const percentage = total > 0 ? (count / total) * 100 : 0;
 
@@ -187,13 +187,13 @@ function CategoryBar({ category, count, total }) {
 			</div>
 			<div className="flex-1 min-w-0">
 				<div className="flex items-center justify-between mb-1">
-					<span className="text-xs font-medium text-slate-700 truncate">{config.label}</span>
-					<span className="text-xs font-semibold text-slate-900 shrink-0 ml-2">{count}</span>
+					<span className="text-xs font-medium text-slate-700 dark:text-slate-300 truncate">{config.label}</span>
+					<span className="text-xs font-semibold text-slate-900 dark:text-slate-100 shrink-0 ml-2">{count}</span>
 				</div>
-				<div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+				<div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
 					<div
-						className={`h-full rounded-full transition-all duration-500 ${config.bg.replace('bg-', 'bg-').replace('50', '400')}`}
-						style={{ width: `${percentage}%`, backgroundColor: `var(--tw-${config.color.replace('text-', '')}, currentColor)` }}
+						className="h-full rounded-full transition-all duration-500 bg-blue-500"
+						style={{ width: `${percentage}%` }}
 					/>
 				</div>
 			</div>
@@ -205,12 +205,12 @@ function LoadingSkeleton() {
 	return (
 		<div className="space-y-4">
 			{[1, 2, 3].map(i => (
-				<div key={i} className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl animate-pulse">
+				<div key={i} className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl animate-pulse">
 					<div className="flex-1">
-						<div className="h-4 bg-slate-200 rounded w-3/4 mb-2" />
-						<div className="h-3 bg-slate-200 rounded w-1/2" />
+						<div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4 mb-2" />
+						<div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-1/2" />
 					</div>
-					<div className="h-6 bg-slate-200 rounded-full w-20" />
+					<div className="h-6 bg-slate-200 dark:bg-slate-700 rounded-full w-20" />
 				</div>
 			))}
 		</div>
@@ -342,12 +342,12 @@ export default function DashboardPage() {
 
 	if (status === 'loading') {
 		return (
-			<div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-50 via-gray-50 to-zinc-100">
+			<div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
 				<div className="text-center">
 					<div className="relative inline-flex">
-						<div className="w-14 h-14 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+						<div className="w-14 h-14 border-4 border-blue-200 dark:border-blue-900 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin"></div>
 					</div>
-					<p className="mt-4 text-slate-600 font-medium">Carregando...</p>
+					<p className="mt-4 text-slate-600 dark:text-slate-400 font-medium">Carregando...</p>
 				</div>
 			</div>
 		);
@@ -365,21 +365,21 @@ export default function DashboardPage() {
 		<DashboardLayout>
 			<div className="space-y-6 lg:space-y-8">
 				{/* Welcome Section */}
-				<div className="relative overflow-hidden bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 p-6 lg:p-8">
-					<div className="absolute top-0 right-0 w-64 h-64 bg-linear-to-br from-blue-100/50 to-indigo-100/50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+				<div className="relative overflow-hidden bg-white dark:bg-slate-900 rounded-2xl shadow-sm shadow-slate-200/50 dark:shadow-slate-950/50 border border-slate-200/60 dark:border-slate-800 p-6 lg:p-8">
+					<div className="absolute top-0 right-0 w-64 h-64 bg-linear-to-br from-blue-100/50 to-indigo-100/50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
 					<div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
 						<div>
-							<h1 className="text-2xl lg:text-3xl font-bold text-slate-900 mb-2">
-								Bem-vindo, <span className="bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">{session.user.name}</span>!
+							<h1 className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white mb-2">
+								Bem-vindo, <span className="bg-linear-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">{session.user.name}</span>!
 							</h1>
-							<p className="text-slate-600">
+							<p className="text-slate-600 dark:text-slate-400">
 								Acompanhe seus treinamentos de resposta a incidentes.
 							</p>
 						</div>
 						{invites.length > 0 && (
-							<div className="flex items-center gap-2 px-4 py-2 bg-violet-50 border border-violet-200 rounded-xl shrink-0">
-								<FaEnvelope className="text-violet-500" />
-								<span className="text-sm font-medium text-violet-700">
+							<div className="flex items-center gap-2 px-4 py-2 bg-violet-50 dark:bg-violet-950/40 border border-violet-200 dark:border-violet-800 rounded-xl shrink-0">
+								<FaEnvelope className="text-violet-500 dark:text-violet-400" />
+								<span className="text-sm font-medium text-violet-700 dark:text-violet-300">
 									{invites.length} {invites.length === 1 ? 'convite pendente' : 'convites pendentes'}
 								</span>
 							</div>
@@ -393,50 +393,58 @@ export default function DashboardPage() {
 						label="Total de Treinamentos"
 						value={stats.total}
 						icon={FaChartLine}
-						bgLight="from-blue-50 to-indigo-50"
-						textColor="text-blue-600"
+						bgLight="from-blue-50 dark:from-blue-950/40 to-indigo-50 dark:to-indigo-950/40"
+						bgDark="dark:from-blue-950/40 dark:to-indigo-950/40"
+						textColor="text-blue-600 dark:text-blue-400"
+						darkTextColor="dark:text-blue-400"
 						loading={loading}
 					/>
 					<StatCard
 						label="Em Andamento"
 						value={stats.active}
 						icon={FaPlay}
-						bgLight="from-emerald-50 to-teal-50"
-						textColor="text-emerald-600"
+						bgLight="from-emerald-50 dark:from-emerald-950/40 to-teal-50 dark:to-teal-950/40"
+						bgDark="dark:from-emerald-950/40 dark:to-teal-950/40"
+						textColor="text-emerald-600 dark:text-emerald-400"
+						darkTextColor="dark:text-emerald-400"
 						loading={loading}
 					/>
 					<StatCard
 						label="Concluídos"
 						value={stats.completed}
 						icon={FaCheckCircle}
-						bgLight="from-violet-50 to-purple-50"
-						textColor="text-violet-600"
+						bgLight="from-violet-50 dark:from-violet-950/40 to-purple-50 dark:to-purple-950/40"
+						bgDark="dark:from-violet-950/40 dark:to-purple-950/40"
+						textColor="text-violet-600 dark:text-violet-400"
+						darkTextColor="dark:text-violet-400"
 						loading={loading}
 					/>
 					<StatCard
 						label="Aguardando Início"
 						value={stats.not_started}
 						icon={FaClock}
-						bgLight="from-amber-50 to-orange-50"
-						textColor="text-amber-600"
+						bgLight="from-amber-50 dark:from-amber-950/40 to-orange-50 dark:to-orange-950/40"
+						bgDark="dark:from-amber-950/40 dark:to-orange-950/40"
+						textColor="text-amber-600 dark:text-amber-400"
+						darkTextColor="dark:text-amber-400"
 						loading={loading}
 					/>
 				</div>
 
 				{/* Pending Invitations */}
 				{invites.length > 0 && (
-					<div className="bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-violet-200/60 p-6 lg:p-8">
+					<div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm shadow-slate-200/50 dark:shadow-slate-950/50 border border-violet-200/60 dark:border-violet-900/50 p-6 lg:p-8">
 						<div className="flex items-center justify-between mb-5">
-							<h2 className="text-lg lg:text-xl font-semibold text-slate-900 flex items-center gap-2">
-								<FaEnvelope className="text-violet-500" />
+							<h2 className="text-lg lg:text-xl font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+								<FaEnvelope className="text-violet-500 dark:text-violet-400" />
 								Convites Pendentes
-								<span className="ml-1 px-2 py-0.5 text-xs font-bold bg-violet-100 text-violet-700 rounded-full">
+								<span className="ml-1 px-2 py-0.5 text-xs font-bold bg-violet-100 dark:bg-violet-900/60 text-violet-700 dark:text-violet-300 rounded-full">
 									{invites.length}
 								</span>
 							</h2>
 							<Link
 								href="/dashboard/trainings/invites"
-								className="text-sm font-medium text-violet-600 hover:text-violet-700 flex items-center gap-1 transition-colors"
+								className="text-sm font-medium text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 flex items-center gap-1 transition-colors"
 							>
 								Ver todos
 								<FaArrowRight className="text-xs" />
@@ -452,7 +460,7 @@ export default function DashboardPage() {
 								/>
 							))}
 							{invites.length > 3 && (
-								<p className="text-xs text-slate-500 text-center pt-2">
+								<p className="text-xs text-slate-500 dark:text-slate-400 text-center pt-2">
 									e mais {invites.length - 3} {invites.length - 3 === 1 ? 'convite' : 'convites'}...
 								</p>
 							)}
@@ -463,15 +471,15 @@ export default function DashboardPage() {
 				{/* Active Trainings + Sidebar */}
 				<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 					{/* Active Trainings */}
-					<div className="lg:col-span-2 bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 p-6 lg:p-8">
+					<div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl shadow-sm shadow-slate-200/50 dark:shadow-slate-950/50 border border-slate-200/60 dark:border-slate-800 p-6 lg:p-8">
 						<div className="flex items-center justify-between mb-5">
-							<h2 className="text-lg lg:text-xl font-semibold text-slate-900 flex items-center gap-2">
-								<FaPlay className="text-emerald-500 text-base" />
+							<h2 className="text-lg lg:text-xl font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+								<FaPlay className="text-emerald-500 dark:text-emerald-400 text-base" />
 								Treinamentos Ativos
 							</h2>
 							<Link
 								href="/dashboard/trainings"
-								className="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors"
+								className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1 transition-colors"
 							>
 								Ver todos
 								<FaArrowRight className="text-xs" />
@@ -487,11 +495,11 @@ export default function DashboardPage() {
 							</div>
 						) : (
 							<div className="text-center py-8">
-								<div className="inline-flex items-center justify-center w-14 h-14 bg-slate-100 rounded-2xl mb-4">
-									<FaPlay className="text-xl text-slate-400" />
+								<div className="inline-flex items-center justify-center w-14 h-14 bg-slate-100 dark:bg-slate-800 rounded-2xl mb-4">
+									<FaPlay className="text-xl text-slate-400 dark:text-slate-500" />
 								</div>
-								<p className="text-sm text-slate-600 mb-1 font-medium">Nenhum treinamento ativo</p>
-								<p className="text-xs text-slate-500">Seus treinamentos em andamento aparecerão aqui.</p>
+								<p className="text-sm text-slate-600 dark:text-slate-300 mb-1 font-medium">Nenhum treinamento ativo</p>
+								<p className="text-xs text-slate-500 dark:text-slate-400">Seus treinamentos em andamento aparecerão aqui.</p>
 							</div>
 						)}
 					</div>
@@ -500,40 +508,40 @@ export default function DashboardPage() {
 					<div className="space-y-6">
 						{/* Role Distribution */}
 						{totalRoles > 0 && (
-							<div className="bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 p-6">
-								<h3 className="text-sm font-semibold text-slate-900 mb-4">Seus Papéis</h3>
+							<div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm shadow-slate-200/50 dark:shadow-slate-950/50 border border-slate-200/60 dark:border-slate-800 p-6">
+								<h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">Seus Papéis</h3>
 								<div className="space-y-3">
 									{roleBreakdown.facilitator > 0 && (
 										<div className="flex items-center justify-between">
 											<div className="flex items-center gap-2">
-												<div className="p-1.5 bg-violet-50 rounded-lg">
-													<FaUserShield className="text-xs text-violet-600" />
+												<div className="p-1.5 bg-violet-50 dark:bg-violet-950/40 rounded-lg">
+													<FaUserShield className="text-xs text-violet-600 dark:text-violet-400" />
 												</div>
-												<span className="text-xs font-medium text-slate-700">Facilitador</span>
+												<span className="text-xs font-medium text-slate-700 dark:text-slate-300">Facilitador</span>
 											</div>
-											<span className="text-sm font-bold text-slate-900">{roleBreakdown.facilitator}</span>
+											<span className="text-sm font-bold text-slate-900 dark:text-white">{roleBreakdown.facilitator}</span>
 										</div>
 									)}
 									{roleBreakdown.participant > 0 && (
 										<div className="flex items-center justify-between">
 											<div className="flex items-center gap-2">
-												<div className="p-1.5 bg-blue-50 rounded-lg">
-													<FaUser className="text-xs text-blue-600" />
+												<div className="p-1.5 bg-blue-50 dark:bg-blue-950/40 rounded-lg">
+													<FaUser className="text-xs text-blue-600 dark:text-blue-400" />
 												</div>
-												<span className="text-xs font-medium text-slate-700">Participante</span>
+												<span className="text-xs font-medium text-slate-700 dark:text-slate-300">Participante</span>
 											</div>
-											<span className="text-sm font-bold text-slate-900">{roleBreakdown.participant}</span>
+											<span className="text-sm font-bold text-slate-900 dark:text-white">{roleBreakdown.participant}</span>
 										</div>
 									)}
 									{roleBreakdown.observer > 0 && (
 										<div className="flex items-center justify-between">
 											<div className="flex items-center gap-2">
-												<div className="p-1.5 bg-slate-100 rounded-lg">
-													<FaEye className="text-xs text-slate-600" />
+												<div className="p-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg">
+													<FaEye className="text-xs text-slate-600 dark:text-slate-400" />
 												</div>
-												<span className="text-xs font-medium text-slate-700">Observador</span>
+												<span className="text-xs font-medium text-slate-700 dark:text-slate-300">Observador</span>
 											</div>
-											<span className="text-sm font-bold text-slate-900">{roleBreakdown.observer}</span>
+											<span className="text-sm font-bold text-slate-900 dark:text-white">{roleBreakdown.observer}</span>
 										</div>
 									)}
 								</div>
@@ -542,8 +550,8 @@ export default function DashboardPage() {
 
 						{/* Category Breakdown */}
 						{categoryEntries.length > 0 && (
-							<div className="bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 p-6">
-								<h3 className="text-sm font-semibold text-slate-900 mb-4">Categorias Treinadas</h3>
+							<div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm shadow-slate-200/50 dark:shadow-slate-950/50 border border-slate-200/60 dark:border-slate-800 p-6">
+								<h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">Categorias Treinadas</h3>
 								<div className="space-y-3">
 									{categoryEntries.map(([cat, count]) => (
 										<CategoryBar key={cat} category={cat} count={count} total={totalCategoryTrainings} />
@@ -554,16 +562,16 @@ export default function DashboardPage() {
 
 						{/* Quick Status */}
 						{stats.paused > 0 && (
-							<div className="bg-amber-50 rounded-2xl border border-amber-200/60 p-5">
+							<div className="bg-amber-50 dark:bg-amber-950/40 rounded-2xl border border-amber-200/60 dark:border-amber-800 p-5">
 								<div className="flex items-center gap-3">
-									<div className="p-2.5 bg-amber-100 rounded-xl">
-										<FaPause className="text-sm text-amber-600" />
+									<div className="p-2.5 bg-amber-100 dark:bg-amber-900/60 rounded-xl">
+										<FaPause className="text-sm text-amber-600 dark:text-amber-400" />
 									</div>
 									<div>
-										<p className="text-sm font-semibold text-amber-900">
+										<p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
 											{stats.paused} {stats.paused === 1 ? 'treinamento pausado' : 'treinamentos pausados'}
 										</p>
-										<p className="text-xs text-amber-700 mt-0.5">Retome quando estiver pronto.</p>
+										<p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">Retome quando estiver pronto.</p>
 									</div>
 								</div>
 							</div>
@@ -572,15 +580,15 @@ export default function DashboardPage() {
 				</div>
 
 				{/* Recent Trainings */}
-				<div className="bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 p-6 lg:p-8">
+				<div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm shadow-slate-200/50 dark:shadow-slate-950/50 border border-slate-200/60 dark:border-slate-800 p-6 lg:p-8">
 					<div className="flex items-center justify-between mb-5">
-						<h2 className="text-lg lg:text-xl font-semibold text-slate-900 flex items-center gap-2">
-							<FaCalendarAlt className="text-blue-500 text-base" />
+						<h2 className="text-lg lg:text-xl font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+							<FaCalendarAlt className="text-blue-500 dark:text-blue-400 text-base" />
 							Treinamentos Recentes
 						</h2>
 						<Link
 							href="/dashboard/trainings"
-							className="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors"
+							className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1 transition-colors"
 						>
 							Ver todos
 							<FaArrowRight className="text-xs" />
@@ -596,75 +604,75 @@ export default function DashboardPage() {
 						</div>
 					) : (
 						<div className="text-center py-8">
-							<div className="inline-flex items-center justify-center w-14 h-14 bg-slate-100 rounded-2xl mb-4">
-								<FaBook className="text-xl text-slate-400" />
+							<div className="inline-flex items-center justify-center w-14 h-14 bg-slate-100 dark:bg-slate-800 rounded-2xl mb-4">
+								<FaBook className="text-xl text-slate-400 dark:text-slate-500" />
 							</div>
-							<p className="text-sm text-slate-600 mb-1 font-medium">Nenhum treinamento ainda</p>
-							<p className="text-xs text-slate-500 mb-4">Crie seu primeiro treinamento ou acesse um existente.</p>
+							<p className="text-sm text-slate-600 dark:text-slate-300 mb-1 font-medium">Nenhum treinamento ainda</p>
+							<p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Crie seu primeiro treinamento ou acesse um existente.</p>
 						</div>
 					)}
 				</div>
 
 				{/* Quick Actions */}
-				<div className="bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 p-6 lg:p-8">
-					<h2 className="text-lg lg:text-xl font-semibold text-slate-900 mb-6">
+				<div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm shadow-slate-200/50 dark:shadow-slate-950/50 border border-slate-200/60 dark:border-slate-800 p-6 lg:p-8">
+					<h2 className="text-lg lg:text-xl font-semibold text-slate-900 dark:text-white mb-6">
 						Ações Rápidas
 					</h2>
 					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 						{session?.user?.facilitator && (
 							<Link
 								href="/dashboard/trainings/new"
-								className="group relative p-5 bg-white border-2 border-slate-200 rounded-xl hover:bg-blue-50 hover:border-blue-300 transition-all duration-300 text-left overflow-hidden"
+								className="group relative p-5 bg-white dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700/80 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-300 text-left overflow-hidden"
 							>
 								<div className="inline-flex p-3 bg-linear-to-br from-blue-500 to-indigo-600 rounded-xl mb-4 shadow-lg">
 									<FaPlus className="text-lg text-white" />
 								</div>
-								<div className="font-semibold text-slate-900 mb-1 flex items-center gap-2">
+								<div className="font-semibold text-slate-900 dark:text-slate-100 mb-1 flex items-center gap-2">
 									Novo Treinamento
-									<FaArrowRight className="text-sm text-slate-400 group-hover:translate-x-1 group-hover:text-slate-600 transition-all" />
+									<FaArrowRight className="text-sm text-slate-400 dark:text-slate-500 group-hover:translate-x-1 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-all" />
 								</div>
-								<p className="text-sm text-slate-500">Criar um novo cenário de treinamento</p>
+								<p className="text-sm text-slate-500 dark:text-slate-400">Criar um novo cenário de treinamento</p>
 							</Link>
 						)}
 						<Link
 							href="/dashboard/trainings/access"
-							className="group relative p-5 bg-white border-2 border-slate-200 rounded-xl hover:bg-emerald-50 hover:border-emerald-300 transition-all duration-300 text-left overflow-hidden"
+							className="group relative p-5 bg-white dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700/80 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:border-emerald-300 dark:hover:border-emerald-700 transition-all duration-300 text-left overflow-hidden"
 						>
 							<div className="inline-flex p-3 bg-linear-to-br from-emerald-500 to-teal-600 rounded-xl mb-4 shadow-lg">
 								<FaKey className="text-lg text-white" />
 							</div>
-							<div className="font-semibold text-slate-900 mb-1 flex items-center gap-2">
+							<div className="font-semibold text-slate-900 dark:text-slate-100 mb-1 flex items-center gap-2">
 								Acessar Treinamento
-								<FaArrowRight className="text-sm text-slate-400 group-hover:translate-x-1 group-hover:text-slate-600 transition-all" />
+								<FaArrowRight className="text-sm text-slate-400 dark:text-slate-500 group-hover:translate-x-1 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-all" />
 							</div>
-							<p className="text-sm text-slate-500">Entrar com código de acesso ou explorar abertos</p>
+							<p className="text-sm text-slate-500 dark:text-slate-400">Entrar com código de acesso ou explorar abertos</p>
 						</Link>
 						<Link
 							href="/dashboard/trainings"
-							className="group relative p-5 bg-white border-2 border-slate-200 rounded-xl hover:bg-violet-50 hover:border-violet-300 transition-all duration-300 text-left overflow-hidden"
+							className="group relative p-5 bg-white dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700/80 rounded-xl hover:bg-violet-50 dark:hover:bg-violet-950/30 hover:border-violet-300 dark:hover:border-violet-700 transition-all duration-300 text-left overflow-hidden"
 						>
 							<div className="inline-flex p-3 bg-linear-to-br from-violet-500 to-purple-600 rounded-xl mb-4 shadow-lg">
 								<FaBook className="text-lg text-white" />
 							</div>
-							<div className="font-semibold text-slate-900 mb-1 flex items-center gap-2">
+							<div className="font-semibold text-slate-900 dark:text-slate-100 mb-1 flex items-center gap-2">
 								Meus Treinamentos
-								<FaArrowRight className="text-sm text-slate-400 group-hover:translate-x-1 group-hover:text-slate-600 transition-all" />
+								<FaArrowRight className="text-sm text-slate-400 dark:text-slate-500 group-hover:translate-x-1 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-all" />
 							</div>
-							<p className="text-sm text-slate-500">Visualizar e gerenciar todos os treinamentos</p>
+							<p className="text-sm text-slate-500 dark:text-slate-400">Visualizar e gerenciar todos os treinamentos</p>
 						</Link>
 						{session?.user?.admin && (
 							<Link
 								href="/dashboard/admin"
-								className="group relative p-5 bg-white border-2 border-slate-200 rounded-xl hover:bg-rose-50 hover:border-rose-300 transition-all duration-300 text-left overflow-hidden"
+								className="group relative p-5 bg-white dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700/80 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:border-rose-300 dark:hover:border-rose-700 transition-all duration-300 text-left overflow-hidden"
 							>
 								<div className="inline-flex p-3 bg-linear-to-br from-rose-500 to-red-600 rounded-xl mb-4 shadow-lg">
 									<FaCrown className="text-lg text-white" />
 								</div>
-								<div className="font-semibold text-slate-900 mb-1 flex items-center gap-2">
+								<div className="font-semibold text-slate-900 dark:text-slate-100 mb-1 flex items-center gap-2">
 									Painel Admin
-									<FaArrowRight className="text-sm text-slate-400 group-hover:translate-x-1 group-hover:text-slate-600 transition-all" />
+									<FaArrowRight className="text-sm text-slate-400 dark:text-slate-500 group-hover:translate-x-1 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-all" />
 								</div>
-								<p className="text-sm text-slate-500">Gerenciar usuários e treinamentos da plataforma</p>
+								<p className="text-sm text-slate-500 dark:text-slate-400">Gerenciar usuários e treinamentos da plataforma</p>
 							</Link>
 						)}
 					</div>

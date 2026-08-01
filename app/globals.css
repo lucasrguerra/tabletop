@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Bind the telemetry face loaded in layout.jsx to Tailwind's `font-mono`, so
    `font-mono tabular-nums` in the training console renders JetBrains Mono. */
 @theme inline {
@@ -10,6 +12,16 @@
    CUSTOM PROPERTIES & DESIGN TOKENS
    ============================================ */
 :root {
+	/* Tells the browser to paint its own widgets -- scrollbars, form controls,
+	   select popups, date pickers -- in the matching scheme. Without this the
+	   native chrome stays white no matter what the Tailwind classes say. */
+	color-scheme: light;
+
+	/* Recharts renders plain SVG, so it can't use `dark:` utilities. These
+	   variables are read straight from the stroke/fill props instead. */
+	--chart-grid: #e2e8f0;
+	--chart-axis: #64748b;
+
 	--color-primary: #3b82f6;
 	--color-primary-dark: #2563eb;
 	--color-primary-light: #60a5fa;
@@ -26,6 +38,18 @@
 	--transition-fast: 150ms;
 	--transition-normal: 200ms;
 	--transition-slow: 300ms;
+}
+
+.dark {
+	color-scheme: dark;
+
+	--chart-grid: #334155;
+	--chart-axis: #94a3b8;
+
+	--shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.5);
+	--shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+	--shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+	--shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.5);
 }
 
 /* ============================================
@@ -48,10 +72,22 @@
 	background: #94a3b8;
 }
 
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+	background: #475569;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+	background: #64748b;
+}
+
 /* Global scrollbar for body */
 html {
 	scrollbar-width: thin;
 	scrollbar-color: #cbd5e1 transparent;
+}
+
+html.dark {
+	scrollbar-color: #475569 transparent;
 }
 
 body::-webkit-scrollbar {
@@ -62,12 +98,24 @@ body::-webkit-scrollbar-track {
 	background: #f1f5f9;
 }
 
+.dark body::-webkit-scrollbar-track {
+	background: #1e293b;
+}
+
 body::-webkit-scrollbar-thumb {
 	background: linear-gradient(180deg, #94a3b8, #64748b);
 	border-radius: 4px;
 }
 
 body::-webkit-scrollbar-thumb:hover {
+	background: linear-gradient(180deg, #64748b, #475569);
+}
+
+.dark body::-webkit-scrollbar-thumb {
+	background: linear-gradient(180deg, #475569, #334155);
+}
+
+.dark body::-webkit-scrollbar-thumb:hover {
 	background: linear-gradient(180deg, #64748b, #475569);
 }
 
@@ -195,6 +243,11 @@ body::-webkit-scrollbar-thumb:hover {
 	animation: shimmer 1.5s ease-in-out infinite;
 }
 
+.dark .animate-shimmer {
+	background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+	background-size: 200% 100%;
+}
+
 @keyframes pulse-soft {
 	0%, 100% {
 		opacity: 1;
@@ -231,6 +284,11 @@ body::-webkit-scrollbar-thumb:hover {
 	backdrop-filter: blur(12px);
 	-webkit-backdrop-filter: blur(12px);
 	border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.dark .glass {
+	background: rgba(15, 23, 42, 0.8);
+	border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .glass-dark {
@@ -306,6 +364,58 @@ textarea:focus,
 select:focus {
 	border-color: var(--color-primary);
 	box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+/* Chrome paints autofilled fields with a hardcoded near-white background that
+   ignores every background rule. The inset shadow trick is the only way to
+   cover it, and the text colour has to be forced alongside it. */
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus,
+.dark textarea:-webkit-autofill,
+.dark select:-webkit-autofill {
+	-webkit-box-shadow: 0 0 0 1000px #1e293b inset;
+	box-shadow: 0 0 0 1000px #1e293b inset;
+	-webkit-text-fill-color: #f1f5f9;
+	caret-color: #f1f5f9;
+}
+
+/* `<option>` inherits the popup background from the OS widget, which some
+   platforms still render light even with color-scheme set. */
+.dark select option {
+	background-color: #1e293b;
+	color: #f1f5f9;
+}
+
+/* ============================================
+   RECHARTS
+   ============================================ */
+/* Charts that use the built-in tooltip instead of a themed `content=` render an
+   inline-styled white card, so overriding it here is the only hook available. */
+.dark .recharts-default-tooltip {
+	background-color: #1e293b !important;
+	border-color: #334155 !important;
+	color: #f1f5f9;
+}
+
+.dark .recharts-default-tooltip .recharts-tooltip-label,
+.dark .recharts-default-tooltip .recharts-tooltip-item {
+	color: #f1f5f9 !important;
+}
+
+.dark .recharts-tooltip-cursor {
+	fill: rgba(148, 163, 184, 0.12) !important;
+}
+
+/* Recharts colours the legend label to match its series, which drops light
+   series (green, amber, cyan) to ~2:1 against the card. The coloured swatch
+   already carries the mapping, so the label itself uses readable ink. */
+.recharts-legend-item-text {
+	color: #334155 !important;
+}
+
+.dark .recharts-legend-item-text {
+	color: #cbd5e1 !important;
 }
 
 /* ============================================

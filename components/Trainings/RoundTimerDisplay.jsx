@@ -56,27 +56,27 @@ export default function RoundTimerDisplay({ training, userRole, onTimerAction })
 		if (currentElapsedTime <= TIME_WITHIN) {
 			return {
 				status: 'within',
-				color: 'text-emerald-600',
-				bgColor: 'bg-emerald-50',
-				borderColor: 'border-emerald-200',
+				color: 'text-emerald-600 dark:text-emerald-400',
+				bgColor: 'bg-emerald-50 dark:bg-emerald-950/30',
+				borderColor: 'border-emerald-200 dark:border-emerald-900/50',
 				message: 'Dentro do tempo',
 				icon: '✓'
 			};
 		} else if (currentElapsedTime <= TIME_LIMIT) {
 			return {
 				status: 'approaching',
-				color: 'text-amber-600',
-				bgColor: 'bg-amber-50',
-				borderColor: 'border-amber-200',
+				color: 'text-amber-600 dark:text-amber-400',
+				bgColor: 'bg-amber-50 dark:bg-amber-950/30',
+				borderColor: 'border-amber-200 dark:border-amber-900/50',
 				message: 'Chegando no limite',
 				icon: '⚠'
 			};
 		} else {
 			return {
 				status: 'exceeded',
-				color: 'text-red-600',
-				bgColor: 'bg-red-50',
-				borderColor: 'border-red-200',
+				color: 'text-red-600 dark:text-red-400',
+				bgColor: 'bg-red-50 dark:bg-red-950/30',
+				borderColor: 'border-red-200 dark:border-red-900/50',
 				message: 'Tempo excedido',
 				icon: '✕'
 			};
@@ -87,12 +87,12 @@ export default function RoundTimerDisplay({ training, userRole, onTimerAction })
 	const timeStatus = getTimeStatus();
 
 	return (
-		<div className="bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 p-6 lg:p-8">
+		<div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 dark:border-slate-700/60 p-6 lg:p-8">
 			{/* Timer Display */}
 			<div className="flex flex-col items-center mb-6">
 				<div className="flex items-center gap-3 mb-3">
-					<FaStopwatch className="text-2xl text-indigo-500" />
-					<h3 className="text-lg font-semibold text-slate-900">
+					<FaStopwatch className="text-2xl text-indigo-500 dark:text-indigo-400" />
+					<h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
 						Timer da Rodada
 					</h3>
 				</div>
@@ -125,30 +125,30 @@ export default function RoundTimerDisplay({ training, userRole, onTimerAction })
 					<div className="flex items-center justify-between text-xs">
 						<div className="flex items-center gap-2">
 							<div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-							<span className="text-slate-600">Até 6 min</span>
+							<span className="text-slate-600 dark:text-slate-400">Até 6 min</span>
 						</div>
-						<span className="text-slate-400">Dentro do tempo</span>
+						<span className="text-slate-400 dark:text-slate-500">Dentro do tempo</span>
 					</div>
 					<div className="flex items-center justify-between text-xs">
 						<div className="flex items-center gap-2">
 							<div className="w-3 h-3 rounded-full bg-amber-500"></div>
-							<span className="text-slate-600">6-7 min</span>
+							<span className="text-slate-600 dark:text-slate-400">6-7 min</span>
 						</div>
-						<span className="text-slate-400">Próximo ao limite</span>
+						<span className="text-slate-400 dark:text-slate-500">Próximo ao limite</span>
 					</div>
 					<div className="flex items-center justify-between text-xs">
 						<div className="flex items-center gap-2">
 							<div className="w-3 h-3 rounded-full bg-red-500"></div>
-							<span className="text-slate-600">Mais de 7 min</span>
+							<span className="text-slate-600 dark:text-slate-400">Mais de 7 min</span>
 						</div>
-						<span className="text-slate-400">Tempo excedido</span>
+						<span className="text-slate-400 dark:text-slate-500">Tempo excedido</span>
 					</div>
 				</div>
 			</div>
 
 			{/* Facilitator Controls */}
 			{isFacilitator && onTimerAction && (
-				<div className="flex flex-wrap gap-3 justify-center border-t border-slate-100 pt-6">
+				<div className="flex flex-wrap gap-3 justify-center border-t border-slate-100 dark:border-slate-800 pt-6">
 					{roundTimer.is_paused ? (
 						<button
 							onClick={() => onTimerAction('start')}
@@ -169,7 +169,7 @@ export default function RoundTimerDisplay({ training, userRole, onTimerAction })
 					
 					<button
 						onClick={() => onTimerAction('reset')}
-						className="flex items-center gap-2 px-5 py-2.5 bg-white text-slate-700 font-semibold rounded-xl hover:bg-slate-50 border-2 border-slate-200 hover:border-slate-300 transition-all"
+						className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-semibold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 border-2 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-700 transition-all"
 					>
 						<FaStop className="text-sm" />
 						Resetar
@@ -179,7 +179,7 @@ export default function RoundTimerDisplay({ training, userRole, onTimerAction })
 
 			{/* Read-only note for non-facilitators */}
 			{!isFacilitator && (
-				<div className="text-center text-xs text-slate-500 border-t border-slate-100 pt-4">
+				<div className="text-center text-xs text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800 pt-4">
 					Apenas o facilitador pode controlar o timer da rodada
 				</div>
 			)}

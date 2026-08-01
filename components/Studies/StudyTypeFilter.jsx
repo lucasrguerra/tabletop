@@ -26,13 +26,13 @@ export default function StudyTypeFilter({ activeType, onChange }) {
                     <button
                         key={type.id ?? 'all'}
                         onClick={() => onChange(type.id)}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 dark:focus-visible:ring-blue-800 ${
                             isActive
-                                ? 'bg-blue-50 text-blue-700 border-2 border-blue-500 font-bold shadow-xs'
-                                : 'bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-slate-200/80'
+                                ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-2 border-blue-500 font-bold shadow-xs'
+                                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white border border-slate-200/80 dark:border-slate-700'
                         }`}
                     >
-                        <Icon className={`text-[11px] ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
+                        <Icon className={`text-[11px] ${isActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'}`} />
                         <span>{type.label}</span>
                     </button>
                 );
