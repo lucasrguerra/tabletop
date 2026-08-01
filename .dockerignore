@@ -1,28 +1,18 @@
-# Dependencies
-node_modules
-npm-debug.log*
+# Allowlist. The build context carries only what the Dockerfile copies:
+# everything else is either already compiled into .next.tar.gz or unused at
+# runtime, and shipping it just slows the build and enlarges the context.
+*
 
-# Next.js build output
-.next
-out
+!.next.tar.gz
+!package.json
+!server.mjs
+!public
+!scenarios
+!studies
+!scripts
 
-# Git
-.git
-.gitignore
-
-# Environment files
-.env
-.env.*
-!.env.example
-
-# IDE / OS
-.vscode
-.idea
-.DS_Store
-*.swp
-
-# Docs
-README.md
-SCENARIO_STRUCTURE.md
-LICENSE
-
+# Never, regardless of the rules above.
+**/.env
+**/.env.*
+**/node_modules
+**/.DS_Store
