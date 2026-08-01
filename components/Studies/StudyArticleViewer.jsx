@@ -10,7 +10,7 @@ import StudyGlossaryBody from './StudyGlossaryBody';
  */
 export default function StudyArticleViewer({ article }) {
     if (!article?.content) {
-        return <p className="text-slate-500 text-sm">Conteúdo não disponível.</p>;
+        return <p className="text-slate-500 dark:text-slate-400 text-sm">Conteúdo não disponível.</p>;
     }
 
     const categoryId = article.category?.id;
@@ -25,6 +25,6 @@ export default function StudyArticleViewer({ article }) {
         case 'GLOSSARIO':
             return <StudyGlossaryBody content={article.content} />;
         default:
-            return <p className="text-slate-500 text-sm">Tipo de conteúdo desconhecido: {article.content_type}</p>;
+            return <p className="text-slate-500 dark:text-slate-400 text-sm">Tipo de conteúdo desconhecido: {article.content_type}</p>;
     }
 }

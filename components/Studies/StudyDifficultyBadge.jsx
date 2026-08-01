@@ -2,15 +2,15 @@
 
 const DIFFICULTY_STYLES = {
     Basico: {
-        badge: 'from-emerald-50 to-teal-50 border-emerald-200 text-emerald-700',
+        badge: 'from-emerald-50 dark:from-emerald-950/40 to-teal-50 dark:to-teal-950/40 border-emerald-200 dark:border-emerald-900/50 text-emerald-700 dark:text-emerald-300',
         label: 'Básico'
     },
     Intermediario: {
-        badge: 'from-amber-50 to-orange-50 border-amber-200 text-amber-700',
+        badge: 'from-amber-50 dark:from-amber-950/40 to-orange-50 dark:to-orange-950/40 border-amber-200 dark:border-amber-900/50 text-amber-700 dark:text-amber-300',
         label: 'Intermediário'
     },
     Avancado: {
-        badge: 'from-red-50 to-rose-50 border-red-200 text-red-700',
+        badge: 'from-red-50 dark:from-red-950/40 to-rose-50 dark:to-rose-950/40 border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-300',
         label: 'Avançado'
     }
 };

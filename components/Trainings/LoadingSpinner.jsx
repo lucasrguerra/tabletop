@@ -21,7 +21,7 @@ export default function LoadingSpinner({ message = "Carregando..." }) {
 			</div>
 
 			{/* Message */}
-			<p className="mt-6 text-slate-600 font-medium animate-pulse">{message}</p>
+			<p className="mt-6 text-slate-600 dark:text-slate-400 font-medium animate-pulse">{message}</p>
 		</div>
 	);
 }

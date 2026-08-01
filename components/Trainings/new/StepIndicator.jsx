@@ -27,7 +27,7 @@ export default function StepIndicator({ steps, current_step }) {
 											? 'bg-linear-to-br from-emerald-400 to-teal-600 shadow-lg shadow-emerald-500/40 scale-110'
 											: is_current
 												? 'bg-linear-to-br from-blue-500 to-indigo-600 shadow-xl shadow-blue-500/40 scale-110'
-												: 'bg-slate-200 hover:bg-slate-300'
+												: 'bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-700'
 										}
 									`}
 								>
@@ -40,7 +40,7 @@ export default function StepIndicator({ steps, current_step }) {
 										{is_completed ? (
 											<FaCheck className="text-white text-lg sm:text-2xl" />
 										) : (
-											<Icon className={`text-xl sm:text-3xl ${is_current ? 'text-white' : 'text-slate-500'}`} />
+											<Icon className={`text-xl sm:text-3xl ${is_current ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`} />
 										)}
 									</div>
 								</div>
@@ -51,16 +51,16 @@ export default function StepIndicator({ steps, current_step }) {
 										className={`
 											text-xs sm:text-sm font-semibold transition-all duration-300
 											${is_current 
-												? 'text-blue-600 scale-105' 
+												? 'text-blue-600 dark:text-blue-400 scale-105' 
 												: is_completed
-													? 'text-emerald-600'
-													: 'text-slate-500'
+													? 'text-emerald-600 dark:text-emerald-400'
+													: 'text-slate-500 dark:text-slate-400'
 											}
 										`}
 									>
 										{step.title}
 									</p>
-									<p className="text-xs text-slate-400 mt-0.5 hidden sm:block">
+									<p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 hidden sm:block">
 										Etapa {step.number}
 									</p>
 								</div>
@@ -74,7 +74,7 @@ export default function StepIndicator({ steps, current_step }) {
 											h-full rounded-full transition-all duration-700
 											${is_completed
 												? 'bg-linear-to-r from-emerald-400 to-teal-500 shadow-md shadow-emerald-500/25'
-												: 'bg-slate-200'
+												: 'bg-slate-200 dark:bg-slate-700'
 											}
 										`}
 									/>

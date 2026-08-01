@@ -174,8 +174,8 @@ export default function ParticipantPage() {
 								</Section>
 							) : (
 								<Section title={`Rodada ${viewingRound + 1}`}>
-									<div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
-										<p className="text-slate-500">Esta rodada não tem questões.</p>
+									<div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-8 text-center">
+										<p className="text-slate-500 dark:text-slate-400">Esta rodada não tem questões.</p>
 									</div>
 								</Section>
 							)}

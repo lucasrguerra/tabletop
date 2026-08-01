@@ -71,16 +71,16 @@ export default function InviteParticipantCard({ trainingId, onInviteSent }) {
 	};
 
 	return (
-		<div className="bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 p-6 lg:p-8">
+		<div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm shadow-slate-200/50 dark:shadow-slate-950/50 border border-slate-200/60 dark:border-slate-800 p-6 lg:p-8">
 			<div className="flex items-start gap-4 mb-6">
 				<div className="flex items-center justify-center w-12 h-12 bg-linear-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/25">
 					<FaUserPlus className="text-xl text-white" />
 				</div>
 				<div>
-					<h3 className="text-lg font-semibold text-slate-900 mb-1">
+					<h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-1">
 						Convidar Participante
 					</h3>
-					<p className="text-sm text-slate-600">
+					<p className="text-sm text-slate-600 dark:text-slate-400">
 						Adicione usuários ao treinamento usando o nickname
 					</p>
 				</div>
@@ -88,7 +88,7 @@ export default function InviteParticipantCard({ trainingId, onInviteSent }) {
 
 			<form onSubmit={handleSubmit} className="space-y-4">
 				<div>
-					<label htmlFor="nickname" className="block text-sm font-medium text-slate-700 mb-2">
+					<label htmlFor="nickname" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
 						Nickname do Usuário
 					</label>
 					<input
@@ -97,41 +97,41 @@ export default function InviteParticipantCard({ trainingId, onInviteSent }) {
 						value={nickname}
 						onChange={(e) => setNickname(e.target.value)}
 						placeholder="Digite o nickname"
-						className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-900 placeholder-slate-400"
+						className="w-full px-4 py-3 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
 						disabled={loading}
 						required
 					/>
 				</div>
 
 				<div>
-					<label htmlFor="role" className="block text-sm font-medium text-slate-700 mb-2">
+					<label htmlFor="role" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
 						Papel no Treinamento
 					</label>
 					<select
 						id="role"
 						value={role}
 						onChange={(e) => setRole(e.target.value)}
-						className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-900"
+						className="w-full px-4 py-3 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-900 dark:text-white"
 						disabled={loading}
 					>
-						<option value="participant">Participante</option>
-						<option value="facilitator">Facilitador</option>
-						<option value="observer">Observador</option>
+						<option value="participant" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">Participante</option>
+						<option value="facilitator" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">Facilitador</option>
+						<option value="observer" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">Observador</option>
 					</select>
-					<p className="mt-2 text-xs text-slate-500">
+					<p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
 						O usuário receberá um convite e precisará aceitá-lo para participar
 					</p>
 				</div>
 
 				{error && (
-					<div className="p-3 bg-red-50 border border-red-200 rounded-xl">
-						<p className="text-sm text-red-700">{error}</p>
+					<div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-xl">
+						<p className="text-sm text-red-700 dark:text-red-300">{error}</p>
 					</div>
 				)}
 
 				{success && (
-					<div className="p-3 bg-green-50 border border-green-200 rounded-xl">
-						<p className="text-sm text-green-700">{success}</p>
+					<div className="p-3 bg-green-50 dark:bg-emerald-950/40 border border-green-200 dark:border-emerald-900/50 rounded-xl">
+						<p className="text-sm text-green-700 dark:text-emerald-300">{success}</p>
 					</div>
 				)}
 

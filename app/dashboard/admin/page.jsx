@@ -38,10 +38,10 @@ const STATUS_LABELS = {
 };
 
 const STATUS_COLORS = {
-    not_started: 'bg-slate-100 text-slate-600',
-    active: 'bg-green-100 text-green-700',
-    paused: 'bg-yellow-100 text-yellow-700',
-    completed: 'bg-blue-100 text-blue-700',
+    not_started: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400',
+    active: 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300',
+    paused: 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300',
+    completed: 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300',
 };
 
 // ---- Overview tab helper components ----
@@ -57,10 +57,10 @@ const CHART_BLUE   = '#3b82f6';
 const CHART_INDIGO = '#6366f1';
 
 const SUMMARY_CARD_COLORS = {
-    blue:    { bg: 'bg-blue-50',    icon: 'bg-blue-500',    text: 'text-blue-600' },
-    indigo:  { bg: 'bg-indigo-50',  icon: 'bg-indigo-500',  text: 'text-indigo-600' },
-    emerald: { bg: 'bg-emerald-50', icon: 'bg-emerald-500', text: 'text-emerald-600' },
-    amber:   { bg: 'bg-amber-50',   icon: 'bg-amber-500',   text: 'text-amber-600' },
+    blue:    { bg: 'bg-blue-50 dark:bg-blue-950/30',    icon: 'bg-blue-500',    text: 'text-blue-600 dark:text-blue-400' },
+    indigo:  { bg: 'bg-indigo-50 dark:bg-indigo-950/30',  icon: 'bg-indigo-500',  text: 'text-indigo-600 dark:text-indigo-400' },
+    emerald: { bg: 'bg-emerald-50 dark:bg-emerald-950/30', icon: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-400' },
+    amber:   { bg: 'bg-amber-50 dark:bg-amber-950/30',   icon: 'bg-amber-500',   text: 'text-amber-600 dark:text-amber-400' },
 };
 
 function SummaryCard({ label, value, icon: Icon, color }) {
@@ -71,7 +71,7 @@ function SummaryCard({ label, value, icon: Icon, color }) {
                 <Icon className="text-white text-lg" />
             </div>
             <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{label}</p>
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</p>
                 <p className={`text-2xl font-bold ${c.text}`}>{value}</p>
             </div>
         </div>
@@ -80,9 +80,9 @@ function SummaryCard({ label, value, icon: Icon, color }) {
 
 function ChartCard({ title, subtitle, children, className = '' }) {
     return (
-        <div className={`bg-white rounded-2xl border border-slate-200/60 shadow-sm p-5 ${className}`}>
-            <p className="text-sm font-semibold text-slate-700 mb-1">{title}</p>
-            {subtitle && <p className="text-xs text-slate-400 mb-4">{subtitle}</p>}
+        <div className={`bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 shadow-sm p-5 ${className}`}>
+            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">{title}</p>
+            {subtitle && <p className="text-xs text-slate-400 dark:text-slate-500 mb-4">{subtitle}</p>}
             {children}
         </div>
     );
@@ -90,7 +90,7 @@ function ChartCard({ title, subtitle, children, className = '' }) {
 
 function EmptyChart({ message = 'Sem dados para exibir' }) {
     return (
-        <div className="flex items-center justify-center h-40 text-slate-400 text-sm">
+        <div className="flex items-center justify-center h-40 text-slate-400 dark:text-slate-500 text-sm">
             {message}
         </div>
     );
@@ -101,23 +101,23 @@ function OverviewSkeleton() {
         <div className="space-y-6 animate-pulse">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[...Array(4)].map((_, i) => (
-                    <div key={i} className="h-24 bg-slate-100 rounded-2xl" />
+                    <div key={i} className="h-24 bg-slate-100 dark:bg-slate-800 rounded-2xl" />
                 ))}
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="h-64 bg-slate-100 rounded-2xl" />
-                <div className="h-64 bg-slate-100 rounded-2xl" />
+                <div className="h-64 bg-slate-100 dark:bg-slate-800 rounded-2xl" />
+                <div className="h-64 bg-slate-100 dark:bg-slate-800 rounded-2xl" />
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="h-64 bg-slate-100 rounded-2xl" />
-                <div className="h-64 bg-slate-100 rounded-2xl" />
+                <div className="h-64 bg-slate-100 dark:bg-slate-800 rounded-2xl" />
+                <div className="h-64 bg-slate-100 dark:bg-slate-800 rounded-2xl" />
             </div>
-            <div className="h-80 bg-slate-100 rounded-2xl" />
+            <div className="h-80 bg-slate-100 dark:bg-slate-800 rounded-2xl" />
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div className="h-64 bg-slate-100 rounded-2xl lg:col-span-2" />
-                <div className="h-64 bg-slate-100 rounded-2xl" />
+                <div className="h-64 bg-slate-100 dark:bg-slate-800 rounded-2xl lg:col-span-2" />
+                <div className="h-64 bg-slate-100 dark:bg-slate-800 rounded-2xl" />
             </div>
-            <div className="h-64 bg-slate-100 rounded-2xl" />
+            <div className="h-64 bg-slate-100 dark:bg-slate-800 rounded-2xl" />
         </div>
     );
 }
@@ -127,7 +127,7 @@ function OverviewTab({ stats, loading, error, onRetry }) {
 
     if (error) {
         return (
-            <div className="flex flex-col items-center justify-center h-64 gap-4 text-slate-500">
+            <div className="flex flex-col items-center justify-center h-64 gap-4 text-slate-500 dark:text-slate-400">
                 <FaExclamationTriangle className="text-3xl text-red-400" />
                 <p className="text-sm">{error}</p>
                 <button
@@ -180,9 +180,9 @@ function OverviewTab({ stats, loading, error, onRetry }) {
                                         <stop offset="95%" stopColor={CHART_BLUE} stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#94a3b8' }} />
-                                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                                <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} />
+                                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} />
                                 <Tooltip />
                                 <Area type="monotone" dataKey="count" name="Usuários"
                                     stroke={CHART_BLUE} strokeWidth={2}
@@ -202,9 +202,9 @@ function OverviewTab({ stats, loading, error, onRetry }) {
                                         <stop offset="95%" stopColor={CHART_INDIGO} stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#94a3b8' }} />
-                                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                                <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} />
+                                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} />
                                 <Tooltip />
                                 <Area type="monotone" dataKey="count" name="Treinamentos"
                                     stroke={CHART_INDIGO} strokeWidth={2}
@@ -244,9 +244,9 @@ function OverviewTab({ stats, loading, error, onRetry }) {
                     {trainings_by_category.length === 0 ? <EmptyChart /> : (
                         <ResponsiveContainer width="100%" height={220}>
                             <BarChart data={trainings_by_category} layout="vertical" margin={{ left: 8, right: 16 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
-                                <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
-                                <YAxis type="category" dataKey="category" width={110} tick={{ fontSize: 11, fill: '#64748b' }} />
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" horizontal={false} />
+                                <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} />
+                                <YAxis type="category" dataKey="category" width={110} tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} />
                                 <Tooltip />
                                 <Bar dataKey="count" name="Treinamentos" radius={[0, 4, 4, 0]}>
                                     {trainings_by_category.map((_, i) => (
@@ -264,11 +264,11 @@ function OverviewTab({ stats, loading, error, onRetry }) {
                 {top_scenarios.length === 0 ? <EmptyChart message="Nenhum treinamento criado ainda" /> : (
                     <ResponsiveContainer width="100%" height={Math.max(220, top_scenarios.length * 38)}>
                         <BarChart data={top_scenarios} layout="vertical" margin={{ left: 8, right: 32, top: 4, bottom: 4 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
-                            <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" horizontal={false} />
+                            <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} />
                             <YAxis
                                 type="category" dataKey="title" width={200}
-                                tick={{ fontSize: 11, fill: '#64748b' }}
+                                tick={{ fontSize: 11, fill: 'var(--chart-axis)' }}
                                 tickFormatter={t => t && t.length > 32 ? `${t.slice(0, 32)}…` : t}
                             />
                             <Tooltip formatter={v => [v, 'Usos']} />
@@ -293,9 +293,9 @@ function OverviewTab({ stats, loading, error, onRetry }) {
                                     ]}
                                     margin={{ top: 4, right: 16, bottom: 4, left: 0 }}
                                 >
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                                    <XAxis dataKey="label" tick={{ fontSize: 12, fill: '#64748b' }} />
-                                    <YAxis domain={[0, 5]} ticks={[1, 2, 3, 4, 5]} tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                                    <XAxis dataKey="label" tick={{ fontSize: 12, fill: 'var(--chart-axis)' }} />
+                                    <YAxis domain={[0, 5]} ticks={[1, 2, 3, 4, 5]} tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} />
                                     <Tooltip formatter={v => [`${v} / 5`, 'Média']} />
                                     <Bar dataKey="value" name="Média" radius={[4, 4, 0, 0]}>
                                         <Cell fill={CHART_BLUE} />
@@ -308,18 +308,18 @@ function OverviewTab({ stats, loading, error, onRetry }) {
                     }
                 </ChartCard>
 
-                <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-5 flex flex-col items-center justify-center gap-3">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 shadow-sm p-5 flex flex-col items-center justify-center gap-3">
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center">
                         Recomendariam o Treinamento
                     </p>
                     {evaluation_ratings.total_evaluations === 0
-                        ? <p className="text-5xl font-bold text-slate-300">—</p>
+                        ? <p className="text-5xl font-bold text-slate-400 dark:text-slate-500">—</p>
                         : (
                             <>
-                                <p className="text-5xl font-bold text-emerald-500">
+                                <p className="text-5xl font-bold text-emerald-500 dark:text-emerald-400">
                                     {evaluation_ratings.would_recommend_pct}%
                                 </p>
-                                <p className="text-xs text-slate-400 text-center">
+                                <p className="text-xs text-slate-400 dark:text-slate-500 text-center">
                                     de {evaluation_ratings.total_evaluations} avaliação{evaluation_ratings.total_evaluations !== 1 ? 'ões' : ''}
                                 </p>
                             </>
@@ -333,11 +333,11 @@ function OverviewTab({ stats, loading, error, onRetry }) {
                 {top_facilitators.length === 0 ? <EmptyChart message="Nenhum facilitador encontrado" /> : (
                     <ResponsiveContainer width="100%" height={Math.max(180, top_facilitators.length * 44)}>
                         <BarChart data={top_facilitators} layout="vertical" margin={{ left: 8, right: 32, top: 4, bottom: 4 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
-                            <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" horizontal={false} />
+                            <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} />
                             <YAxis
                                 type="category" dataKey="nickname" width={120}
-                                tick={{ fontSize: 11, fill: '#64748b' }}
+                                tick={{ fontSize: 11, fill: 'var(--chart-axis)' }}
                                 tickFormatter={v => `@${v}`}
                             />
                             <Tooltip
@@ -586,7 +586,7 @@ export default function AdminPage() {
         return (
             <DashboardLayout>
                 <div className="flex items-center justify-center h-64">
-                    <FaSpinner className="animate-spin text-2xl text-slate-400" />
+                    <FaSpinner className="animate-spin text-2xl text-slate-400 dark:text-slate-500" />
                 </div>
             </DashboardLayout>
         );
@@ -601,14 +601,14 @@ export default function AdminPage() {
                         <FaCrown className="text-xl text-white" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900">Painel Administrativo</h1>
-                        <p className="text-sm text-slate-500">Gerencie usuários e treinamentos da plataforma</p>
+                        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Painel Administrativo</h1>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Gerencie usuários e treinamentos da plataforma</p>
                     </div>
                 </div>
 
                 {/* Error banner */}
                 {error && (
-                    <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+                    <div className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl text-sm text-red-700 dark:text-red-300">
                         <FaExclamationTriangle className="shrink-0" />
                         <span>{error}</span>
                         <button onClick={() => setError(null)} className="ml-auto"><FaTimes /></button>
@@ -616,13 +616,13 @@ export default function AdminPage() {
                 )}
 
                 {/* Tabs */}
-                <div className="flex gap-1 border-b border-slate-200">
+                <div className="flex gap-1 border-b border-slate-200 dark:border-slate-700">
                     <button
                         onClick={() => setActiveTab('overview')}
                         className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
                             activeTab === 'overview'
-                                ? 'border-rose-500 text-rose-600'
-                                : 'border-transparent text-slate-500 hover:text-slate-700'
+                                ? 'border-rose-500 text-rose-600 dark:text-rose-400'
+                                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
                         }`}
                     >
                         <FaChartBar /> Visão Geral
@@ -631,8 +631,8 @@ export default function AdminPage() {
                         onClick={() => setActiveTab('users')}
                         className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
                             activeTab === 'users'
-                                ? 'border-rose-500 text-rose-600'
-                                : 'border-transparent text-slate-500 hover:text-slate-700'
+                                ? 'border-rose-500 text-rose-600 dark:text-rose-400'
+                                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
                         }`}
                     >
                         <FaUsers /> Usuários
@@ -641,8 +641,8 @@ export default function AdminPage() {
                         onClick={() => setActiveTab('trainings')}
                         className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
                             activeTab === 'trainings'
-                                ? 'border-rose-500 text-rose-600'
-                                : 'border-transparent text-slate-500 hover:text-slate-700'
+                                ? 'border-rose-500 text-rose-600 dark:text-rose-400'
+                                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
                         }`}
                     >
                         <FaBook /> Treinamentos
@@ -664,51 +664,51 @@ export default function AdminPage() {
                     <div className="space-y-4">
                         {/* Search */}
                         <div className="relative">
-                            <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
+                            <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 text-sm" />
                             <input
                                 type="text"
                                 value={usersSearch}
                                 onChange={e => setUsersSearch(e.target.value)}
                                 placeholder="Buscar por nome, email ou nickname..."
-                                className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-rose-400"
+                                className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 dark:focus:ring-rose-800 focus:border-rose-400 dark:focus:border-rose-800"
                             />
                             {usersSearch && (
-                                <button onClick={() => setUsersSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                <button onClick={() => setUsersSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-400">
                                     <FaTimes />
                                 </button>
                             )}
                         </div>
 
                         {/* Table */}
-                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700/60 overflow-hidden">
                             {usersLoading ? (
                                 <div className="flex items-center justify-center h-40">
-                                    <FaSpinner className="animate-spin text-xl text-slate-400" />
+                                    <FaSpinner className="animate-spin text-xl text-slate-400 dark:text-slate-500" />
                                 </div>
                             ) : users.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-40 text-slate-400 gap-2">
+                                <div className="flex flex-col items-center justify-center h-40 text-slate-400 dark:text-slate-500 gap-2">
                                     <FaUsers className="text-3xl" />
                                     <p className="text-sm">Nenhum usuário encontrado</p>
                                 </div>
                             ) : (
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-sm">
-                                        <thead className="bg-slate-50 border-b border-slate-200">
+                                        <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
                                             <tr>
-                                                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Nome</th>
-                                                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Email</th>
-                                                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Nickname</th>
-                                                <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Facilitador</th>
-                                                <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Admin</th>
-                                                <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Ações</th>
+                                                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Nome</th>
+                                                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Email</th>
+                                                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Nickname</th>
+                                                <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Facilitador</th>
+                                                <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Admin</th>
+                                                <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Ações</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-slate-100">
+                                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                             {users.map(user => (
-                                                <tr key={user.id} className="hover:bg-slate-50 transition-colors">
-                                                    <td className="px-4 py-3 font-medium text-slate-800">{user.name}</td>
-                                                    <td className="px-4 py-3 text-slate-600">{user.email}</td>
-                                                    <td className="px-4 py-3 text-slate-500">@{user.nickname}</td>
+                                                <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                                    <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-200">{user.name}</td>
+                                                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{user.email}</td>
+                                                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400">@{user.nickname}</td>
                                                     <td className="px-4 py-3 text-center">
                                                         <button
                                                             onClick={() => handleToggleFacilitator(user.id, user.facilitator)}
@@ -716,14 +716,14 @@ export default function AdminPage() {
                                                             className="text-2xl transition-colors"
                                                         >
                                                             {user.facilitator
-                                                                ? <FaToggleOn className="text-green-500 hover:text-green-600" />
-                                                                : <FaToggleOff className="text-slate-300 hover:text-slate-400" />
+                                                                ? <FaToggleOn className="text-green-500 dark:text-green-400 hover:text-green-600 dark:hover:text-green-400" />
+                                                                : <FaToggleOff className="text-slate-300 hover:text-slate-400 dark:hover:text-slate-500" />
                                                             }
                                                         </button>
                                                     </td>
                                                     <td className="px-4 py-3 text-center">
                                                         {user.admin
-                                                            ? <span className="inline-flex items-center gap-1 text-xs font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full"><FaCrown className="text-[10px]" /> Admin</span>
+                                                            ? <span className="inline-flex items-center gap-1 text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 px-2 py-0.5 rounded-full"><FaCrown className="text-[10px]" /> Admin</span>
                                                             : <span className="text-slate-300">—</span>
                                                         }
                                                     </td>
@@ -732,7 +732,7 @@ export default function AdminPage() {
                                                             <button
                                                                 onClick={() => openDeleteModal('user', user.id, user.name)}
                                                                 title="Deletar usuário"
-                                                                className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                                                className="p-2 text-red-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all"
                                                             >
                                                                 <FaTrash />
                                                             </button>
@@ -749,24 +749,24 @@ export default function AdminPage() {
                         {/* Pagination */}
                         {usersPagination && usersPagination.total_pages > 1 && (
                             <div className="flex items-center justify-between">
-                                <p className="text-sm text-slate-500">
+                                <p className="text-sm text-slate-500 dark:text-slate-400">
                                     {usersPagination.total_items} usuário{usersPagination.total_items !== 1 ? 's' : ''}
                                 </p>
                                 <div className="flex items-center gap-2">
                                     <button
                                         onClick={() => setUsersPage(p => Math.max(1, p - 1))}
                                         disabled={!usersPagination.has_prev}
-                                        className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                                        className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                                     >
                                         <FaChevronLeft className="text-xs" />
                                     </button>
-                                    <span className="text-sm text-slate-600">
+                                    <span className="text-sm text-slate-600 dark:text-slate-400">
                                         {usersPagination.current_page} / {usersPagination.total_pages}
                                     </span>
                                     <button
                                         onClick={() => setUsersPage(p => p + 1)}
                                         disabled={!usersPagination.has_next}
-                                        className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                                        className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                                     >
                                         <FaChevronRight className="text-xs" />
                                     </button>
@@ -782,16 +782,16 @@ export default function AdminPage() {
                         {/* Filters */}
                         <div className="flex flex-col sm:flex-row gap-3">
                             <div className="relative flex-1">
-                                <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
+                                <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 text-sm" />
                                 <input
                                     type="text"
                                     value={trainingsSearch}
                                     onChange={e => setTrainingsSearch(e.target.value)}
                                     placeholder="Buscar por nome do treinamento..."
-                                    className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-rose-400"
+                                    className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 dark:focus:ring-rose-800 focus:border-rose-400 dark:focus:border-rose-800"
                                 />
                                 {trainingsSearch && (
-                                    <button onClick={() => setTrainingsSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                    <button onClick={() => setTrainingsSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-400">
                                         <FaTimes />
                                     </button>
                                 )}
@@ -799,7 +799,7 @@ export default function AdminPage() {
                             <select
                                 value={trainingsStatusFilter}
                                 onChange={e => { setTrainingsStatusFilter(e.target.value); setTrainingsPage(1); }}
-                                className="px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 bg-white text-slate-700"
+                                className="px-3 py-2.5 text-sm border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 dark:focus:ring-rose-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300"
                             >
                                 <option value="all">Todos os status</option>
                                 <option value="not_started">Não iniciado</option>
@@ -810,58 +810,58 @@ export default function AdminPage() {
                         </div>
 
                         {/* Table */}
-                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700/60 overflow-hidden">
                             {trainingsLoading ? (
                                 <div className="flex items-center justify-center h-40">
-                                    <FaSpinner className="animate-spin text-xl text-slate-400" />
+                                    <FaSpinner className="animate-spin text-xl text-slate-400 dark:text-slate-500" />
                                 </div>
                             ) : trainings.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-40 text-slate-400 gap-2">
+                                <div className="flex flex-col items-center justify-center h-40 text-slate-400 dark:text-slate-500 gap-2">
                                     <FaBook className="text-3xl" />
                                     <p className="text-sm">Nenhum treinamento encontrado</p>
                                 </div>
                             ) : (
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-sm">
-                                        <thead className="bg-slate-50 border-b border-slate-200">
+                                        <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
                                             <tr>
-                                                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Nome</th>
-                                                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                                                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Cenário</th>
-                                                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Criador</th>
-                                                <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Participantes</th>
-                                                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Criado em</th>
-                                                <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Ações</th>
+                                                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Nome</th>
+                                                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
+                                                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Cenário</th>
+                                                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Criador</th>
+                                                <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Participantes</th>
+                                                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Criado em</th>
+                                                <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Ações</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-slate-100">
+                                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                             {trainings.map(training => (
-                                                <tr key={training.id} className="hover:bg-slate-50 transition-colors">
-                                                    <td className="px-4 py-3 font-medium text-slate-800 max-w-50 truncate" title={training.name}>
+                                                <tr key={training.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                                    <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-200 max-w-50 truncate" title={training.name}>
                                                         {training.name}
                                                     </td>
                                                     <td className="px-4 py-3">
-                                                        <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[training.status] || 'bg-slate-100 text-slate-600'}`}>
+                                                        <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[training.status] || 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
                                                             {STATUS_LABELS[training.status] || training.status}
                                                         </span>
                                                     </td>
-                                                    <td className="px-4 py-3 text-slate-600 max-w-40 truncate" title={training.scenario?.title}>
+                                                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400 max-w-40 truncate" title={training.scenario?.title}>
                                                         {training.scenario?.title || '—'}
                                                     </td>
-                                                    <td className="px-4 py-3 text-slate-600">
+                                                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
                                                         {training.created_by?.nickname ? `@${training.created_by.nickname}` : training.created_by?.name || '—'}
                                                     </td>
-                                                    <td className="px-4 py-3 text-center text-slate-600">
+                                                    <td className="px-4 py-3 text-center text-slate-600 dark:text-slate-400">
                                                         {training.participants_count}
                                                     </td>
-                                                    <td className="px-4 py-3 text-slate-500">
+                                                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400">
                                                         {formatDate(training.created_at)}
                                                     </td>
                                                     <td className="px-4 py-3 text-center">
                                                         <button
                                                             onClick={() => openDeleteModal('training', training.id, training.name)}
                                                             title="Deletar treinamento"
-                                                            className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                                            className="p-2 text-red-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all"
                                                         >
                                                             <FaTrash />
                                                         </button>
@@ -877,24 +877,24 @@ export default function AdminPage() {
                         {/* Pagination */}
                         {trainingsPagination && trainingsPagination.total_pages > 1 && (
                             <div className="flex items-center justify-between">
-                                <p className="text-sm text-slate-500">
+                                <p className="text-sm text-slate-500 dark:text-slate-400">
                                     {trainingsPagination.total_items} treinamento{trainingsPagination.total_items !== 1 ? 's' : ''}
                                 </p>
                                 <div className="flex items-center gap-2">
                                     <button
                                         onClick={() => setTrainingsPage(p => Math.max(1, p - 1))}
                                         disabled={!trainingsPagination.has_prev}
-                                        className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                                        className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                                     >
                                         <FaChevronLeft className="text-xs" />
                                     </button>
-                                    <span className="text-sm text-slate-600">
+                                    <span className="text-sm text-slate-600 dark:text-slate-400">
                                         {trainingsPagination.current_page} / {trainingsPagination.total_pages}
                                     </span>
                                     <button
                                         onClick={() => setTrainingsPage(p => p + 1)}
                                         disabled={!trainingsPagination.has_next}
-                                        className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                                        className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                                     >
                                         <FaChevronRight className="text-xs" />
                                     </button>
@@ -908,19 +908,19 @@ export default function AdminPage() {
             {/* Delete Confirmation Modal */}
             {deleteModal.open && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                    <div className="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full mx-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6 max-w-md w-full mx-4">
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="p-2 bg-red-100 rounded-xl">
-                                <FaExclamationTriangle className="text-red-600" />
+                            <div className="p-2 bg-red-100 dark:bg-red-900/50 rounded-xl">
+                                <FaExclamationTriangle className="text-red-600 dark:text-red-400" />
                             </div>
-                            <h3 className="text-lg font-bold text-slate-800">
+                            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">
                                 {deleteModal.type === 'user' ? 'Deletar Usuário' : 'Deletar Treinamento'}
                             </h3>
                         </div>
-                        <p className="text-sm text-slate-600 mb-2">
-                            Tem certeza que deseja deletar <span className="font-semibold text-slate-800">{deleteModal.name}</span>?
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                            Tem certeza que deseja deletar <span className="font-semibold text-slate-800 dark:text-slate-200">{deleteModal.name}</span>?
                         </p>
-                        <p className="text-xs text-slate-500 mb-6">
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">
                             {deleteModal.type === 'user'
                                 ? 'Isso removerá o usuário de todos os treinamentos e apagará suas respostas e avaliações. Esta ação não pode ser desfeita.'
                                 : 'Isso apagará o treinamento, todas as respostas e avaliações associadas permanentemente. Esta ação não pode ser desfeita.'
@@ -930,7 +930,7 @@ export default function AdminPage() {
                             <button
                                 onClick={closeDeleteModal}
                                 disabled={deleteLoading}
-                                className="px-4 py-2 text-sm font-semibold text-slate-700 bg-white border-2 border-slate-200 rounded-xl hover:bg-slate-50 transition-all disabled:opacity-50"
+                                className="px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all disabled:opacity-50"
                             >
                                 Cancelar
                             </button>

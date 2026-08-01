@@ -50,19 +50,19 @@ export default function TrainingTimerDisplay({ training }) {
 	const isRunning = !trainingTimer.is_paused && trainingTimer.started_at;
 
 	return (
-		<div className="bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 p-6 lg:p-8">
+		<div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 dark:border-slate-700/60 p-6 lg:p-8">
 			{/* Timer Display */}
 			<div className="flex flex-col items-center">
 				<div className="flex items-center gap-3 mb-3">
-					<FaClock className="text-2xl text-slate-400" />
-					<h3 className="text-lg font-semibold text-slate-900">
+					<FaClock className="text-2xl text-slate-400 dark:text-slate-500" />
+					<h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
 						Tempo Total de Treinamento
 					</h3>
 				</div>
 
 				{/* Time Display */}
 				<div className="relative">
-					<div className={`text-5xl lg:text-6xl font-mono font-bold ${isRunning ? 'text-blue-600' : 'text-slate-700'} transition-colors`}>
+					<div className={`text-5xl lg:text-6xl font-mono font-bold ${isRunning ? 'text-blue-600 dark:text-blue-400' : 'text-slate-700 dark:text-slate-300'} transition-colors`}>
 						{formatTime(currentElapsedTime)}
 					</div>
 					{isRunning && (
@@ -76,12 +76,12 @@ export default function TrainingTimerDisplay({ training }) {
 				</div>
 
 				{/* Status Text */}
-				<p className="text-sm text-slate-500 mt-2">
+				<p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
 					{isRunning ? 'Treinamento em execução' : 'Tempo pausado'}
 				</p>
 
 				{/* Info Note */}
-				<div className="text-center text-xs text-slate-400 mt-4 px-4 py-2 bg-slate-50 rounded-lg border border-slate-100">
+				<div className="text-center text-xs text-slate-400 dark:text-slate-500 mt-4 px-4 py-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800">
 					Timer automático controlado pelo status do treinamento
 				</div>
 			</div>

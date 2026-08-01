@@ -157,12 +157,12 @@ export default function SessionsPage() {
 
 	if (status === 'loading') {
 		return (
-			<div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-50 via-gray-50 to-zinc-100">
+			<div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-50 dark:from-slate-900 via-gray-50 dark:via-slate-900 to-zinc-100 dark:to-slate-800">
 				<div className="text-center">
 					<div className="relative inline-flex">
-						<div className="w-14 h-14 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+						<div className="w-14 h-14 border-4 border-blue-200 dark:border-blue-900/50 border-t-blue-600 rounded-full animate-spin"></div>
 					</div>
-					<p className="mt-4 text-slate-600 font-medium">Carregando...</p>
+					<p className="mt-4 text-slate-600 dark:text-slate-400 font-medium">Carregando...</p>
 				</div>
 			</div>
 		);
@@ -178,10 +178,10 @@ export default function SessionsPage() {
 				{/* Header */}
 				<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
 					<div className="min-w-0">
-						<h1 className="text-2xl lg:text-3xl font-bold text-slate-900">
+						<h1 className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-slate-100">
 							Gerenciar Sessões
 						</h1>
-						<p className="text-slate-600 mt-1">
+						<p className="text-slate-600 dark:text-slate-400 mt-1">
 							Visualize e gerencie todas as suas sessões ativas
 						</p>
 					</div>
@@ -197,39 +197,39 @@ export default function SessionsPage() {
 
 				{/* Error Message */}
 				{error && (
-					<div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-3 animate-shake">
-						<div className="p-2 bg-red-100 rounded-xl shrink-0">
-							<FaExclamationTriangle className="text-red-500" />
+					<div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-2xl p-4 flex items-start gap-3 animate-shake">
+						<div className="p-2 bg-red-100 dark:bg-red-900/50 rounded-xl shrink-0">
+							<FaExclamationTriangle className="text-red-500 dark:text-red-400" />
 						</div>
-						<p className="text-sm text-red-700 pt-1">{error}</p>
+						<p className="text-sm text-red-700 dark:text-red-300 pt-1">{error}</p>
 					</div>
 				)}
 
 				{/* Sessions List */}
 				{loading ? (
-					<div className="bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 p-12 text-center">
+					<div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 dark:border-slate-700/60 p-12 text-center">
 						<div className="relative inline-flex">
-							<div className="w-14 h-14 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+							<div className="w-14 h-14 border-4 border-blue-200 dark:border-blue-900/50 border-t-blue-600 rounded-full animate-spin"></div>
 						</div>
-						<p className="mt-4 text-slate-600 font-medium">Carregando sessões...</p>
+						<p className="mt-4 text-slate-600 dark:text-slate-400 font-medium">Carregando sessões...</p>
 					</div>
 				) : sessions.length === 0 ? (
-					<div className="bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 p-12 text-center">
+					<div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 dark:border-slate-700/60 p-12 text-center">
 						<div className="relative inline-flex items-center justify-center w-20 h-20 mb-6">
-							<div className="absolute inset-0 bg-linear-to-br from-slate-100 to-slate-200 rounded-2xl" />
-							<FaDesktop className="relative text-3xl text-slate-400" />
+							<div className="absolute inset-0 bg-linear-to-br from-slate-100 dark:from-slate-800 to-slate-200 rounded-2xl" />
+							<FaDesktop className="relative text-3xl text-slate-400 dark:text-slate-500" />
 						</div>
-						<p className="text-slate-600 font-medium">Nenhuma sessão ativa encontrada</p>
+						<p className="text-slate-600 dark:text-slate-400 font-medium">Nenhuma sessão ativa encontrada</p>
 					</div>
 				) : (
 					<div className="space-y-4">
 						{sessions.map((sess) => (
 							<div
 								key={sess.id}
-								className={`bg-white rounded-2xl shadow-sm shadow-slate-200/50 border p-5 lg:p-6 hover:shadow-lg hover:shadow-slate-200/50 transition-all ${
+								className={`bg-white dark:bg-slate-900 rounded-2xl shadow-sm shadow-slate-200/50 border p-5 lg:p-6 hover:shadow-lg hover:shadow-slate-200/50 transition-all ${
 									sess.is_current 
-										? 'border-emerald-300 ring-2 ring-emerald-100' 
-										: 'border-slate-200/60'
+										? 'border-emerald-300 dark:border-emerald-800 ring-2 ring-emerald-100 dark:ring-emerald-900/40' 
+										: 'border-slate-200/60 dark:border-slate-700/60'
 								}`}
 							>
 								<div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
@@ -244,11 +244,11 @@ export default function SessionsPage() {
 
 										<div className="flex-1 min-w-0">
 											<div className="flex items-center gap-2 flex-wrap mb-3">
-												<h3 className="font-semibold text-slate-900">
+												<h3 className="font-semibold text-slate-900 dark:text-slate-100">
 													{sess.user_agent || 'Navegador Desconhecido'}
 												</h3>
 												{sess.is_current && (
-													<span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-full">
+													<span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 text-xs font-semibold rounded-full">
 														<FaCheckCircle className="text-xs" />
 														Sessão Atual
 													</span>
@@ -256,22 +256,22 @@ export default function SessionsPage() {
 											</div>
 
 											<div className="space-y-2">
-												<div className="flex items-start gap-2 text-sm text-slate-600">
-													<FaMapMarkerAlt className="text-slate-400 shrink-0 mt-0.5" />
+												<div className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+													<FaMapMarkerAlt className="text-slate-400 dark:text-slate-500 shrink-0 mt-0.5" />
 													<span className="break-all">
 														IP: {sess.ip_address || 'Não disponível'}
 													</span>
 												</div>
 
-												<div className="flex items-start gap-2 text-sm text-slate-600">
-													<FaClock className="text-slate-400 shrink-0 mt-0.5" />
+												<div className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+													<FaClock className="text-slate-400 dark:text-slate-500 shrink-0 mt-0.5" />
 													<span>
 														Criada em: {new Date(sess.created_at).toLocaleString('pt-BR')}
 													</span>
 												</div>
 
-												<div className="flex items-start gap-2 text-sm text-slate-600">
-													<FaClock className="text-slate-400 shrink-0 mt-0.5" />
+												<div className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+													<FaClock className="text-slate-400 dark:text-slate-500 shrink-0 mt-0.5" />
 													<span>
 														Expira em: {new Date(sess.expires_at).toLocaleString('pt-BR')}
 													</span>
@@ -304,16 +304,16 @@ export default function SessionsPage() {
 				)}
 
 				{/* Info Box */}
-				<div className="bg-linear-to-br from-blue-50 to-indigo-50 border border-blue-200/60 rounded-2xl p-5 lg:p-6">
+				<div className="bg-linear-to-br from-blue-50 dark:from-blue-950/40 to-indigo-50 dark:to-indigo-950/40 border border-blue-200/60 dark:border-blue-900/60 rounded-2xl p-5 lg:p-6">
 					<div className="flex items-start gap-4">
 						<div className="p-3 bg-linear-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/25 shrink-0">
 							<FaShieldAlt className="text-lg text-white" />
 						</div>
 						<div>
-							<h3 className="font-semibold text-blue-900 mb-2">
+							<h3 className="font-semibold text-blue-900 dark:text-blue-200 mb-2">
 								Sobre as Sessões
 							</h3>
-							<p className="text-sm text-blue-800 leading-relaxed">
+							<p className="text-sm text-blue-800 dark:text-blue-300 leading-relaxed">
 								Suas sessões ativas representam os dispositivos e navegadores onde você está conectado.
 								Se você perceber alguma sessão suspeita, encerre-a imediatamente e altere sua senha.
 								As sessões expiram automaticamente após 30 dias.

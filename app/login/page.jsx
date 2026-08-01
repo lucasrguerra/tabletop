@@ -85,13 +85,13 @@ export default function LoginPage() {
 	};
 
 	return (
-		<div className="min-h-screen bg-linear-to-br from-slate-50 via-blue-50/30 to-indigo-50/30">
+		<div className="min-h-screen bg-linear-to-br from-slate-50 dark:from-slate-900 via-blue-50/30 dark:via-blue-950/30 to-indigo-50/30 dark:to-indigo-950/30">
 			<Header />
 			
 			<div className="flex items-center justify-center px-4 py-12 lg:py-16">
 				<div className="w-full max-w-md animate-slide-in-up">
 					{/* Card */}
-					<div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-200/60 p-8 lg:p-10">
+					<div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-200/60 dark:border-slate-700/60 p-8 lg:p-10">
 						{/* Header */}
 						<div className="text-center mb-8">
 							<div className="relative inline-flex items-center justify-center w-16 h-16 mb-5">
@@ -100,33 +100,33 @@ export default function LoginPage() {
 									<FaSignInAlt className="text-2xl text-white" />
 								</div>
 							</div>
-							<h1 className="text-2xl lg:text-3xl font-bold text-slate-900 mb-2">
+							<h1 className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">
 								Bem-vindo de volta
 							</h1>
-							<p className="text-slate-500">
+							<p className="text-slate-500 dark:text-slate-400">
 								Acesse sua conta para continuar
 							</p>
 						</div>
 
 						{/* Error Message */}
 						{error && (
-							<div id="error-message" className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 animate-shake">
-								<div className="p-1.5 bg-red-100 rounded-lg shrink-0">
-									<FaExclamationCircle className="text-red-500" />
+							<div id="error-message" className="mb-6 p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl flex items-start gap-3 animate-shake">
+								<div className="p-1.5 bg-red-100 dark:bg-red-900/50 rounded-lg shrink-0">
+									<FaExclamationCircle className="text-red-500 dark:text-red-400" />
 								</div>
-								<p className="text-sm text-red-700 pt-0.5">{error}</p>
+								<p className="text-sm text-red-700 dark:text-red-300 pt-0.5">{error}</p>
 							</div>
 						)}
 
 						{/* Form */}
 						<form onSubmit={handleSubmit} className="space-y-5">
 							<div>
-								<label htmlFor="identifier" className="block text-sm font-semibold text-slate-700 mb-2">
+								<label htmlFor="identifier" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
 									Email ou Nickname
 								</label>
 								<div className="relative group">
 									<div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-										<FaUser className="text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+										<FaUser className="text-slate-400 dark:text-slate-500 group-focus-within:text-blue-500 dark:group-focus-within:text-blue-400 transition-colors" />
 									</div>
 									<input
 										type="text"
@@ -135,9 +135,9 @@ export default function LoginPage() {
 										value={formData.identifier}
 										onChange={handleChange}
 										required
-										className="block w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl 
-											text-slate-900 placeholder-slate-400
-											focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 
+										className="block w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl 
+											text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500
+											focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 
 											transition-all duration-200"
 										placeholder="seu@email.com ou nickname"
 									/>
@@ -145,12 +145,12 @@ export default function LoginPage() {
 							</div>
 
 							<div>
-								<label htmlFor="password" className="block text-sm font-semibold text-slate-700 mb-2">
+								<label htmlFor="password" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
 									Senha
 								</label>
 								<div className="relative group">
 									<div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-										<FaLock className="text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+										<FaLock className="text-slate-400 dark:text-slate-500 group-focus-within:text-blue-500 dark:group-focus-within:text-blue-400 transition-colors" />
 									</div>
 									<input
 										type={showPassword ? "text" : "password"}
@@ -159,16 +159,16 @@ export default function LoginPage() {
 										value={formData.password}
 										onChange={handleChange}
 										required
-										className="block w-full pl-11 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-xl 
-											text-slate-900 placeholder-slate-400
-											focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 
+										className="block w-full pl-11 pr-12 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl 
+											text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500
+											focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 
 											transition-all duration-200"
 										placeholder="Digite sua senha"
 									/>
 									<button
 										type="button"
 										onClick={() => setShowPassword(!showPassword)}
-										className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+										className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-400 transition-colors"
 										aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
 									>
 										{showPassword ? <FaEyeSlash className="text-lg" /> : <FaEye className="text-lg" />}
@@ -206,10 +206,10 @@ export default function LoginPage() {
 						</form>
 
 						{/* Footer */}
-						<div className="mt-8 pt-6 border-t border-slate-100 text-center">
-							<p className="text-sm text-slate-600">
+						<div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 text-center">
+							<p className="text-sm text-slate-600 dark:text-slate-400">
 								Não tem uma conta?{' '}
-								<Link href="/register" className="text-blue-600 hover:text-blue-700 font-semibold hover:underline transition-colors">
+								<Link href="/register" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold hover:underline transition-colors">
 									Cadastre-se
 								</Link>
 							</p>
@@ -220,7 +220,7 @@ export default function LoginPage() {
 					<div className="text-center mt-6">
 						<Link 
 							href="/" 
-							className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 transition-colors group"
+							className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors group"
 						>
 							<FaArrowLeft className="text-xs group-hover:-translate-x-1 transition-transform" />
 							<span>Voltar para página inicial</span>

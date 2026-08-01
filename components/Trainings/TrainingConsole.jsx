@@ -17,10 +17,10 @@ import {
  */
 
 const PHASE_LOOK = {
-	not_started: { label: 'Preparação', text: 'text-slate-600',  dot: 'text-slate-400',   rail: 'bg-slate-300' },
-	active:      { label: 'Ao vivo',    text: 'text-emerald-700', dot: 'text-emerald-500', rail: 'bg-emerald-500' },
-	paused:      { label: 'Pausado',    text: 'text-amber-700',  dot: 'text-amber-500',   rail: 'bg-amber-500' },
-	completed:   { label: 'Encerrado',  text: 'text-blue-700',   dot: 'text-blue-500',    rail: 'bg-blue-500' },
+	not_started: { label: 'Preparação', text: 'text-slate-600 dark:text-slate-400',  dot: 'text-slate-400 dark:text-slate-500',   rail: 'bg-slate-300 dark:bg-slate-600' },
+	active:      { label: 'Ao vivo',    text: 'text-emerald-700 dark:text-emerald-400', dot: 'text-emerald-500 dark:text-emerald-400', rail: 'bg-emerald-500' },
+	paused:      { label: 'Pausado',    text: 'text-amber-700 dark:text-amber-400',  dot: 'text-amber-500 dark:text-amber-400',   rail: 'bg-amber-500' },
+	completed:   { label: 'Encerrado',  text: 'text-blue-700 dark:text-blue-400',   dot: 'text-blue-500 dark:text-blue-400',    rail: 'bg-blue-500' },
 };
 
 const ROLE_LOOK = {
@@ -59,15 +59,15 @@ function useElapsed(timer, isRunning) {
 function Readout({ label, value, sub, emphasis = false }) {
 	return (
 		<div className="min-w-0">
-			<p className="text-[10px] uppercase tracking-[0.12em] text-slate-400 font-semibold mb-1">
+			<p className="text-[10px] uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 font-semibold mb-1">
 				{label}
 			</p>
 			<p className={`font-mono tabular-nums leading-none truncate ${
-				emphasis ? 'text-2xl lg:text-3xl font-semibold text-slate-900' : 'text-lg lg:text-xl text-slate-700'
+				emphasis ? 'text-2xl lg:text-3xl font-semibold text-slate-900 dark:text-slate-100' : 'text-lg lg:text-xl text-slate-700 dark:text-slate-300'
 			}`}>
 				{value}
 			</p>
-			{sub && <p className="text-[11px] text-slate-500 mt-1 truncate">{sub}</p>}
+			{sub && <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 truncate">{sub}</p>}
 		</div>
 	);
 }
@@ -100,33 +100,33 @@ export default function TrainingConsole({
 	const roundTitle = rounds[currentRound]?.title;
 
 	return (
-		<section className="relative bg-white rounded-2xl border border-slate-200/60 shadow-sm shadow-slate-200/50 overflow-hidden">
+		<section className="relative bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800 shadow-sm shadow-slate-200/50 dark:shadow-slate-950/50 overflow-hidden">
 			{/* Phase reads as a colour rail down the edge — the one place status is
 			    encoded as pure colour, so it is legible from across a room. */}
 			<div className={`absolute left-0 top-0 bottom-0 w-1 ${look.rail}`} aria-hidden="true" />
 
 			{/* Identification */}
-			<div className="flex flex-wrap items-center gap-x-4 gap-y-2 pl-6 pr-5 py-3 border-b border-slate-100">
+			<div className="flex flex-wrap items-center gap-x-4 gap-y-2 pl-6 pr-5 py-3 border-b border-slate-100 dark:border-slate-800">
 				<Link
 					href="/dashboard/trainings"
-					className="group inline-flex items-center gap-2 text-sm text-slate-500 hover:text-blue-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 rounded"
+					className="group inline-flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 dark:focus-visible:ring-blue-800 rounded"
 				>
 					<FaArrowLeft className="text-xs transition-transform group-hover:-translate-x-0.5" />
 					Treinamentos
 				</Link>
 
-				<h1 className="text-sm font-semibold text-slate-900 truncate min-w-0 flex-1">
+				<h1 className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate min-w-0 flex-1">
 					{training?.name}
 				</h1>
 
-				<span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600">
-					<RoleIcon className="text-slate-400" />
+				<span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-300">
+					<RoleIcon className="text-slate-400 dark:text-slate-500" />
 					{role.label}
 				</span>
 
 				{!isConnected && (
 					<span
-						className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium"
+						className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-xs font-medium"
 						role="status"
 					>
 						<FaExclamationTriangle className="text-[10px]" />
@@ -138,7 +138,7 @@ export default function TrainingConsole({
 			{/* Instruments */}
 			<div className="pl-6 pr-5 py-4 grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4 items-start">
 				<div className="min-w-0">
-					<p className="text-[10px] uppercase tracking-[0.12em] text-slate-400 font-semibold mb-1">
+					<p className="text-[10px] uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 font-semibold mb-1">
 						Estado
 					</p>
 					<p className={`inline-flex items-center gap-2 text-lg lg:text-xl font-semibold leading-none ${look.text}`}>
@@ -160,7 +160,7 @@ export default function TrainingConsole({
 
 			{/* Role-specific instruments: meter, controls */}
 			{children && (
-				<div className="pl-6 pr-5 py-4 border-t border-slate-100 bg-slate-50/60">
+				<div className="pl-6 pr-5 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40">
 					{children}
 				</div>
 			)}

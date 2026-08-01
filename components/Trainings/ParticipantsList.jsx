@@ -4,17 +4,17 @@ import { FaUsers, FaUserShield, FaUser, FaEye, FaEnvelope, FaClock, FaCheckCircl
 const ROLE_CONFIG = {
 	facilitator: {
 		label: 'Facilitador',
-		color: 'bg-violet-100 text-violet-700',
+		color: 'bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300',
 		icon: FaUserShield
 	},
 	participant: {
 		label: 'Participante',
-		color: 'bg-blue-100 text-blue-700',
+		color: 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300',
 		icon: FaUser
 	},
 	observer: {
 		label: 'Observador',
-		color: 'bg-slate-100 text-slate-700',
+		color: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300',
 		icon: FaEye
 	}
 };
@@ -23,17 +23,17 @@ const ROLE_CONFIG = {
 const STATUS_CONFIG = {
 	accepted: {
 		label: 'Aceito',
-		color: 'bg-emerald-100 text-emerald-700',
+		color: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300',
 		icon: FaCheckCircle
 	},
 	pending: {
 		label: 'Pendente',
-		color: 'bg-amber-100 text-amber-700',
+		color: 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300',
 		icon: FaClock
 	},
 	declined: {
 		label: 'Recusado',
-		color: 'bg-red-100 text-red-700',
+		color: 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300',
 		icon: FaTimesCircle
 	}
 };
@@ -62,17 +62,17 @@ export default function ParticipantsList({ participants, userRole, showManagemen
 	};
 
 	return (
-		<div className="bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/60 p-6 lg:p-8">
+		<div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm shadow-slate-200/50 dark:shadow-slate-950/50 border border-slate-200/60 dark:border-slate-800 p-6 lg:p-8">
 			{/* Header */}
 			<div className="flex items-center gap-3 mb-6">
-				<div className="p-2.5 bg-blue-100 rounded-xl">
-					<FaUsers className="text-xl text-blue-600" />
+				<div className="p-2.5 bg-blue-100 dark:bg-blue-950/60 rounded-xl">
+					<FaUsers className="text-xl text-blue-600 dark:text-blue-400" />
 				</div>
 				<div>
-					<h3 className="text-lg font-semibold text-slate-900">
+					<h3 className="text-lg font-semibold text-slate-900 dark:text-white">
 						Participantes
 					</h3>
-					<p className="text-sm text-slate-500">
+					<p className="text-sm text-slate-500 dark:text-slate-400">
 						{participants.length} {participants.length === 1 ? 'pessoa' : 'pessoas'}
 					</p>
 				</div>
@@ -80,7 +80,7 @@ export default function ParticipantsList({ participants, userRole, showManagemen
 
 			{/* Participants List */}
 			{participants.length === 0 ? (
-				<div className="text-center py-8 text-slate-500">
+				<div className="text-center py-8 text-slate-500 dark:text-slate-400">
 					<p>Nenhum participante ainda</p>
 				</div>
 			) : (
@@ -97,7 +97,7 @@ export default function ParticipantsList({ participants, userRole, showManagemen
 						return (
 							<div
 								key={participant.user?.nickname || participant.nickname}
-								className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-slate-50/80 rounded-xl border border-slate-100 hover:border-slate-200 transition-colors"
+								className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-700/60 hover:border-slate-200 dark:hover:border-slate-600 transition-colors"
 							>
 								{/* Avatar and User Info Container */}
 								<div className="flex items-center gap-3 flex-1 min-w-0">
@@ -109,17 +109,17 @@ export default function ParticipantsList({ participants, userRole, showManagemen
 									{/* User Info */}
 									<div className="flex-1 min-w-0">
 										<div className="flex items-center gap-2 mb-1 flex-wrap">
-											<p className="font-semibold text-slate-900 text-sm sm:text-base truncate">
+											<p className="font-semibold text-slate-900 dark:text-white text-sm sm:text-base truncate">
 												{isPending ? `@${participant.user?.nickname || participant.nickname}` : participant.user.name}
 											</p>
 											{/* Role Badge */}
-											<div className={`px-2 py-0.5 rounded-md text-xs font-medium ${roleConfig.color} flex items-center gap-1 shrink-0`}>
+											<div className={`px-2 py-0.5 rounded-md text-xs font-medium ${roleConfig.color} dark:bg-slate-700 dark:text-slate-200 flex items-center gap-1 shrink-0`}>
 												<RoleIcon className="text-xs" />
 												<span className="hidden xs:inline">{roleConfig.label}</span>
 											</div>
 										</div>
 										
-										<div className="flex flex-col xs:flex-row xs:flex-wrap xs:items-center gap-1 xs:gap-2 text-xs text-slate-500">
+										<div className="flex flex-col xs:flex-row xs:flex-wrap xs:items-center gap-1 xs:gap-2 text-xs text-slate-500 dark:text-slate-400">
 											{!isPending && (
 												<span className="flex items-center gap-1">
 													<FaUser className="text-xs shrink-0" />
@@ -138,7 +138,7 @@ export default function ParticipantsList({ participants, userRole, showManagemen
 											)}
 											
 											{isPending && (
-												<span className="text-amber-600 font-medium">
+												<span className="text-amber-600 dark:text-amber-400 font-medium">
 													Aguardando resposta do convite
 												</span>
 											)}
@@ -157,7 +157,7 @@ export default function ParticipantsList({ participants, userRole, showManagemen
 								<div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap sm:shrink-0">
 									{/* Status Badge (for facilitators) */}
 									{isFacilitator && participant.status && (
-										<div className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium ${statusConfig.color} flex items-center gap-1.5`}>
+										<div className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium ${statusConfig.color} dark:bg-slate-700 dark:text-slate-200 flex items-center gap-1.5`}>
 											<StatusIcon className="text-xs" />
 											<span className="hidden xs:inline">{statusConfig.label}</span>
 										</div>

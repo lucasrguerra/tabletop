@@ -7,26 +7,26 @@ import { FaTrophy, FaMedal, FaStar, FaSync, FaCheck, FaTimes, FaCrown } from 're
 
 const PODIUM_STYLES = {
 	1: {
-		bg: 'bg-linear-to-br from-amber-50 to-yellow-50',
-		border: 'border-amber-300',
+		bg: 'bg-linear-to-br from-amber-50 dark:from-amber-950/40 to-yellow-50 dark:to-yellow-950/40',
+		border: 'border-amber-300 dark:border-amber-800',
 		badge: 'bg-linear-to-br from-amber-400 to-yellow-500 text-white',
-		text: 'text-amber-700',
+		text: 'text-amber-700 dark:text-amber-300',
 		icon: FaTrophy,
 		glow: 'shadow-amber-200/60',
 	},
 	2: {
-		bg: 'bg-linear-to-br from-slate-50 to-gray-100',
-		border: 'border-slate-300',
+		bg: 'bg-linear-to-br from-slate-50 dark:from-slate-900 to-gray-100 dark:to-slate-800',
+		border: 'border-slate-300 dark:border-slate-700',
 		badge: 'bg-linear-to-br from-slate-400 to-gray-500 text-white',
-		text: 'text-slate-600',
+		text: 'text-slate-600 dark:text-slate-400',
 		icon: FaMedal,
 		glow: 'shadow-slate-200/60',
 	},
 	3: {
-		bg: 'bg-linear-to-br from-orange-50 to-amber-50',
-		border: 'border-orange-300',
+		bg: 'bg-linear-to-br from-orange-50 dark:from-orange-950/40 to-amber-50 dark:to-amber-950/40',
+		border: 'border-orange-300 dark:border-orange-800',
 		badge: 'bg-linear-to-br from-orange-400 to-amber-500 text-white',
-		text: 'text-orange-700',
+		text: 'text-orange-700 dark:text-orange-300',
 		icon: FaMedal,
 		glow: 'shadow-orange-200/60',
 	},
@@ -45,7 +45,7 @@ function PositionBadge({ position }) {
 	}
 
 	return (
-		<div className="shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center bg-slate-100 text-slate-500 border border-slate-200 font-bold text-sm sm:text-base">
+		<div className="shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 font-bold text-sm sm:text-base">
 			{position}
 		</div>
 	);
@@ -53,10 +53,10 @@ function PositionBadge({ position }) {
 
 function StatusIndicator({ status }) {
 	const config = {
-		not_started: { label: 'Aguardando início', className: 'bg-slate-100 text-slate-600 border-slate-200' },
-		active: { label: 'Em andamento', className: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-		paused: { label: 'Pausado', className: 'bg-amber-100 text-amber-700 border-amber-200' },
-		completed: { label: 'Concluído', className: 'bg-blue-100 text-blue-700 border-blue-200' },
+		not_started: { label: 'Aguardando início', className: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700' },
+		active: { label: 'Em andamento', className: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/50' },
+		paused: { label: 'Pausado', className: 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/50' },
+		completed: { label: 'Concluído', className: 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900/50' },
 	};
 
 	const s = config[status] || config.not_started;
@@ -81,7 +81,7 @@ function RankingRow({ entry, index }) {
 			className={`flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-2xl border transition-all ${
 				isTopThree
 					? `${style.bg} ${style.border} shadow-md ${style.glow}`
-					: 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-sm'
+					: 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-sm'
 			}`}
 			style={{ animationDelay: `${index * 60}ms` }}
 		>
@@ -89,23 +89,23 @@ function RankingRow({ entry, index }) {
 
 			<div className="flex-1 min-w-0">
 				<p className={`font-bold truncate text-sm sm:text-base ${
-					isTopThree ? style.text : 'text-slate-900'
+					isTopThree ? style.text : 'text-slate-900 dark:text-slate-100'
 				}`}>
 					{entry.nickname}
 				</p>
 				<div className="flex items-center gap-3 mt-0.5">
-					<span className="text-xs text-slate-500 flex items-center gap-1">
-						<FaCheck className="text-emerald-500 text-[10px]" />
+					<span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+						<FaCheck className="text-emerald-500 dark:text-emerald-400 text-[10px]" />
 						{entry.correct_count}
 					</span>
 					{entry.total_responses > 0 && entry.total_responses > entry.correct_count && (
-						<span className="text-xs text-slate-400 flex items-center gap-1">
+						<span className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1">
 							<FaTimes className="text-red-400 text-[10px]" />
 							{entry.total_responses - entry.correct_count}
 						</span>
 					)}
 					{entry.total_possible > 0 && (
-						<span className="text-xs text-slate-400">
+						<span className="text-xs text-slate-400 dark:text-slate-500">
 							{percentage}%
 						</span>
 					)}
@@ -114,11 +114,11 @@ function RankingRow({ entry, index }) {
 
 			<div className="text-right shrink-0">
 				<p className={`text-lg sm:text-xl font-extrabold tabular-nums ${
-					isTopThree ? style.text : 'text-slate-900'
+					isTopThree ? style.text : 'text-slate-900 dark:text-slate-100'
 				}`}>
 					{entry.total_points}
 				</p>
-				<p className="text-[10px] sm:text-xs text-slate-400 font-medium">pontos</p>
+				<p className="text-[10px] sm:text-xs text-slate-400 dark:text-slate-500 font-medium">pontos</p>
 			</div>
 		</div>
 	);
@@ -187,10 +187,10 @@ export default function RankingPage() {
 	// ── Loading state ──
 	if (loading) {
 		return (
-			<div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center">
+			<div className="min-h-screen bg-linear-to-br from-slate-50 dark:from-slate-900 via-white dark:via-slate-900 to-blue-50 dark:to-blue-950/40 flex items-center justify-center">
 				<div className="text-center">
-					<div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4" />
-					<p className="text-slate-500 text-sm">Carregando ranking...</p>
+					<div className="w-12 h-12 border-4 border-blue-200 dark:border-blue-900/50 border-t-blue-600 rounded-full animate-spin mx-auto mb-4" />
+					<p className="text-slate-500 dark:text-slate-400 text-sm">Carregando ranking...</p>
 				</div>
 			</div>
 		);
@@ -199,13 +199,13 @@ export default function RankingPage() {
 	// ── Error state ──
 	if (error && !data) {
 		return (
-			<div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center p-4">
-				<div className="bg-white rounded-2xl shadow-lg border border-red-200 p-8 max-w-md w-full text-center">
-					<div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-						<FaTimes className="text-red-500 text-xl" />
+			<div className="min-h-screen bg-linear-to-br from-slate-50 dark:from-slate-900 via-white dark:via-slate-900 to-blue-50 dark:to-blue-950/40 flex items-center justify-center p-4">
+				<div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-red-200 dark:border-red-900/50 p-8 max-w-md w-full text-center">
+					<div className="w-14 h-14 bg-red-100 dark:bg-red-900/50 rounded-full flex items-center justify-center mx-auto mb-4">
+						<FaTimes className="text-red-500 dark:text-red-400 text-xl" />
 					</div>
-					<h2 className="text-lg font-bold text-slate-900 mb-2">Erro ao carregar</h2>
-					<p className="text-sm text-slate-500 mb-6">{error}</p>
+					<h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">Erro ao carregar</h2>
+					<p className="text-sm text-slate-500 dark:text-slate-400 mb-6">{error}</p>
 					<button
 						onClick={() => fetchRanking(true)}
 						className="px-6 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors"
@@ -222,14 +222,14 @@ export default function RankingPage() {
 	const leader = ranking[0];
 
 	return (
-		<div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-blue-50">
+		<div className="min-h-screen bg-linear-to-br from-slate-50 dark:from-slate-900 via-white dark:via-slate-900 to-blue-50 dark:to-blue-950/40">
 			<div className="max-w-2xl mx-auto px-4 py-6 sm:py-10">
 				{/* ── Header ── */}
 				<div className="text-center mb-8">
 					<div className="inline-flex items-center justify-center w-16 h-16 bg-linear-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg shadow-blue-300/40 mb-4">
 						<FaCrown className="text-white text-2xl" />
 					</div>
-					<h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 mb-1.5">
+					<h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-slate-100 mb-1.5">
 						{training?.name || 'Ranking'}
 					</h1>
 					<div className="flex items-center justify-center gap-3">
@@ -239,13 +239,13 @@ export default function RankingPage() {
 
 				{/* ── Leader highlight ── */}
 				{leader && leader.total_points > 0 && (
-					<div className="mb-6 p-5 sm:p-6 bg-linear-to-br from-amber-50 via-yellow-50 to-orange-50 rounded-2xl border border-amber-200 shadow-md shadow-amber-100/50 text-center">
+					<div className="mb-6 p-5 sm:p-6 bg-linear-to-br from-amber-50 dark:from-amber-950/40 via-yellow-50 dark:via-yellow-950/40 to-orange-50 dark:to-orange-950/40 rounded-2xl border border-amber-200 dark:border-amber-900/50 shadow-md shadow-amber-100/50 text-center">
 						<div className="inline-flex items-center justify-center w-14 h-14 bg-linear-to-br from-amber-400 to-yellow-500 rounded-full shadow-lg shadow-amber-300/50 mb-3">
 							<FaTrophy className="text-white text-2xl" />
 						</div>
-						<p className="text-xs font-semibold text-amber-600 uppercase tracking-wider mb-1">Líder</p>
-						<p className="text-xl sm:text-2xl font-extrabold text-amber-800">{leader.nickname}</p>
-						<p className="text-amber-600 font-bold text-lg mt-0.5">
+						<p className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-1">Líder</p>
+						<p className="text-xl sm:text-2xl font-extrabold text-amber-800 dark:text-amber-300">{leader.nickname}</p>
+						<p className="text-amber-600 dark:text-amber-400 font-bold text-lg mt-0.5">
 							{leader.total_points} <span className="text-sm font-medium">pontos</span>
 						</p>
 					</div>
@@ -255,8 +255,8 @@ export default function RankingPage() {
 				{ranking.length === 0 ? (
 					<div className="text-center py-16">
 						<FaStar className="text-slate-300 text-4xl mx-auto mb-3" />
-						<p className="text-slate-500 font-medium">Nenhum participante ainda</p>
-						<p className="text-slate-400 text-sm mt-1">O ranking será exibido quando houver participantes</p>
+						<p className="text-slate-500 dark:text-slate-400 font-medium">Nenhum participante ainda</p>
+						<p className="text-slate-400 dark:text-slate-500 text-sm mt-1">O ranking será exibido quando houver participantes</p>
 					</div>
 				) : (
 					<div className="space-y-2.5">
@@ -267,7 +267,7 @@ export default function RankingPage() {
 				)}
 
 				{/* ── Footer info ── */}
-				<div className="mt-8 flex items-center justify-center gap-2 text-xs text-slate-400">
+				<div className="mt-8 flex items-center justify-center gap-2 text-xs text-slate-400 dark:text-slate-500">
 					<FaSync className={`text-[10px] ${data?.training?.status === 'active' ? 'animate-spin' : ''}`} />
 					<span>
 						{data?.training?.status === 'active' || data?.training?.status === 'paused'

@@ -12,7 +12,7 @@ import { FaCheck } from 'react-icons/fa';
 export default function MyRoundProgress({ questions = [], roundIndex, responses = [] }) {
 	if (questions.length === 0) {
 		return (
-			<p className="text-sm text-slate-500">
+			<p className="text-sm text-slate-500 dark:text-slate-400">
 				Rodada de contextualização — leia o cenário, não há questões aqui.
 			</p>
 		);
@@ -27,11 +27,11 @@ export default function MyRoundProgress({ questions = [], roundIndex, responses 
 	return (
 		<div>
 			<div className="flex items-baseline justify-between gap-3 mb-2">
-				<p className="text-[10px] uppercase tracking-[0.12em] text-slate-400 font-semibold">
+				<p className="text-[10px] uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 font-semibold">
 					Suas respostas nesta rodada
 				</p>
-				<p className="text-xs font-mono tabular-nums text-slate-500">
-					<span className={done ? 'text-emerald-600 font-semibold' : 'text-slate-900 font-semibold'}>
+				<p className="text-xs font-mono tabular-nums text-slate-500 dark:text-slate-400">
+					<span className={done ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-900 dark:text-slate-100 font-semibold'}>
 						{answered}
 					</span>
 					/{questions.length}
@@ -48,7 +48,7 @@ export default function MyRoundProgress({ questions = [], roundIndex, responses 
 							className={`inline-flex items-center justify-center w-7 h-7 rounded-md text-[11px] font-mono tabular-nums font-semibold transition-colors ${
 								isAnswered
 									? 'bg-emerald-500 text-white'
-									: 'bg-white text-slate-400 border border-slate-200'
+									: 'bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700'
 							}`}
 						>
 							{isAnswered ? <FaCheck className="text-[9px]" /> : i + 1}
@@ -58,7 +58,7 @@ export default function MyRoundProgress({ questions = [], roundIndex, responses 
 			</div>
 
 			{done && (
-				<p className="mt-2 text-sm text-emerald-700">
+				<p className="mt-2 text-sm text-emerald-700 dark:text-emerald-300">
 					Rodada concluída. Aguarde o facilitador abrir a próxima.
 				</p>
 			)}

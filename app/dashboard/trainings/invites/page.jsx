@@ -23,17 +23,17 @@ import {
 const STATUS_CONFIG = {
 	not_started: {
 		label: 'Não Iniciado',
-		color: 'bg-slate-100 text-slate-700',
+		color: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300',
 		icon: FaClock
 	},
 	active: {
 		label: 'Em Andamento',
-		color: 'bg-emerald-100 text-emerald-700',
+		color: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300',
 		icon: FaPlay
 	},
 	paused: {
 		label: 'Pausado',
-		color: 'bg-amber-100 text-amber-700',
+		color: 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300',
 		icon: FaPause
 	}
 };
@@ -42,18 +42,18 @@ const STATUS_CONFIG = {
 const ROLE_CONFIG = {
 	facilitator: {
 		label: 'Facilitador',
-		color: 'text-violet-700',
-		bgColor: 'bg-violet-100'
+		color: 'text-violet-700 dark:text-violet-300',
+		bgColor: 'bg-violet-100 dark:bg-violet-900/50'
 	},
 	participant: {
 		label: 'Participante',
-		color: 'text-blue-700',
-		bgColor: 'bg-blue-100'
+		color: 'text-blue-700 dark:text-blue-300',
+		bgColor: 'bg-blue-100 dark:bg-blue-900/50'
 	},
 	observer: {
 		label: 'Observador',
-		color: 'text-slate-700',
-		bgColor: 'bg-slate-100'
+		color: 'text-slate-700 dark:text-slate-300',
+		bgColor: 'bg-slate-100 dark:bg-slate-800'
 	}
 };
 
@@ -73,15 +73,15 @@ function InvitationCard({ invitation, onRespond, isResponding }) {
 	};
 
 	return (
-		<div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm shadow-slate-200/50 hover:shadow-lg hover:shadow-slate-200/50 transition-all duration-300 overflow-hidden">
+		<div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 shadow-sm shadow-slate-200/50 hover:shadow-lg hover:shadow-slate-200/50 transition-all duration-300 overflow-hidden">
 			{/* Header */}
-			<div className="p-5 lg:p-6 border-b border-slate-100">
+			<div className="p-5 lg:p-6 border-b border-slate-100 dark:border-slate-800">
 				<div className="flex items-start justify-between gap-3 mb-3">
 					<div className="flex-1 min-w-0">
-						<h3 className="font-semibold text-slate-900 truncate">
+						<h3 className="font-semibold text-slate-900 dark:text-slate-100 truncate">
 							{invitation.training_name}
 						</h3>
-						<p className="text-sm text-slate-500 mt-1">
+						<p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
 							por {invitation.created_by?.nickname || invitation.created_by?.name}
 						</p>
 					</div>
@@ -92,14 +92,14 @@ function InvitationCard({ invitation, onRespond, isResponding }) {
 				</div>
 
 				{invitation.training_description && (
-					<p className="text-sm text-slate-600 line-clamp-2">
+					<p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2">
 						{invitation.training_description}
 					</p>
 				)}
 			</div>
 
 			{/* Info */}
-			<div className="p-5 lg:p-6 bg-slate-50/50">
+			<div className="p-5 lg:p-6 bg-slate-50/50 dark:bg-slate-800/50">
 				<div className="flex flex-wrap items-center gap-3 text-sm mb-4">
 					{/* Role */}
 					<div className={`px-3 py-1.5 rounded-lg ${roleConfig.bgColor} ${roleConfig.color} flex items-center gap-1.5 font-medium`}>
@@ -108,8 +108,8 @@ function InvitationCard({ invitation, onRespond, isResponding }) {
 					</div>
 
 					{/* Participants */}
-					<div className="flex items-center gap-1.5 text-slate-600 bg-white px-3 py-1.5 rounded-lg border border-slate-100">
-						<FaUsers className="text-xs text-slate-400" />
+					<div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-slate-800">
+						<FaUsers className="text-xs text-slate-400 dark:text-slate-500" />
 						<span className="text-xs font-medium">
 							{invitation.participants_count}/{invitation.max_participants}
 						</span>
@@ -117,8 +117,8 @@ function InvitationCard({ invitation, onRespond, isResponding }) {
 
 					{/* Scenario */}
 					{invitation.scenario && (
-						<div className="flex items-center gap-1.5 text-slate-600 bg-white px-3 py-1.5 rounded-lg border border-slate-100">
-							<FaBook className="text-xs text-slate-400" />
+						<div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-slate-800">
+							<FaBook className="text-xs text-slate-400 dark:text-slate-500" />
 							<span className="text-xs font-medium">
 								{invitation.scenario.title}
 							</span>
@@ -127,8 +127,8 @@ function InvitationCard({ invitation, onRespond, isResponding }) {
 				</div>
 
 				{/* Created Date */}
-				<div className="mb-4 pb-4 border-b border-slate-200/60 flex items-center gap-1.5 text-xs text-slate-500">
-					<FaCalendarAlt className="text-slate-400" />
+				<div className="mb-4 pb-4 border-b border-slate-200/60 dark:border-slate-700/60 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+					<FaCalendarAlt className="text-slate-400 dark:text-slate-500" />
 					<span>Criado em {formatDate(invitation.created_at)}</span>
 				</div>
 
@@ -155,7 +155,7 @@ function InvitationCard({ invitation, onRespond, isResponding }) {
 					<button
 						onClick={() => onRespond(invitation.training_id, 'decline')}
 						disabled={isResponding}
-						className="flex-1 px-5 py-2.5 bg-white border-2 border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+						className="flex-1 px-5 py-2.5 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:border-slate-300 dark:hover:border-slate-700 transition-all flex items-center justify-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
 					>
 						{isResponding === `${invitation.training_id}-decline` ? (
 							<>
@@ -178,15 +178,15 @@ function InvitationCard({ invitation, onRespond, isResponding }) {
 // Empty State Component
 function EmptyState() {
 	return (
-		<div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm shadow-slate-200/50 p-8 sm:p-12 text-center">
+		<div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 shadow-sm shadow-slate-200/50 p-8 sm:p-12 text-center">
 			<div className="relative inline-flex items-center justify-center w-20 h-20 mb-6">
-				<div className="absolute inset-0 bg-linear-to-br from-slate-100 to-slate-200 rounded-2xl" />
-				<FaInbox className="relative text-3xl text-slate-400" />
+				<div className="absolute inset-0 bg-linear-to-br from-slate-100 dark:from-slate-800 to-slate-200 rounded-2xl" />
+				<FaInbox className="relative text-3xl text-slate-400 dark:text-slate-500" />
 			</div>
-			<h3 className="text-lg font-semibold text-slate-900 mb-2">
+			<h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
 				Nenhum convite pendente
 			</h3>
-			<p className="text-slate-600 max-w-md mx-auto">
+			<p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto">
 				Você não possui convites de treinamento no momento. Quando alguém te convidar, os convites aparecerão aqui.
 			</p>
 		</div>
@@ -198,14 +198,14 @@ function LoadingSkeleton() {
 	return (
 		<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 			{[1, 2, 3, 4].map((i) => (
-				<div key={i} className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6 animate-pulse">
-					<div className="h-4 bg-slate-200 rounded w-3/4 mb-3"></div>
-					<div className="h-3 bg-slate-200 rounded w-1/2 mb-4"></div>
-					<div className="h-3 bg-slate-200 rounded w-full mb-2"></div>
-					<div className="h-3 bg-slate-200 rounded w-5/6 mb-4"></div>
+				<div key={i} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 shadow-sm p-6 animate-pulse">
+					<div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4 mb-3"></div>
+					<div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-1/2 mb-4"></div>
+					<div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-full mb-2"></div>
+					<div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-5/6 mb-4"></div>
 					<div className="flex gap-3">
-						<div className="h-10 bg-slate-200 rounded-xl flex-1"></div>
-						<div className="h-10 bg-slate-200 rounded-xl flex-1"></div>
+						<div className="h-10 bg-slate-200 dark:bg-slate-700 rounded-xl flex-1"></div>
+						<div className="h-10 bg-slate-200 dark:bg-slate-700 rounded-xl flex-1"></div>
 					</div>
 				</div>
 			))}
@@ -216,14 +216,14 @@ function LoadingSkeleton() {
 // Error State Component
 function ErrorState({ message, onRetry }) {
 	return (
-		<div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
-			<div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-xl mb-4">
-				<FaExclamationTriangle className="text-2xl text-red-500" />
+		<div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-2xl p-6 text-center">
+			<div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 dark:bg-red-900/50 rounded-xl mb-4">
+				<FaExclamationTriangle className="text-2xl text-red-500 dark:text-red-400" />
 			</div>
-			<h3 className="text-lg font-semibold text-red-900 mb-2">
+			<h3 className="text-lg font-semibold text-red-900 dark:text-red-200 mb-2">
 				Erro ao carregar convites
 			</h3>
-			<p className="text-red-700 mb-6">{message}</p>
+			<p className="text-red-700 dark:text-red-300 mb-6">{message}</p>
 			<button
 				onClick={onRetry}
 				className="px-5 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all font-medium"
@@ -329,19 +329,19 @@ export default function InvitesPage() {
 		<DashboardLayout>
 			<div className="space-y-6">
 				{/* Page Header */}
-				<div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-6 border-b border-slate-200">
+				<div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-700">
 					<div>
-						<h1 className="text-3xl font-bold text-slate-900 mb-2">
+						<h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">
 							Convites Pendentes
 						</h1>
-						<p className="text-slate-600">
+						<p className="text-slate-600 dark:text-slate-400">
 							Gerencie seus convites de treinamento
 						</p>
 					</div>
 					{invitations.length > 0 && (
-						<div className="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-xl">
-							<FaEnvelope className="text-blue-600" />
-							<span className="text-sm font-semibold text-blue-700">
+						<div className="flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 rounded-xl">
+							<FaEnvelope className="text-blue-600 dark:text-blue-400" />
+							<span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
 								{invitations.length} {invitations.length === 1 ? 'convite' : 'convites'}
 							</span>
 						</div>

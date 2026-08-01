@@ -10,7 +10,7 @@ export default function ErrorAlert({ message }) {
 	if (!message) return null;
 
 	return (
-		<div className="relative overflow-hidden rounded-2xl border border-red-200/60 bg-linear-to-br from-red-50 to-rose-50 shadow-lg shadow-red-500/10 animate-shake">
+		<div className="relative overflow-hidden rounded-2xl border border-red-200/60 dark:border-red-900/60 bg-linear-to-br from-red-50 dark:from-red-950/40 to-rose-50 dark:to-rose-950/40 shadow-lg shadow-red-500/10 animate-shake">
 			{/* Gradient overlay */}
 			<div className="absolute inset-0 bg-linear-to-r from-red-500/5 to-rose-500/5" />
 			
@@ -22,8 +22,8 @@ export default function ErrorAlert({ message }) {
 
 				{/* Content */}
 				<div className="flex-1 min-w-0">
-					<p className="text-sm font-bold text-red-800 mb-1">Erro</p>
-					<p className="text-sm text-red-700 leading-relaxed">{message}</p>
+					<p className="text-sm font-bold text-red-800 dark:text-red-300 mb-1">Erro</p>
+					<p className="text-sm text-red-700 dark:text-red-300 leading-relaxed">{message}</p>
 				</div>
 			</div>
 

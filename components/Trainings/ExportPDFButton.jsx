@@ -977,7 +977,7 @@ export default function ExportPDFButton({ training, responses, summary, scenario
 		<button
 			onClick={handleExport}
 			disabled={generating}
-			className={`flex items-center gap-2 px-4 py-2 bg-white text-red-700 font-semibold rounded-xl hover:bg-red-50 border-2 border-red-200 hover:border-red-300 transition-all disabled:opacity-50 text-sm ${className}`}
+			className={`flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 text-red-700 dark:text-red-300 font-semibold rounded-xl hover:bg-red-50 dark:hover:bg-red-950/30 border-2 border-red-200 dark:border-red-900/50 hover:border-red-300 dark:hover:border-red-800 transition-all disabled:opacity-50 text-sm ${className}`}
 		>
 			{generating ? (
 				<FaSpinner className="text-xs animate-spin" />

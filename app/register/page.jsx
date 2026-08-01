@@ -121,13 +121,13 @@ export default function RegisterPage() {
 	};
 
 	return (
-		<div className="min-h-screen bg-linear-to-br from-slate-50 via-blue-50/30 to-indigo-50/30">
+		<div className="min-h-screen bg-linear-to-br from-slate-50 dark:from-slate-900 via-blue-50/30 dark:via-blue-950/30 to-indigo-50/30 dark:to-indigo-950/30">
 			<Header />
 			
 			<div className="flex items-center justify-center px-4 py-12 lg:py-16">
 				<div className="w-full max-w-md animate-slide-in-up">
 					{/* Card */}
-					<div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-200/60 p-8 lg:p-10">
+					<div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-200/60 dark:border-slate-700/60 p-8 lg:p-10">
 						{/* Header */}
 						<div className="text-center mb-8">
 							<div className="relative inline-flex items-center justify-center w-16 h-16 mb-5">
@@ -136,43 +136,43 @@ export default function RegisterPage() {
 									<FaUserPlus className="text-2xl text-white" />
 								</div>
 							</div>
-							<h1 className="text-2xl lg:text-3xl font-bold text-slate-900 mb-2">
+							<h1 className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">
 								Criar Conta
 							</h1>
-							<p className="text-slate-500">
+							<p className="text-slate-500 dark:text-slate-400">
 								Preencha os dados para se cadastrar
 							</p>
 						</div>
 
 						{/* Error Message */}
 						{error && (
-							<div id="error-message" className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 animate-shake">
-								<div className="p-1.5 bg-red-100 rounded-lg shrink-0">
-									<FaExclamationCircle className="text-red-500" />
+							<div id="error-message" className="mb-6 p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl flex items-start gap-3 animate-shake">
+								<div className="p-1.5 bg-red-100 dark:bg-red-900/50 rounded-lg shrink-0">
+									<FaExclamationCircle className="text-red-500 dark:text-red-400" />
 								</div>
-								<p className="text-sm text-red-700 pt-0.5">{error}</p>
+								<p className="text-sm text-red-700 dark:text-red-300 pt-0.5">{error}</p>
 							</div>
 						)}
 
 						{/* Success Message */}
 						{success && (
-							<div id="success-message" className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-start gap-3 animate-fade-in">
-								<div className="p-1.5 bg-emerald-100 rounded-lg shrink-0">
-									<FaCheckCircle className="text-emerald-500" />
+							<div id="success-message" className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 rounded-xl flex items-start gap-3 animate-fade-in">
+								<div className="p-1.5 bg-emerald-100 dark:bg-emerald-900/50 rounded-lg shrink-0">
+									<FaCheckCircle className="text-emerald-500 dark:text-emerald-400" />
 								</div>
-								<p className="text-sm text-emerald-700 pt-0.5">{success}</p>
+								<p className="text-sm text-emerald-700 dark:text-emerald-300 pt-0.5">{success}</p>
 							</div>
 						)}
 
 						{/* Form */}
 						<form onSubmit={handleSubmit} className="space-y-5">
 							<div>
-								<label htmlFor="name" className="block text-sm font-semibold text-slate-700 mb-2">
+								<label htmlFor="name" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
 									Nome Completo
 								</label>
 								<div className="relative group">
 									<div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-										<FaUser className="text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+										<FaUser className="text-slate-400 dark:text-slate-500 group-focus-within:text-blue-500 dark:group-focus-within:text-blue-400 transition-colors" />
 									</div>
 									<input
 										type="text"
@@ -181,9 +181,9 @@ export default function RegisterPage() {
 										value={formData.name}
 										onChange={handleChange}
 										required
-										className="block w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl 
-											text-slate-900 placeholder-slate-400
-											focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 
+										className="block w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl 
+											text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500
+											focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 
 											transition-all duration-200"
 										placeholder="Seu nome completo"
 									/>
@@ -191,12 +191,12 @@ export default function RegisterPage() {
 							</div>
 
 							<div>
-								<label htmlFor="email" className="block text-sm font-semibold text-slate-700 mb-2">
+								<label htmlFor="email" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
 									Email
 								</label>
 								<div className="relative group">
 									<div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-										<FaEnvelope className="text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+										<FaEnvelope className="text-slate-400 dark:text-slate-500 group-focus-within:text-blue-500 dark:group-focus-within:text-blue-400 transition-colors" />
 									</div>
 									<input
 										type="email"
@@ -205,9 +205,9 @@ export default function RegisterPage() {
 										value={formData.email}
 										onChange={handleChange}
 										required
-										className="block w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl 
-											text-slate-900 placeholder-slate-400
-											focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 
+										className="block w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl 
+											text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500
+											focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 
 											transition-all duration-200"
 										placeholder="seu@email.com"
 									/>
@@ -215,12 +215,12 @@ export default function RegisterPage() {
 							</div>
 
 							<div>
-								<label htmlFor="nickname" className="block text-sm font-semibold text-slate-700 mb-2">
+								<label htmlFor="nickname" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
 									Nickname
 								</label>
 								<div className="relative group">
 									<div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-										<FaAt className="text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+										<FaAt className="text-slate-400 dark:text-slate-500 group-focus-within:text-blue-500 dark:group-focus-within:text-blue-400 transition-colors" />
 									</div>
 									<input
 										type="text"
@@ -229,25 +229,25 @@ export default function RegisterPage() {
 										value={formData.nickname}
 										onChange={handleChange}
 										required
-										className="block w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl 
-											text-slate-900 placeholder-slate-400
-											focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 
+										className="block w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl 
+											text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500
+											focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 
 											transition-all duration-200"
 										placeholder="seu_nickname"
 									/>
 								</div>
-								<p className="mt-2 text-xs text-slate-500">
+								<p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
 									Apenas letras, números, pontos e underscore
 								</p>
 							</div>
 
 							<div>
-								<label htmlFor="password" className="block text-sm font-semibold text-slate-700 mb-2">
+								<label htmlFor="password" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
 									Senha
 								</label>
 								<div className="relative group">
 									<div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-										<FaLock className="text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+										<FaLock className="text-slate-400 dark:text-slate-500 group-focus-within:text-blue-500 dark:group-focus-within:text-blue-400 transition-colors" />
 									</div>
 									<input
 										type={showPassword ? "text" : "password"}
@@ -256,33 +256,33 @@ export default function RegisterPage() {
 										value={formData.password}
 										onChange={handleChange}
 										required
-										className="block w-full pl-11 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-xl 
-											text-slate-900 placeholder-slate-400
-											focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 
+										className="block w-full pl-11 pr-12 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl 
+											text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500
+											focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 
 											transition-all duration-200"
 										placeholder="Crie uma senha"
 									/>
 									<button
 										type="button"
 										onClick={() => setShowPassword(!showPassword)}
-										className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+										className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-400 transition-colors"
 										aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
 									>
 										{showPassword ? <FaEyeSlash className="text-lg" /> : <FaEye className="text-lg" />}
 									</button>
 								</div>
-								<p className="mt-2 text-xs text-slate-500">
+								<p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
 									Mínimo 8 caracteres, com maiúsculas, minúsculas, números e caracteres especiais
 								</p>
 							</div>
 
 							<div>
-								<label htmlFor="confirmPassword" className="block text-sm font-semibold text-slate-700 mb-2">
+								<label htmlFor="confirmPassword" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
 									Confirmar Senha
 								</label>
 								<div className="relative group">
 									<div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-										<FaLock className="text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+										<FaLock className="text-slate-400 dark:text-slate-500 group-focus-within:text-blue-500 dark:group-focus-within:text-blue-400 transition-colors" />
 									</div>
 									<input
 										type={showConfirmPassword ? "text" : "password"}
@@ -291,16 +291,16 @@ export default function RegisterPage() {
 										value={formData.confirmPassword}
 										onChange={handleChange}
 										required
-										className="block w-full pl-11 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-xl 
-											text-slate-900 placeholder-slate-400
-											focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 
+										className="block w-full pl-11 pr-12 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl 
+											text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500
+											focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 
 											transition-all duration-200"
 										placeholder="Confirme sua senha"
 									/>
 									<button
 										type="button"
 										onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-										className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+										className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-400 transition-colors"
 										aria-label={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'}
 									>
 										{showConfirmPassword ? <FaEyeSlash className="text-lg" /> : <FaEye className="text-lg" />}
@@ -338,10 +338,10 @@ export default function RegisterPage() {
 						</form>
 
 						{/* Footer */}
-						<div className="mt-8 pt-6 border-t border-slate-100 text-center">
-							<p className="text-sm text-slate-600">
+						<div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 text-center">
+							<p className="text-sm text-slate-600 dark:text-slate-400">
 								Já tem uma conta?{' '}
-								<Link href="/login" className="text-blue-600 hover:text-blue-700 font-semibold hover:underline transition-colors">
+								<Link href="/login" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold hover:underline transition-colors">
 									Entrar
 								</Link>
 							</p>
@@ -352,7 +352,7 @@ export default function RegisterPage() {
 					<div className="text-center mt-6">
 						<Link 
 							href="/" 
-							className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 transition-colors group"
+							className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors group"
 						>
 							<FaArrowLeft className="text-xs group-hover:-translate-x-1 transition-transform" />
 							<span>Voltar para página inicial</span>

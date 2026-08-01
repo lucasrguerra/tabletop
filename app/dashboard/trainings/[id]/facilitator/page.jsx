@@ -24,10 +24,10 @@ import {
 /** Control in the console strip. */
 function ConsoleButton({ onClick, disabled, icon: Icon, children, tone = 'neutral' }) {
 	const tones = {
-		go:      'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm shadow-emerald-600/20 focus-visible:ring-emerald-400',
-		hold:    'bg-amber-500 text-white hover:bg-amber-600 shadow-sm shadow-amber-500/20 focus-visible:ring-amber-400',
-		end:     'bg-blue-600 text-white hover:bg-blue-700 shadow-sm shadow-blue-600/20 focus-visible:ring-blue-400',
-		neutral: 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 focus-visible:ring-slate-400',
+		go:      'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm shadow-emerald-600/20 focus-visible:ring-emerald-400 dark:focus-visible:ring-emerald-800',
+		hold:    'bg-amber-500 text-white hover:bg-amber-600 shadow-sm shadow-amber-500/20 focus-visible:ring-amber-400 dark:focus-visible:ring-amber-800',
+		end:     'bg-blue-600 text-white hover:bg-blue-700 shadow-sm shadow-blue-600/20 focus-visible:ring-blue-400 dark:focus-visible:ring-blue-800',
+		neutral: 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 focus-visible:ring-slate-400 dark:focus-visible:ring-slate-600',
 	};
 	return (
 		<button
@@ -153,7 +153,7 @@ export default function FacilitatorPage() {
 
 			{phase === PHASE.LIVE && (
 				<>
-					<span className="w-px h-6 bg-slate-200 mx-1" aria-hidden="true" />
+					<span className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1" aria-hidden="true" />
 					<ConsoleButton onClick={() => handleTimerAction('reset')} disabled={actionLoading} icon={FaRedo}>
 						Zerar tempo da rodada
 					</ConsoleButton>
@@ -288,9 +288,9 @@ export default function FacilitatorPage() {
 							<div className="flex flex-wrap gap-2">
 								<button
 									onClick={() => window.open(`/ranking/${trainingId}`, '_blank')}
-									className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+									className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:focus-visible:ring-slate-600"
 								>
-									<FaTrophy className="text-xs text-amber-500" />
+									<FaTrophy className="text-xs text-amber-500 dark:text-amber-400" />
 									Abrir ranking
 								</button>
 								<ExportPDFButton
@@ -340,13 +340,13 @@ export default function FacilitatorPage() {
 
 			{/* ══ Destructive action: plainly visible, but at the end of the page
 			     rather than beside Pausar/Encerrar in the live controls. ══ */}
-			<Section className="pt-6 border-t border-slate-200">
+			<Section className="pt-6 border-t border-slate-200 dark:border-slate-700">
 				<div className="flex flex-wrap gap-3">
 					{phase === PHASE.REVIEW && (
 						<button
 							onClick={() => handleStatusChange('not_started')}
 							disabled={actionLoading}
-							className="inline-flex items-center gap-2 px-5 py-3 rounded-xl border border-slate-200 bg-white text-slate-700 font-semibold hover:bg-slate-50 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+							className="inline-flex items-center gap-2 px-5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:focus-visible:ring-slate-600 focus-visible:ring-offset-2"
 						>
 							<FaUndoAlt className="text-sm" />
 							Reabrir para nova execução
@@ -355,7 +355,7 @@ export default function FacilitatorPage() {
 					<button
 						onClick={() => setShowDeleteConfirm(true)}
 						disabled={actionLoading}
-						className="inline-flex items-center gap-2 px-5 py-3 rounded-xl border-2 border-red-200 bg-white text-red-600 font-semibold hover:bg-red-50 hover:border-red-300 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2"
+						className="inline-flex items-center gap-2 px-5 py-3 rounded-xl border-2 border-red-200 dark:border-red-900/50 bg-white dark:bg-slate-900 text-red-600 dark:text-red-400 font-semibold hover:bg-red-50 dark:hover:bg-red-950/30 hover:border-red-300 dark:hover:border-red-800 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-800 focus-visible:ring-offset-2"
 					>
 						<FaTrash className="text-sm" />
 						Deletar treinamento
@@ -370,11 +370,11 @@ export default function FacilitatorPage() {
 					aria-modal="true"
 					aria-labelledby="delete-title"
 				>
-					<div className="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full">
-						<h3 id="delete-title" className="text-lg font-bold text-slate-900 mb-2">
+					<div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6 max-w-md w-full">
+						<h3 id="delete-title" className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">
 							Deletar {training.name}?
 						</h3>
-						<p className="text-sm text-slate-600 mb-6">
+						<p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
 							Todas as respostas e avaliações deste treinamento são removidas junto.
 							Não há como desfazer.
 						</p>
@@ -382,7 +382,7 @@ export default function FacilitatorPage() {
 							<button
 								onClick={() => setShowDeleteConfirm(false)}
 								disabled={actionLoading}
-								className="px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-50"
+								className="px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors disabled:opacity-50"
 							>
 								Cancelar
 							</button>
