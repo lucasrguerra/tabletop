@@ -20,9 +20,76 @@ jobs:
   ci:
     uses: ./.github/workflows/ci.yml
 
+  # The deploy host runs on arm64 (Oracle Ampere) while local machines are
+  # amd64, so the image has to carry both. Each architecture is built on a
+  # runner of its own kind: QEMU emulation would work but makes the Next build
+  # roughly an order of magnitude slower.
+  build:
+    name: Build ${{ matrix.platform }}
+    needs: ci
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Autentica no GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Metadados
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+      # Pushed by digest only: the tags are attached later, once both
+      # architectures exist and can be joined into a single manifest list.
+      - name: Build e push por digest
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ matrix.platform }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
+
+      - name: Exporta o digest
+        run: |
+          mkdir -p /tmp/digests
+          # The output already carries the `sha256:` prefix; the file name must
+          # not, since the merge step prepends it again.
+          digest='${{ steps.build.outputs.digest }}'
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Guarda o digest
+        uses: actions/upload-artifact@v7
+        with:
+          # Slashes are not allowed in artifact names.
+          name: digest-${{ startsWith(matrix.platform, 'linux/arm') && 'arm64' || 'amd64' }}
+          path: /tmp/digests/*
+          retention-days: 1
+          if-no-files-found: error
+
   publish:
     name: Publica no GHCR
-    needs: ci
+    needs: build
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -38,6 +105,13 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Recupera os digests
+        uses: actions/download-artifact@v7
+        with:
+          pattern: digest-*
+          merge-multiple: true
+          path: /tmp/digests
 
       - name: Lê a versão do package.json
         id: version
@@ -55,20 +129,25 @@ jobs:
             type=raw,value=${{ steps.version.outputs.value }}
             type=sha,format=long
 
-      - name: Build e push
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      # Joins both architectures under one manifest list, so `docker pull`
+      # resolves to the right one automatically.
+      - name: Cria o manifesto multi-arquitetura
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< '${{ steps.meta.outputs.json }}') \
+            $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@sha256:%s ' *)
+
+      - name: Confere o resultado
+        run: |
+          docker buildx imagetools inspect \
+            "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" --format '{{json .Manifest}}' \
+            | jq -r '.manifests[] | select(.platform.os == "linux") | "\(.platform.os)/\(.platform.architecture)"'
 
       - name: Resumo
         run: |
           {
-            echo "### Imagem publicada"
+            echo "### Imagem publicada (linux/amd64 e linux/arm64)"
             echo
             echo '```'
             echo "${{ steps.meta.outputs.tags }}"
