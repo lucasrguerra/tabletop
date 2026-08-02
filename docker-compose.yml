@@ -15,7 +15,10 @@ services:
     restart: unless-stopped
 
   app:
-    build: .
+    # Published by .github/workflows/release.yml on every merge into main.
+    # Override IMAGE_TAG with a version or a commit sha to pin or roll back.
+    image: ${APP_IMAGE:-ghcr.io/lucasrguerra/tabletop}:${IMAGE_TAG:-latest}
+    pull_policy: always
     expose:
       - "3000"
     # ports:

@@ -1054,17 +1054,26 @@ documentadas em **[DESIGN.md](DESIGN.md)**.
 
 ### Docker Compose (recomendado)
 
-Sobe a aplicação e o MongoDB já conectados:
+O servidor **não compila nada**: a imagem é publicada pelo GitHub Actions a cada
+merge na `main` e o compose apenas a baixa.
 
 ```bash
-npm run build:release        # gera .next.tar.gz, exigido pelo Dockerfile
-docker compose up -d --build
+docker compose pull          # busca ghcr.io/lucasrguerra/tabletop:latest
+docker compose up -d
 docker compose ps            # ambos devem aparecer como "healthy"
+```
+
+Atualizar para a última versão é o mesmo par de comandos. Para fixar uma versão
+específica ou voltar atrás, use as outras tags publicadas:
+
+```bash
+IMAGE_TAG=1.1.0 docker compose up -d                    # por versão
+IMAGE_TAG=sha-<commit> docker compose up -d             # por commit exato
 ```
 
 Os dois serviços têm healthcheck. O do MongoDB usa `db.adminCommand('ping')`; o
 da aplicação consulta `/api/health`, que confirma a conexão com o banco. Como a
-imagem `node:22-slim` não traz `curl` nem `wget`, o comando usa o próprio Node:
+imagem final é um Alpine enxuto, sem `curl` nem `wget`, o comando usa o próprio Node:
 
 ```yaml
 healthcheck:
@@ -1082,15 +1091,23 @@ As variáveis seguem o padrão de nomes do Coolify (`SERVICE_USER_MONGODB`,
 `SERVICE_PASSWORD_64_NEXTAUTH`, `SERVICE_PASSWORD_64_CSRF`, `SERVICE_URL_APP`),
 com valores de desenvolvimento como padrão — **troque todos antes de expor**.
 
-### Docker (imagem isolada)
+### Build local da imagem
 
-O Dockerfile utiliza `node:22-slim` e espera que o build Next.js já tenha sido executado:
+Útil para testar uma mudança no `Dockerfile` antes de abrir o PR. O overlay
+troca o `pull` por um build da árvore de trabalho e publica a porta no host:
 
 ```bash
-# Build da aplicação e empacotamento (o Dockerfile descompacta .next.tar.gz)
-npm run build:release
+docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
+```
 
-# Build da imagem
+A imagem é multi-stage sobre `alpine` + `nodejs` (183 MB): o estágio de build
+compila com `output: 'standalone'`, que rastreia apenas as dependências
+alcançadas pela aplicação, e o estágio final roda como usuário não-root sem
+`npm` instalado.
+
+### Docker (imagem isolada)
+
+```bash
 docker build -t tabletop .
 
 # Run do container
@@ -1159,9 +1176,16 @@ git merge --no-ff feature/21-exportacao-de-relatorios
 git push origin main
 ```
 
-### Artefato de build
+### CI/CD
 
-O `.next.tar.gz` **não é versionado** — é um artefato de build publicado como anexo de uma [GitHub Release](https://github.com/lucasrguerra/tabletop/releases). Gere-o com `npm run build:release` e anexe-o à release da versão correspondente. O `Dockerfile` espera o arquivo na raiz do projeto no momento do build.
+Nada é compilado à mão. O GitHub Actions cuida do ciclo inteiro:
+
+| Workflow | Quando roda | O que faz |
+|---|---|---|
+| [`ci.yml`](.github/workflows/ci.yml) | todo push e pull request | Vitest, Playwright (temas claro e escuro), Trivy no repositório, build da imagem + Trivy na imagem |
+| [`release.yml`](.github/workflows/release.yml) | merge na `main` | Roda o CI inteiro e, só se passar, publica a imagem no GHCR |
+
+A imagem vai para `ghcr.io/lucasrguerra/tabletop` com três tags: `latest`, a versão do `package.json` e o SHA completo do commit. **Não existe artefato de build versionado** — o `Dockerfile` compila a partir do código-fonte.
 
 ### Criando Novos Cenários
 
@@ -1195,7 +1219,6 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 |---------|-----------|
 | `npm run dev` | Inicia servidor de desenvolvimento via `server.mjs` com Socket.IO |
 | `npm run build` | Build de produção otimizado com rotas do Next.js |
-| `npm run build:release` | Build de produção e cria pacote comprimido em `.next.tar.gz` |
 | `npm run start` | Inicia servidor de produção via `server.mjs` (com `NODE_ENV=production`) |
 | `npm run lint` | Executa linting do código pelo Next.js |
 | `npm run clean` | Remove as pastas `.next` e arquivos de build `.tar.gz` usando `rimraf` |
@@ -1204,6 +1227,9 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 | `npm run test:integration` | Somente testes de integração (MongoDB em memória) |
 | `npm run test:watch` | Testes em modo interativo |
 | `npm run test:coverage` | Relatório de cobertura de `models/` e `utils/` |
+| `npm run test:e2e` | Suíte E2E com Playwright (compila antes de rodar) |
+| `npm run test:e2e:theme` | Somente a auditoria de tema claro/escuro |
+| `npm run test:all` | Vitest + E2E, o mesmo que o CI executa |
 | `node scripts/add-admin.mjs <nickname>` | Concede papel de administrador (`admin: true`) a um usuário cadastrado |
 | `node scripts/remove-admin.mjs <nickname>` | Remove o papel de administrador de um usuário cadastrado |
 | `node scripts/add-facilitator.mjs <nickname>` | Concede papel de facilitador (`facilitator: true`) a um usuário cadastrado |

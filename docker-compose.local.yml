@@ -1,0 +1,12 @@
+# Local overlay: builds the image from the working tree instead of pulling the
+# one published by CI. Not loaded automatically — the deploy host must keep
+# pulling from GHCR.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
+services:
+  app:
+    build: .
+    image: tabletop-app:local
+    pull_policy: build
+    ports:
+      - "${PORT:-3000}:3000"

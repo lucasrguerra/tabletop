@@ -1,18 +1,32 @@
-# Allowlist. The build context carries only what the Dockerfile copies:
-# everything else is either already compiled into .next.tar.gz or unused at
-# runtime, and shipping it just slows the build and enlarges the context.
-*
+# The image is built from source, so the context carries the app but none of
+# the local state, tooling output or test scaffolding.
 
-!.next.tar.gz
-!package.json
-!server.mjs
-!public
-!scenarios
-!studies
-!scripts
+.git
+.github
+node_modules
+.next
+.next.tar.gz
+out
+coverage
+test-results
+playwright-report
+blob-report
 
-# Never, regardless of the rules above.
-**/.env
-**/.env.*
-**/node_modules
-**/.DS_Store
+# Tests and their tooling run in CI, never inside the image build.
+tests
+playwright.config.mjs
+vitest.config.mjs
+
+# Local environment and editor state.
+.env
+.env.*
+.vscode
+.idea
+.claude
+*.swp
+.DS_Store
+
+# Docs
+*.md
+guia*.txt
+LICENSE

@@ -1,19 +1,37 @@
+# ── Dependencies ──
+# Cached separately from the sources so a code change does not reinstall
+# node_modules on every build.
+FROM node:22-alpine AS deps
+WORKDIR /build
+
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
+
 # ── Builder ──
-# Unpacks the pre-built .next.tar.gz and assembles a minimal runtime tree.
-# Nothing from this stage ships except the directory copied out below, so the
-# tarball, npm and the pruned files never reach the final image.
+# Compiles the app. `output: 'standalone'` traces only the dependencies the app
+# actually reaches, which is what keeps the runtime image small.
 FROM node:22-alpine AS builder
 WORKDIR /build
 
-COPY .next.tar.gz ./
-RUN tar -xzf .next.tar.gz && rm .next.tar.gz
+COPY --from=deps /build/node_modules ./node_modules
+COPY package.json package-lock.json next.config.mjs jsconfig.json postcss.config.mjs ./
+COPY app ./app
+COPY components ./components
+COPY database ./database
+COPY models ./models
+COPY utils ./utils
+COPY public ./public
+COPY scenarios ./scenarios
+COPY studies ./studies
+COPY proxy.js ./
+
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN npm run build
 
 ENV STANDALONE=/build/.next/standalone
 
-# `output: 'standalone'` traces only the dependencies the app reaches, but Next
-# does not trace the custom server, so socket.io and its transitive deps are
-# installed separately and merged into the traced tree.
-COPY package.json ./
+# Next does not trace the custom server, so socket.io and its transitive deps
+# are installed separately and merged into the traced tree.
 RUN SOCKET_IO=$(node -p "require('./package.json').dependencies['socket.io']") \
 	&& npm install --prefix /deps --omit=dev --no-audit --no-fund --no-package-lock "socket.io@$SOCKET_IO" \
 	# Copied entry by entry, skipping names the traced tree already provides:
@@ -28,9 +46,9 @@ RUN SOCKET_IO=$(node -p "require('./package.json').dependencies['socket.io']") \
 # Assets Next keeps outside the standalone bundle by design.
 RUN cp -r /build/.next/static "$STANDALONE/.next/static"
 
-# Standalone mirrors the project root, which drags in the sources, tests and
-# tooling configs. Everything the server needs is already compiled into
-# .next/server, so only the data read from disk at runtime is kept.
+# Standalone mirrors the project root, which drags in the sources and tooling
+# configs. Everything the server needs is already compiled into .next/server,
+# so only the data read from disk at runtime is kept.
 WORKDIR /build/.next/standalone
 RUN rm -rf app components database models utils tests scripts public \
 		node_modules/@types \
